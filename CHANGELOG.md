@@ -1,0 +1,75 @@
+# Changelog
+
+## v2.0 — 2026-08-24
+
+A cost rewrite. The v1 architecture was right; its routing was expensive in one
+direction, and the top model paid for all of it.
+
+**Routing**
+- Replaced the four-tier model ladder with **six rungs of model × effort**.
+  `sonnet/medium` is the default rung.
+- One failure moves a node **one rung**, not one model tier — a failing rung-1
+  node buys more thinking before it buys a bigger model.
+- Added `CEILING` (default rung 4, `opus/high`). Fable rungs are reached by
+  asking, not by drifting.
+- Added **rung drift**: a phase runner raises or lowers the default entry rung
+  from what its phase is actually doing, and resets at the gate.
+- Made **de-escalation mandatory** — a diagnosing rung must hand the specified
+  fix back down or say why it could not.
+
+**Layers**
+- Added the **phase runner** between prime and nodes. The prime now spends about
+  one turn per phase instead of one per task.
+- Added `PRIME_TURNS`, a declared budget for the conductor's own turns, with a
+  documented handover to an opus deputy when it is spent.
+- Formalized the **digest**: ten lines, written by the producer, the only thing
+  that crosses a layer besides an envelope.
+
+**Topology**
+- The plan is a **graph** with typed edges — `needs`, `informs`, `refutes` —
+  instead of a task list with `blocked_by`.
+- Convergence became a first-class **`kind: loop` node** with a seen ledger,
+  a declared invariant, and a mandatory exit condition. Dedupe is against
+  everything seen, not everything admitted.
+- Added `fanout` / `barrier` node kinds and the pipeline-by-default rule.
+
+**Personas**
+- Split the prompt into a **router plus files**: two contracts, 8 modes,
+  11 roles, 28 personas.
+- Introduced the persona schema with two kinds — `expert` and `user` — and a
+  per-phase duty table for each.
+- Personas load from any repository, and a file carrying only `name` and
+  `domain` is valid. `repo:github.com/ckluis/luminaryTeam` works unmodified.
+- Added **seats** and seat upgrades: modes name what gets examined, personas
+  own how.
+- Added 7 end-user archetypes and the screenshots-only perception contract.
+- Independence is now structural — each persona is its own context — so
+  unanimity is treated as a failure signal and gets a forced clash.
+
+**Verification**
+- Verification runs at the node's own rung, not one above.
+- Added the **refutation quota**: five consecutive confirmations in a phase
+  trigger an adversary one rung up.
+- Added `UNVERIFIED` — a finding whose citation does not check out stays in the
+  report and cannot block.
+
+**The page**
+- Gave every mode its own hero band with risograph concept artwork drawn as
+  inline SVG — two plates (yellow and cyan) with halftone fills and a 2px
+  misregistration, no external assets. Each drawing is the mode's actual
+  topology rather than a decoration of it.
+- Added a "what comes out" section: the `_orch/` tree a run leaves behind, and
+  the rung histogram beside it.
+
+**Operations**
+- Added the **operator lane**: a blocked run can be answered mid-flight. A
+  message is a doorbell, never a document; the answer goes on disk.
+- Added `ledger.csv` and the **rung histogram** in the final report.
+- Added `bundle.sh` for environments that cannot clone.
+
+## v1.0 — 2026-08-23
+
+Initial release. A single 571-line prompt: a Fable-led orchestrator of
+orchestrators with file-passing handoffs, a four-tier escalation ladder,
+adversarial verification, and six modes.
+Preserved at <https://ckluis.github.io/experiments/baton.html>.
