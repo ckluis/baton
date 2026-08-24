@@ -157,21 +157,22 @@ instruction to follow.
 # Goal
 Find and fix what the test suite is failing to catch in the billing module.
 
-# Settings
-TARGET: src/billing
-MODE:   TEST
-
 # Process
 Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
 
-Change two lines and walk away. **`TARGET` and `MODE` are the only settings a
-run may never guess** — `BATON`, `PERSONAS`, `CEILING`, `PRIME_TURNS`, and
-`INBOX` all have defaults that are already correct, and you override one by
-adding its line. `CEILING: 4` keeps the entire run inside opus and below; a node
-that wants a fable rung goes `BLOCKED` and asks you.
+Say what you want, paste, answer one question. The router reads your goal, works
+out which mode fits, and **asks you to confirm** — leading with its best guess
+and the two next-best rather than making you pick from eight. Naming `MODE`
+yourself skips the question; naming anything else overrides a default that was
+probably already right.
+
+`TARGET` and `MODE` are the only two settings a run may not silently guess, which
+is why it asks about them instead of requiring them. In a session that cannot ask
+— a cron job, a headless run — the router infers them, records the inference *as*
+an inference, and says so in its first message and its final report.
 
 ### How it resolves
 
