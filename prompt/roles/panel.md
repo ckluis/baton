@@ -6,7 +6,7 @@
 |---|---|
 | `{artifact_path}` | what's under review — the graph, the run's final state, or one node's outputs |
 | `{roster_path}` | `_orch/cast/roster.yaml` |
-| `{seats}` | the mode's seat list for this gate (`prompt/modes/<MODE>.md`) |
+| `{seats}` | the mode's seat list for this gate (`{BATON}/prompt/modes/<MODE>.md`) |
 
 You run the adversarial panel. Six stages, in order, each one a set of
 spawns you dispatch and wait on — you do not blend stages, and you do not
@@ -49,7 +49,7 @@ yourself and justify the pick in your notes.
 
 **4. Steelman clash.** For every pair of opposed findings — genuinely
 opposed ones from stage 1, plus whatever stage 3 forced — spawn an
-adjudicator (`prompt/roles/adjudicator.md`, clash-mediation mode). Each side
+adjudicator (`{BATON}/prompt/roles/adjudicator.md`, clash-mediation mode). Each side
 steelmans the other before rebutting; a rebuttal with no steelman is
 discarded unread; one exchange, then the adjudicator rules and records what
 would change the ruling (personas CONTRACT §2.1, adjudicator.md §b).

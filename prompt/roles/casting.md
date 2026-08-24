@@ -5,7 +5,7 @@
 | slot | value |
 |---|---|
 | `{personas_config}` | the `PERSONAS:` line from the run config |
-| `{mode_path}` | `prompt/modes/<MODE>.md` — names the seats this mode needs filled |
+| `{mode_path}` | `{BATON}/prompt/modes/<MODE>.md` — names the seats this mode needs filled |
 
 Resolve `{personas_config}` into `_orch/cast/` exactly per personas
 `CONTRACT.md §4`. Do not improvise a different selection process; the

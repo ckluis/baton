@@ -9,7 +9,7 @@ models, adversarial verification that has to name the attack it tried, and a
 report that ends by telling you where the money actually went.
 
 **→ [Read the page](https://ckluis.github.io/baton/)** ·
-[baton v1](https://ckluis.github.io/experiments/baton.html) ·
+[baton v1](https://ckluis.github.io/baton/baton-v1.html) ·
 [luminaryTeam](https://ckluis.github.io/luminaryTeam/)
 
 ---
@@ -213,9 +213,17 @@ personas/
   lenses/             21 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
 bundle.sh             flatten to a single paste
-tools/embed.py        re-embed prompt/baton.md into index.html
+tools/embed.py        re-embed the invocation + router into index.html
 index.html            the page
+baton-v1.html         v1, kept as it shipped
 ```
+
+Every framework reference inside the prompt files is written `{BATON}/prompt/...`
+or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
+(`./baton`) or a base URL
+(`https://raw.githubusercontent.com/ckluis/baton/main`). Agents expand the token
+before using it or passing it on — a sub-agent always receives a fully qualified
+path or URL and never has to guess a base.
 
 Two contracts define every schema. Everything else is written against them, and
 **where a role prompt and the contract disagree, the contract wins and the role

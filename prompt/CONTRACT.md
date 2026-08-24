@@ -258,7 +258,7 @@ worktree.
   Its author may never be the author of the target.
 
 `surface: ui` is not decoration. A node carrying it gets a **journey probe**
-(`prompt/roles/journey-probe.md`) added to its verification alongside the
+(`{BATON}/prompt/roles/journey-probe.md`) added to its verification alongside the
 ordinary verifier, scoped to only the roles and journeys that node affects. If
 the probe cannot run — app unreachable, credentials failing — it returns
 `BLOCKED` and the node keeps its code verdict with a logged caveat. **Never
@@ -417,9 +417,13 @@ _orch/
 Two different things get referred to by "path" and they must not be confused:
 
 - **Framework files** — this contract, the modes, the roles, the persona files.
-  These may live at a local directory *or* at a base URL, resolved per the
-  router's §2.1. When you hand one to a sub-agent, hand it the fully resolved
-  form; a sub-agent never guesses a base.
+  Written as `{BATON}/prompt/...` or `{BATON}/personas/...`, where `{BATON}` is
+  either a local directory (`./baton`) or a base URL
+  (`https://raw.githubusercontent.com/ckluis/baton/main`), resolved per the
+  router's §2.1. **Expand the token before you use it or pass it on.** When you
+  hand a framework file to a sub-agent, hand it the fully expanded locator; a
+  sub-agent never guesses a base and never receives a `{BATON}` it has to
+  resolve itself.
 - **Run state** — everything under `_orch/`. This is **always local disk,
   always**. A run whose state lived at a URL could not be written to, could not
   be resumed, and could not be the single source of truth that makes every other
@@ -535,6 +539,10 @@ Appended verbatim to every spawn prompt:
 > CONTRACT: You are running at rung {rung} ({model}/{effort}). Work only inside
 > `{work_dir}`. Read `{handoff_path}` for inputs, expected outputs, and
 > done-criteria; do not read outside what it names unless the work requires it.
+> The rules you are bound by live at `{contract_locator}` — a fully expanded
+> path or URL, already resolved for you. Read it if you need a rule you do not
+> already have; do not guess one, and do not go looking for the framework
+> yourself.
 > If you judge this above your rung, stop early and return `ESCALATE` with a
 > written escalation packet at `{escalation_path}` — a fast honest ESCALATE is
 > a deliverable. If it is not one node, return `SPLIT` with the seams.

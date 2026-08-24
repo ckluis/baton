@@ -2,7 +2,7 @@
 
 This is what you paste. **There is nothing to install and nothing to clone.**
 
-`prompt/baton.md` is the router, and the router is for the agent to read, not
+`{BATON}/prompt/baton.md` is the router, and the router is for the agent to read, not
 for you to carry. The invocation just tells it where the router lives.
 
 ---
