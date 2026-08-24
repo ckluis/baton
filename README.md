@@ -155,32 +155,45 @@ instruction to follow.
 git clone --depth 1 https://github.com/ckluis/baton
 ```
 
-Open `prompt/baton.md`, fill the run config, paste the whole file into a fresh
-session:
+Then paste this into a fresh session:
 
 ```
-TARGET:    src/billing
-MODE:      TEST
-BATON:     ./baton
-PERSONAS:  builtin
-CEILING:   4
-PRIME_TURNS: 12
-INBOX:     off
+# Goal
+Find and fix what the test suite is failing to catch in the billing module.
+
+# Settings
+TARGET: src/billing
+MODE:   TEST
+
+# Process
+Read ./baton/prompt/baton.md completely and follow it. You are the PRIME
+ORCHESTRATOR it describes. It names the other files to read — read those, and
+nothing beyond what they name. Do not start work until you have read it.
 ```
 
-`CEILING: 4` keeps the entire run inside opus and below. Rungs 5 and 6 are fable;
-a node that wants one goes `BLOCKED` and asks you.
+That is the whole paste. **`TARGET` and `MODE` are the only two settings a run
+may never guess** — `BATON`, `PERSONAS`, `CEILING`, `PRIME_TURNS`, and `INBOX`
+all have defaults that are already correct, and you override one by adding its
+line. `CEILING: 4` keeps the entire run inside opus and below; a node that wants
+a fable rung goes `BLOCKED` and asks you.
 
-Can't clone? `./bundle.sh TEST` flattens the router, both contracts, your mode,
-the roles, and the personas into one pasteable document under `dist/`.
+**What you paste is not the process — it points at the process.** The router is
+a document for the agent to read. Carrying it by hand would mean holding the
+whole procedure just to tell something else to go follow it, and it would spend
+the one context the design exists to protect.
 
----
+See [`prompt/invoke.md`](prompt/invoke.md) for the full card with every knob, the
+settings table, and the two fallbacks: point `BATON` at
+`https://raw.githubusercontent.com/ckluis/baton/main` to fetch instead of read,
+or run `./bundle.sh TEST` to flatten everything into one self-contained document
+for environments that can do neither.
 
 ## Layout
 
 ```
 prompt/
-  baton.md            the router — this is what you paste
+  invoke.md           the paste — your goal, two settings, a pointer
+  baton.md            the router — the agent reads this, not you
   CONTRACT.md         ladder, envelope, digest, graph, loop, gates, evidence
   modes/              8 — directive + graph shape + entry rungs + seats + gates
   roles/              11 — planner, phase-runner, verifier, panel, synthesizer…

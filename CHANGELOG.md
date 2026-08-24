@@ -53,6 +53,16 @@ direction, and the top model paid for all of it.
 - Added `UNVERIFIED` — a finding whose citation does not check out stays in the
   report and cannot block.
 
+**Invocation**
+- What you paste is no longer the router. `prompt/invoke.md` defines an
+  eleven-line invocation — a goal, `TARGET`, `MODE`, and three lines pointing
+  the session at `prompt/baton.md`. Every other setting has a default.
+- The router became a document the *agent* reads. Pasting it meant carrying the
+  whole procedure by hand in order to tell an agent to go read the procedure,
+  and it spent 162 lines of the one context the design exists to protect.
+- `BATON` now accepts a base URL as well as a directory, so a session with no
+  ability to clone can fetch the framework instead.
+
 **The page**
 - Gave every mode its own hero band with risograph concept artwork drawn as
   inline SVG — two plates (yellow and cyan) with halftone fills and a 2px

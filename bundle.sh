@@ -4,10 +4,14 @@
 #   ./bundle.sh              -> dist/baton-all.md      (every mode)
 #   ./bundle.sh TEST         -> dist/baton-TEST.md     (one mode)
 #
-# The router is designed to READ these files off disk, which is cheaper and
-# keeps the modes you are not running out of your context. Bundle when you
-# cannot clone: a locked-down environment, a web session, someone else's
-# machine. Paste the bundle and delete the "Locate baton" step.
+# Normally you paste the eleven-line invocation (prompt/invoke.md) and the
+# agent reads these files off disk — cheaper, and it keeps the modes you are
+# not running out of your context. Bundle only when the session can neither
+# clone nor fetch: a locked-down environment, someone else's machine.
+#
+# Paste the bundle instead of the invocation, put your TARGET and MODE at the
+# top, and skip the router's "Locate baton" step — everything it names is
+# already inline below.
 
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)

@@ -247,7 +247,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <div class="card" style="padding:0;overflow:hidden">
           <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v1 &rarr; v2</div></div>
           <div style="padding:8px 0">
-            <div class="vs"><span class="vl">One prompt, 571 lines</span><span class="va">&rarr;</span><span class="vr">Router of 159 + the mode you asked for</span></div>
+            <div class="vs"><span class="vl">Paste 571 lines</span><span class="va">&rarr;</span><span class="vr">Paste 11. Point at the rest.</span></div>
             <div class="vs"><span class="vl">4 model tiers</span><span class="va">&rarr;</span><span class="vr">6 rungs of model &times; effort</span></div>
             <div class="vs"><span class="vl">Prime dispatches every task</span><span class="va">&rarr;</span><span class="vr">Prime dispatches phases</span></div>
             <div class="vs"><span class="vl">Convergence in prose</span><span class="va">&rarr;</span><span class="vr"><code>kind: loop</code> with a seen ledger</span></div>
@@ -1236,10 +1236,10 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
       </div>
       <div class="card">
         <span class="num">STEP 03</span>
-        <h4>Paste into a fresh session</h4>
-        <p style="margin-top:12px">The prime reads two files, creates <code>_orch/</code>, casts, plans,
-          and gates. Everything lives on disk, so a session limit costs one node &mdash; not a run.
-          Resume is free by construction.</p>
+        <h4>Paste eleven lines, and point</h4>
+        <p style="margin-top:12px">Your goal, two settings, and three lines sending the session to
+          <code>prompt/baton.md</code>. It reads the router, then two more files, then casts, plans,
+          and gates. Everything lives on disk, so a session limit costs one node &mdash; not a run.</p>
       </div>
     </div>
   </div>
@@ -1265,15 +1265,16 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
       <div class="code reveal d1">
         <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>ckluis/baton</b></div></div>
 <pre><span class="k">prompt/</span>
-  <span class="v">baton.md</span>            <span class="c">the router — this is what you paste</span>
-  <span class="v">CONTRACT.md</span>         <span class="c">ladder, envelope, digest, graph, loop, gates</span>
-  <span class="k">modes/</span>              <span class="c">8 — directive + graph shape + seats + gates</span>
-  <span class="k">roles/</span>              <span class="c">11 — planner, phase-runner, verifier, panel…</span>
+  <span class="v">invoke.md</span>           <span class="c">the paste — goal, settings, a pointer</span>
+  <span class="v">baton.md</span>            <span class="c">the router — the agent reads this</span>
+  <span class="v">CONTRACT.md</span>         <span class="c">ladder, envelope, digest, graph, loop</span>
+  <span class="k">modes/</span>              <span class="c">8 — directive + graph shape + seats</span>
+  <span class="k">roles/</span>              <span class="c">11 — planner, phase-runner, verifier…</span>
 <span class="k">personas/</span>
-  <span class="v">CONTRACT.md</span>         <span class="c">schema + per-phase duties per persona kind</span>
+  <span class="v">CONTRACT.md</span>         <span class="c">schema + per-phase duties per kind</span>
   <span class="k">lenses/</span>             <span class="c">21 — expert seats, upgradeable</span>
   <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
-<span class="v">bundle.sh</span>             <span class="c">flatten router + mode + roles into one paste</span></pre>
+<span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
       </div>
     </div>
   </div>
@@ -1283,88 +1284,135 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
 <section id="prompt" class="band">
   <div class="wrap">
     <div class="sechead reveal">
-      <span class="kicker c">11 &mdash; The router</span>
-      <h2>The prompt, <em>entire.</em></h2>
-      <p>This is the whole thing you paste. It reads two files and delegates everything else. If you
-        would rather paste one self-contained document instead of cloning,
-        <code>./bundle.sh TEST</code> flattens the router, the contracts, your mode, and the roles it
-        needs into a single file.</p>
+      <span class="kicker c">11 &mdash; The invocation</span>
+      <h2>What you paste is <em>not the process.</em></h2>
+      <p>It points at the process. The router is a document for the agent to read &mdash; making you
+        carry it by hand would mean holding the whole procedure just to tell something else to go
+        follow it, and it would spend the one context the design exists to protect. So the paste
+        carries only what you know that the repository cannot: what you want, and how much you are
+        willing to spend finding out.</p>
     </div>
+
     <div class="reveal d1">
       <div class="code">
         <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; 162 lines &middot; fill the run config</div>
-          <button class="copybtn" id="copybtn" type="button">Copy the router</button>
+          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>the whole paste</b> &middot; 11 lines</div>
+          <button class="copybtn" id="copybtn" type="button">Copy it</button>
         </div>
-        <pre id="psrc"># BATON v2 — the router
+        <pre id="psrc"># Goal
+Find and fix what the test suite is failing to catch in the billing module.
 
-You are the **PRIME ORCHESTRATOR** of a baton run. This file is the only thing
-pasted into your session. Everything else you need is on disk, and you will
-delegate the reading of almost all of it.
+# Settings
+TARGET: src/billing
+MODE:   TEST
+
+# Process
+Read ./baton/prompt/baton.md completely and follow it. You are the PRIME
+ORCHESTRATOR it describes. It names the other files to read — read those, and
+nothing beyond what they name. Do not start work until you have read it.</pre>
+      </div>
+      <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
+        Click inside the box, select all, copy. Swap in your own target and mode &mdash; those two are
+        the only things a run may never guess.</p>
+    </div>
+
+    <div class="grid g3 reveal d2" style="margin-top:32px">
+      <div class="card sm">
+        <span class="num">EVERYTHING ELSE</span>
+        <h4>Has a default that is already right.</h4>
+        <p><code>BATON: ./baton</code> &middot; <code>PERSONAS: builtin</code> &middot;
+          <code>CEILING: 4</code> &middot; <code>PRIME_TURNS: 12</code> &middot;
+          <code>INBOX: off</code>. A default you never had to type is a decision you never had to
+          make. Override any of them by adding the line.</p>
+      </div>
+      <div class="card sm">
+        <span class="num">NO CLONE?</span>
+        <h4>Point it at a URL instead.</h4>
+        <p><code class="brk">BATON: raw.githubusercontent.com/ckluis/baton/main</code> and the router
+          fetches rather than reads. Slower, needs network on every file, and casting cannot clone a
+          persona repo over it &mdash; so prefer a clone when a clone is possible.</p>
+      </div>
+      <div class="card sm">
+        <span class="num">NEITHER?</span>
+        <h4>Flatten it into one document.</h4>
+        <p><code>./bundle.sh TEST</code> inlines the router, both contracts, your mode, the roles,
+          and only that mode's seats. Paste that and drop the pointer. It is the v1 shape, kept for
+          the environments that still need it.</p>
+      </div>
+    </div>
+
+    <details class="rdet reveal d3">
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 158 lines</summary>
+      <div class="code" style="margin-top:16px">
+        <div class="codebar">
+          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
+          <button class="copybtn" id="rcopybtn" type="button">Copy the router</button>
+        </div>
+        <pre id="rsrc"># BATON v2 — the router
+
+You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
+because your invocation pointed you at it. **Read it to the end before you act.**
+
+Everything else you need sits beside this file, and you will delegate the reading
+of almost all of it. This file is a router. The contracts are the product.
 
 ---
 
-## RUN CONFIG
+## 1. Your run config
 
-**Two lines are required. The other five are defaults that are already correct.**
+The invocation that sent you here carries the settings. Take them from it.
 
-```
-TARGET:    [module/folder path, spec file, running app URL, or a one-line goal]
-MODE:      [TEST | BUILD | IMPROVE | REVIEW | DOGFOOD | MIGRATE | ROADMAP | GENERIC]
+**Only `TARGET` and `MODE` are required.** Anything absent takes the default
+below, and you do not ask the operator about a default that is already correct.
 
-BATON:     ./baton        # default
-PERSONAS:  builtin        # default
-CEILING:   4              # default — opus/high. above this, the run asks.
-PRIME_TURNS: 12           # default
-INBOX:     off            # default
-```
+| setting | default | what it does |
+|---|---|---|
+| `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
+| `MODE` | **required** | selects `prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
+| `BATON` | `./baton` | where this repository is — a directory, or a base URL (§2) |
+| `PERSONAS` | `builtin` | `builtin` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `personas/CONTRACT.md`. |
+| `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
+| `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
+| `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
 
-| line | what it does |
-|---|---|
-| `MODE` | selects `prompt/modes/&lt;MODE&gt;.md`. That file carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
-| `BATON` | where this repository is checked out. If it is not there, see §1. |
-| `PERSONAS` | `builtin`, `none`, `path:&lt;dir&gt;`, `repo:&lt;host/owner/name&gt;`, combined with `+`. See `personas/CONTRACT.md`. |
-| `CEILING` | highest rung reachable without asking. `4` = opus/high. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
-| `PRIME_TURNS` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
-| `INBOX` | `on` lets a second session answer blocked questions mid-run without stopping it. |
+A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
+verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
 
-**OPERATOR NOTES** *(optional; required for `GENERIC` — delete if unused)*
-
-```
-[constraints, exclusions, definitions of done, technology to avoid,
- anything the mode file cannot know]
-```
+If `MODE` is missing, or `TARGET` names something you cannot find, stop and ask.
+Those two are the only things in a baton run you may never guess.
 
 ---
 
-## 1. Bootstrap
+## 2. Bootstrap
 
 Before anything else, in this order, and briefly:
 
-1. **Locate baton.** If `BATON` does not resolve to a directory containing
-   `prompt/CONTRACT.md`, clone it: `git clone --depth 1
-   https://github.com/ckluis/baton`. If cloning is not possible, stop and tell
-   the operator — do not improvise the framework from this file. This file is a
-   router; the contracts are the product.
+1. **Locate baton.** `BATON` resolves either to a directory containing
+   `prompt/CONTRACT.md`, or to a base URL you fetch the same relative paths
+   from. If it is a directory and it is not there, clone it:
+   `git clone --depth 1 https://github.com/ckluis/baton`. If you can neither
+   read nor fetch nor clone, stop and tell the operator — **do not improvise the
+   framework from this file.** A local clone is preferred: it is faster, and it
+   is the only form that lets casting clone a persona repository.
 2. **Read exactly two files yourself.** `prompt/CONTRACT.md` and
-   `prompt/modes/&lt;MODE&gt;.md`. These are the last two documents you will read for
-   the rest of the run.
+   `prompt/modes/&lt;MODE&gt;.md`. Together with this router they are the last three
+   documents you will read for the rest of the run.
 3. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
      `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
-     followed by OPERATOR NOTES verbatim
+     followed by the invocation's Goal block verbatim
 4. **Cast** (rung 1) — spawn the casting agent (`prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
 5. **Plan** (rung 3) — spawn the planner (`prompt/roles/planner.md`) with the
    directive path and the mode file path. It returns a graph; it does not
    execute.
 
-Then run the cycle in §3.
+Then run the cycle in §4.
 
 ---
 
-## 2. Your standing orders
+## 3. Your standing orders
 
 You are the conductor. **The conductor never plays a note**, and in v2 the
 conductor also stops walking to every music stand.
@@ -1374,10 +1422,10 @@ conductor also stops walking to every music stand.
 stop at the first prose section — and the frontmatter of escalation packets.
 
 **You may never read:** source code, diffs, test output, logs, reports, flow
-documents, or anything under a `work/` directory. Not once. Not to "just
-check." If you need to know what is inside a work product, there is a digest;
-if there is no digest, the node violated the contract and the fix is to ask for
-the digest, not to open the file.
+documents, or anything under a `work/` directory. Not once. Not to "just check."
+If you need to know what is inside a work product, there is a digest; if there is
+no digest, the node violated the contract and the fix is to ask for the digest,
+not to open the file.
 
 **You may never do object-level work.** No edits, no test runs, no browsing.
 Every keystroke that touches the product happens at rung 4 or below.
@@ -1392,7 +1440,7 @@ final gate. Protect it the way you would protect a battery on a long flight.
 
 ---
 
-## 3. The cycle
+## 4. The cycle
 
 Repeat until the graph has no runnable nodes:
 
@@ -1427,7 +1475,7 @@ can assume better.
 
 ---
 
-## 4. Ending
+## 5. Ending
 
 Your closing message to the operator is small, and small is the whole point:
 
@@ -1444,7 +1492,7 @@ destroyed the evidence for its own conclusions.
 
 ---
 
-## 5. If you are resuming
+## 6. If you are resuming
 
 A baton run has no memory that matters and no context worth preserving. Read
 `manifest.json`, scan `nodes/*/status.json` and `verify/*.json`, and continue.
@@ -1456,13 +1504,14 @@ limit landing mid-run costs one node, not a run.**
 
 ---
 
-Begin: locate baton, read `prompt/CONTRACT.md` and your mode file, create
-`_orch/`, then cast and plan.
-</pre>
+Begin: confirm `TARGET` and `MODE`, locate baton, read `prompt/CONTRACT.md` and
+your mode file, create `_orch/`, then cast and plan.</pre>
       </div>
-      <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
-        Click inside the box, select all, copy &mdash; the text is the prompt, byte for byte.</p>
-    </div>
+      <p style="margin-top:14px;font-size:14px;color:var(--muted)">Its first instruction is to read two
+        more files &mdash; <code>prompt/CONTRACT.md</code> and your mode &mdash; and those are the last
+        documents the conductor reads all run. Everything after that is a path handed downward and an
+        envelope handed back.</p>
+    </details>
   </div>
 </section>
 <style>
@@ -1472,7 +1521,16 @@ Begin: locate baton, read `prompt/CONTRACT.md` and your mode file, create
   html.js .copybtn{display:inline-flex}
   .copybtn:hover{background:var(--yellow-2)}
   .copybtn.ok{background:var(--ok);color:#04140a}
-  #psrc{max-height:70vh;overflow:auto;font-size:12.5px;line-height:1.65}
+  #psrc{font-size:13px;line-height:1.7}
+  #rsrc{max-height:60vh;overflow:auto;font-size:12.5px;line-height:1.65}
+  code.brk{overflow-wrap:anywhere;word-break:break-word}
+  .rdet{margin-top:40px;border-top:1px solid var(--hair);padding-top:28px}
+  .rdet summary{cursor:pointer;font-family:var(--mono);font-size:12.5px;font-weight:600;
+    letter-spacing:.04em;color:var(--cyan);list-style:none}
+  .rdet summary::-webkit-details-marker{display:none}
+  .rdet summary::before{content:"\002B  ";font-weight:700}
+  .rdet[open] summary::before{content:"\2212  "}
+  .rdet summary:hover{color:var(--yellow)}
 </style>
 
 <!-- ============ CTA ============ -->
@@ -1528,19 +1586,24 @@ Begin: locate baton, read `prompt/CONTRACT.md` and your mode file, create
   },{threshold:.1,rootMargin:'0px 0px -5% 0px'});
   document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
 
-  var btn = document.getElementById('copybtn'), src = document.getElementById('psrc');
-  if (btn && src) btn.addEventListener('click', async function(){
-    var text = src.textContent, ok = false;
-    try { await navigator.clipboard.writeText(text); ok = true; }
-    catch (e) {
-      var r = document.createRange(); r.selectNodeContents(src);
-      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-      ok = document.execCommand('copy'); s.removeAllRanges();
-    }
-    btn.textContent = ok ? 'Copied ✓' : 'Select + copy manually';
-    if (ok) btn.classList.add('ok');
-    setTimeout(function(){ btn.textContent = 'Copy the router'; btn.classList.remove('ok'); }, 2400);
-  });
+  function wireCopy(btnId, srcId, label){
+    var btn = document.getElementById(btnId), src = document.getElementById(srcId);
+    if (!btn || !src) return;
+    btn.addEventListener('click', async function(){
+      var text = src.textContent, ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; }
+      catch (e) {
+        var r = document.createRange(); r.selectNodeContents(src);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        ok = document.execCommand('copy'); s.removeAllRanges();
+      }
+      btn.textContent = ok ? 'Copied ✓' : 'Select + copy manually';
+      if (ok) btn.classList.add('ok');
+      setTimeout(function(){ btn.textContent = label; btn.classList.remove('ok'); }, 2400);
+    });
+  }
+  wireCopy('copybtn', 'psrc', 'Copy it');
+  wireCopy('rcopybtn', 'rsrc', 'Copy the router');
 </script>
 </body>
 </html>
