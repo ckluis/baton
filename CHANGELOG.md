@@ -71,6 +71,18 @@ direction, and the top model paid for all of it.
   whole procedure by hand in order to tell an agent to go read the procedure,
   and it spent 162 lines of the one context the design exists to protect.
 
+**Asking beats requiring**
+- `TARGET` and `MODE` are no longer required in the paste. The router reads the
+  Goal, infers the mode, and asks the operator to confirm through the session's
+  structured question tool — leading with its best fit and the two next-best
+  rather than listing all eight, because a question with eight options is a menu.
+- It may list directories (listings only, never contents) to turn "the billing
+  module" into `src/billing`, and proposes the obvious candidate.
+- Where it cannot ask, it infers, records the inference *as* an inference in
+  `manifest.json` and `directive.md`, and surfaces it in the first message and
+  the final report. A stated assumption is recoverable; a silent one is not.
+- The minimum paste is now seven lines: a goal, and three pointing at the router.
+
 **Locators**
 - Every framework reference in every prompt file is now written
   `{BATON}/prompt/...` or `{BATON}/personas/...`. `{BATON}` has exactly two

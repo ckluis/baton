@@ -247,7 +247,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <div class="card" style="padding:0;overflow:hidden">
           <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v1 &rarr; v2</div></div>
           <div style="padding:8px 0">
-            <div class="vs"><span class="vl">Paste 571 lines</span><span class="va">&rarr;</span><span class="vr">Paste 11. Point at the rest.</span></div>
+            <div class="vs"><span class="vl">Paste 571 lines</span><span class="va">&rarr;</span><span class="vr">Paste 7. Answer one question.</span></div>
             <div class="vs"><span class="vl">4 model tiers</span><span class="va">&rarr;</span><span class="vr">6 rungs of model &times; effort</span></div>
             <div class="vs"><span class="vl">Prime dispatches every task</span><span class="va">&rarr;</span><span class="vr">Prime dispatches phases</span></div>
             <div class="vs"><span class="vl">Convergence in prose</span><span class="va">&rarr;</span><span class="vr"><code>kind: loop</code> with a seen ledger</span></div>
@@ -1215,7 +1215,7 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
   <div class="wrap">
     <div class="sechead reveal">
       <span class="kicker c">09 &mdash; Start</span>
-      <h2>Clone it, fill two lines,<br><em>then leave the room.</em></h2>
+      <h2>Say what you want,<br><em>then leave the room.</em></h2>
     </div>
     <div class="grid g3 reveal d1">
       <div class="card">
@@ -1228,17 +1228,16 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
       </div>
       <div class="card">
         <span class="num">STEP 02</span>
-        <h4>Fill the run config</h4>
-        <p style="margin-top:12px">Only <code>TARGET</code> and <code>MODE</code> are required &mdash;
-          the other five defaults are already the ones you want. <code>CEILING: 4</code> keeps the
-          whole run inside opus and below; raise it only when a run has earned it.</p>
+        <h4>Say what you want, and point</h4>
+        <p style="margin-top:12px">Seven lines: your goal, and three sending the session to the
+          router's URL. No target, no mode, no config &mdash; those are questions, not homework.</p>
       </div>
       <div class="card">
         <span class="num">STEP 03</span>
-        <h4>Paste eleven lines, and point</h4>
-        <p style="margin-top:12px">Your goal, two settings, and three lines sending the session to
-          the router's URL. It reads the router, then two more files, then casts, plans,
-          and gates. Everything lives on disk, so a session limit costs one node &mdash; not a run.</p>
+        <h4>Answer one question</h4>
+        <p style="margin-top:12px">The router proposes the mode it thinks fits and you confirm it.
+          Then it casts, plans, and gates on its own. Everything lives on disk, so a session limit
+          costs one node &mdash; not a run.</p>
       </div>
     </div>
   </div>
@@ -1284,26 +1283,21 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
   <div class="wrap">
     <div class="sechead reveal">
       <span class="kicker c">11 &mdash; The invocation</span>
-      <h2>Nothing to install.<br><em>Eleven lines and a URL.</em></h2>
+      <h2>Say what you want.<br><em>Answer one question.</em></h2>
       <p>What you paste is not the process &mdash; it points at the process. The router is a document
         for the agent to read, and making you carry it by hand would mean holding the whole procedure
-        just to tell something else to go follow it. So the paste carries only what you know that the
-        repository cannot: what you want, where the framework lives, and how much you are willing to
-        spend finding out.</p>
+        just to tell something else to go follow it. So the paste carries the one thing only you know:
+        what you want. The router reads that, works out which mode fits, and asks you to confirm.</p>
     </div>
 
     <div class="reveal d1">
       <div class="code">
         <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>the whole paste</b> &middot; 11 lines</div>
+          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>the whole paste</b> &middot; 7 lines</div>
           <button class="copybtn" id="copybtn" type="button">Copy it</button>
         </div>
         <pre id="psrc"># Goal
 Find and fix what the test suite is failing to catch in the billing module.
-
-# Settings
-TARGET: src/billing
-MODE:   TEST
 
 # Process
 Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
@@ -1311,26 +1305,26 @@ You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
-        Click inside the box, select all, copy. Swap in your own target and mode &mdash; those two are
-        the only things a run may never guess.</p>
+        Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
+        line you have to touch.</p>
     </div>
 
     <div class="grid g3 reveal d2" style="margin-top:32px">
       <div class="card sm">
-        <span class="num">NO SETUP</span>
-        <h4>The URL is the whole dependency.</h4>
-        <p>No clone, no install, no config file. Every path in every baton file resolves against
-          wherever the router came from, so telling the agent that once is enough &mdash; modes, roles,
-          contracts, and personas all fetch themselves from there, as they are needed and never
-          before.</p>
+        <span class="num">IT ASKS</span>
+        <h4>One question, not a form.</h4>
+        <p>The router reads your goal, infers the mode, and confirms it &mdash; leading with its best
+          fit and the two next-best rather than making you choose from eight. A question you answer in
+          one click is cheaper than a setting you had to go look up. In a session that cannot ask, it
+          infers, records the inference <em>as</em> an inference, and says so.</p>
       </div>
       <div class="card sm">
-        <span class="num">THE URL IS THE PIN</span>
-        <h4>Swap <code>main</code> for a tag.</h4>
-        <p>Because everything resolves relative to the router you fetched, pointing at
-          <code>/v2.0</code> instead of <code>/main</code> pins the entire framework to that tag at
-          once. There is no second version to keep in sync, because there is no second place a
-          version could come from.</p>
+        <span class="num">NO SETUP</span>
+        <h4>The URL is the whole dependency.</h4>
+        <p>No clone, no install, no config file. Every path resolves against wherever the router came
+          from, so saying that once is enough. It also makes the base URL the version pin: point at
+          <code>/v2.0</code> instead of <code>/main</code> and the entire framework comes from that
+          tag, with no second version to keep in sync.</p>
       </div>
       <div class="card sm">
         <span class="num">OR KEEP IT LOCAL</span>
@@ -1352,7 +1346,7 @@ against that same base URL. Read it completely before you start any work.</pre>
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 203 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 240 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
@@ -1388,8 +1382,42 @@ below, and you do not ask the operator about a default that is already correct.
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
 verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
 
-If `MODE` is missing, or `TARGET` names something you cannot find, stop and ask.
-Those two are the only things in a baton run you may never guess.
+### 1.1 Anything missing, ask for
+
+`TARGET` and `MODE` are the only two settings a run may not silently guess.
+Everything else takes its default without comment.
+
+**If either is absent, ask.** Do not stall, and do not assume. Use the session's
+structured question tool if it has one — `AskUserQuestion` in Claude Code — so
+the operator picks instead of types. Ask once, for everything you are missing,
+before you create `_orch/`.
+
+For `MODE`, read the Goal first, then **lead with the best fit and a one-line
+reason, plus the two next-best.** Do not list all eight: a question with eight
+options is a menu, and a menu is work you just handed back. The tool supplies an
+"other" escape for the rest.
+
+| the Goal talks about | lead with |
+|---|---|
+| tests, coverage, flakiness, regressions | `TEST` |
+| a spec, a design doc, "implement this" | `BUILD` |
+| refactoring, cleanup, tech debt, waste | `IMPROVE` |
+| "review", "audit", "is this any good" | `REVIEW` |
+| the product, real users, onboarding, a running app | `DOGFOOD` |
+| renaming, upgrading, porting, "everywhere" | `MIGRATE` |
+| "plan", "how would we", sequencing, options | `ROADMAP` |
+| none of the above cleanly | `GENERIC`, with the Goal as the directive |
+
+For `TARGET` you may list directories to turn "the billing module" into
+`src/billing` — **listings only, never file contents** (§3). Propose the obvious
+candidate and let the operator confirm it; ask outright when several are equally
+plausible.
+
+**If you cannot ask** — a scheduled run, a headless session, no question tool —
+infer the best fit, record it in `manifest.json` and at the top of
+`directive.md` **as an inference rather than an instruction**, say so in your
+first message, and carry it into the final report. A stated assumption is
+recoverable. A silent one is not.
 
 ---
 
@@ -1474,6 +1502,9 @@ conductor also stops walking to every music stand.
 **You may read:** `_orch/manifest.json`, any `status.json`, any `digest.md`,
 `_orch/cast/roster.yaml`, the task table in `plan/roadmap.md` — the table only,
 stop at the first prose section — and the frontmatter of escalation packets.
+Plus **directory listings**, and only listings, when resolving `TARGET` (§1.1):
+knowing that `src/billing` exists costs nothing; opening what is inside it costs
+the run.
 
 **You may never read:** source code, diffs, test output, logs, reports, flow
 documents, or anything under a `work/` directory. Not once. Not to "just check."

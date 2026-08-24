@@ -28,8 +28,42 @@ below, and you do not ask the operator about a default that is already correct.
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
 verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
 
-If `MODE` is missing, or `TARGET` names something you cannot find, stop and ask.
-Those two are the only things in a baton run you may never guess.
+### 1.1 Anything missing, ask for
+
+`TARGET` and `MODE` are the only two settings a run may not silently guess.
+Everything else takes its default without comment.
+
+**If either is absent, ask.** Do not stall, and do not assume. Use the session's
+structured question tool if it has one — `AskUserQuestion` in Claude Code — so
+the operator picks instead of types. Ask once, for everything you are missing,
+before you create `_orch/`.
+
+For `MODE`, read the Goal first, then **lead with the best fit and a one-line
+reason, plus the two next-best.** Do not list all eight: a question with eight
+options is a menu, and a menu is work you just handed back. The tool supplies an
+"other" escape for the rest.
+
+| the Goal talks about | lead with |
+|---|---|
+| tests, coverage, flakiness, regressions | `TEST` |
+| a spec, a design doc, "implement this" | `BUILD` |
+| refactoring, cleanup, tech debt, waste | `IMPROVE` |
+| "review", "audit", "is this any good" | `REVIEW` |
+| the product, real users, onboarding, a running app | `DOGFOOD` |
+| renaming, upgrading, porting, "everywhere" | `MIGRATE` |
+| "plan", "how would we", sequencing, options | `ROADMAP` |
+| none of the above cleanly | `GENERIC`, with the Goal as the directive |
+
+For `TARGET` you may list directories to turn "the billing module" into
+`src/billing` — **listings only, never file contents** (§3). Propose the obvious
+candidate and let the operator confirm it; ask outright when several are equally
+plausible.
+
+**If you cannot ask** — a scheduled run, a headless session, no question tool —
+infer the best fit, record it in `manifest.json` and at the top of
+`directive.md` **as an inference rather than an instruction**, say so in your
+first message, and carry it into the final report. A stated assumption is
+recoverable. A silent one is not.
 
 ---
 
@@ -114,6 +148,9 @@ conductor also stops walking to every music stand.
 **You may read:** `_orch/manifest.json`, any `status.json`, any `digest.md`,
 `_orch/cast/roster.yaml`, the task table in `plan/roadmap.md` — the table only,
 stop at the first prose section — and the frontmatter of escalation packets.
+Plus **directory listings**, and only listings, when resolving `TARGET` (§1.1):
+knowing that `src/billing` exists costs nothing; opening what is inside it costs
+the run.
 
 **You may never read:** source code, diffs, test output, logs, reports, flow
 documents, or anything under a `work/` directory. Not once. Not to "just check."
