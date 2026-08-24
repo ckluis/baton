@@ -1,0 +1,7 @@
+.DS_Store
+.gstack/
+*.log
+*.jsonl
+node_modules/
+_orch/
+dist/
