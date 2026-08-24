@@ -1,0 +1,61 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:630px;background:#0a0a0a;color:#fff;overflow:hidden;position:relative;
+ font-family:"Inter",-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.grain{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:.34;mix-blend-mode:overlay;
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E")}
+.halftone{position:absolute;inset:0;z-index:1;opacity:.10;color:#faff69;
+ background-image:radial-gradient(currentColor 1.1px,transparent 1.3px);background-size:9px 9px}
+.pad{position:relative;z-index:3;padding:64px 72px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.top{display:flex;align-items:center;gap:14px}
+.wm{font-size:32px;font-weight:700;letter-spacing:-.035em;color:#fff}
+.v2{font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:600;color:#0a0a0a;background:#faff69;
+ padding:4px 11px;border-radius:9999px;letter-spacing:.06em}
+.src{font-family:"JetBrains Mono",monospace;font-size:14px;color:#5a5a5a;letter-spacing:.13em;text-transform:uppercase;margin-left:auto}
+h1{font-size:78px;font-weight:700;letter-spacing:-.042em;line-height:1.0;color:#fff;position:relative;display:inline-block}
+h1::before{content:attr(data-reg);position:absolute;left:-3px;top:3px;z-index:-1;color:#5eead4;mix-blend-mode:screen;opacity:.9}
+.sub{margin-top:24px;font-size:22px;line-height:1.42;color:#cccccc;max-width:20ch}
+.mid{display:flex;align-items:flex-end;gap:56px}
+.rungs{display:flex;flex-direction:column;gap:7px;padding-bottom:6px}
+.r{display:flex;align-items:center;gap:12px;font-family:"JetBrains Mono",monospace;font-size:14px;color:#5a5a5a}
+.r i{width:22px;font-style:normal;color:#3a3a3a}
+.r.on{color:#0a0a0a;background:#faff69;padding:5px 12px;border-radius:6px;font-weight:600;margin-left:-12px}
+.r.on i{color:rgba(10,10,10,.55)}
+.r.gated{color:#2dd4bf}
+.bot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #2a2a2a;padding-top:26px}
+.stats{display:flex;gap:52px}
+.s b{display:block;font-size:38px;font-weight:700;color:#faff69;letter-spacing:-.03em;line-height:1}
+.s span{display:block;margin-top:7px;font-size:13px;color:#888}
+.url{font-family:"JetBrains Mono",monospace;font-size:15px;color:#5eead4;letter-spacing:.02em}
+</style></head><body>
+<div class="halftone"></div><div class="grain"></div>
+<div class="pad">
+  <div class="top"><span class="wm">baton</span><span class="v2">v2.0</span><span class="src">ckluis / baton</span></div>
+  <div class="mid">
+    <div>
+      <h1 data-reg="The cheapest agent">The cheapest agent</h1><br>
+      <h1 data-reg="that can succeed." style="margin-top:4px">that can succeed.</h1>
+      <div class="sub">An orchestrator of orchestrators, rebuilt around what it costs.</div>
+    </div>
+    <div class="rungs">
+      <div class="r"><i>0</i>haiku/low</div>
+      <div class="r on"><i>1</i>sonnet/medium</div>
+      <div class="r"><i>2</i>sonnet/high</div>
+      <div class="r"><i>3</i>opus/medium</div>
+      <div class="r"><i>4</i>opus/high</div>
+      <div class="r gated"><i>5</i>fable/low &nbsp;&larr; asked for</div>
+      <div class="r gated"><i>6</i>fable/medium</div>
+    </div>
+  </div>
+  <div class="bot">
+    <div class="stats">
+      <div class="s"><b>6</b><span>rungs, one default</span></div>
+      <div class="s"><b>8</b><span>modes</span></div>
+      <div class="s"><b>28</b><span>personas</span></div>
+      <div class="s"><b>10&times;</b><span>fewer top-tier turns</span></div>
+    </div>
+    <span class="url">ckluis.github.io/baton</span>
+  </div>
+</div></body></html>
