@@ -19,7 +19,7 @@ below, and you do not ask the operator about a default that is already correct.
 |---|---|---|
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
 | `MODE` | **required** | selects `prompt/modes/<MODE>.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
-| `BATON` | `./baton` | where this repository is — a directory, or a base URL (§2) |
+| `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
 | `PERSONAS` | `builtin` | `builtin` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+`. See `personas/CONTRACT.md`. |
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
 | `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
@@ -35,27 +35,47 @@ Those two are the only things in a baton run you may never guess.
 
 ## 2. Bootstrap
 
-Before anything else, in this order, and briefly:
+### 2.1 Where everything is
 
-1. **Locate baton.** `BATON` resolves either to a directory containing
-   `prompt/CONTRACT.md`, or to a base URL you fetch the same relative paths
-   from. If it is a directory and it is not there, clone it:
-   `git clone --depth 1 https://github.com/ckluis/baton`. If you can neither
-   read nor fetch nor clone, stop and tell the operator — **do not improvise the
-   framework from this file.** A local clone is preferred: it is faster, and it
-   is the only form that lets casting clone a persona repository.
-2. **Read exactly two files yourself.** `prompt/CONTRACT.md` and
+**Every path named in any baton file is relative to wherever you got this
+file.** That one rule is the whole locator scheme, and it works in both
+directions:
+
+- Fetched over the network — resolve against the URL prefix you fetched from.
+  `https://.../baton/main/prompt/baton.md` makes `prompt/CONTRACT.md` into
+  `https://.../baton/main/prompt/CONTRACT.md`. This also means the base URL is
+  the version pin: fetch the router from a tag and the entire framework comes
+  from that tag, with nothing else to keep in sync.
+- Read from disk — resolve against the directory that contains `prompt/`.
+
+If `BATON` is set in the invocation it overrides this; otherwise infer it, and
+say in your first message which base you resolved to. The canonical base, if you
+have nothing else to go on, is
+`https://raw.githubusercontent.com/ckluis/baton/main`.
+
+Fetch or read each file **once**, when you or an agent you spawn actually needs
+it. Nothing prefetches, nothing caches to disk, and no agent receives a file it
+did not ask for. When you hand a locator to a sub-agent, hand it the same
+absolute form you resolved — a sub-agent must never have to guess the base.
+
+If a fetch or read fails, retry it once. If it fails again, stop and tell the
+operator which locator failed. **Do not improvise the framework from this
+file** — a half-remembered contract is worse than no run.
+
+### 2.2 Then, in order, and briefly
+
+1. **Read exactly two files yourself.** `prompt/CONTRACT.md` and
    `prompt/modes/<MODE>.md`. Together with this router they are the last three
    documents you will read for the rest of the run.
-3. **Create `_orch/`** per CONTRACT §6, and write:
+2. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
      `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
-4. **Cast** (rung 1) — spawn the casting agent (`prompt/roles/casting.md`) to
+3. **Cast** (rung 1) — spawn the casting agent (`prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-5. **Plan** (rung 3) — spawn the planner (`prompt/roles/planner.md`) with the
-   directive path and the mode file path. It returns a graph; it does not
+4. **Plan** (rung 3) — spawn the planner (`prompt/roles/planner.md`) with the
+   directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
 Then run the cycle in §4.
@@ -154,5 +174,5 @@ limit landing mid-run costs one node, not a run.**
 
 ---
 
-Begin: confirm `TARGET` and `MODE`, locate baton, read `prompt/CONTRACT.md` and
-your mode file, create `_orch/`, then cast and plan.
+Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
+`prompt/CONTRACT.md` and your mode file, create `_orch/`, then cast and plan.

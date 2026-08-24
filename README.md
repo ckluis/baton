@@ -151,11 +151,7 @@ instruction to follow.
 
 ## Quickstart
 
-```sh
-git clone --depth 1 https://github.com/ckluis/baton
-```
-
-Then paste this into a fresh session:
+**Nothing to install.** Paste this into a fresh session:
 
 ```
 # Goal
@@ -166,33 +162,48 @@ TARGET: src/billing
 MODE:   TEST
 
 # Process
-Read ./baton/prompt/baton.md completely and follow it. You are the PRIME
-ORCHESTRATOR it describes. It names the other files to read — read those, and
-nothing beyond what they name. Do not start work until you have read it.
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
+You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
+against that same base URL. Read it completely before you start any work.
 ```
 
-That is the whole paste. **`TARGET` and `MODE` are the only two settings a run
-may never guess** — `BATON`, `PERSONAS`, `CEILING`, `PRIME_TURNS`, and `INBOX`
-all have defaults that are already correct, and you override one by adding its
-line. `CEILING: 4` keeps the entire run inside opus and below; a node that wants
-a fable rung goes `BLOCKED` and asks you.
+Change two lines and walk away. **`TARGET` and `MODE` are the only settings a
+run may never guess** — `BATON`, `PERSONAS`, `CEILING`, `PRIME_TURNS`, and
+`INBOX` all have defaults that are already correct, and you override one by
+adding its line. `CEILING: 4` keeps the entire run inside opus and below; a node
+that wants a fable rung goes `BLOCKED` and asks you.
+
+### How it resolves
+
+Every path in every baton file is relative to wherever the router came from.
+That one rule is the whole locator scheme:
+
+- **A URL** — the framework fetches itself, file by file, as agents need them.
+  The base URL is also the version pin: point at `/v2.0` instead of `/main` and
+  the router, contracts, modes, roles, and personas all come from that tag. There
+  is no second version to keep in sync.
+- **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
+  `BATON: ./baton`. Faster on repeat runs, works with no network, and the only
+  form where casting can clone a persona repository with git.
+
+Point at a directory and the router reads; point at a URL and it fetches.
+Nothing else changes. Run state under `_orch/` is always local disk either way —
+a run whose state lived at a URL could not be resumed.
 
 **What you paste is not the process — it points at the process.** The router is
 a document for the agent to read. Carrying it by hand would mean holding the
 whole procedure just to tell something else to go follow it, and it would spend
 the one context the design exists to protect.
 
-See [`prompt/invoke.md`](prompt/invoke.md) for the full card with every knob, the
-settings table, and the two fallbacks: point `BATON` at
-`https://raw.githubusercontent.com/ckluis/baton/main` to fetch instead of read,
-or run `./bundle.sh TEST` to flatten everything into one self-contained document
-for environments that can do neither.
+Can do neither? `./bundle.sh TEST` flattens the router, both contracts, your
+mode, the roles, and only that mode's seats into one self-contained document.
+See [`prompt/invoke.md`](prompt/invoke.md) for the full card and every knob.
 
 ## Layout
 
 ```
 prompt/
-  invoke.md           the paste — your goal, two settings, a pointer
+  invoke.md           the paste — your goal, two settings, and a URL
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         ladder, envelope, digest, graph, loop, gates, evidence
   modes/              8 — directive + graph shape + entry rungs + seats + gates

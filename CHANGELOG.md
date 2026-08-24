@@ -56,12 +56,20 @@ direction, and the top model paid for all of it.
 **Invocation**
 - What you paste is no longer the router. `prompt/invoke.md` defines an
   eleven-line invocation — a goal, `TARGET`, `MODE`, and three lines pointing
-  the session at `prompt/baton.md`. Every other setting has a default.
+  the session at the router's URL. Every other setting has a default.
+- **No install step.** `BATON` defaults to the canonical raw URL, so a run needs
+  no clone, no config file, and nothing on disk but its own state.
+- Every path in every baton file resolves against wherever the router came from,
+  which makes the base URL the version pin — point at a tag and the whole
+  framework comes from that tag, with no second version to keep in sync.
+- Casting can enumerate a `repo:` persona source over the GitHub contents API
+  when git is unavailable, and degrades to the built-in lenses rather than
+  blocking the run when neither route works.
+- CONTRACT §6.1 separates framework locators (a directory or a URL) from run
+  state (always local disk, always).
 - The router became a document the *agent* reads. Pasting it meant carrying the
   whole procedure by hand in order to tell an agent to go read the procedure,
   and it spent 162 lines of the one context the design exists to protect.
-- `BATON` now accepts a base URL as well as a directory, so a session with no
-  ability to clone can fetch the framework instead.
 
 **The page**
 - Gave every mode its own hero band with risograph concept artwork drawn as

@@ -12,9 +12,28 @@ Resolve `{personas_config}` into `_orch/cast/` exactly per personas
 contract is exhaustive.
 
 **Source resolution.** Parse the `+`-combined sources (`builtin`, `repo:`,
-`path:`, `none`) per §4. Shallow-clone every `repo:` source to
-`_orch/cast/src/<name>/`. Every `*.md` with valid frontmatter in a resolved
+`path:`, `none`) per §4. Every `*.md` with valid frontmatter in a resolved
 source is a candidate.
+
+`builtin` resolves against the base the router gave you — a directory to read
+or a base URL to fetch (router §2.1). Fetch only the lens and user files the
+mode's seats actually name; a roster you never seat is a roster you never
+needed to read.
+
+For `repo:` you have two routes, in this order:
+
+1. **Git, if you have it.** Shallow-clone to `_orch/cast/src/<name>/`. Cheapest
+   and it gets you the whole roster at once.
+2. **No git — enumerate over HTTP.** List the repository's files with
+   `https://api.github.com/repos/<owner>/<name>/contents/`, then fetch each
+   candidate's raw URL. Unauthenticated and rate-limited, so enumerate once,
+   fetch only files whose names suggest a persona, and stop at the seats you
+   need to fill.
+
+If neither route works, say so in your envelope, fall back to the built-in
+lenses for every seat, and let the run proceed. **A missing roster degrades a
+panel; it never blocks a run** — every mode is designed to run with
+`PERSONAS: none`.
 
 **Schema validation.** Apply §1 and §1.1: a file with only `name` and
 `domain` is valid on its own — fill `kind: expert`, `phases: [AUDIT, CLASH]`,

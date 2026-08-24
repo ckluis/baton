@@ -26,7 +26,7 @@ NODE ORCHESTRATOR  assigned rung  does the work, or spawns workers.
 WORKER             assigned rung  leaf. writes artifacts.
 ```
 
-Each layer passes **paths and a rung** downward, never contents. Each layer
+Each layer passes **locators and a rung** downward, never contents (§6.1). Each layer
 receives an **envelope** upward (§2), never prose. A layer that opens its
 child's work products has broken the contract — the digest (§3) exists so it
 never has to.
@@ -411,6 +411,23 @@ _orch/
 ```
 
 `_orch/` is gitignored unless the operator says otherwise.
+
+### 6.1 Framework locators vs run state
+
+Two different things get referred to by "path" and they must not be confused:
+
+- **Framework files** — this contract, the modes, the roles, the persona files.
+  These may live at a local directory *or* at a base URL, resolved per the
+  router's §2.1. When you hand one to a sub-agent, hand it the fully resolved
+  form; a sub-agent never guesses a base.
+- **Run state** — everything under `_orch/`. This is **always local disk,
+  always**. A run whose state lived at a URL could not be written to, could not
+  be resumed, and could not be the single source of truth that makes every other
+  rule here work.
+
+So a spawn prompt routinely carries both: a remote locator for the role file it
+should follow, and a local path for the work it should do. Envelopes, digests,
+verdicts, and ledgers are local paths without exception.
 
 ---
 
