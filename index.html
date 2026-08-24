@@ -256,8 +256,8 @@ html.js .reveal.in{opacity:1;transform:none}
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
             <span style="font-size:13px;color:var(--muted)">v1 is still standing, unchanged.</span>
-            <a href="https://ckluis.github.io/experiments/baton.html" target="_blank" rel="noopener"
-               style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read baton v1 &nearr;</a>
+            <a href="baton-v1.html"
+               style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read baton v1 &rarr;</a>
           </div>
         </div>
       </div>
@@ -1220,12 +1220,11 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
     <div class="grid g3 reveal d1">
       <div class="card">
         <span class="num">STEP 01</span>
-        <h4>Put baton where the run can read it</h4>
-        <pre style="padding:14px 0 0;background:none;border:none;font-size:12.5px;white-space:pre-wrap">git clone --depth 1 \
-  https://github.com/ckluis/baton</pre>
-        <p style="margin-top:12px">The router is a router. The contracts, modes, roles, and personas
-          are the product, and they live on disk so agents can read them without spending your
-          context.</p>
+        <h4>Nothing</h4>
+        <p style="margin-top:12px">There is no install step. The framework lives at a URL and the
+          agents fetch what they need from it. The router is a router &mdash; the contracts, modes,
+          roles, and personas are the product, and they stay out of your context until something
+          actually needs them.</p>
       </div>
       <div class="card">
         <span class="num">STEP 02</span>
@@ -1238,7 +1237,7 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
         <span class="num">STEP 03</span>
         <h4>Paste eleven lines, and point</h4>
         <p style="margin-top:12px">Your goal, two settings, and three lines sending the session to
-          <code>prompt/baton.md</code>. It reads the router, then two more files, then casts, plans,
+          the router's URL. It reads the router, then two more files, then casts, plans,
           and gates. Everything lives on disk, so a session limit costs one node &mdash; not a run.</p>
       </div>
     </div>
@@ -1285,12 +1284,12 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
   <div class="wrap">
     <div class="sechead reveal">
       <span class="kicker c">11 &mdash; The invocation</span>
-      <h2>What you paste is <em>not the process.</em></h2>
-      <p>It points at the process. The router is a document for the agent to read &mdash; making you
-        carry it by hand would mean holding the whole procedure just to tell something else to go
-        follow it, and it would spend the one context the design exists to protect. So the paste
-        carries only what you know that the repository cannot: what you want, and how much you are
-        willing to spend finding out.</p>
+      <h2>Nothing to install.<br><em>Eleven lines and a URL.</em></h2>
+      <p>What you paste is not the process &mdash; it points at the process. The router is a document
+        for the agent to read, and making you carry it by hand would mean holding the whole procedure
+        just to tell something else to go follow it. So the paste carries only what you know that the
+        repository cannot: what you want, where the framework lives, and how much you are willing to
+        spend finding out.</p>
     </div>
 
     <div class="reveal d1">
@@ -1307,9 +1306,9 @@ TARGET: src/billing
 MODE:   TEST
 
 # Process
-Read ./baton/prompt/baton.md completely and follow it. You are the PRIME
-ORCHESTRATOR it describes. It names the other files to read — read those, and
-nothing beyond what they name. Do not start work until you have read it.</pre>
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
+You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
+against that same base URL. Read it completely before you start any work.</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Swap in your own target and mode &mdash; those two are
@@ -1318,31 +1317,42 @@ nothing beyond what they name. Do not start work until you have read it.</pre>
 
     <div class="grid g3 reveal d2" style="margin-top:32px">
       <div class="card sm">
-        <span class="num">EVERYTHING ELSE</span>
-        <h4>Has a default that is already right.</h4>
-        <p><code>BATON: ./baton</code> &middot; <code>PERSONAS: builtin</code> &middot;
-          <code>CEILING: 4</code> &middot; <code>PRIME_TURNS: 12</code> &middot;
-          <code>INBOX: off</code>. A default you never had to type is a decision you never had to
-          make. Override any of them by adding the line.</p>
+        <span class="num">NO SETUP</span>
+        <h4>The URL is the whole dependency.</h4>
+        <p>No clone, no install, no config file. Every path in every baton file resolves against
+          wherever the router came from, so telling the agent that once is enough &mdash; modes, roles,
+          contracts, and personas all fetch themselves from there, as they are needed and never
+          before.</p>
       </div>
       <div class="card sm">
-        <span class="num">NO CLONE?</span>
-        <h4>Point it at a URL instead.</h4>
-        <p><code class="brk">BATON: raw.githubusercontent.com/ckluis/baton/main</code> and the router
-          fetches rather than reads. Slower, needs network on every file, and casting cannot clone a
-          persona repo over it &mdash; so prefer a clone when a clone is possible.</p>
+        <span class="num">THE URL IS THE PIN</span>
+        <h4>Swap <code>main</code> for a tag.</h4>
+        <p>Because everything resolves relative to the router you fetched, pointing at
+          <code>/v2.0</code> instead of <code>/main</code> pins the entire framework to that tag at
+          once. There is no second version to keep in sync, because there is no second place a
+          version could come from.</p>
       </div>
       <div class="card sm">
-        <span class="num">NEITHER?</span>
-        <h4>Flatten it into one document.</h4>
-        <p><code>./bundle.sh TEST</code> inlines the router, both contracts, your mode, the roles,
-          and only that mode's seats. Paste that and drop the pointer. It is the v1 shape, kept for
-          the environments that still need it.</p>
+        <span class="num">OR KEEP IT LOCAL</span>
+        <h4>A directory works identically.</h4>
+        <p><code>git clone</code> it and set <code>BATON: ./baton</code> &mdash; faster on repeat runs,
+          works with no network, and the only form where casting can clone a persona repo with git.
+          Point at a directory and the router reads; point at a URL and it fetches. Nothing else
+          changes.</p>
       </div>
     </div>
 
+    <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
+      <span class="num">AND IF YOU CAN DO NEITHER</span>
+      <h4 style="font-size:19px">Flatten the whole thing into one document.</h4>
+      <p style="margin-top:10px"><code>./bundle.sh TEST</code> inlines the router, both contracts,
+        your mode, the roles, and only that mode's seats. Paste that instead of the invocation and the
+        run needs no network and no filesystem beyond its own work &mdash; the v1 shape, kept for the
+        environments that still need it.</p>
+    </div>
+
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 158 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 203 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
@@ -1368,9 +1378,9 @@ below, and you do not ask the operator about a default that is already correct.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **required** | selects `prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
-| `BATON` | `./baton` | where this repository is — a directory, or a base URL (§2) |
-| `PERSONAS` | `builtin` | `builtin` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `personas/CONTRACT.md`. |
+| `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
+| `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
+| `PERSONAS` | `builtin` | `builtin` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
 | `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
@@ -1385,27 +1395,71 @@ Those two are the only things in a baton run you may never guess.
 
 ## 2. Bootstrap
 
-Before anything else, in this order, and briefly:
+### 2.1 Where everything is
 
-1. **Locate baton.** `BATON` resolves either to a directory containing
-   `prompt/CONTRACT.md`, or to a base URL you fetch the same relative paths
-   from. If it is a directory and it is not there, clone it:
-   `git clone --depth 1 https://github.com/ckluis/baton`. If you can neither
-   read nor fetch nor clone, stop and tell the operator — **do not improvise the
-   framework from this file.** A local clone is preferred: it is faster, and it
-   is the only form that lets casting clone a persona repository.
-2. **Read exactly two files yourself.** `prompt/CONTRACT.md` and
-   `prompt/modes/&lt;MODE&gt;.md`. Together with this router they are the last three
+**Every path named in any baton file is relative to wherever you got this
+file.** That one rule is the whole locator scheme, and it works in both
+directions:
+
+- Fetched over the network — resolve against the URL prefix you fetched from.
+  `https://.../baton/main/prompt/baton.md` makes `{BATON}/prompt/CONTRACT.md` into
+  `https://.../baton/main/prompt/CONTRACT.md`. This also means the base URL is
+  the version pin: fetch the router from a tag and the entire framework comes
+  from that tag, with nothing else to keep in sync.
+- Read from disk — resolve against the directory that contains `prompt/`.
+
+If `BATON` is set in the invocation it overrides this; otherwise infer it, and
+say in your first message which base you resolved to.
+
+**`{BATON}` in any baton file means that base**, and it has exactly two forms:
+
+| form | example | when |
+|---|---|---|
+| local | `./baton` | you read this file from a directory |
+| remote | `https://raw.githubusercontent.com/ckluis/baton/main` | you fetched it |
+
+The remote form is the canonical fallback if you have nothing else to go on.
+**Every `{BATON}/...` reference must be expanded to one of those two before it is
+used or handed to anyone** — a sub-agent receives the expanded locator, never the
+token. So `{BATON}/prompt/roles/verifier.md` becomes either
+`./baton/prompt/roles/verifier.md` or
+`https://raw.githubusercontent.com/ckluis/baton/main/prompt/roles/verifier.md`,
+and never stays a template.
+
+Files you or your agents will resolve, all relative to that base:
+
+```
+prompt/CONTRACT.md          the schemas — read by you and by every agent that needs a rule
+prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry rungs, seats, gates
+prompt/roles/&lt;role&gt;.md      the prompt body for each agent you spawn
+personas/CONTRACT.md        persona schema and per-phase duties
+personas/lenses/&lt;slug&gt;.md   expert seats
+personas/users/&lt;slug&gt;.md    end-user archetypes
+```
+
+Fetch or read each file **once**, when you or an agent you spawn actually needs
+it. Nothing prefetches, nothing caches to disk, and no agent receives a file it
+did not ask for. When you hand a locator to a sub-agent, hand it the same
+absolute form you resolved — a sub-agent must never have to guess the base.
+
+If a fetch or read fails, retry it once. If it fails again, stop and tell the
+operator which locator failed. **Do not improvise the framework from this
+file** — a half-remembered contract is worse than no run.
+
+### 2.2 Then, in order, and briefly
+
+1. **Read exactly two files yourself.** `{BATON}/prompt/CONTRACT.md` and
+   `{BATON}/prompt/modes/&lt;MODE&gt;.md`. Together with this router they are the last three
    documents you will read for the rest of the run.
-3. **Create `_orch/`** per CONTRACT §6, and write:
+2. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
      `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
-4. **Cast** (rung 1) — spawn the casting agent (`prompt/roles/casting.md`) to
+3. **Cast** (rung 1) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-5. **Plan** (rung 3) — spawn the planner (`prompt/roles/planner.md`) with the
-   directive path and the mode file path. It returns a graph; it does not
+4. **Plan** (rung 3) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+   directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
 Then run the cycle in §4.
@@ -1447,7 +1501,7 @@ Repeat until the graph has no runnable nodes:
 1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
    `_orch/phases/P&lt;n&gt;/brief.md`: the node ids in this phase, their entry rungs,
    the concurrency limit, the seats in play, and the phase's exit condition.
-   Spawn one **phase runner** (`prompt/roles/phase-runner.md`) at rung 3 — rung
+   Spawn one **phase runner** (`{BATON}/prompt/roles/phase-runner.md`) at rung 3 — rung
    2 when the phase is fewer than five nodes and none exceed entry rung 1.
 2. **Wait for one envelope.** The phase runner returns a single envelope
    summarizing the phase. It has already dispatched every node, routed every
@@ -1461,13 +1515,14 @@ Repeat until the graph has no runnable nodes:
    questions across six pauses has cost the operator more than the answers were
    worth.
 
-**Plan gate** (before the first phase): spawn one plan verifier at rung 3 — rung
+**Plan gate** (before the first phase): spawn one plan verifier
+(`{BATON}/prompt/roles/plan-verifier.md`) at rung 3 — rung
 4 if the graph exceeds fifteen nodes, any node is flagged cross-cutting, the
 planner's envelope carries caveats, or the directive itself is ambiguous. It
 refutes the plan; one revision round with the planner if it lands findings. At
 `adversarial: panel` the mode's PLAN seats run instead.
 
-**Final gate**: spawn the synthesizer (`prompt/roles/synthesizer.md`) at rung 3
+**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at rung 3
 — rung 5 only if the operator has approved fable for it — to write
 `final/report.md` from digests, verdicts, and the ledger. It ends with the
 **rung histogram**: where this run actually spent its money, so the next plan
@@ -1504,8 +1559,8 @@ limit landing mid-run costs one node, not a run.**
 
 ---
 
-Begin: confirm `TARGET` and `MODE`, locate baton, read `prompt/CONTRACT.md` and
-your mode file, create `_orch/`, then cast and plan.</pre>
+Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
+`{BATON}/prompt/CONTRACT.md` and your mode file, create `_orch/`, then cast and plan.</pre>
       </div>
       <p style="margin-top:14px;font-size:14px;color:var(--muted)">Its first instruction is to read two
         more files &mdash; <code>prompt/CONTRACT.md</code> and your mode &mdash; and those are the last
@@ -1546,7 +1601,7 @@ your mode file, create `_orch/`, then cast and plan.</pre>
           price of an afternoon at rung 1.</p>
         <div class="btnrow" style="margin-top:32px;justify-content:center">
           <a href="#prompt" class="btn" style="background:var(--on-yellow);color:var(--yellow)">Copy the router &uarr;</a>
-          <a href="https://ckluis.github.io/experiments/baton.html" target="_blank" rel="noopener" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v1 &nearr;</a>
+          <a href="baton-v1.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v1 &rarr;</a>
         </div>
       </div>
     </div>
@@ -1567,7 +1622,7 @@ your mode file, create `_orch/`, then cast and plan.</pre>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:10px 24px;font-size:14px;color:var(--muted)">
         <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="nl">Repo &nearr;</a>
-        <a href="https://ckluis.github.io/experiments/baton.html" target="_blank" rel="noopener" class="nl">baton v1 &nearr;</a>
+        <a href="baton-v1.html" class="nl">baton v1 &rarr;</a>
         <a href="https://ckluis.github.io/luminaryTeam/" target="_blank" rel="noopener" class="nl">luminaryTeam &nearr;</a>
         <a href="https://ckluis.github.io/experiments/" target="_blank" rel="noopener" class="nl">Experiments &nearr;</a>
         <a href="https://www.linkedin.com/in/ckluis" target="_blank" rel="noopener" class="nl">LinkedIn &nearr;</a>

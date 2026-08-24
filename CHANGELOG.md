@@ -56,12 +56,32 @@ direction, and the top model paid for all of it.
 **Invocation**
 - What you paste is no longer the router. `prompt/invoke.md` defines an
   eleven-line invocation — a goal, `TARGET`, `MODE`, and three lines pointing
-  the session at `prompt/baton.md`. Every other setting has a default.
+  the session at the router's URL. Every other setting has a default.
+- **No install step.** `BATON` defaults to the canonical raw URL, so a run needs
+  no clone, no config file, and nothing on disk but its own state.
+- Every path in every baton file resolves against wherever the router came from,
+  which makes the base URL the version pin — point at a tag and the whole
+  framework comes from that tag, with no second version to keep in sync.
+- Casting can enumerate a `repo:` persona source over the GitHub contents API
+  when git is unavailable, and degrades to the built-in lenses rather than
+  blocking the run when neither route works.
+- CONTRACT §6.1 separates framework locators (a directory or a URL) from run
+  state (always local disk, always).
 - The router became a document the *agent* reads. Pasting it meant carrying the
   whole procedure by hand in order to tell an agent to go read the procedure,
   and it spent 162 lines of the one context the design exists to protect.
-- `BATON` now accepts a base URL as well as a directory, so a session with no
-  ability to clone can fetch the framework instead.
+
+**Locators**
+- Every framework reference in every prompt file is now written
+  `{BATON}/prompt/...` or `{BATON}/personas/...`. `{BATON}` has exactly two
+  forms — a local directory or a base URL — and agents expand it before using it
+  or passing it on, so a sub-agent always receives a fully qualified path or URL
+  and never guesses a base.
+- The router carries the locator table for every framework file; the contract
+  footer carries the resolved contract locator, so a spawned agent can look up a
+  rule it lacks instead of guessing one.
+- Wired `prompt/roles/plan-verifier.md` into the plan gate — it was written but
+  never named, so nothing could reach it.
 
 **The page**
 - Gave every mode its own hero band with risograph concept artwork drawn as
@@ -82,4 +102,5 @@ direction, and the top model paid for all of it.
 Initial release. A single 571-line prompt: a Fable-led orchestrator of
 orchestrators with file-passing handoffs, a four-tier escalation ladder,
 adversarial verification, and six modes.
-Preserved at <https://ckluis.github.io/experiments/baton.html>.
+Now preserved in this repository as `baton-v1.html`, byte for byte apart from
+its own metadata, an archived banner, and links pointing at v2.

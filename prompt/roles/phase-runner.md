@@ -32,14 +32,14 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    serial when two runnable nodes touch overlapping files, up to 4 only for
    read-only work (CONTRACT §4.3).
 
-3. **Dispatch.** Spawn one node orchestrator (`prompt/roles/node-orchestrator.md`)
+3. **Dispatch.** Spawn one node orchestrator (`{BATON}/prompt/roles/node-orchestrator.md`)
    per selected node at its current entry rung — the brief's rung, adjusted
    by any drift you've already applied this phase. Append a ledger row on
    every spawn (CONTRACT §7 schema).
 
 4. **On each returned envelope, route it:**
    - `DONE` / `DONE-WITH-CAVEATS` → go to step 5 (verification).
-   - `SPLIT` → spawn a decomposer (`prompt/roles/decomposer.md`) at rung 3.
+   - `SPLIT` → spawn a decomposer (`{BATON}/prompt/roles/decomposer.md`) at rung 3.
      It rewrites the graph; treat the new children as newly runnable at
      their assigned rungs next pass.
    - `ESCALATE` → re-spawn immediately, one rung up, at rung 3's
@@ -51,13 +51,13 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
      rest of the phase. Do not stall on it.
    - Two envelopes reach contradictory conclusions about the same
      artifact → skip the ladder, spawn an adjudicator
-     (`prompt/roles/adjudicator.md`, contradiction mode) at the run
+     (`{BATON}/prompt/roles/adjudicator.md`, contradiction mode) at the run
      config's adjudication rung, default 4 (§1.2.4).
    - A node hits `CEILING` on escalation → `BLOCKED` with a written
      question instead of climbing further unattended (§1.4). Batch it.
 
 5. **Verify.** On `DONE`/`DONE-WITH-CAVEATS`, spawn a verifier
-   (`prompt/roles/verifier.md`) at the node's own rung — never one above on
+   (`{BATON}/prompt/roles/verifier.md`) at the node's own rung — never one above on
    the first pass (§9). Route its verdict:
    - `CONFIRMED` → close the node. Increment this verifier's clean-confirm
      streak; at 5 in a row with no `REFUTED`/`PARTIAL`, spawn one adversary
@@ -66,7 +66,7 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    - `PARTIAL` → re-verify at the same rung; escalate the *verifier* only
      after a second `PARTIAL` on the same node (§9).
    - If the node carries `personas:` or `adversarial: standard`/`panel`,
-     route to the bound persona cards or to `prompt/roles/panel.md` instead
+     route to the bound persona cards or to `{BATON}/prompt/roles/panel.md` instead
      of the generic verifier, per the graph's own fields — the graph
      already told you which nodes want that treatment.
 

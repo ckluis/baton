@@ -5,7 +5,7 @@
 | slot | value |
 |---|---|
 | `{directive_path}` | `_orch/directive.md` — the mode's directive, `{TARGET}` already substituted |
-| `{mode_path}` | `prompt/modes/<MODE>.md` — directive, graph skeleton, loops, seats, gates for this mode |
+| `{mode_path}` | `{BATON}/prompt/modes/<MODE>.md` — directive, graph skeleton, loops, seats, gates for this mode |
 
 Read `{directive_path}` and `{mode_path}`. Then explore the codebase as freely
 as you need — you may read anything; the prime never will.
