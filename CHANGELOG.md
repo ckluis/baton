@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+- **`tools/rules.py` — the propagation surface of every contract rule.** Amending a
+  rule does not amend the other places that state it: the role prompts an agent
+  actually walks, the mode files, and the Python in `tools/` that implements it.
+  Three consecutive adversarial reviews of one contract change failed on exactly
+  that, each at a different layer — the second missed three prose sites, the third
+  missed two generators — and one hand-rolled sweep passed `baton.md`'s phase gate
+  because the line contains "accepted with caveats", a different concept that
+  happens to share a word.
+
+  For any rule the tool lists every site that **cites** it, every site that
+  **restates** it without citing, and every site that **implements** it in code.
+  `--touched <ref>` turns a contract diff into the checklist of everywhere else to
+  read. It does not judge compliance — enumerating the surface completely is the
+  part software can do; deciding what each site needs is a reading job.
+
+  `--selftest` rediscovers the five real defects that justified building it and
+  exits 1 on a miss. Building it to pass that test changed the design twice: an
+  early draft scored terms by rarity, which would have dropped `DONE` and
+  `CONFIRMED` as too common — the exact terms whose commonness makes them the
+  hazard — and a later one missed the ledger rule entirely because that rule names
+  its columns inside a code fence rather than in prose.
+
+  Stdlib only, standalone, idempotent, writes only `_orch/rules/`.
+
 ## v3.0 — 2026-08-31
 
 Named experts, two new modes, and the OKF/AIX interop layer this repository now
