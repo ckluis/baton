@@ -33,6 +33,14 @@ emit "$here/prompt/baton.md"          "prompt/baton.md — THE ROUTER"
 emit "$here/prompt/CONTRACT.md"       "prompt/CONTRACT.md"
 emit "$here/personas/CONTRACT.md"     "personas/CONTRACT.md"
 
+# Every rule is its own file so there is exactly one place to amend it. They are
+# concatenated here in section order, so the paste an agent receives is unchanged.
+for pre in rule prule; do
+  for f in $(ls "$here"/rules/$pre-*.md 2>/dev/null | sort -t- -k2,2n -k3,3n); do
+    emit "$f" "rules/$(basename "$f")"
+  done
+done
+
 if [ "$mode" = "ALL" ]; then
   for f in "$here"/prompt/modes/*.md; do emit "$f" "prompt/modes/$(basename "$f")"; done
 else
