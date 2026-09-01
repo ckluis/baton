@@ -1,6 +1,6 @@
 # baton
 
-**v2.0** · An orchestrator of orchestrators, rebuilt around what it costs.
+**v3.0** · An orchestrator of orchestrators, rebuilt around what it costs.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
@@ -9,8 +9,28 @@ models, adversarial verification that has to name the attack it tried, and a
 report that ends by telling you where the money actually went.
 
 **→ [Read the page](https://ckluis.github.io/baton/)** ·
+[Changelog](CHANGELOG.md) ·
+[Migrating from v2](MIGRATING.md) ·
 [baton v1](https://ckluis.github.io/baton/baton-v1.html) ·
 [luminaryTeam](https://ckluis.github.io/luminaryTeam/)
+
+---
+
+## New in v3.0
+
+- **A vendored 40-expert roster.** `personas/luminaries/` ships named domain
+  experts with explicit `phases` and `tags`, because a roster that declares
+  neither is locked out of most seats and matches no upgrade hint.
+- **Two modes.** The eight existing modes all examine the artifact *as built*.
+  `CRAFT` examines it as encountered, `POSITION` as sold — 23 seats, every one
+  backed by a built-in lens, so both run with `PERSONAS: none`.
+- **Checks that answer for themselves.** Every acceptance check now carries an
+  Instrument record, a `guards` edge, and a lifetime yield. The one that
+  mattered most turned out to be unsound and reporting the right answer by
+  luck; it was repaired, fixtured, and it immediately found what it had hidden.
+
+**Five breaking changes** — see [MIGRATING.md](MIGRATING.md). If none of them
+touch you, the migration is changing one URL.
 
 ---
 
@@ -200,7 +220,7 @@ Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v2.0` instead of `/main` and
+  The base URL is also the version pin: point at `/v3.0` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
