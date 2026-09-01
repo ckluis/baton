@@ -284,8 +284,10 @@ personas/
   lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
   luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
+rules/                47 — one file per rule, the only place each is defined
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation + router into index.html
+tools/rules.py        regenerate the contract indexes; refuse a broken rule set
 index.html            the page
 baton-v1.html         v1, kept as it shipped
 ```
