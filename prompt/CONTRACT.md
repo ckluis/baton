@@ -98,6 +98,7 @@ Every node that entered above rung 1 and produced a *specified* change must
 either emit that change as a new rung-1 node or state in its digest why the
 change was inseparable from the diagnosis.
 
+
 ### 1.4 Ceiling
 
 `CEILING` in the run config is the highest rung a node may reach unattended;
@@ -461,13 +462,49 @@ So a spawn prompt routinely carries both: a remote locator for the role file it
 should follow, and a local path for the work it should do. Envelopes, digests,
 verdicts, and ledgers are local paths without exception.
 
----
-
 ## 7. The Ledger
 
 One append-only row per spawn, written by the spawning layer **at envelope
 receipt** — not at dispatch. At dispatch neither `verdict` nor `seconds` exists
 yet, and a row written then can only guess at both.
+
+### 7.2 Two row classes, and exactly one writer each
+
+The schema above describes a **spawn row**. Runs also need to record events that are not
+spawns — a gate closing, a drift applied, a node accepted over a caveat. Those are **event
+rows**, and they are a different shape wearing the same columns:
+
+| | `rung` / `model` / `effort` | `seconds` | `started_at` |
+|---|---|---|---|
+| **spawn row** | as dispatched | measured per §7.1 | exists |
+| **event row** | `n/a` | empty | does not exist — do not synthesize one |
+
+An event row writes `n/a` rather than `0`, because `0` is a real rung (§1) and an event has no
+rung at all. It writes `seconds` empty for the same reason §7.1 gives: an absent measurement is
+better than an invented one. **Event rows are excluded from the rung histogram** — they describe
+the run, not its spending.
+
+**Exactly one layer writes any given row.** The layer that received the envelope writes the
+spawn row. An event row is written by the layer that *held* the event — but if two layers each
+have something to record about the same event, that is two events, not one: the phase runner's
+close and the prime's gate are different facts and each gets its own row, distinguished in the
+`note`. What is forbidden is two layers writing the *same* fact twice.
+
+This is the file's only concurrency assumption, so state it plainly: the ledger is append-only
+and single-writer **per row**, not per file. Concurrent phase runners appending their own rows
+is fine.
+
+Observed in this framework's own run, and the reason both halves of this section exist. Three
+gate events were written twice, by the phase runner and the prime, with **different content each
+time** — one carried drift and streak counts, the other the phase's outcome. Neither was wrong;
+the schema had nowhere to put two perspectives on one event, so one row clobbered another.
+
+And the event rows already written carry real rungs, not `n/a`: measured across that run's
+ledger, thirteen carry `0`, one carries `1`, one carries `2`. Rung `0` is `haiku/low` (§1), so a
+gate that spawned nothing is currently indistinguishable in the histogram from a haiku node that
+did work. **The histogram this framework uses to plan its next run is contaminated today.** That
+is what the `n/a` rule above fixes, and it is why event rows are excluded from the histogram
+rather than merely labelled.
 
 ```csv
 ts,node,rung,model,effort,attempt,verdict,seconds,note
@@ -546,7 +583,12 @@ In force at every `adversarial` setting above `off`:
   verdicts **across every verifier in its phase** — verifiers are fresh spawns,
   so the streak is a property of the phase, not of an agent. Five in a row with
   no `REFUTED` and no `PARTIAL` triggers an audit: one adversary at +1 rung
-  against the most recent confirmation. Either the work is genuinely clean —
+  against the most recent confirmation. **Bound the sample.** Re-check the
+  citations that confirmation rests on — the quotes must be present where it placed
+  them, per the `UNVERIFIED` rule below — rather than re-deriving the entire corpus
+  the verifier examined. A rubber-stamped verdict reads fine on its face and fails at
+  its citations, so that is where to look; re-doing the whole body of work is the most
+  expensive available way to learn nothing was wrong. Either the work is genuinely clean —
   record that, it is real information — or the verification was rubber-stamping
   and every confirmation in the streak reopens. The counter resets at the gate.
 - **`UNVERIFIED`.** A finding whose citation does not check out — the quote is
@@ -574,7 +616,10 @@ quoting its criterion verbatim, each with its own `verdict`
 optionally its own `attack` — the strongest attack tried and why the attack
 failed, or on a `REFUTED` row the attack that landed. `attack` is **optional and
 additive**: an absent `attack` is **not** malformed, and the rules below are
-unchanged by its presence or absence.
+unchanged by its presence or absence. A row may also echo its criterion's
+`stakes` (§9.2) so the phase runner can route a refutation without re-reading the
+handoff; that field is optional and additive on the same terms, and an absent
+one means `high`.
 The node-level verdict is then **derived, not asserted**:
 
 | rows | node verdict |
