@@ -65,6 +65,13 @@ A done-criterion earns its place by being checkable from an artifact alone.
 `test_retry_backoff` case included"* is — a verifier can settle it without
 asking you anything.
 
+**A done-criterion may opt out of the escalation loop, once, in writing.** Add
+`stakes: routine` plus a one-line reason to a criterion whose failure would cost the run
+bookkeeping rather than correctness. Everything without it is `high` — the full loop — and
+that is the right default: you are writing criteria for agents who cannot ask you what you
+meant. Never mark routine a criterion that protects a mode deliverable, a contract, or
+anything a user would see.
+
 **A done-criterion is atomic.** If checking it takes more than one independent
 pass over the artifact — a count, then a per-item property, then a format
 rule — it is not one criterion, it is several sharing a sentence. *"Twelve

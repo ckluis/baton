@@ -729,6 +729,37 @@ def snapshot_subject(baseline, text):
     return None
 
 
+
+STAKES_RE = re.compile(r"\bstakes\s*:\s*routine\b", re.I)
+# a reason is any clause after the marker on the same or the following line that is
+# not merely restating the marker.  We ask only that something is written.
+STAKES_REASON_RE = re.compile(
+    r"\bstakes\s*:\s*routine\b[^.\n]*[-\u2014:,]\s*\S+|"
+    r"\bstakes\s*:\s*routine\b[^\n]*\n\s*\S+", re.I)
+
+
+def rule_f(num, text):
+    """A criterion opting out of the escalation loop must say why.
+
+    CONTRACT 9.2 lets a criterion carry `stakes: routine`, which caps what a
+    refutation costs.  The cap is only safe because someone argued for it in
+    writing; a bare marker is an unargued discount on the run's own verification,
+    and it is exactly the shape that turns a proportionality rule into a way of
+    not looking.  See THE SHAPES IT REJECTS, entry F.
+    """
+    out = []
+    if not STAKES_RE.search(text):
+        return out
+    if STAKES_REASON_RE.search(text):
+        return out
+    out.append(("FLAG", "F1",
+                "this criterion carries `stakes: routine` with no stated reason. CONTRACT 9.2 "
+                "makes routine an opt-out from the escalation loop that must be argued for once, "
+                "in writing, by whoever knows what the criterion protects - an unreasoned marker "
+                "is a discount applied to the run's own verification with nothing behind it. "
+                "Write the reason on the same line, or leave the criterion at the default `high`."))
+    return out
+
 def rule_e(num, text, self_id):
     """The cross-node temporal baseline.  See THE SHAPES IT REJECTS, entry E."""
     out = []
@@ -805,6 +836,7 @@ def lint_file(path, tracked, out):
         findings += rule_c(num, ctext)
         findings += rule_d(num, ctext, crits, whole)
         findings += rule_e(num, ctext, self_id)
+        findings += rule_f(num, ctext)
         for level, rule, msg in findings:
             if level == "FLAG":
                 flags += 1

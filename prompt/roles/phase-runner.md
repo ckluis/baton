@@ -44,6 +44,18 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    before the spawn, not after a node has run against it. A missing `python3` or a
    failed run is logged and dispatched past; the linter never stalls the run.
 
+**Routing a `REFUTED` row** (§9.2): `high` or unmarked — one rung, re-verify, escalate on
+repeat, exactly as before. `routine` with a reason — one re-verification, and if it refutes
+again, write the §2.2 `accepted` record into the node's `status.json` naming **every** refuted
+row and why, then proceed. Never edit the verdict file; the acceptance sits beside it. A run
+that accepts more than it confirms is telling you something, and the report says so.
+
+**Judging fan-outs overlap** (§4.2a): when children judge items of one shape and did not author
+them, give each adjacent pair one shared item, have the overlapped verdicts written to
+`_orch/verify/<item>--<child-id>-verdict.json`, and compare the pairs at the roll-up. Record
+agreements. Escalate at most one disagreement — the one that would change a node verdict — and
+report the rest as unevenly-applied standard.
+
 **You write the spawn row for every node you dispatched, and nobody else does** (§7.2). If you
 also have something to record about a gate the prime holds, write your own **event row** for it
 — `n/a` rung, empty `seconds`, your perspective in the `note` — rather than restating the
