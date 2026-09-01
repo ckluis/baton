@@ -196,33 +196,6 @@ Disk copy wins on conflict with the final text. A node with no `status.json` is
 
 ---
 
-### 2.2 Acceptance is a separate record, never an edited verdict
-
-A verdict is a measurement and nothing may rewrite it. When a run decides to proceed past a
-refutation anyway, that decision is a **second fact recorded beside the first**, never a
-correction of it.
-
-The node's `status.json` gains an `accepted` object; the verdict file is untouched:
-
-```json
-"accepted": {
-  "by": "phase-runner P5",
-  "at": "2026-09-01T14:02:11Z",
-  "rows": ["criterion 7"],
-  "why": "routine-stakes criterion; the disagreement is about the instrument, not the artifact"
-}
-```
-
-`rows` names **every** refuted row being accepted — an acceptance that does not enumerate what
-it is accepting is not one. A node carrying `accepted` still reads `REFUTED`, and its report
-line still says so. That is the point: the record keeps saying what was found, and says
-separately that a named layer chose to proceed.
-
-**This is the only mechanism that lets a run continue past a refutation.** §9.2 governs when it
-may be used; §4.1 governs what it unblocks.
-
----
-
 ## 3. The Digest
 
 Every work product a higher layer might want to "just peek at" gets a digest
@@ -278,10 +251,7 @@ worktree.
 
 - **`needs`** — hard. The node is not runnable until every `needs` target is
   `DONE` **and** `CONFIRMED`. `DONE` alone is not enough; unverified work is a
-  guess with a filename. The one exception is a target carrying an `accepted`
-  record (§2.2) that enumerates every one of its refuted rows — an explicit,
-  attributed decision to proceed, which is a different thing from an unverified
-  guess and is why it must be written down rather than inferred.
+  guess with a filename.
 - **`informs`** — soft. Does not gate. When the source has finished, its
   **digest path** is added to this node's handoff. This is how context travels
   without contaminating: a path, not a paste.
@@ -346,33 +316,6 @@ ones that are not have been explicitly accepted as `BLOCKED`.
 A **`barrier`** carries `needs` listing every node it waits on, and one line of
 `why` naming the cross-item work that justifies it (§4.2). A barrier with no
 `why` is a pipeline stage that has not noticed yet.
-
-### 4.2a Judging fan-outs overlap by one item
-
-**Only fan-outs whose children *judge* an artifact they did not author** — verification sweeps,
-review panels, anything carrying `refutes:`. Never an authoring fan-out: two children assigned
-one file to *write* is a collision, which §4.3 answers with serial dispatch or a worktree.
-
-Give each pair of adjacent children **one shared item**. Independent contexts applying a
-standard to items of the same shape will diverge, and a clean partition guarantees the
-divergence is invisible — every item is judged once, so no two judgments can be compared.
-
-**The overlapped item writes a keyed path**, because the ordinary path is keyed by the item and
-two children would otherwise overwrite each other:
-
-```
-_orch/verify/<item>-verdict.json              # the ordinary case, one judge
-_orch/verify/<item>--<child-id>-verdict.json  # an overlapped item, one file per judge
-```
-
-The fan-out's roll-up node compares each overlapped pair and records the result. **Agreement is
-recorded, not discarded** — it is the evidence that the standard held across a boundary.
-
-**A disagreement is a finding, not an automatic escalation.** It does not fire §1.2 trigger 4 by
-itself; a fourteen-child fan-out has thirteen boundaries and cannot afford thirteen adjudicators.
-The roll-up ranks the disagreements and escalates **at most one** — the one whose resolution
-would change a node verdict. The rest are reported as what they are: evidence that the standard
-was applied unevenly, which is worth knowing even when no single row's outcome turns on it.
 
 ### 4.3 Concurrency
 
@@ -518,40 +461,6 @@ Two different things get referred to by "path" and they must not be confused:
 So a spawn prompt routinely carries both: a remote locator for the role file it
 should follow, and a local path for the work it should do. Envelopes, digests,
 verdicts, and ledgers are local paths without exception.
-
-### 6.2 A stated fact carries the probe that refutes it
-
-A brief, a handoff, or any prompt a layer writes for the layer below may state what it believes
-about the target — **provided it also gives the command that checks the claim.** What is
-forbidden is the bare assertion: a number, a count, a state, standing alone in prose with no way
-for the reader to find out it has gone stale.
-
-```
-forbidden   "check 4 reports 11 unresolved tags"
-correct     "check 4's unresolved count was 11 at dispatch —
-             `sh tools/check4-hint-tags.sh | wc -l`. If your count
-             disagrees, your count wins and you say so."
-```
-
-The second form is not more words for their own sake. It is the same redundancy §4.2a relies on:
-two independent measurements of one fact make drift **visible**, where one measurement makes it
-invisible. Removing the stated value would not make the brief safer — it would delete the
-tripwire.
-
-**This is why an expected value is legal.** An invariant — *"check 9 must show `main` at
-`e78e7b0`, nothing staged"* — is a fact and a probe together, and it is the guard that catches a
-commit on a branch the operator froze. A check with no expected value has nothing to compare
-against and guards nothing.
-
-**Operator decisions travel as a path** (§10): the answer file at `_orch/inbox/Q-<n>.answer.md`
-is authoritative, and a brief may summarize it as long as it names that path. Where a summary and
-the file disagree, the file wins — which is the same rule as everywhere else here.
-
-This is §3's digest rule pointed downward. Digests exist so an upper layer never opens a lower
-layer's work; this exists so a lower layer never inherits an upper layer's *memory* without also
-inheriting the means to check it.
-
----
 
 ## 7. The Ledger
 
@@ -743,40 +652,6 @@ sends it to attack *one* specific `DONE` claim from its own lens, deeply, and
 its verdict keeps the single-claim shape. One sweeps and must account for
 everything; the other drills and must account for its one hole. Do not force
 either into the other's record.
-
----
-
-### 9.2 Stakes: opting a criterion out of the escalation loop
-
-§9.1 made verification countable. This makes it proportional — but only where someone has said
-so in writing, because the safe default is the expensive one.
-
-A done-criterion may carry **`stakes: routine`** plus a one-line reason. Anything without it is
-**`stakes: high`**, which is today's behavior and costs nothing to keep.
-
-| | on a `REFUTED` row |
-|---|---|
-| **`high`** — the default, and every existing criterion | the full loop: one rung (§1.2.3), re-verify, escalate on repeat |
-| **`routine`** — declared, with a reason | one re-verification. A second refutation is **accepted** under §2.2, naming the row, rather than escalated again |
-
-**Why the default is strict.** A permissive default would silently govern every criterion ever
-written, since none carries this marker today; a strict default changes nothing until someone
-deliberately opts a criterion out and says why. The cheaper path has to be *argued for*, once,
-in writing, by the person who knows what the criterion protects.
-
-**`routine` is declared at dispatch and may never be lowered onto a criterion after it has been
-refuted.** Discovering that a criterion fails is not a reason to decide it never mattered. It may
-be *raised* to `high` at any time by anyone.
-
-**Deliberately not the P0–P3 scale.** Those priorities describe findings about the artifact
-(§9), and `personas/CONTRACT.md`-seated panels already read `P2`/`P3` as report-only. Reusing
-them here would give one label two incompatible meanings in one run.
-
-**What this buys.** A criterion that is genuinely about bookkeeping — whether a work file lists
-its own inputs — can stop consuming the escalation budget of the criterion that protects a
-shipped behavior. What it must never buy is silence: the acceptance is recorded, attributed, and
-reported (§2.2), and a run whose report shows a drift toward accepting things is telling you
-something about itself.
 
 ---
 

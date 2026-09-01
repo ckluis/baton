@@ -75,12 +75,6 @@ disagrees with the computation above, is **malformed** — the phase runner trea
 it as `PARTIAL` and re-verifies. Not a judgment call about you; the record just
 does not say what it needs to say.
 
-If a criterion carries `stakes` (§9.2), echo it on that row so the phase runner can route a
-refutation without re-reading the handoff. It changes nothing about how you work: you probe a
-routine criterion exactly as hard as a high one. Stakes govern what happens **after** a
-refutation, never how carefully you look for one — a verifier who eases off on a routine
-criterion has destroyed the only evidence the cap was safe to apply.
-
 `REFUTED` counts as `FAILED` against the node (CONTRACT §1.2.3) — one rung
 up on re-spawn, not two attempts at yours. `PARTIAL` re-verifies at your same
 rung; only escalate the verifier itself after a second `PARTIAL` on the same
