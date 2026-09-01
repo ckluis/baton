@@ -277,6 +277,26 @@ html.js .reveal.in{opacity:1;transform:none}
   .vs .vl{font-size:13px;color:var(--muted-2);text-decoration:line-through;text-decoration-color:var(--hair-2)}
   .vs .va{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center}
   .vs .vr{font-size:13px;color:var(--body-2);font-weight:500}
+
+  /* lineage cards — v1 -> v2 -> v3 */
+  .lin{height:100%}
+  .lin .codebar b{color:var(--ink)}
+  .lin.cur{border-color:var(--cyan-dim)}
+  .linb{padding:20px 22px 18px;flex:1;display:flex;flex-direction:column}
+  .lint{font-size:19px;letter-spacing:-.02em;line-height:1.2;color:var(--ink);margin:0}
+  .lind{margin-top:9px;font-size:14px;line-height:1.55;color:var(--muted)}
+  .dlist{margin-top:auto;padding-top:16px}
+  .dl{display:grid;grid-template-columns:15px 1fr;gap:9px;align-items:baseline;
+    padding:4px 0;font-size:13px;line-height:1.45;color:var(--body)}
+  .dl code{font-size:12px}
+  .dp,.dm{font-family:var(--mono);font-weight:700;font-size:13px;line-height:1.45}
+  .dp{color:var(--ok)}
+  .dm{color:var(--bad)}
+  .linf{display:block;padding:13px 22px;border-top:1px solid var(--hair);background:var(--raised);
+    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--cyan);
+    text-decoration:none;transition:background .16s ease}
+  .linf:hover{background:var(--card)}
+  @media (prefers-reduced-motion: reduce){.linf{transition:none}}
   #top h1{font-size:clamp(33px,4.9vw,56px);letter-spacing:-.032em}
   @media(max-width:1000px){.herogrid{grid-template-columns:1fr!important}}
 </style>
@@ -305,20 +325,61 @@ html.js .reveal.in{opacity:1;transform:none}
         <p style="margin-top:16px;font-size:16px">That bill is still the reason the phase runner exists, and none of it was undone: v3 inherits the ladder, the layers and the cost argument whole. <strong>v3's change is a different one</strong> &mdash; not what a run costs, but what a run is allowed to leave unexamined.</p>
       </div>
     </div>
-      <div class="card reveal d1" style="margin-top:36px;padding:0;overflow:hidden">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v1 &rarr; v2</div><span class="pill d">lineage</span></div>
-        <div style="padding:8px 0">
-          <div class="vs"><span class="vl">Paste 571 lines</span><span class="va">&rarr;</span><span class="vr">Paste 8. Answer one question.</span></div>
-          <div class="vs"><span class="vl">4 model tiers</span><span class="va">&rarr;</span><span class="vr">6 rungs of model &times; effort</span></div>
-          <div class="vs"><span class="vl">Prime dispatches every task</span><span class="va">&rarr;</span><span class="vr">Prime dispatches phases</span></div>
+      <div class="grid g3 reveal d1" style="margin-top:40px;align-items:stretch">
+
+        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v1</b> &middot; the original</div><span class="pill d">archived</span></div>
+          <div class="linb">
+            <h4 class="lint">One prompt.</h4>
+            <p class="lind">571 lines in a single paste. Four model tiers. Adversarial panels and
+              convergence loops were all here first &mdash; the architecture was right.</p>
+            <div class="dlist">
+              <div class="dl"><span class="dp">+</span><span>Named lenses, arguing on the record</span></div>
+              <div class="dl"><span class="dp">+</span><span>Loops that had to converge</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>Prime dispatched every task itself</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>Cost scaled with the node count</span></div>
+            </div>
+          </div>
+          <a class="linf" href="baton-v1.html">Read baton v1 &rarr;</a>
         </div>
-        <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-          <span style="font-size:13px;color:var(--muted)">v1 is still standing, unchanged.</span>
-          <a href="baton-v1.html"
-             style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read baton v1 &rarr;</a>
+
+        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v2</b> &middot; the cost rewrite</div><span class="pill d">archived</span></div>
+          <div class="linb">
+            <h4 class="lint">A repository.</h4>
+            <p class="lind">The prompt split into a router you paste and the contracts, modes, roles
+              and personas it fetches. Same architecture; the bill went somewhere else.</p>
+            <div class="dlist">
+              <div class="dl"><span class="dp">+</span><span>Six rungs of model &times; effort</span></div>
+              <div class="dl"><span class="dp">+</span><span>A phase runner that absorbs dispatch</span></div>
+              <div class="dl"><span class="dp">+</span><span>Personas loadable from any repo</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>571-line paste &rarr; eight lines</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>Four model tiers</span></div>
+            </div>
+          </div>
+          <a class="linf" href="baton-v2.html">Read baton v2 &rarr;</a>
         </div>
+
+        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v3</b> &middot; the roster</div><span class="pill c">current</span></div>
+          <div class="linb">
+            <h4 class="lint">A roster, and checks that answer for themselves.</h4>
+            <p class="lind">Every mode examined the artifact as built. Two new ones examine it as
+              encountered and as sold &mdash; and the checks stopped being exempt from the standard
+              they enforce.</p>
+            <div class="dlist">
+              <div class="dl"><span class="dp">+</span><span><code>CRAFT</code> and <code>POSITION</code></span></div>
+              <div class="dl"><span class="dp">+</span><span>40 named experts, opt-in</span></div>
+              <div class="dl"><span class="dp">+</span><span>361 typed edges between personas</span></div>
+              <div class="dl"><span class="dp">+</span><span>Ten instruments, each carrying its yield</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>Verdicts asserted per node</span></div>
+            </div>
+          </div>
+          <a class="linf" href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener">You are here &middot; migrating &rarr;</a>
+        </div>
+
       </div>
-  </div>
+    </div>
 </section>
 <style>@media(max-width:860px){.g2x{grid-template-columns:1fr!important}}</style>
 
