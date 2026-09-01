@@ -186,8 +186,9 @@ retry is cheap — that asymmetry is why transforms start at 1 and stay there.
 | `integration-risk` | expert | AUDIT | What breaks when the batches land together — import cycles, ordering, partially migrated interfaces, downstream consumers, deploy sequencing. |
 | `scope-creep` | expert | VERIFY | Whether any diff touches a line the register does not name. Every improvement smuggled into a transform is a behavior change nobody reviewed. |
 
-Casting prefers named experts tagged `refactoring`/`semantics` for `equivalence`,
-`static-analysis`/`tooling` for `call-site-truth`, `distributed`/`release-engineering`
+Casting prefers named experts tagged `refactoring`/`semantics`/`consistency` for
+`equivalence`, `static-analysis`/`tooling` for `call-site-truth`,
+`distributed`/`release-engineering`/`observability`/`resilience`/`api-design`
 for `integration-risk`, and `discipline`/`code-review` for `scope-creep`.
 
 ## Gates

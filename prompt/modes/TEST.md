@@ -147,8 +147,8 @@ the adjudication rung through §1.2 trigger 4, never by assignment.
 | `regression-integrity` | expert | AUDIT, VERIFY | whether every bug fixed in `L1` has a test that fails against the pre-fix code |
 
 Casting upgrades (personas/CONTRACT §4.2) prefer tags `testing`/`quality` for
-`coverage-truth`, `security`/`fuzzing` for `adversarial-input`,
-`refactoring`/`maintainability` for `suite-economics`,
+`coverage-truth`, `security`/`fuzzing`/`threat-modeling` for `adversarial-input`,
+`refactoring`/`maintainability`/`performance` for `suite-economics`,
 `regression`/`reliability` for `regression-integrity`.
 
 ## Gates
