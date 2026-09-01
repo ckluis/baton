@@ -1,12 +1,26 @@
 ---
 name: Suite Economics
+type: Persona
+id: suite-economics
 kind: expert
 domain: Test Suite Cost & Redundancy
 phases: [AUDIT, CLASH]
 rung: 2
 tags: [testing, maintenance, efficiency, tech-debt, ci]
+links:
+  - rel: contradicts
+    to: coverage-truth
+    note: "the test it wants cut is the only boundary pin"
+  - rel: contradicts
+    to: regression-integrity
+    note: "the test it wants cut is the only bug pin"
+  - rel: contradicts
+    to: adversarial-input
+    note: "exhaustive case enumeration is exactly the suite bloat argued against"
+  - rel: contradicts
+    to: test-honesty
+    note: "consolidation collapses tests pinning different spec clauses"
 ---
-
 ## Focus
 The suite as a cost center, not a collection of individually meritorious
 tests: which ones assert the same fact twice, which are so brittle they get
@@ -27,6 +41,10 @@ is worse off for keeping it.
   is exactly the kind of suite bloat this lens exists to push back on.
 - Will fight `test-honesty` when a proposed consolidation would collapse two
   tests that look identical but actually pin different spec clauses.
+
+<!-- typed-link mirrors for the AIX `links` block above;
+     the backticked slugs in the bullets are the canonical references and are unchanged -->
+[coverage-truth](coverage-truth.md) · [regression-integrity](regression-integrity.md) · [adversarial-input](adversarial-input.md) · [test-honesty](test-honesty.md)
 
 ## Red Flag Trigger
 A suite whose run time exceeds the time it took to write the code it tests,

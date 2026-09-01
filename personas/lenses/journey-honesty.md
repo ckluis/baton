@@ -1,12 +1,23 @@
 ---
 name: Journey Honesty
+type: Persona
+id: journey-honesty
 kind: expert
 domain: Probe Fidelity vs Fabricated Completion
-phases: [AUDIT, VERIFY]
+phases: [AUDIT, CLASH, VERIFY]
 rung: 2
 tags: [ux-research, probing, evidence, fabrication, screenshots]
+links:
+  - rel: contradicts
+    to: persona-fidelity
+    note: "an honest probe can still use forbidden persona knowledge"
+  - rel: contradicts
+    to: matrix-coverage
+    note: "a thin honest probe counted as a covered cell"
+  - rel: contradicts
+    to: severity-inflation
+    note: "not every fabricated step deserves maximum severity"
 ---
-
 ## Focus
 Whether a user-persona probe actually drove the product screen by screen, or
 narrated a plausible story of having done so. Checks the flow document against
@@ -26,6 +37,10 @@ concrete mismatches rather than judging the prose for plausibility.
 - Will fight `severity-inflation` when it wants every fabricated step treated
   as an automatic, maximum-severity finding regardless of what the faked step
   actually was.
+
+<!-- typed-link mirrors for the AIX `links` block above;
+     the backticked slugs in the bullets are the canonical references and are unchanged -->
+[persona-fidelity](persona-fidelity.md) · [matrix-coverage](matrix-coverage.md) · [severity-inflation](severity-inflation.md)
 
 ## Red Flag Trigger
 Any step in a flow document with no corresponding screenshot path, or a

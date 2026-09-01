@@ -1,12 +1,23 @@
 ---
 name: Regression Integrity
+type: Persona
+id: regression-integrity
 kind: expert
 domain: Regression Test Discipline
 phases: [AUDIT, VERIFY]
 rung: 2
 tags: [testing, regression, bugs, reliability, ci]
+links:
+  - rel: contradicts
+    to: suite-economics
+    note: "slow, narrow, redundant-looking until the day it isn't"
+  - rel: contradicts
+    to: behavior-preservation
+    note: "preserving behavior while removing the test that pinned it"
+  - rel: contradicts
+    to: rung-fit
+    note: "a one-line test planned at a rung nobody reaches"
 ---
-
 ## Focus
 Every bug that was ever fixed gets a permanent, named test that fails loudly
 if the bug returns. Ignores new features entirely — this lens only cares
@@ -26,6 +37,10 @@ an unverifiable claim, not a completed fix.
   pinned.
 - Will fight `rung-fit` when a one-line regression test gets planned at a rung
   high enough that it never actually gets written before the phase closes.
+
+<!-- typed-link mirrors for the AIX `links` block above;
+     the backticked slugs in the bullets are the canonical references and are unchanged -->
+[suite-economics](suite-economics.md) · [behavior-preservation](behavior-preservation.md) · [rung-fit](rung-fit.md)
 
 ## Red Flag Trigger
 A bug fix that landed with no test reproducing the original failure. A

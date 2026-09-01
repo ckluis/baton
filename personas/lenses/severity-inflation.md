@@ -1,12 +1,26 @@
 ---
 name: Severity Inflation
+type: Persona
+id: severity-inflation
 kind: expert
 domain: Priority Discipline
-phases: [AUDIT, CLASH]
+phases: [AUDIT, CLASH, VERIFY]
 rung: 2
 tags: [triage, priority, discipline, evidence]
+links:
+  - rel: contradicts
+    to: adversarial-input
+    note: "could happen is not reachable and consequential"
+  - rel: contradicts
+    to: coverage-truth
+    note: "a found gap is not automatically a P0"
+  - rel: contradicts
+    to: journey-honesty
+    note: "not every fabricated step auto-escalates to maximum severity"
+  - rel: contradicts
+    to: leverage-vs-risk
+    note: "both trim the list; this one re-grades evidence instead"
 ---
-
 ## Focus
 Whether every P0 and P1 in a findings set actually meets the contract's bar —
 irreversible, unsafe, or user-facing-incorrect for P0; significant and
@@ -28,6 +42,10 @@ evidence would survive with the priority label stripped off.
 - Will fight `leverage-vs-risk` over method, not conclusion — both end up
   trimming a list, but this lens trims by re-grading evidence, never by
   ranking value against cost.
+
+<!-- typed-link mirrors for the AIX `links` block above;
+     the backticked slugs in the bullets are the canonical references and are unchanged -->
+[adversarial-input](adversarial-input.md) · [coverage-truth](coverage-truth.md) · [journey-honesty](journey-honesty.md) · [leverage-vs-risk](leverage-vs-risk.md)
 
 ## Red Flag Trigger
 A P0 or P1 finding whose evidence describes a hypothetical — "could be
