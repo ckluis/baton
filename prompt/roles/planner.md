@@ -15,8 +15,9 @@ Produce three things:
 - `plan/graph.yaml` — the graph, schema per CONTRACT §4.
 - `plan/roadmap.md` — phases and rationale, **table first, prose after**
   (CONTRACT §6); the prime reads only the table.
-- `handoff.md` for every node: inputs, expected outputs under `work/`, and a
-  done-criterion a verifier can check without a judgment call.
+- `handoff.md` for every node: inputs, expected outputs under `work/`, and
+  done-criteria a verifier can check without a judgment call, one line per
+  atomic check (below).
 
 If the mode calls for `plan/traceability.yaml` (BUILD, MIGRATE), write it
 mapping requirement → node(s) → verification method.
@@ -63,6 +64,20 @@ A done-criterion earns its place by being checkable from an artifact alone.
 *"The retry logic is solid"* is not one. *"The suite passes with the new
 `test_retry_backoff` case included"* is — a verifier can settle it without
 asking you anything.
+
+**A done-criterion is atomic.** If checking it takes more than one independent
+pass over the artifact — a count, then a per-item property, then a format
+rule — it is not one criterion, it is several sharing a sentence. *"Twelve
+sections exist, each cites a path, quotes are under twenty words, and no line
+starts with `VERDICT`"* is four criteria wearing one. Write it as four lines
+instead, one independently-failing check per line. This is not new scope: the
+directive's sentence already implied every clause it bundled, and you are only
+giving each clause its own line so a verifier checks it on its own (CONTRACT
+§9.1 rows one line as one row — a bundled line is one row standing in for
+several, and the arithmetic passes without any of them being checked
+individually). A criterion that will not split because it is genuinely one
+fact — even about a large artifact — stays one line. Irreducible is a valid
+answer; say so by leaving it alone, not by flagging it.
 
 You do not execute. You return a graph, a roadmap, and handoffs — nothing
 under `work/` exists yet. Your own envelope closes the loop: write it, and

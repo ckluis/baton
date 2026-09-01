@@ -48,18 +48,40 @@ for f in "$here"/prompt/roles/*.md; do emit "$f" "prompt/roles/$(basename "$f")"
 if [ "$mode" = "ALL" ]; then
   for f in "$here"/personas/lenses/*.md; do emit "$f" "personas/lenses/$(basename "$f")"; done
   for f in "$here"/personas/users/*.md;  do emit "$f" "personas/users/$(basename "$f")"; done
+  # Luminaries are opt-in (PERSONAS: builtin+luminaries), so ALL does not emit
+  # them — bundling 40 unseated experts is exactly the padding CONTRACT §4.1
+  # argues against.
 else
   seats=$(sed -n '/^## Seats/,/^## Gates/p' "$here/prompt/modes/$mode.md" \
           | sed -E -n 's/^\| *`([a-z0-9-]+)` *\| *(expert|user) *\|.*/\2 \1/p')
-  printf '%s\n' "$seats" | while read -r kind slug; do
+  # Loop over a file, not a pipe: a pipeline runs the body in a subshell where
+  # `exit 1` cannot fail the script, which is how a missing seat used to warn
+  # and then ship anyway.
+  seats_file="$here/dist/.seats.$$"
+  printf '%s\n' "$seats" > "$seats_file"
+  while read -r kind slug; do
     [ -n "${slug:-}" ] || continue
     case $kind in
-      expert) f="$here/personas/lenses/$slug.md" ; d="personas/lenses/$slug.md" ;;
-      user)   f="$here/personas/users/$slug.md"  ; d="personas/users/$slug.md" ;;
+      expert) subdirs="lenses luminaries" ;;
+      user)   subdirs="users" ;;
       *) continue ;;
     esac
-    [ -f "$f" ] && emit "$f" "$d" || echo "warn: seat $slug has no file" >&2
-  done
+    found=""
+    for sub in $subdirs; do
+      if [ -f "$here/personas/$sub/$slug.md" ]; then
+        emit "$here/personas/$sub/$slug.md" "personas/$sub/$slug.md"
+        found=1
+        break
+      fi
+    done
+    if [ -z "$found" ]; then
+      rm -f "$seats_file"
+      echo "error: mode $mode seats \`$slug\` but no file exists in personas/{$(echo "$subdirs" | tr ' ' ',')}/" >&2
+      echo "       a bundle missing a seat is a bundle that silently runs short-handed." >&2
+      exit 1
+    fi
+  done < "$seats_file"
+  rm -f "$seats_file"
   printf '\n\n<!-- Seats not listed above keep their built-in lens definitions, which are\n'   >> "$out"
   printf '     the only ones this mode needs. To swap in a named roster, clone the repo\n'      >> "$out"
   printf '     and set PERSONAS: repo:<host/owner/name>. -->\n'                                 >> "$out"
