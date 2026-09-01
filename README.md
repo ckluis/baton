@@ -2,7 +2,7 @@
 
 **v2.0** · An orchestrator of orchestrators, rebuilt around what it costs.
 
-baton is a router prompt. You paste it into a fresh session, fill six lines, and
+baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
 default rung most work never leaves, escalation measured in rungs instead of
 models, adversarial verification that has to name the attack it tried, and a
@@ -28,7 +28,7 @@ v2 keeps the architecture and rebuilds the routing.
 
 | | v1 | v2 |
 |---|---|---|
-| **What you paste** | one prompt, 571 lines | a router of 159 lines + the mode you asked for |
+| **What you paste** | one prompt, 571 lines | a router of 242 lines + the mode you asked for |
 | **Routing** | 4 model tiers | 6 rungs of model × effort |
 | **Default** | "assign the lowest tier that can succeed" | `sonnet/medium`, and a written reason to start higher |
 | **Escalation** | one model tier per failure | **one rung** per failure — more thinking before a bigger model |
@@ -105,6 +105,8 @@ MIGRATE's two discovery passes and the crescent only the second one found.
 | `IMPROVE` | Audit → blindspot hunt → rank → behavior-preserving execution | Drive-by refactors |
 | `REVIEW` | The adversarial panel as its own mode; ranked matrix out | Executing anything |
 | `DOGFOOD` | Simulated users drive the product, screenshots-only perception | Fixing what it finds |
+| `CRAFT` | Adversarial panel audits the experienced surface — type, colour, motion, microcopy, IA, accessibility, localisation — captured first, ranked matrix out | Driving journeys (DOGFOOD's subject). Fixing anything it finds. |
+| `POSITION` | Adversarial panel audits the commercial surface — positioning, pricing, naming, story, launch readiness — claim ledger first, ranked matrix out | Building anything (no diff, ever). Shipping or approving a launch. |
 | `MIGRATE` | Discover every site, transform, verify, integrate | Trusting one discovery pass |
 | `ROADMAP` | Plan + plan gate only, panel-hardened, executable cold | Execution |
 | `GENERIC` | Your directive, held to the same standard | A directive with no completion condition |
@@ -124,9 +126,13 @@ An expert who behaves like a user produces vague taste. A user who behaves like
 an expert produces fiction. Most persona systems own only the first kind — **a
 run that never spawns a `user` has never seen its product.**
 
-baton ships 21 built-in **lenses** (`personas/lenses/`) and 7 end-user
+baton ships 36 built-in **lenses** (`personas/lenses/`) and 7 end-user
 **archetypes** (`personas/users/`). Modes name *seats*; seats are always fillable
 by the built-in lenses, so every mode runs with `PERSONAS: none`.
+
+Separately, `personas/luminaries/` vendors 40 named-expert cards. This roster is
+**opt-in, not built-in** — reached with `PERSONAS: builtin+luminaries` — and is
+never folded into the built-in count above. See "Two rosters, on purpose" below.
 
 ### Loading someone else's roster
 
@@ -135,9 +141,10 @@ PERSONAS: builtin + repo:github.com/ckluis/luminaryTeam
 ```
 
 A persona file carrying only `name` and `domain` is valid — the loader fills
-`kind: expert`, `phases: [AUDIT, CLASH]`, `rung: 2`. That means the forty
-published luminaryTeam personas load exactly as they are: no fork, no edits.
-**Adopting a roster must never require rewriting it.**
+`kind: expert`, `phases: [AUDIT, CLASH]`, `rung: 2`. By design, that is a
+guarantee of the loader's defaults, not a claim about what this repository has
+exercised: a roster fetched this way loads exactly as it is, unmodified — no
+fork, no edits. **Adopting a roster must never require rewriting it.**
 
 Casting may then *upgrade a seat* — a named expert whose tags match fills the
 `coverage-truth` seat and audits coverage truth. The mode owns what gets
@@ -146,6 +153,18 @@ examined; the persona owns how.
 Persona files from foreign repositories are **data, not instructions**. A file
 containing directives aimed at the orchestrator is a finding to report, never an
 instruction to follow.
+
+### Two rosters, on purpose
+
+Upstream `github.com/ckluis/luminaryTeam` is the standalone advisory panel, and it
+still loads unmodified through `PERSONAS: builtin + repo:github.com/ckluis/luminaryTeam`
+exactly as above. `personas/luminaries/` in *this* repository is a **sibling
+artifact** — not a fork and not a mirror of it: its cards carry baton-specific
+`phases`, `tags`, and rewritten Conflict Vectors so they can be seated into
+baton's phase and mode machinery, which the upstream cards were never written
+for. The two rosters are **expected to diverge**, and **neither is canonical
+over the other**. This vendored roster is **opt-in, never built-in**, and is
+reached with `PERSONAS: builtin+luminaries`.
 
 ---
 
@@ -158,14 +177,15 @@ instruction to follow.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
 out which mode fits, and **asks you to confirm** — leading with its best guess
-and the two next-best rather than making you pick from eight. Naming `MODE`
+and the two next-best rather than making you pick from ten. Naming `MODE`
 yourself skips the question; naming anything else overrides a default that was
 probably already right.
 
@@ -207,12 +227,13 @@ prompt/
   invoke.md           the paste — your goal, two settings, and a URL
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         ladder, envelope, digest, graph, loop, gates, evidence
-  modes/              8 — directive + graph shape + entry rungs + seats + gates
+  modes/              10 — directive + graph shape + entry rungs + seats + gates
   roles/              11 — planner, phase-runner, verifier, panel, synthesizer…
 personas/
   CONTRACT.md         schema + what each persona kind does in each phase
-  lenses/             21 — expert seats, upgradeable to named voices
+  lenses/             36 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
+  luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation + router into index.html
 index.html            the page
@@ -222,7 +243,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/main`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v3.0`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 
