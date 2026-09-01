@@ -14,10 +14,10 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.1/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.1/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -48,7 +48,7 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/v3.0
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v3.1
 PERSONAS:    builtin
 CEILING:     4
 PRIME_TURNS: 12
@@ -78,7 +78,7 @@ inference, and says so in its first message and its final report.
 ### Pinning a version
 
 The base URL is the pin. The default above is already pinned to a tag —
-`v3.0`, the current release — rather than floating on `main`. Point at a
+`v3.1`, the current release — rather than floating on `main`. Point at a
 different tag instead (an older release, frozen forever) — or at `main` for
 the bleeding edge — and the whole framework — router, contracts, modes,
 roles, personas — comes from that base, because everything resolves relative

@@ -1,6 +1,6 @@
 # baton
 
-**v3.0** · An orchestrator of orchestrators, rebuilt around what it costs.
+**v3.1** · An orchestrator of orchestrators, rebuilt around what it costs.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
@@ -33,6 +33,7 @@ lifetime yield.
 | **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
 | **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
 | **Bundle interop** | none | optional `type` / `id` / `links` keys, validated at **AIX level 1** |
+| **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 47 of them, contracts down to 83 lines |
 
 - **A vendored 40-expert roster.** `personas/luminaries/` ships named domain
   experts with explicit `phases` and `tags`, because a roster that declares
@@ -40,6 +41,12 @@ lifetime yield.
 - **Two modes.** `CRAFT` examines the artifact as encountered, `POSITION` as
   sold — 24 seats between them, every one backed by a built-in lens, so both
   run with `PERSONAS: none`.
+- **Every rule is a file.** `rules/` holds 47 of them as OKF/AIX concepts with a
+  stable `id` and typed links; the contracts are narrative plus a **generated**
+  index. There is nowhere to amend a stale copy of a rule because there are no
+  copies, and `tools/rules.py` refuses a duplicate id, a dangling link, a stale
+  index, a citation to a rule that does not exist, or a rule heading surviving in
+  a contract. `bundle.sh` concatenates them, so the paste is unchanged.
 - **Checks that answer for themselves.** Every acceptance check now carries an
   Instrument record, a `guards` edge, and a lifetime yield. The one that
   mattered most turned out to be unsound and reporting the right answer by
@@ -220,10 +227,10 @@ reached with `PERSONAS: builtin+luminaries`.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.1/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.1/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -243,7 +250,7 @@ Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v3.0` instead of `/main` and
+  The base URL is also the version pin: point at `/v3.1` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
@@ -286,7 +293,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/v3.0`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v3.1`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 

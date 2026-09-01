@@ -226,7 +226,7 @@ html.js .reveal.in{opacity:1;transform:none}
     <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
       <div>
         <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v3.0</span>
+          <span class="pill y">v3.1</span>
           <span class="pill c">router + 10 modes</span>
           <span class="pill c">40 named experts</span>
         </div>
@@ -254,6 +254,7 @@ html.js .reveal.in{opacity:1;transform:none}
             <div class="vs"><span class="vl">Checks nobody measured</span><span class="va">&rarr;</span><span class="vr">10 instruments, each carrying its yield</span></div>
             <div class="vs"><span class="vl">Verdict asserted per node</span><span class="va">&rarr;</span><span class="vr">One computed row per criterion</span></div>
             <div class="vs"><span class="vl">A bundle nothing could read</span><span class="va">&rarr;</span><span class="vr">AIX level 1, checked by command</span></div>
+            <div class="vs"><span class="vl">Rules inline, restated four ways</span><span class="va">&rarr;</span><span class="vr">One file each &mdash; 47 rules, 83-line contracts</span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
             <span style="font-size:13px;color:var(--muted)">v2 is still tagged, and still runs. Five breaking changes.</span>
@@ -1466,8 +1467,12 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
         <h2 style="margin-top:16px">One prompt became<br><em>a repository.</em></h2>
         <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
           every session paid for every mode it was not running. v2 split it: a router you paste, and
-          files the agents read. Two contracts define the schemas &mdash; the ladder, the envelope, the
-          digest, the graph, the loop &mdash; and every mode, role, and persona is written against them.</p>
+          files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
+          under <code>rules/</code> &mdash; 47 of them, the ladder, the envelope, the digest, the graph,
+          the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
+          to 83. There is nowhere to amend a stale copy of a rule because there are no copies, and the
+          index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
+          the paste is unchanged.</p>
         <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
           <strong>the contract wins and the role prompt is the bug.</strong></p>
         <p style="margin-top:16px;font-size:16px">v3 made the repository legible to something other than baton. Persona frontmatter may carry optional <code>type</code>, <code>id</code> and <code>links</code> keys &mdash; ignored entirely by baton's own loader, meaningful only to an outside consumer &mdash; and <code>tools/aix-validate.py</code> holds this bundle to <strong>AIX level 1</strong> on every acceptance run.</p>
@@ -1517,10 +1522,10 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.1/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.0/MIGRATING.md</pre>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.1/MIGRATING.md</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
@@ -1541,7 +1546,7 @@ Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.
         <h4>The URL is the whole dependency.</h4>
         <p>No clone, no install, no config file. Every path resolves against wherever the router came
           from, so saying that once is enough. It also makes the base URL the version pin: point at
-          <code>/v3.0</code> instead of <code>/main</code> and the entire framework comes from that
+          <code>/v3.1</code> instead of <code>/main</code> and the entire framework comes from that
           tag, with no second version to keep in sync.</p>
       </div>
       <div class="card sm">
@@ -1866,7 +1871,7 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
       <div>
         <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
           <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3.0</span>
+          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3.1</span>
         </div>
         <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
           rebuilt around what it costs. The repository is the artifact.</p>

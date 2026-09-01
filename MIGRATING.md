@@ -1,6 +1,31 @@
-# Migrating from v2.0 to v3.0
+# Migrating between baton versions
 
-## 1. The move itself
+## v3.0 → v3.1
+
+Change the base URL to `.../ckluis/baton/v3.1`. For almost everyone that is the
+whole migration: `bundle.sh` concatenates the rules into the same paste, and a
+word-frequency diff of the complete bundle before and after the change shows
+**zero words lost**.
+
+**One thing breaks, and only for one kind of user.** Every rule moved out of
+`prompt/CONTRACT.md` and `personas/CONTRACT.md` into one file each under
+`rules/`; the contracts are now narrative plus a generated index, 663 lines down
+to 83. So:
+
+- If you paste the invocation and let baton fetch its own files — **nothing
+  changes**.
+- If you fetch `prompt/CONTRACT.md` directly, or forked it, or wrote a tool that
+  reads it — **that file no longer contains the rules.** Read `rules/*.md`
+  instead, or `dist/baton-ALL.md` from `bundle.sh`, which is unchanged.
+
+Cite a rule by its id (`rule-4-1-edge-types`) rather than its section where you
+can: `§4.1` exists in both contracts and always did, and ids cannot collide.
+
+---
+
+## v2.0 → v3.0
+
+### 1. The move itself
 
 Change the base URL in your invocation to:
 
