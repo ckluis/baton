@@ -16,14 +16,30 @@ report that ends by telling you where the money actually went.
 
 ---
 
-## New in v3.0
+## Why v3
+
+v3's change is not another cost story: the roster and the two new modes exposed a
+structural gap — every mode baton had examined the artifact **as built**, and
+nothing examined it **as encountered** or **as sold**. And separately, the checks
+themselves became accountable: a verdict is now computed per criterion rather
+than asserted, and every acceptance check carries an instrument record with a
+lifetime yield.
+
+| | v2 | v3 |
+|---|---|---|
+| **Modes** | 8, all examining the artifact as built | **10** — `CRAFT` as encountered, `POSITION` as sold |
+| **Built-in personas** | 28 | **43**, plus a 40-expert roster that is opt-in, never built-in |
+| **Persona conflicts** | Conflict Vectors in prose | **361 typed `links:` edges** a caster can act on |
+| **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
+| **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
+| **Bundle interop** | none | optional `type` / `id` / `links` keys, validated at **AIX level 1** |
 
 - **A vendored 40-expert roster.** `personas/luminaries/` ships named domain
   experts with explicit `phases` and `tags`, because a roster that declares
   neither is locked out of most seats and matches no upgrade hint.
-- **Two modes.** The eight existing modes all examine the artifact *as built*.
-  `CRAFT` examines it as encountered, `POSITION` as sold — 23 seats, every one
-  backed by a built-in lens, so both run with `PERSONAS: none`.
+- **Two modes.** `CRAFT` examines the artifact as encountered, `POSITION` as
+  sold — 24 seats between them, every one backed by a built-in lens, so both
+  run with `PERSONAS: none`.
 - **Checks that answer for themselves.** Every acceptance check now carries an
   Instrument record, a `guards` edge, and a lifetime yield. The one that
   mattered most turned out to be unsound and reporting the right answer by
@@ -34,7 +50,9 @@ touch you, the migration is changing one URL.
 
 ---
 
-## Why v2
+## Lineage: v1 → v2
+
+Everything above stands on this, and none of it was undone.
 
 v1 worked. The bill was the problem.
 
@@ -44,7 +62,7 @@ Then it spent the top tier again on planning, again on synthesis, again on every
 mediator and adjudicator it needed. None of that was wrong. All of it was
 expensive in the same direction.
 
-v2 keeps the architecture and rebuilds the routing.
+v2 kept the architecture and rebuilt the routing, and v3 changed none of it.
 
 | | v1 | v2 |
 |---|---|---|
@@ -110,6 +128,11 @@ verification, and rung drift so the prime spends its turns on gates alone.
 A mode is a file: the directive, the graph skeleton, the loop definitions, the
 entry rungs, the seats, and the gates. The session loads only the one you name.
 Adding your own mode means adding a file.
+
+The eight modes v2 shipped all examine the artifact **as built** — its code, its
+tests, its plan, its journeys. Nothing examined it **as encountered**, and
+nothing **as sold**. `CRAFT` and `POSITION` close that gap, and neither is
+allowed to ship a diff.
 
 Each mode's page section carries a risograph drawing that **is** that mode's
 graph — TEST's directed loop around its seen ledger, BUILD's traceability fan
@@ -271,6 +294,15 @@ Two contracts define every schema. Everything else is written against them, and
 **where a role prompt and the contract disagree, the contract wins and the role
 prompt is the bug.**
 
+### Bundle interop
+
+Persona frontmatter may carry three optional keys — `type`, `id`, and `links` —
+that baton's own loader ignores entirely and that only an external AIX consumer
+reads. `tools/aix-validate.py` holds `personas/` — this repository's own bundle,
+never a foreign `repo:` roster — to **AIX level 1**, and the acceptance run ends
+by printing `AIX LEVEL 1 OK`. Those `links:` edges are also what turned 361
+persona conflicts from prose into something a caster can act on.
+
 ---
 
 ## What it produces
@@ -291,6 +323,17 @@ next time.
 Resume is free by construction: a fresh session reads the manifest, scans the
 envelopes, and continues. A session limit landing mid-run costs one node, not a
 run — which is also why serial execution is affordable.
+
+### The checks answer for themselves
+
+A verdict file carries **one row per done-criterion** in the handoff — each
+quoting its criterion, each with its own probe and evidence — and the node
+verdict is derived from those rows, not asserted. A row count that disagrees
+with the handoff is malformed: the phase runner reads it as `PARTIAL` and
+re-verifies. The acceptance checks are held to the same standard: each of the
+ten carries a `tools/*.instrument.md` record naming what it guards, what it has
+caught over its lifetime, and when it last fired. See
+[`docs/designs/instrument-lifecycle.md`](docs/designs/instrument-lifecycle.md).
 
 ---
 
