@@ -44,6 +44,12 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    before the spawn, not after a node has run against it. A missing `python3` or a
    failed run is logged and dispatched past; the linter never stalls the run.
 
+**You write the spawn row for every node you dispatched, and nobody else does** (§7.2). If you
+also have something to record about a gate the prime holds, write your own **event row** for it
+— `n/a` rung, empty `seconds`, your perspective in the `note` — rather than restating the
+prime's. Two layers with different things to say about one event is two rows, not a contest
+over one.
+
 4. **On each returned envelope, append its ledger row first** — CONTRACT §7.1's
    shell form, reading `started_at` back off disk so `seconds` is measured
    rather than recalled — **then route it:**

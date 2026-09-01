@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Contract
+
+- **`prompt/CONTRACT.md` §7.2 — two ledger row classes, one writer each.** The schema described
+  a spawn row; runs also record events that are not spawns — a gate closing, a drift applied.
+  Those now have a stated shape: `n/a` rung rather than `0` (because `0` is a real rung), empty
+  `seconds` rather than a synthesized one, and excluded from the rung histogram because they
+  describe the run rather than its spending. Exactly one layer writes any given **fact**; two
+  layers with different things to record about one event write two rows, distinguished in the
+  note. Three gate events were written twice in baton's own run, by the phase runner and the
+  prime, with different content each time — a lossy-record defect, not a corrupted-histogram
+  one. `prompt/roles/phase-runner.md` updated to match.
+
+### Design notes
+
+- `docs/designs/proportionality-and-detection.md` — three further contract changes that were
+  drafted, adversarially verified, and **withdrawn rather than shipped**: verification effort
+  capped by criterion priority, briefs carrying locators instead of facts, and partitioned
+  fan-outs overlapping to detect verifier divergence. All three diagnoses hold; all three drafts
+  were unsound. The document records what each needs before it can ship, so the next attempt
+  starts from the failures rather than rediscovering them.
+
 ## v3.0 — 2026-08-31
 
 Named experts, two new modes, and the OKF/AIX interop layer this repository now
