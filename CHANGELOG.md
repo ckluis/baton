@@ -38,6 +38,36 @@
   were unsound. The document records what each needs before it can ship, so the next attempt
   starts from the failures rather than rediscovering them.
 
+### Every rule is a file
+
+`prompt/CONTRACT.md` was 663 lines and `personas/CONTRACT.md` 308, and a rule
+stated in one of them was restated in three or four other places — the role
+prompts an agent walks, the mode files, the Python that implements it. Amending
+one and missing the rest failed three consecutive reviews of a single change.
+
+**46 rules now live one-per-file under `rules/`**, as OKF/AIX concepts with a
+stable `id`, a `section`, and typed `part-of` links. The contracts become thin
+narrative plus a **generated** index — 82 and 63 lines. This removes a class of
+mistake instead of detecting it: there is nowhere to amend a stale copy of a rule
+because there are no copies, and the index cannot drift because nobody writes it.
+
+`bundle.sh` concatenates every rule in section order, so the paste an agent
+receives is unchanged. Verified by word-frequency diff of the full bundle before
+and after: **zero words lost**.
+
+`tools/rules.py` is now 209 lines and is a gate rather than an index. It refuses
+on: a rule file that does not parse or is missing a required field, a duplicate
+id, a filename that disagrees with its id, a `links.to` that resolves to nothing,
+a numbered rule heading surviving in a contract (a rule with two homes), a stale
+index, or a rule id cited anywhere in the repo that is not a rule. `--selftest`
+mutates a copy of the rule set four ways and requires every mutation to be
+**rejected** — the previous version of this tool was withdrawn because its
+self-test was monotone-positive and scored 5/5 against an implementation with no
+matching logic at all.
+
+Ids are unambiguous where sections were not: `§4.1` exists in both contracts,
+`rule-4-1-edge-types` and `prule-4-1-selection` cannot collide.
+
 ## v3.0 — 2026-08-31
 
 Named experts, two new modes, and the OKF/AIX interop layer this repository now

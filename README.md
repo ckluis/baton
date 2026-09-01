@@ -269,11 +269,11 @@ See [`prompt/invoke.md`](prompt/invoke.md) for the full card and every knob.
 prompt/
   invoke.md           the paste — your goal, two settings, and a URL
   baton.md            the router — the agent reads this, not you
-  CONTRACT.md         ladder, envelope, digest, graph, loop, gates, evidence
+  CONTRACT.md         narrative + generated index; the rules live in rules/
   modes/              10 — directive + graph shape + entry rungs + seats + gates
   roles/              11 — planner, phase-runner, verifier, panel, synthesizer…
 personas/
-  CONTRACT.md         schema + what each persona kind does in each phase
+  CONTRACT.md         narrative + generated index; the rules live in rules/
   lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
   luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
