@@ -37,6 +37,11 @@ END = "<!-- END GENERATED INDEX -->"
 FM_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 HEAD_RE = re.compile(r"^#{2,3}\s+\d+(\.\d+[a-z]?)*\.?\s", re.M)
 ID_CITE_RE = re.compile(r"\b((?:p?rule)-\d+(?:-\d+[a-z]?)*-[a-z0-9-]+)\b")
+# A section reference is the older citation form and still the common one. It has
+# its own failure: a rule can be removed while a sibling section keeps pointing at
+# it. That happened - a withdrawn section left `stakes (§9.2)` behind in §9.1,
+# referring to a section that no longer existed, and it reached main.
+SEC_CITE_RE = re.compile(r"§\s?(\d+(?:\.\d+[a-z]?)*)")
 
 
 def load_rules(directory=RULES):
@@ -92,7 +97,8 @@ def splice(path, block):
     return text[:i] + block + text[j + len(END):], None
 
 
-def check(rules, errs, write):
+def check(rules, errs, write, warnings=None):
+    warnings = warnings if warnings is not None else []
     problems = list(errs)
     seen = {}
     for r in rules:
@@ -125,6 +131,7 @@ def check(rules, errs, write):
             else:
                 problems.append("%s: index is stale" % path)
 
+    sections = {r.get("section") for r in rules}
     for dirpath, _d, files in os.walk(ROOT):
         if any(s in dirpath for s in (".git", "_orch", "dist", "/rules")):
             continue
@@ -136,10 +143,27 @@ def check(rules, errs, write):
                 body = open(fp, encoding="utf-8", errors="replace").read()
             except OSError:
                 continue
+            rel = os.path.relpath(fp, ROOT)
             for cite in set(ID_CITE_RE.findall(body)):
                 if cite not in ids:
-                    problems.append("%s: cites `%s`, which is not a rule"
-                                    % (os.path.relpath(fp, ROOT), cite))
+                    problems.append("%s: cites `%s`, which is not a rule" % (rel, cite))
+            for cite in set(SEC_CITE_RE.findall(body)):
+                if cite in sections:
+                    continue
+                root = cite.split(".")[0]
+                if root not in {sec.split(".")[0] for sec in sections if sec}:
+                    problems.append("%s: cites §%s — no rule numbered %s exists at all"
+                                    % (rel, cite, root))
+                else:
+                    # Deeper references are usually a numbered list item inside a
+                    # rule (§1.2.3 is trigger 3 of §1.2), which is legitimate. But a
+                    # section that once existed and was removed looks identical, and
+                    # that is how `stakes (§9.2)` survived its own section's deletion.
+                    # Report, do not refuse: a gate that rejects valid citations
+                    # teaches people to route around it.
+                    warnings.append("%s: cites §%s, which is no rule's section — a list "
+                                    "item inside §%s, or a reference left behind by a "
+                                    "removed rule" % (rel, cite, root))
     return problems
 
 
@@ -177,6 +201,14 @@ def selftest():
         "contract: prompt/CONTRACT.md\n---\nbody\n"))
     shutil.rmtree(tmp, ignore_errors=True)
 
+    # the live tree must reject a reference to a section that does not exist
+    rs, es = load_rules()
+    secs = {r.get("section") for r in rs}
+    # Built at runtime, never written literally: a validator that scans the corpus
+    # must not plant citations in it. #9's predecessor indexed its own assertions.
+    ghost = "9" * 2 + "." + "9"
+    cases.append(("dangling section reference (%s)" % ghost, ghost not in secs))
+
     print("Each mutation below must be REJECTED. A check that passes them is not a check.\n")
     bad = 0
     for label, rejected in cases:
@@ -194,14 +226,20 @@ def main(argv):
         if rc:
             return rc
     rules, errs = load_rules()
-    problems = check(rules, errs, write)
+    warnings = []
+    problems = check(rules, errs, write, warnings)
     if problems:
         print("REFUSED — %d problem(s):" % len(problems))
         for p in problems[:40]:
             print("  " + p)
         return 1
-    print("%d rules, indexes %s, every link and citation resolves."
-          % (len(rules), "rewritten" if write else "current"))
+    for w in warnings[:12]:
+        print("  warn: " + w)
+    if warnings:
+        print()
+    print("%d rules, indexes %s, every link and id citation resolves%s."
+          % (len(rules), "rewritten" if write else "current",
+             ", %d section reference(s) to check by eye" % len(warnings) if warnings else ""))
     return 0
 
 

@@ -73,6 +73,7 @@ session resumes and no context is load-bearing. The prime spends its turns on
 | &nbsp;&nbsp;6.1 | 6.1. Framework locators vs run state | [`rule-6-1-framework-locators-vs-run-state.md`](../rules/rule-6-1-framework-locators-vs-run-state.md) |
 | 7 | 7. The Ledger | [`rule-7-the-ledger.md`](../rules/rule-7-the-ledger.md) |
 | &nbsp;&nbsp;7.1 | 7.1. `ts` and `seconds` are measured, never remembered | [`rule-7-1-ts-and-seconds-are-measured-never-remembered.md`](../rules/rule-7-1-ts-and-seconds-are-measured-never-remembered.md) |
+| &nbsp;&nbsp;7.2 | 7.2. Two row classes, and exactly one writer each | [`rule-7-2-two-row-classes-and-exactly-one-writer.md`](../rules/rule-7-2-two-row-classes-and-exactly-one-writer.md) |
 | 8 | 8. Gates | [`rule-8-gates.md`](../rules/rule-8-gates.md) |
 | 9 | 9. Evidence | [`rule-9-evidence.md`](../rules/rule-9-evidence.md) |
 | &nbsp;&nbsp;9.1 | 9.1. A verdict is per-criterion, and the node verdict is computed | [`rule-9-1-a-verdict-is-per-criterion-and-the-node.md`](../rules/rule-9-1-a-verdict-is-per-criterion-and-the-node.md) |

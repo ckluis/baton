@@ -28,7 +28,7 @@ lifetime yield.
 | | v2 | v3 |
 |---|---|---|
 | **Modes** | 8, all examining the artifact as built | **10** — `CRAFT` as encountered, `POSITION` as sold |
-| **Built-in personas** | 28 | **43**, plus a 40-expert roster that is opt-in, never built-in |
+| **Built-in personas** | 28 | **44**, plus a 40-expert roster that is opt-in, never built-in |
 | **Persona conflicts** | Conflict Vectors in prose | **361 typed `links:` edges** a caster can act on |
 | **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
 | **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
@@ -169,7 +169,7 @@ An expert who behaves like a user produces vague taste. A user who behaves like
 an expert produces fiction. Most persona systems own only the first kind — **a
 run that never spawns a `user` has never seen its product.**
 
-baton ships 36 built-in **lenses** (`personas/lenses/`) and 7 end-user
+baton ships 37 built-in **lenses** (`personas/lenses/`) and 7 end-user
 **archetypes** (`personas/users/`). Modes name *seats*; seats are always fillable
 by the built-in lenses, so every mode runs with `PERSONAS: none`.
 
@@ -274,7 +274,7 @@ prompt/
   roles/              11 — planner, phase-runner, verifier, panel, synthesizer…
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
-  lenses/             36 — expert seats, upgradeable to named voices
+  lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
   luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
 bundle.sh             flatten to a single paste

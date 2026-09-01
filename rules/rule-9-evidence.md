@@ -22,7 +22,12 @@ In force at every `adversarial` setting above `off`:
   verdicts **across every verifier in its phase** — verifiers are fresh spawns,
   so the streak is a property of the phase, not of an agent. Five in a row with
   no `REFUTED` and no `PARTIAL` triggers an audit: one adversary at +1 rung
-  against the most recent confirmation. Either the work is genuinely clean —
+  against the most recent confirmation. **Bound the sample.** Re-check the
+  citations that confirmation rests on — the quotes must be present where it placed
+  them, per the `UNVERIFIED` rule below — rather than re-deriving the entire corpus
+  the verifier examined. A rubber-stamped verdict reads fine on its face and fails at
+  its citations, so that is where to look; re-doing the whole body of work is the most
+  expensive available way to learn nothing was wrong. Either the work is genuinely clean —
   record that, it is real information — or the verification was rubber-stamping
   and every confirmation in the streak reopens. The counter resets at the gate.
 - **`UNVERIFIED`.** A finding whose citation does not check out — the quote is
