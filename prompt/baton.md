@@ -105,7 +105,10 @@ and never stays a template.
 Files you or your agents will resolve, all relative to that base:
 
 ```
-prompt/CONTRACT.md          the schemas — read by you and by every agent that needs a rule
+prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules themselves.
+rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
+                            digest, the graph, the loop, gates, evidence. Read them.
+rules/prule-*.md            the persona rules, likewise
 prompt/modes/<MODE>.md      your directive, graph skeleton, entry rungs, seats, gates
 prompt/roles/<role>.md      the prompt body for each agent you spawn
 personas/CONTRACT.md        persona schema and per-phase duties
@@ -124,9 +127,18 @@ file** — a half-remembered contract is worse than no run.
 
 ### 2.2 Then, in order, and briefly
 
-1. **Read exactly two files yourself.** `{BATON}/prompt/CONTRACT.md` and
-   `{BATON}/prompt/modes/<MODE>.md`. Together with this router they are the last three
-   documents you will read for the rest of the run.
+1. **Read the rules and your mode file, and nothing else after that.**
+   `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
+   **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
+   contracts, then **every rule their indexes list** — 47 small files, and they are the
+   entire rulebook — then `{BATON}/prompt/modes/<MODE>.md`.
+
+   **If you received this as one pasted bundle, they are already in front of you** and
+   there is nothing to fetch: `bundle.sh` concatenates every rule inline. Fetching is only
+   for the URL form, where a contract on its own is a table of contents and would leave you
+   orchestrating with no ladder and no envelope schema.
+
+   Together with this router that is the last of the framework you will read for the run.
 2. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
      `prime_turns_spent: 0`, phase pointer

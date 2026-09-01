@@ -25,9 +25,9 @@ reader has to infer. Cite a rule by its section (`§4.1`) or by its id
 (`rule-4-1-edge-types`); the id is unambiguous and the section is not, because both
 contracts number their sections from one.
 
-`bundle.sh` concatenates every rule into the paste an agent receives, so nothing
-here changes what a run sees — only where a human edits it, and how many places
-they have to remember.
+`bundle.sh` concatenates every rule into the paste an agent receives, so a pasted bundle
+already contains them. **An agent resolving this framework by URL must fetch the rule
+files as well** — this file is an index, and an index is not a rulebook.
 
 ## The shape of a run, in six sentences
 
