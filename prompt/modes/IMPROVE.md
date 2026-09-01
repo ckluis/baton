@@ -7,7 +7,11 @@
 
 Perform a rigorous improvement pass on {TARGET}: record a behavior-preservation
 baseline first — suite result, coverage, and whatever size and performance
-numbers are cheap to take — then audit the module for correctness hazards, hidden
+numbers are cheap to take — and beside it a design baseline: three to five
+representative change scenarios drawn from history, incidents or requirements
+and frozen to disk before anything is scored, then a scorecard of the module
+against them whose every score carries its measured values and a confidence, and
+whose missing evidence reads Unknown rather than a guess; then audit the module for correctness hazards, hidden
 coupling, duplication, dead code, needless complexity, performance waste, unclear
 contracts, and missing tests, every finding cited to a file and line; then hunt
 the audit's own blindspots with a fresh agent that is given the audit's lens list
@@ -22,7 +26,10 @@ only accepted candidates, each landed atomically with tests and a before/after
 artifact, with no drive-by refactor and no behavior change absent an approved
 flag; and re-audit with a fresh blindspot agent after every execution round.
 Complete when two consecutive rounds produce no candidate above the cut line, the
-baseline reference reproduces exactly, and every executed improvement carries
+baseline reference reproduces exactly, the module is re-scored against the frozen
+scenarios by an agent that did not take the first measurement and the delta is
+reported per principle — a pass that moves nothing is information, not a failure,
+and no score is ever used as a pass/fail gate — and every executed improvement carries
 before/after evidence at a cited path rather than an assertion that it helped.
 
 ## Graph skeleton
@@ -37,6 +44,14 @@ before/after evidence at a cited path rather than an assertion that it helped.
   rung: 0
   surface: code
   done: "work/baseline/*.txt exist, each naming the command that produced it and the revision it ran against"
+- id: T01b                      # phase 1 — the DESIGN baseline, beside the behavioral one
+  kind: task
+  phase: 1
+  title: Freeze the change scenarios, then score the module against them
+  rung: 3
+  surface: doc
+  needs: [T01]
+  done: "work/scenarios.yaml is frozen before work/scorecard-before.md is written, provable by file order; the scorecard scores every applicable principle 0-3 with its measured values, its evidence path and a confidence; a principle with insufficient evidence reads Unknown and one that does not apply reads N/A"
 - id: T02
   kind: task
   phase: 1
@@ -103,15 +118,23 @@ before/after evidence at a cited path rather than an assertion that it helped.
   needs: [T21]
   personas: [blindspot]
   done: "new candidates appended to plan/improvements.yaml with their ledger keys; a candidate already in seen.yaml is not re-proposed"
+- id: T40                       # final phase — the same measurement, taken again by someone else
+  kind: task
+  phase: 5
+  title: Re-score against the frozen scenarios and report the delta
+  rung: 3
+  surface: doc
+  needs: [L1]
+  done: "work/scorecard-after.md uses work/scenarios.yaml unchanged and the same formulas as work/scorecard-before.md; every principle that moved cites the improvement that moved it; no score in either scorecard is used as a pass or fail gate"
 - id: T30                       # phase 5
   kind: gate
   phase: 5
   title: Close — the module is measurably better, with proof
   rung: 1
-  needs: [L1]
+  needs: [L1, T40]
   adversarial: panel
   personas: [behavior-preservation, blindspot, leverage-vs-risk, scope-creep]
-  done: "every executed candidate has a CONFIRMED verdict and a before/after artifact; every below-line candidate is logged, not built"
+  done: "every executed candidate has a CONFIRMED verdict and a before/after artifact; every below-line candidate is logged, not built; the report carries the before/after scorecard delta and every principle that moved cites the improvement that moved it"
 ```
 
 The planner may vary the lens split in `F1`, the number of execution rounds, and
@@ -141,14 +164,15 @@ implies leaves as a rung-1 handback.
 | seat slug | kind | phases | what it examines |
 |---|---|---|---|
 | `behavior-preservation` | expert | AUDIT, VERIFY | whether the observable contract survived; the difference between reproducing the baseline and asserting it |
+| `representation-truth` | expert | AUDIT, CLASH | how state is represented: invalid combinations the type permits, shapes re-assumed at every call site, branching a table would carry |
 | `blindspot` | expert | AUDIT | the failure classes the lens list cannot catch; the module as callers and operators meet it; assumptions code, tests, and lenses share |
 | `leverage-vs-risk` | expert | PLAN, AUDIT, CLASH | whether a candidate's payoff justifies touching working code; the cut line itself |
 | `scope-creep` | expert | PLAN, VERIFY | diffs wider than their candidate; refactors that arrived as passengers |
 
 Casting upgrades (personas/CONTRACT §4.2) prefer tags
 `refactoring`/`maintainability` for `behavior-preservation`,
-`architecture`/`product` for `leverage-vs-risk`, `discipline`/`process` for
-`scope-creep`. `blindspot` is listed with no upgrade hint deliberately, and the
+`architecture`/`product` for `leverage-vs-risk`, `domain-modeling`/`architecture`
+for `representation-truth`, `discipline`/`process` for `scope-creep`. `blindspot` is listed with no upgrade hint deliberately, and the
 claim that once stood here — that it is the seat where a foreign roster pays for
 itself, because an upgrade with a genuinely different domain sees a different
 complement — is withdrawn. That seat audits the panel rather than the artifact:

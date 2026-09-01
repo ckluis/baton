@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- Added `personas/lenses/representation-truth.md` — a lens for how state is
+  *represented*: invalid combinations a type permits but the domain forbids,
+  shapes re-assumed at every call site, branching a table would carry. It
+  refuses abstraction for hypothetical extensibility and refuses relocating
+  existing branching behind a new type.
+- `IMPROVE` gained a **design baseline** beside its behavior baseline. `T01b`
+  freezes three to five representative change scenarios before scoring the
+  module against them; `T40` re-scores against the frozen scenarios after the
+  execution loop, taken by a different agent, and reports the delta per
+  principle. The mode could previously prove nothing broke; it could not prove
+  anything got better. No score is used as a pass/fail gate.
+- Design note: `docs/designs/simplicity-scorecard.md`.
+
 ## v3.0 — 2026-08-31
 
 Named experts, two new modes, and the OKF/AIX interop layer this repository now
