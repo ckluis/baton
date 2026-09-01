@@ -155,11 +155,16 @@ never the findings — an `informs` edge into it destroys the only thing it is f
 | `blindspot` | expert | AUDIT | The failure classes the seating chart cannot catch, and the assumptions every other seat shares. |
 | `severity-inflation` | expert | VERIFY | Standing seat. Every claimed P0/P1 against CONTRACT §9 — "could be bad" is never P0. |
 
-Casting prefers named experts tagged `architecture`/`contracts` for `spec-fidelity`,
-`security`/`fuzzing` for `adversarial-input`, `distributed`/`operations` for
-`integration-risk`, `strategy`/`economics` for `leverage-vs-risk`, `generalist`/
-`first-principles` for `blindspot`, `risk`/`triage` for `severity-inflation` — seat
-duties still govern the upgrade (personas/CONTRACT.md §4.2).
+Casting prefers named experts tagged `architecture`/`contracts`/`api-design`/
+`domain-modeling` for `spec-fidelity`, `security`/`fuzzing`/`threat-modeling` for
+`adversarial-input`, `distributed`/`operations`/`observability` for
+`integration-risk`, `strategy`/`economics` for `leverage-vs-risk`, and
+`risk`/`triage`/`statistical-rigor` for `severity-inflation` — seat duties still
+govern the upgrade (personas/CONTRACT.md §4.2). `blindspot` is listed with no
+upgrade hint deliberately: that seat audits the panel rather than the artifact —
+it receives the roster's lens list and never its findings — so filling it with a
+named domain expert seats one more specialist in the seat that exists to name
+what a panel of specialists structurally cannot see.
 
 ## Gates
 

@@ -20,7 +20,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
 | `MODE` | **required** | selects `{BATON}/prompt/modes/<MODE>.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
+| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
 | `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
@@ -39,7 +39,7 @@ the operator picks instead of types. Ask once, for everything you are missing,
 before you create `_orch/`.
 
 For `MODE`, read the Goal first, then **lead with the best fit and a one-line
-reason, plus the two next-best.** Do not list all eight: a question with eight
+reason, plus the two next-best.** Do not list all ten: a question with ten
 options is a menu, and a menu is work you just handed back. The tool supplies an
 "other" escape for the rest.
 
@@ -50,6 +50,8 @@ options is a menu, and a menu is work you just handed back. The tool supplies an
 | refactoring, cleanup, tech debt, waste | `IMPROVE` |
 | "review", "audit", "is this any good" | `REVIEW` |
 | the product, real users, onboarding, a running app | `DOGFOOD` |
+| typography, visual system, motion, microcopy, accessibility, localisation | `CRAFT` |
+| positioning, pricing, packaging, naming, the story, launch readiness | `POSITION` |
 | renaming, upgrading, porting, "everywhere" | `MIGRATE` |
 | "plan", "how would we", sequencing, options | `ROADMAP` |
 | none of the above cleanly | `GENERIC`, with the Goal as the directive |

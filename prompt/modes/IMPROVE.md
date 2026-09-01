@@ -147,10 +147,15 @@ implies leaves as a rung-1 handback.
 
 Casting upgrades (personas/CONTRACT §4.2) prefer tags
 `refactoring`/`maintainability` for `behavior-preservation`,
-`systems`/`operations`/`security` for `blindspot`, `architecture`/`product` for
-`leverage-vs-risk`, `discipline`/`process` for `scope-creep`. `blindspot` is the
-seat where a foreign roster pays for itself — an upgrade with a genuinely
-different domain sees a different complement.
+`architecture`/`product` for `leverage-vs-risk`, `discipline`/`process` for
+`scope-creep`. `blindspot` is listed with no upgrade hint deliberately, and the
+claim that once stood here — that it is the seat where a foreign roster pays for
+itself, because an upgrade with a genuinely different domain sees a different
+complement — is withdrawn. That seat audits the panel rather than the artifact:
+it receives the roster's lens list and never its findings, so an upgrade that
+brings a different domain does not widen what the panel can see, it spends the
+seat that exists to name what a panel of specialists structurally cannot see on
+one more specialist.
 
 ## Gates
 

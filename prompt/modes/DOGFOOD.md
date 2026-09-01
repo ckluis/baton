@@ -158,14 +158,15 @@ human reader from the first draft.
 | `severity-inflation` | expert | VERIFY | Every claimed P0/P1 against CONTRACT §9 — a slow page is not a blocker. |
 | `first-run` | user | PLAN, PROBE, VERIFY | Signup, onboarding, first value. Knows nothing; abandons early. |
 | `admin-operator` | user | PLAN, PROBE, VERIFY | Provisioning, roles, billing, support paths. Owns the tier boundary probes. |
-| `returning-power` | user | PLAN, PROBE, VERIFY, CLASH | Speed, keyboard paths, bulk work, the flow that got slower. |
+| `returning-power` | user | PLAN, PROBE, VERIFY | Speed, keyboard paths, bulk work, the flow that got slower. |
 | `mobile-commuter` | user | PROBE | The same journeys on a narrow viewport with one thumb and a bad connection. |
 | `low-trust-evaluator` | user | PROBE | Whether the product earns data: permissions, pricing clarity, export, delete-my-account. |
 
 Casting prefers named experts tagged `qa`/`exploratory-testing` for `journey-honesty`,
-`ux-research`/`ethnography` for `persona-fidelity`, `test-design`/`combinatorics` for
-`matrix-coverage`, and `risk`/`triage` for `severity-inflation`. Add `assistive-tech` or
-`delegate` when {TARGET} has a compliance surface or a shared-account workflow;
+`ux-research`/`ethnography`/`user-research` for `persona-fidelity`,
+`test-design`/`combinatorics` for `matrix-coverage`, and `risk`/`triage`/
+`statistical-rigor` for `severity-inflation`. Add `assistive-tech`/`accessibility`
+or `delegate` when {TARGET} has a compliance surface or a shared-account workflow;
 personas/CONTRACT.md §4.1's ceiling of seven binds.
 
 ## Gates

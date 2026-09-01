@@ -1,5 +1,114 @@
 # Changelog
 
+## v3.0 — 2026-08-31
+
+Named experts, two new modes, and the OKF/AIX interop layer this repository now
+carries about its own bundle.
+
+**Personas**
+- Added a vendored luminary roster under `personas/luminaries/`: 40 named-expert
+  persona cards. It is opt-in, not built-in — reached only by asking for
+  `PERSONAS: builtin+luminaries`; a run that asks for plain `builtin` seats exactly
+  what it seated before this roster existed.
+- Added 15 new lenses under `personas/lenses/` (36 now, versus 21 at v2.0), so every
+  seat in the two new modes, `CRAFT` and `POSITION`, has a built-in fallback and
+  both modes run with no roster at all.
+- `personas/CONTRACT.md` gained §1.2, new since v2.0 — the section does not exist at
+  the tag at all. It records the `## In <PHASE>` phase-override convention —
+  tested twice, at AUDIT and again at CLASH — as a documented grammar reserved for a
+  future roster author, not a mechanism baton runs on today. No shipped persona uses
+  it, and nothing in baton reads it.
+
+**Modes**
+- Added `CRAFT`, which seats an adversarial panel of craft experts against a
+  target's experienced surface — type, colour, motion, microcopy, information
+  architecture, accessibility, localisation — captures that surface first so every
+  seat argues from a file, and returns a ranked, cited recommendation matrix.
+  Refuses to drive journeys, which is DOGFOOD's subject, and refuses to fix
+  anything — every finding leaves as a matrix row for a later run, never a diff.
+- Added `POSITION`, which seats an adversarial panel of commercial experts against a
+  target's commercial surface — positioning, pricing and packaging, naming, the
+  story, launch readiness, and the discovery evidence underneath — builds a claim
+  ledger first so every seat argues from a quoted line, and returns a ranked, cited
+  recommendation matrix. Refuses to build anything and refuses to ship anything — it
+  does not approve a launch.
+
+**Interop**
+- Adopted OKF/AIX bundle interop: persona frontmatter may carry optional `type`,
+  `id` and `links` keys, ignored entirely by baton's own loader and meaningful only
+  to an external AIX consumer. A new validator, `tools/aix-validate.py`, checks
+  `personas/` — baton's own bundle, never a foreign `repo:` roster — at **AIX level
+  1**.
+
+**Generators**
+- `tools/embed.py` generates `index.html`'s embedded invocation card and router
+  disclosure, extracted from `prompt/invoke.md` and `prompt/baton.md`.
+- `tools/index.py` generates `_orch/index/index.json` and `_orch/index/summary.md`,
+  the five-question resume index computed off `_orch/` run state.
+- `tools/instruments.py` generates `_orch/instruments/instruments.json` and
+  `_orch/instruments/summary.md`, the instrument scorecard.
+
+**Instruments**
+- Added the instrument lifecycle design, `docs/designs/instrument-lifecycle.md`, and
+  10 `tools/*.instrument.md` records — one per acceptance check — that the
+  scorecard above reads.
+
+### Breaking
+
+- **`bundle.sh` warns-and-ships → exits 1 on a missing seat.** At the tag:
+  `[ -f "$f" ] && emit "$f" "$d" || echo "warn: seat $slug has no file" >&2` — a
+  warning to stderr, then the bundle ships anyway. Now: a seat with no matching
+  file under `personas/{lenses,luminaries}` or `personas/users` prints
+  `` error: mode $mode seats `$slug` but no file exists in personas/{...}/ `` and
+  the same line notes "a bundle missing a seat is a bundle that silently runs
+  short-handed," then the script `exit 1`s. Symptom: a roster that bundled
+  successfully under v2.0 — short a seat, silently — can hard-fail under v3.0 with
+  the exact same command and the exact same roster.
+
+- **Eleven lenses gained phases.** `phases:` differs between the tag and the
+  working tree for: `adversarial-input` (`AUDIT, CLASH, VERIFY` → `PLAN, AUDIT,
+  CLASH, VERIFY`), `call-site-truth` (`AUDIT, VERIFY` → `AUDIT, CLASH, VERIFY`),
+  `equivalence` (`AUDIT, VERIFY` → `AUDIT, CLASH, VERIFY`), `integration-risk`
+  (`PLAN, AUDIT, VERIFY` → `PLAN, AUDIT, CLASH, VERIFY`), `journey-honesty`
+  (`AUDIT, VERIFY` → `AUDIT, CLASH, VERIFY`), `leverage-vs-risk` (`PLAN, CLASH` →
+  `PLAN, AUDIT, CLASH`), `persona-fidelity` (`AUDIT, VERIFY` → `AUDIT, CLASH,
+  VERIFY`), `scope-creep` (`PLAN, CLASH` → `PLAN, CLASH, VERIFY`),
+  `severity-inflation` (`AUDIT, CLASH` → `AUDIT, CLASH, VERIFY`), `spec-fidelity`
+  (`AUDIT, CLASH, VERIFY` → `PLAN, AUDIT, CLASH, VERIFY`), and `test-honesty`
+  (`AUDIT, CLASH` → `AUDIT, CLASH, VERIFY`). No `rung:`, `kind:` or `tags:` line
+  changed for any lens or user persona. Symptom: an existing mode now spawns duties
+  at phases where these lenses previously stayed silent, so a v2 run's seat count
+  and cost change without the operator changing anything.
+
+- **The author-and-verify guard.** `prompt/CONTRACT.md` §4.1 now reads: "That
+  separation binds `personas:`, not just authorship. A persona slug seated on a
+  node may not also be seated on a node that `refutes` it, nor on the verification
+  of a node it was seated on to author." Absent at the tag — `grep -c 'That
+  separation binds'` against the tag's `prompt/CONTRACT.md` prints `0`. Symptom: a
+  graph that was legal under v2 — the same persona slug seated to author a node and
+  again on its verification — is now refuted at the plan gate before any of it
+  runs.
+
+- **Verdicts are per-criterion and computed, not asserted.** At the tag,
+  `prompt/roles/verifier.md` wrote a single flat object:
+  `{"node": "{node_id}", "verdict": "CONFIRMED|REFUTED|PARTIAL", "evidence":
+  ["paths"], "probe": "what you tried"}`. `prompt/CONTRACT.md` gains §9.1: a
+  verdict now carries a `criteria` array with one row per handoff done-criterion,
+  and the node verdict is derived from those rows rather than written directly —
+  "A verdict whose row count does not match the handoff's criterion count, or
+  whose node verdict disagrees with that table, is malformed: the phase runner
+  reads it as `PARTIAL` and re-verifies. It does not get to be a `CONFIRMED`."
+  Symptom: a verifier that still writes the old flat-object shape — exactly what
+  worked under v2.0 — gets its `CONFIRMED` silently downgraded to `PARTIAL` and the
+  node re-verified, even when the node's own work never changed.
+
+- **`DOGFOOD`'s Seats table drops a phase from `returning-power`.** At the tag:
+  `` | `returning-power` | user | PLAN, PROBE, VERIFY, CLASH | ... | ``. Now:
+  `PLAN, PROBE, VERIFY` — `CLASH` is gone. Symptom: a `DOGFOOD` run under the
+  default `PERSONAS: builtin`, with no change on the operator's part, now seats
+  `returning-power` at one fewer phase than it did under v2.0, so a CLASH-phase
+  finding this persona used to be eligible to raise no longer gets raised.
+
 ## v2.0 — 2026-08-24
 
 A cost rewrite. The v1 architecture was right; its routing was expensive in one

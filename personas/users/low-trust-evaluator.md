@@ -1,5 +1,7 @@
 ---
 name: Low-Trust Evaluator
+type: Persona
+id: low-trust-evaluator
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

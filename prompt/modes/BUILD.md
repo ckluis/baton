@@ -146,9 +146,10 @@ a spec that needs an operator question first.
 | `test-honesty` | expert | AUDIT, VERIFY | whether a test pins spec behavior or implementation behavior; expected values with no spec origin |
 | `integration-risk` | expert | AUDIT, CLASH | the seams between clusters — contracts each side satisfied differently and nobody owns |
 
-Casting upgrades (personas/CONTRACT §4.2) prefer tags `requirements`/`architecture`
-for `spec-fidelity`, `product`/`analysis` for `requirement-gaps`,
-`testing`/`quality` for `test-honesty`, `systems`/`distributed`/`api` for
+Casting upgrades (personas/CONTRACT §4.2) prefer tags `requirements`/`architecture`/
+`api-design`/`domain-modeling` for `spec-fidelity`, `product`/`analysis`/
+`discovery` for `requirement-gaps`, `testing`/`quality` for `test-honesty`,
+`systems`/`distributed`/`api`/`observability`/`resilience` for
 `integration-risk`.
 
 ## Gates

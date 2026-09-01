@@ -1,5 +1,7 @@
 ---
 name: Admin Operator
+type: Persona
+id: admin-operator
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

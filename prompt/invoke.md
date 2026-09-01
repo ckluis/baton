@@ -14,14 +14,15 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/main/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
 out which mode fits, and **asks you to confirm it** — leading with its best
-guess and the two next-best rather than making you choose from eight. Picking
+guess and the two next-best rather than making you choose from ten. Picking
 beats typing, and a question you answer in one click is cheaper than a setting
 you had to look up.
 
@@ -47,7 +48,7 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/main
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v3.0
 PERSONAS:    builtin
 CEILING:     4
 PRIME_TURNS: 12
@@ -62,9 +63,9 @@ against that same base URL. Read it completely before you start any work.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **asked for** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `MIGRATE` `ROADMAP` `GENERIC` |
+| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `CRAFT` `POSITION` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
-| `PERSONAS` | `builtin` | `builtin` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
+| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. |
 | `PRIME_TURNS` | `12` | the conductor's own turn budget |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
@@ -76,9 +77,12 @@ inference, and says so in its first message and its final report.
 
 ### Pinning a version
 
-The base URL is the pin. Swap `main` for a tag and the whole framework — router,
-contracts, modes, roles, personas — comes from that tag, because everything
-resolves relative to the router you fetched:
+The base URL is the pin. The default above is already pinned to a tag —
+`v3.0`, the current release — rather than floating on `main`. Point at a
+different tag instead (an older release, frozen forever) — or at `main` for
+the bleeding edge — and the whole framework — router, contracts, modes,
+roles, personas — comes from that base, because everything resolves relative
+to the router you fetched:
 
 ```
 BATON: https://raw.githubusercontent.com/ckluis/baton/v2.0

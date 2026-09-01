@@ -1,12 +1,26 @@
 ---
 name: Matrix Coverage
+type: Persona
+id: matrix-coverage
 kind: expert
 domain: Persona x Journey Coverage Completeness
 phases: [PLAN, AUDIT]
 rung: 2
 tags: [ux-research, coverage, planning, personas]
+links:
+  - rel: contradicts
+    to: leverage-vs-risk
+    note: "a deliberate cut or an unstated coverage gap"
+  - rel: contradicts
+    to: journey-honesty
+    note: "a fabricated probe does not fill the cell"
+  - rel: contradicts
+    to: persona-fidelity
+    note: "an out-of-character probe does not fill the cell"
+  - rel: contradicts
+    to: requirement-gaps
+    note: "which absence leads: unverified requirement or unprobed cell"
 ---
-
 ## Focus
 The full grid of every seated user persona against every named journey — which
 cells got probed, which were silently skipped, and whether the skip was a
@@ -26,6 +40,10 @@ than describing coverage in prose.
   the cell isn't actually filled, no matter what the tracker says.
 - Will fight `requirement-gaps` over which absence gets top billing in a
   report when both a functional requirement and a persona cell sit unverified.
+
+<!-- typed-link mirrors for the AIX `links` block above;
+     the backticked slugs in the bullets are the canonical references and are unchanged -->
+[leverage-vs-risk](leverage-vs-risk.md) · [journey-honesty](journey-honesty.md) · [persona-fidelity](persona-fidelity.md) · [requirement-gaps](requirement-gaps.md)
 
 ## Red Flag Trigger
 A journey with no probe from more than half the seated personas, and no

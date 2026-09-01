@@ -257,6 +257,14 @@ worktree.
 - **`refutes`** — verification. The node exists to attack a specific claim.
   Its author may never be the author of the target.
 
+**That separation binds `personas:`, not just authorship.** A persona slug
+seated on a node may not also be seated on a node that `refutes` it, nor on the
+verification of a node it was seated on to author. The duty already exists —
+`{BATON}/personas/CONTRACT.md` §2.1, the `EXECUTE` row — but a duty with no
+enforcement point is still constructible in a graph, so this is where the graph
+enforces it. The plan verifier hunts the collision and refutes the graph
+carrying it, before any of it runs.
+
 `surface: ui` is not decoration. A node carrying it gets a **journey probe**
 (`{BATON}/prompt/roles/journey-probe.md`) added to its verification alongside the
 ordinary verifier, scoped to only the roles and journeys that node affects. If
@@ -322,6 +330,25 @@ a contract other nodes depend on, is not a big node — it is a missing subgraph
 It returns `SPLIT`. A rung-3 decomposer replaces it in `graph.yaml` with
 children carrying `needs` chains, and the parent becomes a `gate` node that
 closes when its children do. **Never let a node grow into a phase.**
+
+### 4.5 Done-criteria are atomic
+
+The `done:` line in `graph.yaml` is a one-line summary; the done-criteria in
+the node's `handoff.md` are the checklist a verifier actually walks, and each
+line in that checklist is one independently-failing check, not a sentence
+bundling several. A criterion that requires more than one pass over the
+artifact to settle — a count, then a per-item property, then a format rule —
+is several criteria that have not been split yet. The planner splits at
+authoring time (`prompt/roles/planner.md` governs how); a criterion that
+resists splitting because it is genuinely one fact stays as one line.
+§9.1 rows one verdict per done-criterion line — a criterion that still bundles
+several checks collapses them into a single row, and the row can go
+`CONFIRMED` without any one of the bundled checks having been verified on its
+own.
+
+`tools/lint-criteria.py` runs over a handoff before dispatch, flagging two proven
+unsettleable shapes: an instrument reading the tree or branch not the node's own
+work, and a universal carrying no command that generates its enumeration.
 
 ---
 
@@ -394,6 +421,7 @@ _orch/
   nodes/
     T07/
       handoff.md         inputs, expected outputs, done-criteria
+      started_at         §7.1 — dispatch epoch seconds, for measured `seconds`
       status.json        the envelope — single source of truth
       digest.md          §3
       escalation.md      written on ESCALATE / FAILED
@@ -437,16 +465,51 @@ verdicts, and ledgers are local paths without exception.
 
 ## 7. The Ledger
 
-One append-only row per spawn, written by the spawning layer:
+One append-only row per spawn, written by the spawning layer **at envelope
+receipt** — not at dispatch. At dispatch neither `verdict` nor `seconds` exists
+yet, and a row written then can only guess at both.
 
 ```csv
 ts,node,rung,model,effort,attempt,verdict,seconds,note
 ```
 
+### 7.1 `ts` and `seconds` are measured, never remembered
+
+You are a language model. You have no clock. Any duration you write from your
+own sense of how long something took is fabricated, and a fabricated number here
+is worse than an absent one — the histogram below consumes it as evidence.
+
+So both time fields come from the shell command that appends the row, never from
+your own account:
+
+- **At dispatch**, stamp the start as **epoch seconds**:
+  `date -u +%s > _orch/nodes/<id>/started_at`
+- **At envelope receipt**, read it back and let the shell subtract:
+
+```sh
+start=$(cat _orch/nodes/<id>/started_at)
+secs=$(( $(date -u +%s) - start ))
+printf '%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<id>" "$rung" "$model" "$effort" \
+  "$attempt" "$verdict" "$secs" "$note" \
+  >> _orch/ledger.csv
+```
+
+Epoch seconds, not a formatted timestamp, because parsing one back is where
+this breaks: `date -u -j -f` is BSD, `date -u -d` is GNU, and the run does not
+know which box it is on. `date +%s` and integer subtraction are the same
+everywhere.
+
+`started_at` is run state like any other (§6), so a phase runner respawned
+mid-phase recovers it from disk and the span survives the interruption. A node
+whose `started_at` is missing writes `seconds` as empty — **an empty cell, never
+an estimate.**
+
 The final report ends with a **rung histogram** — how much of the run landed at
 each rung, and which nodes crossed rung 3. That histogram is the input to the
 next run's entry-rung assignments. **A run that does not measure where it spent
-its rungs will spend them the same way next time.**
+its rungs will spend them the same way next time** — and a run that writes down
+numbers it did not measure has not measured them.
 
 ---
 
@@ -457,7 +520,9 @@ and a mode may not invent a fifth:
 
 1. **Plan gate** — the graph is refuted before any of it is executed.
 2. **Phase gate** — a phase's nodes are all `DONE`+`CONFIRMED` or
-   `BLOCKED`-and-batched; drift is reset; the next phase brief is written.
+   `BLOCKED`-and-batched; drift is reset; the next phase brief is written;
+   the index refresh (`tools/index.py`) is optional — a missing tool or
+   failed run is logged and never stalls the gate.
 3. **Blocked batch** — questions surfaced to the operator together.
 4. **Final gate** — synthesis, report, disposal line.
 
@@ -497,6 +562,51 @@ In force at every `adversarial` setting above `off`:
   IMPROVEMENT — report only.
 - **Neutrality.** Prime, phase runners, and mediators run process. Domain
   authority belongs to the personas and the evidence.
+
+### 9.1 A verdict is per-criterion, and the node verdict is computed
+
+The rules above are duties. This one is a shape, because a duty nothing records
+is a duty nobody can check.
+
+A verdict file carries **one row per done-criterion in the handoff**, each
+quoting its criterion verbatim, each with its own `verdict`
+(`CONFIRMED` / `REFUTED` / `UNTESTED`), its own `probe`, its own `evidence`, and
+optionally its own `attack` — the strongest attack tried and why the attack
+failed, or on a `REFUTED` row the attack that landed. `attack` is **optional and
+additive**: an absent `attack` is **not** malformed, and the rules below are
+unchanged by its presence or absence.
+The node-level verdict is then **derived, not asserted**:
+
+| rows | node verdict |
+|---|---|
+| every row `CONFIRMED` | `CONFIRMED` |
+| any row `REFUTED` | `REFUTED` |
+| any row `UNTESTED`, none `REFUTED` | `PARTIAL` |
+
+A verdict whose row count does not match the handoff's criterion count, or whose
+node verdict disagrees with that table, is **malformed**: the phase runner reads
+it as `PARTIAL` and re-verifies. It does not get to be a `CONFIRMED`.
+
+**Why this is a schema rule and not advice.** A single free-text `probe` field
+cannot distinguish a verifier that checked one criterion of five from one that
+checked all five — both produce a well-formed `CONFIRMED`. The duty to check
+each one was already written down and was already unfalsifiable. Making the
+record per-criterion is what turns "I checked everything" from a claim into
+something the next agent can count.
+
+`UNTESTED` exists so the honest answer is always available. A criterion that
+could not be checked — no environment, missing dependency, a command that will
+not run here — is `UNTESTED` with the reason in its `probe`, and the node lands
+`PARTIAL`. **That is a better outcome than a `CONFIRMED` that quietly means
+"most of it."**
+
+**This shape binds the sweep, not the lens.** It governs
+`{BATON}/prompt/roles/verifier.md`, whose duty is to check every done-criterion.
+A **persona** seated at VERIFY has a different duty — personas CONTRACT §2.1
+sends it to attack *one* specific `DONE` claim from its own lens, deeply, and
+its verdict keeps the single-claim shape. One sweeps and must account for
+everything; the other drills and must account for its one hole. Do not force
+either into the other's record.
 
 ---
 

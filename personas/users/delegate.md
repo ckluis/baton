@@ -1,5 +1,7 @@
 ---
 name: Delegate
+type: Persona
+id: delegate
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

@@ -26,6 +26,12 @@ Hunt, specifically:
 - **Loops with no exit condition** — any `kind: loop` node missing
   `invariant`, `ledger`, `dry_rounds`, or `max_iterations` (CONTRACT §5.3);
   the plan gate rejects these outright.
+- **Bundled done-criteria** — a criterion that reads as one sentence but
+  carries several independent checks joined by `and`, `;`, or a comma series
+  (CONTRACT §4.5). Each check has its own pass or fail, so a verifier can
+  satisfy one and mark the whole row `CONFIRMED` — §9.1's arithmetic then
+  hands back a clean verdict for work nobody checked. Count the checks; if
+  the number is greater than one, the handoff needs that many criteria.
 - **Barriers that should be pipelines** — a `barrier` node whose next stage
   doesn't actually need cross-item context from every predecessor
   (CONTRACT §4.2). Flatten-and-filter is not a reason for a barrier.
@@ -33,6 +39,11 @@ Hunt, specifically:
   wants the upstream digest, not a completed, verified upstream (CONTRACT
   §4.1). Every unnecessary `needs` edge is wall-clock the pipeline didn't
   have to spend.
+- **A persona seated on both sides of its own work** — the same slug in
+  `personas:` on an authoring node *and* on that node's `refutes` node or on
+  the node that verifies it (CONTRACT §4.1; the duty itself is
+  `personas/CONTRACT.md` §2.1, `EXECUTE` row). Refute the graph. Independence
+  a slug can be seated out of was never independence.
 
 **Cite or retract** (CONTRACT §9): every finding names a `graph.yaml` id or
 a `roadmap.md` line. A finding with nothing to point at is not a finding.

@@ -1,5 +1,7 @@
 ---
 name: Returning Power User
+type: Persona
+id: returning-power
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

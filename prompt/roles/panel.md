@@ -31,6 +31,13 @@ construction (personas CONTRACT §5). This is each seat's AUDIT duty
 (personas CONTRACT §2.1): findings cited to the artifact, judged by that
 seat's lens alone.
 
+**Name the phase in the spawn.** Open each seat's prompt with
+`PHASE: AUDIT` — the card is bound once and carries every phase this
+persona serves (personas CONTRACT §4.3), and each phase gives it a
+different duty, output and rung (personas CONTRACT §2), so the spawn must
+name which phase is in force. A seat whose card has no `## In AUDIT`
+runs §2.1's generic duty; that is the default, not a fault.
+
 **2. Red flag.** From the same audit output, each seat has already
 surfaced **at most one** blocking concern (personas CONTRACT §2.1 caps this
 at the audit stage itself) — collect them here as the phase's red-flag set.
@@ -53,6 +60,7 @@ adjudicator (`{BATON}/prompt/roles/adjudicator.md`, clash-mediation mode). Each 
 steelmans the other before rebutting; a rebuttal with no steelman is
 discarded unread; one exchange, then the adjudicator rules and records what
 would change the ruling (personas CONTRACT §2.1, adjudicator.md §b).
+Open each side's prompt with `PHASE: CLASH`, same reason as stage 1.
 
 **5. Citation-verification barrier.** Before any finding reaches synthesis,
 check every cited quote against its named location. A quote that's

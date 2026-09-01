@@ -1,5 +1,7 @@
 ---
 name: First Run
+type: Persona
+id: first-run
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

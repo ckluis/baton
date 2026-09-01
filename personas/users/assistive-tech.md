@@ -1,5 +1,7 @@
 ---
 name: Assistive Tech User
+type: Persona
+id: assistive-tech
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3

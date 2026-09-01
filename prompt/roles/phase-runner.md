@@ -34,10 +34,19 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
 
 3. **Dispatch.** Spawn one node orchestrator (`{BATON}/prompt/roles/node-orchestrator.md`)
    per selected node at its current entry rung — the brief's rung, adjusted
-   by any drift you've already applied this phase. Append a ledger row on
-   every spawn (CONTRACT §7 schema).
+   by any drift you've already applied this phase. Stamp the start before the
+   spawn — `date -u +%s > _orch/nodes/<id>/started_at` — and
+   append the node's ledger row when its envelope comes back, not here
+   (CONTRACT §7.1: at dispatch, `verdict` and `seconds` do not exist yet).
 
-4. **On each returned envelope, route it:**
+   **Lint the handoff before you spawn against it:** `python3 tools/lint-criteria.py
+   _orch/nodes/<id>/handoff.md`. A flagged criterion is an authoring defect — fix it
+   before the spawn, not after a node has run against it. A missing `python3` or a
+   failed run is logged and dispatched past; the linter never stalls the run.
+
+4. **On each returned envelope, append its ledger row first** — CONTRACT §7.1's
+   shell form, reading `started_at` back off disk so `seconds` is measured
+   rather than recalled — **then route it:**
    - `DONE` / `DONE-WITH-CAVEATS` → go to step 5 (verification).
    - `SPLIT` → spawn a decomposer (`{BATON}/prompt/roles/decomposer.md`) at rung 3.
      It rewrites the graph; treat the new children as newly runnable at
@@ -58,7 +67,11 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
 
 5. **Verify.** On `DONE`/`DONE-WITH-CAVEATS`, spawn a verifier
    (`{BATON}/prompt/roles/verifier.md`) at the node's own rung — never one above on
-   the first pass (§9). Route its verdict:
+   the first pass (§9). **Check the verdict's shape before you route it**
+   (CONTRACT §9.1): its `criteria` rows must number exactly the handoff's
+   done-criteria, and its node verdict must match what those rows compute to.
+   A verdict that fails either check is malformed — read it as `PARTIAL` and
+   re-verify, whatever it claims. Then route:
    - `CONFIRMED` → close the node. Increment this verifier's clean-confirm
      streak; at 5 in a row with no `REFUTED`/`PARTIAL`, spawn one adversary
      at rung+1 against its most recent confirmation (§9 refutation quota).
@@ -68,7 +81,11 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    - If the node carries `personas:` or `adversarial: standard`/`panel`,
      route to the bound persona cards or to `{BATON}/prompt/roles/panel.md` instead
      of the generic verifier, per the graph's own fields — the graph
-     already told you which nodes want that treatment.
+     already told you which nodes want that treatment. When you spawn a
+     bound card directly, open its prompt with `PHASE: VERIFY` — the card
+     is bound once and carries every phase this persona serves, and each
+     phase gives it a different duty, output and rung (personas CONTRACT
+     §4.3/§2), so the spawn must name which phase is in force.
 
 6. **Apply rung drift** after every node closes this phase (§1.5):
    - Three nodes in this phase have now escalated past their entry rung →
@@ -83,9 +100,12 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    pending. Terminal states only: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched,
    or `DONE-WITH-CAVEATS` accepted.
 
-8. **Close the phase.** Assemble the one envelope: per-node final state,
-   the drift log, the batched questions, pointers to every digest — never
-   their contents. Write it and stop.
+8. **Close the phase.** Refresh the index first — run `python3
+   tools/index.py` from `{BATON}`; if `python3` is missing or the run
+   fails, the gate logs it and continues, never stalling on a missing
+   tool. Assemble the one envelope: per-node final state, the drift log,
+   the batched questions, pointers to every digest — never their
+   contents. Write it and stop.
 
 You do no object-level work. Every keystroke that touches the product
 happens inside a node orchestrator, a verifier, a probe, or a panel seat —

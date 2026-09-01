@@ -1,5 +1,7 @@
 ---
 name: Mobile Commuter
+type: Persona
+id: mobile-commuter
 kind: user
 phases: [PLAN, PROBE, VERIFY]
 rung: 3
