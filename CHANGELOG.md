@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Modes and personas
+
+- Added `personas/lenses/representation-truth.md` — a lens for how state is
+  *represented*: invalid combinations a type permits but the domain forbids,
+  shapes re-assumed at every call site, branching a table would carry. It
+  refuses abstraction for hypothetical extensibility and refuses relocating
+  existing branching behind a new type.
+- `IMPROVE` gained a **design baseline** beside its behavior baseline. `T01b`
+  freezes three to five representative change scenarios before scoring the
+  module against them; `T40` re-scores against the frozen scenarios after the
+  execution loop, taken by a different agent, and reports the delta per
+  principle. The mode could previously prove nothing broke; it could not prove
+  anything got better. No score is used as a pass/fail gate.
+
 ### Contract
 
 - **`prompt/CONTRACT.md` §7.2 — two ledger row classes, one writer each.** The schema described
@@ -16,6 +30,7 @@
 
 ### Design notes
 
+- `docs/designs/simplicity-scorecard.md` — the design behind IMPROVE's baseline above.
 - `docs/designs/proportionality-and-detection.md` — three further contract changes that were
   drafted, adversarially verified, and **withdrawn rather than shipped**: verification effort
   capped by criterion priority, briefs carrying locators instead of facts, and partitioned
