@@ -20,15 +20,18 @@ Two classes, decided before the run from the original verdict files:
   discriminating work-class nodes are `CONFIRMED` first try at rung 6, the ladder's escalation
   half is cost engineering and collapses to three tiers (cheap, strong, human). If ≤ 4 are, the
   ladder holds. 5 to 7 is inconclusive and will be reported as inconclusive.
-- **criterion-class** — the original refutation was the criterion, later rewritten by an
-  operator answer. These run against the **original** criterion text. If they are still refuted
-  at rung 6, refutation triage (`rules/rule-9-2-refutation-triage.md`) is capability-independent.
-  If a rung-6 worker satisfies an unbounded enumeration that four sonnet verifiers could not, that
-  is a finding against §9.2's premise and the report says so.
+- **criterion-class** — the original verifier called the criterion unsatisfiable, or an operator
+  answer later rewrote it. These run against the **original** criterion text. Of the 7: if ≥ 6 are
+  still not `CONFIRMED` at rung 6, refutation triage (`rules/rule-9-2-refutation-triage.md`) is
+  capability-independent; if ≤ 3, a rung-6 worker satisfies criteria sonnet verifiers called
+  unsettleable and that is a finding against §9.2's premise; 4 or 5 is inconclusive.
+- **Malformed verdicts are excluded from both denominators** and reported as their own count. A
+  replay verifier writes `UNSETTLEABLE` and `shape` for the first time, so a malformed record is
+  likely and is not a rung-6 failure.
 
-Seven further nodes are **non-discriminating**: their fix is already in the tree, so a replay
-satisfies them trivially. They run anyway, because the verifier's `defect` tags on all 18 are
-the triage data §9.2 needs, and because a rung-6 worker that *fails* a trivially satisfiable
+Two further nodes are **non-discriminating**: their fix is already in the tree, so a replay
+satisfies them trivially. They run anyway, because the verifier's `UNSETTLEABLE` rows on all 18
+are the triage data §9.2 needs, and because a rung-6 worker that *fails* a trivially satisfiable
 criterion is itself information.
 
 ## The tree-state confound, stated
@@ -40,7 +43,8 @@ time, on 2026-09-01. There is no commit that reproduces the tree a given node sa
   tree every time, and the current tree is a fair input;
 - `F1.4` and `F2` run in a worktree at **`e78e7b0`** (the `v2.0` tag, pre-run), where the cards
   and lenses they author do not yet exist and their inputs live in the archived corpus;
-- the five instrument-era nodes have no reproducible pre-state and are non-discriminating.
+- the instrument-era nodes have no reproducible pre-state; three of them are criterion-class by
+  their own verifier's words and two are non-discriminating.
 
 ## The nodes
 
@@ -53,7 +57,7 @@ read-only. "Original criterion" for criterion-class nodes is quoted in the named
 | `P10` | work | HEAD | 6 | 2 | tag vocabulary omitted 12 tags | `_orch/verify/P10-verdict.json` |
 | `P11` | work | HEAD | 6 | 2 | 9 misattribution points | `_orch/verify/P11-verdict.json` |
 | `B1` | work | HEAD | 6 | 2 | a fourth disposition value | `_orch/verify/B1-verdict.json` |
-| `P41` | work | HEAD | 6 | 2 | 8 of 9 deferred rows unprioritised | `_orch/verify/P41-verdict.json` |
+| `P41` | work | HEAD | 6 | 2, **persona seat `spec-fidelity` at VERIFY**, not `verifier.md` | 8 of 9 deferred rows unprioritised | `_orch/verify/P41-verdict.json` |
 | `P90b` | work | HEAD | 6 | 2 | see verdict | `_orch/verify/P90b-verdict.json` |
 | `P160` | work | HEAD | 6 | 3 | Part 7 lines lack file/location/change | `_orch/verify/P160-verdict.json` |
 | `F1.4` | work | `e78e7b0` | 6 | 1 | bare surnames past the opening clause | `_orch/verify/F1.4-verdict.json` |
@@ -62,13 +66,15 @@ read-only. "Original criterion" for criterion-class nodes is quoted in the named
 | `P76` | criterion | HEAD | 6 | 1 | unbounded "every count statement" | `_orch/inbox/Q-09.md`, the quoted original |
 | `P80` | criterion | HEAD | 6 | 3 | criterion 6 measures the branch | `_orch/inbox/Q-10.md` |
 | `P90c` | criterion | HEAD | 6 | 1 | criterion 14 enumerates quoted strings | `_orch/verify/P90c-verdict.json` row 14 |
-| `P111` | non-discriminating | HEAD | 6 | 3 | check 4 subset claim | `_orch/verify/P111-verdict.json` |
-| `P112` | non-discriminating | HEAD | 6 | 3 | yield row / files-outside claim | `_orch/verify/P112-verdict.json` |
-| `P121` | non-discriminating | HEAD | 6 | 3 | fixture corpus not verbatim | `_orch/verify/P121-verdict.attempt1.json` |
+| `P111` | criterion | HEAD | 6 | 3 | criterion 21, "unsatisfiable by any correct repair" | `_orch/verify/P111-verdict.json` |
+| `P112` | criterion | HEAD | 6 | 3 | both rows "phase-runner authoring defects" | `_orch/verify/P112-verdict.json` |
+| `P121` | criterion | HEAD | 6 | 3 | criterion 10 "fails as authored" | `_orch/verify/P121-verdict.attempt1.json` |
 | `P122` | non-discriminating | HEAD | 6 | 2 | promoter-equals-repairer case | `_orch/verify/P122-verdict.json` |
 | `P132` | non-discriminating | HEAD | 6 | 2 | non-list `repaired:` silently zero | `_orch/verify/P132-verdict.json` |
 
-Nine discriminating work-class nodes, four criterion-class, five non-discriminating.
+Nine discriminating work-class nodes, seven criterion-class, two non-discriminating. `P41` is
+verified by the same instrument that refuted it, the `spec-fidelity` persona card at rung 2 in
+single-claim shape (§9.1), so the arm holds the instrument constant.
 
 ## Operator pre-steps, by hand, before pasting
 
@@ -102,11 +108,15 @@ PRIME_TURNS: 6
 Read /Users/clank/Desktop/projects/baton/prompt/baton.md and follow it. You are the PRIME
 ORCHESTRATOR it describes. Resolve every other file it names against that same directory.
 
-# Operating policy — binds every spawn
-- Run state root is `_orch-replay/`, not `_orch/`. `_orch/` is the read-only corpus and is
-  chmod a-w; every path a handoff names under `_orch/nodes/<id>/work/` is written under
-  `_orch-replay/nodes/<id>/work/` instead. A spawn that tries to write into `_orch/` has
-  failed and says so.
+# Operating policy — binds you and every spawn, and applies before the router's step 2
+- Every occurrence of `_orch/` in the router and the rules means `_orch-replay/` for this run,
+  including your own `manifest.json` and `directive.md`. `_orch/` is the read-only corpus,
+  chmod a-w; call it the corpus. Every path a handoff names under `_orch/nodes/<id>/work/` is
+  written under `_orch-replay/nodes/<id>/work/` instead. A spawn that tries to write into the
+  corpus has failed and says so.
+- The plan gate runs, on a graph the planner emits verbatim from the node table below: 18 task
+  nodes, no edges, entry rung 6, each with the table's verifier rung in its handoff. The plan
+  verifier checks only that the graph matches the table. `COMPLETION:` is the Done block below.
 - Rungs 5 and 6 are approved for exactly the 18 worker spawns in the table. No other spawn
   may use them. Every verifier runs at the table's verifier rung, never higher.
 - One worker and one verifier per node. Concurrency 1. No escalation on REFUTED: a refuted
@@ -116,8 +126,8 @@ ORCHESTRATOR it describes. Resolve every other file it names against that same d
   the worktree path as the tree the handoff's product paths resolve against, and the archived
   corpus for every `_orch/` input the handoff names. The worker never sees the original
   verdict file or any later attempt.
-- Each verifier follows prompt/roles/verifier.md exactly, including §9.2's `defect` and
-  `shape` fields on every REFUTED row, writes `_orch-replay/verify/<id>-verdict.json`, and
+- Each verifier follows prompt/roles/verifier.md exactly, including §9.2's `UNSETTLEABLE`
+  row verdict with its `shape` and demonstrating `probe`, writes `_orch-replay/verify/<id>-verdict.json`, and
   for criterion-class nodes verifies against the ORIGINAL criterion text named in the table,
   not the handoff's rewritten form.
 - Ledger every spawn to `_orch-replay/ledger.csv` per §7.1 with shell-measured seconds.
@@ -126,8 +136,10 @@ ORCHESTRATOR it describes. Resolve every other file it names against that same d
   corpus and costs nothing.
 
 # Done
+COMPLETION: every one of the 18 nodes has a verdict file under `_orch-replay/verify/` and
+`_orch-replay/final/report.md` exists with the decision rule applied.
 `_orch-replay/final/report.md` carries: one row per node with class, replay verdict, the
-`defect`/`shape` tags of every REFUTED row, and measured seconds; the pre-registered decision
+`shape` of every `UNSETTLEABLE` row, malformed verdicts counted separately, and measured seconds; the pre-registered decision
 rule applied verbatim with its outcome (collapse / holds / inconclusive) for work-class, and
 the capability-independence outcome for criterion-class; the linter baseline; and every
 worktree removed. No product file in the main tree is changed.

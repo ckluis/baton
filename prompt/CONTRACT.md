@@ -78,7 +78,7 @@ session resumes and no context is load-bearing. The prime spends its turns on
 | &nbsp;&nbsp;8.1 | 8.1. The human brief — every gate that reaches a person ships one page for that person | [`rule-8-1-the-human-brief.md`](../rules/rule-8-1-the-human-brief.md) |
 | 9 | 9. Evidence | [`rule-9-evidence.md`](../rules/rule-9-evidence.md) |
 | &nbsp;&nbsp;9.1 | 9.1. A verdict is per-criterion, and the node verdict is computed | [`rule-9-1-a-verdict-is-per-criterion-and-the-node.md`](../rules/rule-9-1-a-verdict-is-per-criterion-and-the-node.md) |
-| &nbsp;&nbsp;9.2 | 9.2. Refutation triage — a refuted row names what was wrong | [`rule-9-2-refutation-triage.md`](../rules/rule-9-2-refutation-triage.md) |
+| &nbsp;&nbsp;9.2 | 9.2. Refutation triage — a criterion no execution can settle is not a failed node | [`rule-9-2-refutation-triage.md`](../rules/rule-9-2-refutation-triage.md) |
 | 10 | 10. The Operator Lane | [`rule-10-the-operator-lane.md`](../rules/rule-10-the-operator-lane.md) |
 | 11 | 11. Contract footer | [`rule-11-contract-footer.md`](../rules/rule-11-contract-footer.md) |
 

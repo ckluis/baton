@@ -33,7 +33,7 @@ lifetime yield.
 | **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
 | **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
 | **Bundle interop** | none | optional `type` / `id` / `links` keys, validated at **AIX level 1** |
-| **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 49 of them, contracts down to 83 lines |
+| **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 49 of them, contracts down to 85 lines |
 
 - **A vendored 40-expert roster.** `personas/luminaries/` ships named domain
   experts with explicit `phases` and `tags`, because a roster that declares

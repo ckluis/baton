@@ -81,20 +81,22 @@ over one.
    - `CONFIRMED` → close the node. Increment this verifier's clean-confirm
      streak; at 5 in a row with no `REFUTED`/`PARTIAL`, spawn one adversary
      at rung+1 against its most recent confirmation (§9 refutation quota).
-   - `REFUTED` → **read the rows' `defect` field first** (§9.2). Any `work` row →
-     `FAILED` on the node; one rung up (§1.2.3). Only `criterion` rows → the node
-     stays at its rung and parks `BLOCKED`: write `_orch/inbox/Q-<n>.md` with the
-     criterion verbatim, the verifier's shape and reason, a rewrite a command can
-     settle, and the default (`DONE-WITH-CAVEATS` naming the criterion). Both →
-     escalate on the `work` rows now and file the `criterion` rows in the same
-     question, so the re-spawn is not judged on a line nobody can settle. Append
-     every `criterion` row to `_orch/lint-feedback.yaml` — node, criterion, shape,
-     verifier, question id. A `REFUTED` row with no `defect` is malformed →
-     `PARTIAL`, re-verify.
-   - `PARTIAL` → re-verify at the same rung; escalate the *verifier* only
-     after a second `PARTIAL` on the same node (§9). Exception: a `PARTIAL`
-     whose only `UNTESTED` rows cite an open `Q-<n>` waits for the answer and is
-     not re-verified (§9.2).
+   - `REFUTED` → `FAILED` on the node; one rung up (§1.2.3). If the verdict also
+     carries `UNSETTLEABLE` rows, file their question now (below) so the
+     re-spawn's verifier parks rather than loops. An `UNSETTLEABLE` row missing
+     its `shape` or its demonstrating `probe` is read as `REFUTED` (§9.2).
+   - `PARTIAL` with any `UNSETTLEABLE` row → **do not re-verify** (§9.2). Write
+     `_orch/inbox/Q-<n>.md` on the node's behalf (§10.1): the criterion verbatim,
+     the shape and probe, a rewrite a command can settle, and the default
+     (`DONE-WITH-CAVEATS` naming the criterion). If `_orch/lint-feedback.yaml`
+     already has this node and criterion, cite that question instead. Append the
+     row to `_orch/lint-feedback.yaml` — node, criterion, shape, verifier,
+     question id — creating the file on first use. Leave the node's envelope as
+     written; track it as `BLOCKED`-and-batched in yours. On an answer, apply the
+     rewrite to the handoff, leave every other criterion byte-identical, and
+     spawn a fresh verifier at the same rung.
+   - `PARTIAL` with only `UNTESTED` rows → re-verify at the same rung; escalate
+     the *verifier* only after a second such `PARTIAL` on the same node (§9).
    - If the node carries `personas:` or `adversarial: standard`/`panel`,
      route to the bound persona cards or to `{BATON}/prompt/roles/panel.md` instead
      of the generic verifier, per the graph's own fields — the graph
@@ -114,8 +116,9 @@ over one.
    - Drift resets at the phase gate; it never crosses into the next phase.
 
 7. **Repeat from step 2** until no node in the phase is runnable or
-   pending. Terminal states only: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched,
-   or `DONE-WITH-CAVEATS` accepted.
+   pending. Terminal states only: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched —
+   which includes a node parked on an `UNSETTLEABLE` criterion (§9.2) — or
+   `DONE-WITH-CAVEATS` accepted.
 
 8. **Close the phase.** Refresh the index first — run `python3
    tools/index.py` from `{BATON}`; if `python3` is missing or the run

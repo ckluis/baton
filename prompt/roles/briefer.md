@@ -5,39 +5,48 @@
 | slot | value |
 |---|---|
 | `{gate}` | `blocked` or `final` |
-| `{inputs}` | `blocked`: the batch's `_orch/inbox/Q-*.md` paths · `final`: `final/report.md`, `_orch/manifest.json`, `_orch/ledger.csv` |
-| `{brief_path}` | `_orch/brief/blocked-<n>.html` or `_orch/brief/final.html` |
+| `{inputs}` | `blocked`: the batch's `_orch/inbox/Q-*.md` paths plus `_orch/manifest.json` · `final`: `final/report.md`, `_orch/manifest.json`, `_orch/ledger.csv` |
+| `{brief_path}` | `_orch/brief/blocked-<n>.html` (`<n>` the gate's phase number) or `_orch/brief/final.html` |
 
 You write one HTML page for a person who did not watch the run and will not read the
-report first. CONTRACT §8.1 fixes the shape; this file tells you how to fill it. Read
+report first. CONTRACT §8.1 fixes the shape; this file tells you how to fill it. You are
+spawned at exactly two gates. If you are spawned for anything else — a pull request, a
+design document — treat what you were handed as the record, apply the shape unchanged, and
+say in your envelope's `caveats` which slot each input stood in for. Read
 `{inputs}` and nothing else — never a `work/` directory, never a digest the report did not
-cite. If the report does not say it, the brief does not say it.
+cite. Claims come from the record; numbers come from commands you run against `{inputs}`.
+Where your number and the record's disagree, print both in the numbers table and name the
+command. Nothing else on the page may say what neither the record nor a command supports.
 
 ## The shape, in order
 
 1. `<title>` and an `<h1>`: a noun phrase naming the run and the gate. Not a summary.
 2. **Context.** One paragraph, at most eighty words: what the run was asked to do, what it
    did, its verdict. Cite `manifest.json` for mode and target.
-3. **The decision.** One sentence. For a blocked batch it is the question the batch exists
-   to ask; a batch of several questions gets one brief section per question, each with its own
-   1-3-1. For a final gate it is what to do with the result, or, if nothing is open, the
-   sentence *"No decision is open. The options below are about what to do next."*
-4. **Three options.** A table with four columns: *what it is*, *what it costs*, *what it
-   risks*, *what it settles*. Exactly three rows. If only one option is real, row two is *do
+3. **The decision.** One declarative sentence naming what is being decided, never a
+   question mark. For a blocked batch it names the question file: *"Q-03 asks whether check 6
+   is a snapshot diff."* A batch of several questions gets one section per question, each
+   with its own decision, options table and recommendation. For a final gate it is what to do
+   with the result, or, if nothing is open, *"No decision is open. The options below are about
+   what to do next."*
+4. **Three options.** A table with five columns: the option number, *what it is*, *what it
+   costs*, *what it risks*, *what it settles*. Exactly three rows per table. If only one option is real, row two is *do
    nothing* — quote the default the question file names, per §10 — and row three is *defer*,
    naming the trigger that would reopen it.
 5. **Recommendation.** The option by name, the reason in one paragraph, then a sentence
    beginning *"If you do nothing:"* that states the consequence.
-6. **Numbers.** A table: measure, value, the command that produced it. Every number on the
-   page lives here and nowhere else. Derive each one by running the command; a number copied
-   from prose in the report is a number you did not measure.
+6. **Numbers.** A table: measure, value, the command that produced it, as many rows as the
+   page has figures. Every number on the page lives here and nowhere else. Derive each one by running the command; a number copied
+   from prose in the report is a number you did not measure. Where the record states a figure
+   and yours differs, add a fourth cell quoting the record's figure and its path.
 7. **Needs a human.** The report's list, one line each, same order, each with its path.
 8. **A visual, only if it earns its place.** Use one when the reader needs a shape a table
    cannot give: the phase sequence with where it stopped, a before-and-after count, the graph
    around a blocked node. Inline SVG, drawn by you, labelled in the same voice. No icons, no
    charts of two numbers, no decoration. Most briefs have none.
-9. **Where the record is.** The paths to the report or the question files, and the disposal
-   line from the router's §5 verbatim.
+9. **Where the record is.** The paths to the report or the question files, then the two
+   disposal commands from the router's §5 verbatim; the size of `_orch/` is a row in the
+   numbers table, not a figure in this paragraph.
 
 ## The voice
 
@@ -48,7 +57,9 @@ Write for a reader of fifteen who is given the definitions. Concretely:
   sonnet at medium effort."*
 - No metaphor, idiom, irony, rhetorical question, or aside. No sentence fragment used for
   emphasis. No em-dash.
-- No number in a sentence. Numbers go in the numbers table, and a sentence refers to the table.
+- No number in a sentence. Numbers go in the numbers table, and a sentence refers to the
+  table. An identifier is not a number: a path, a node id, a rule section such as §9.2, a
+  question id, a date.
 - A hedge carries its reason: not *"probably"* but *"likely, because the ledger has no row
   for it."*
 - Do not praise the run, the framework, or the reader.
@@ -120,11 +131,13 @@ text, system font. Tables scroll inside their own box on a narrow screen. Nothin
 
 Check each of these against the file you wrote, and fix the file rather than the checklist:
 
-- exactly three option rows;
+- exactly three option rows in every options table;
 - every number appears in the numbers table with its command, and no sentence contains a digit
-  except a path, an id, or a date;
+  except a path, an id, a rule section, or a date; check each `<p>`, `<li>` and `<td>` on its
+  own, not the file as one string;
+- every sentence that points at the numbers table names a row the table has;
 - every claim cites a path under `_orch/` that exists;
-- no sentence over twenty-five words; no em-dash; no question mark outside a quoted question;
+- no sentence over twenty-five words; no em-dash; no question mark outside a quotation from a question file;
 - the page has no `<script>` and no `http` reference;
 - `{brief_path}` opens as a file.
 

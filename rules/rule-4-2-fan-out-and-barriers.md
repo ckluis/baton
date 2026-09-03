@@ -30,7 +30,9 @@ separate. That is what a pipeline already models.
 A **`kind: gate` node is not a §8 gate.** It is an in-graph checkpoint that
 closes when its children close — a join, nothing more. It costs **no prime
 turn** and does not count against `PRIME_TURNS`. Only the prime holds a §8 gate,
-and only the four kinds listed there exist. A mode that needs an
+and only the four kinds listed there exist. The
+briefer spawn inside gates 3 and 4 (§8.1) is part of that gate's turn and does not
+increment `prime_turns_spent` either. A mode that needs an
 operator-facing checkpoint mid-phase reaches it by returning `BLOCKED`, which
 routes into the blocked batch.
 

@@ -4,16 +4,21 @@
 
 ### Contract
 
-- **`prompt/CONTRACT.md` §9.2 — refutation triage.** A `REFUTED` row now carries `defect:
-  work | criterion`. `work` escalates as before. `criterion` — an enumeration with no generating
-  command, a measure of the tree or branch the node cannot change, or a form an answer already
-  superseded — parks the node on a question proposing a bounded rewrite instead of buying a
-  bigger model, and is appended to `_orch/lint-feedback.yaml` for the final report. §1.2 trigger
-  3 and §9.1 amended to match; `verifier.md`, `phase-runner.md` and `synthesizer.md` updated.
-  In baton's own run 6 of 21 traceable refutations changed the criterion rather than the
-  product, `P76` criterion 1 cost fourteen spawns, and a phase runner improvised this rule at
-  `ACCEPT-P90c`. It is the narrow successor to the withdrawn materiality draft
-  (`docs/designs/proportionality-and-detection.md` §1): it prices nothing.
+- **`prompt/CONTRACT.md` §9.2 — refutation triage.** A verifier now has a fourth row
+  verdict, `UNSETTLEABLE`, for a criterion no execution inside the node could have settled as
+  written: an enumeration with no generating command, a measure of the tree or branch, a false
+  premise, a contradiction inside the handoff, or a form an answer already superseded. The row
+  must name its shape and carry the command that demonstrates it, or it is read as `REFUTED`.
+  The node computes to `PARTIAL`, is not re-verified, and parks as `BLOCKED`-and-batched on a
+  question the phase runner writes on its behalf proposing a bounded rewrite; it never buys a
+  bigger model. Every such row is appended to `_orch/lint-feedback.yaml` for the final report.
+  §1.2 trigger 3 is unchanged; §9.1, §6, §4.2, §10.1 amended; `verifier.md`, `phase-runner.md`
+  and `synthesizer.md` updated. In baton's own run, of twenty-one refutations examined fourteen
+  were traceable to their follow-up: six changed the criterion, eight the product; `P76`
+  criterion 1 cost fifteen spawns, and a phase runner improvised this rule at `ACCEPT-P90c`. It
+  is the narrow successor to the withdrawn materiality draft
+  (`docs/designs/proportionality-and-detection.md` §1): it adds the token at the row, where §9.1
+  already computes, and parks the node in a state the gates already know.
 
 - **`prompt/CONTRACT.md` §8.1 — the human brief.** The two gates that reach a person, the
   blocked batch and the final gate, now ship one HTML page beside their record:
