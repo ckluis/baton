@@ -15,6 +15,17 @@
   `ACCEPT-P90c`. It is the narrow successor to the withdrawn materiality draft
   (`docs/designs/proportionality-and-detection.md` §1): it prices nothing.
 
+- **`prompt/CONTRACT.md` §8.1 — the human brief.** The two gates that reach a person, the
+  blocked batch and the final gate, now ship one HTML page beside their record:
+  `_orch/brief/blocked-<n>.html` and `_orch/brief/final.html`, written by a new rung-2 role,
+  `prompt/roles/briefer.md`. Fixed shape: a title, an eighty-word context, one decision,
+  exactly three options with cost, risk and what each settles, one recommendation with the
+  consequence of doing nothing, a numbers table whose every row shows its command, the
+  needs-a-human list, and a visual only when a table cannot carry it. Plain technical English
+  by rule: short declarative sentences, defined terms, no metaphor, no numbers in prose. Derived
+  from the report, never authoritative, disposed of with `_orch/`. The router's closing message
+  names the brief before the report.
+
 ### Experiments
 
 - `docs/experiments/replay-refuted-at-rung-6.md` — a paste-ready GENERIC directive that

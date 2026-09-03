@@ -7,6 +7,9 @@
 | `{report_path}` | `final/report.md` |
 | `{ledger_path}` | `_orch/ledger.csv` |
 
+The briefer (`{BATON}/prompt/roles/briefer.md`) runs after you and reads only what you wrote,
+so a fact absent from `{report_path}` cannot reach the operator's brief (CONTRACT §8.1).
+
 Write `{report_path}` from digests, verdicts, and `{ledger_path}` **only**.
 Never open a `work/` directory to "get the real story" — if a digest can't
 carry what happened, that is a defect in the digest, not a license to go

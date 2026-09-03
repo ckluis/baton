@@ -27,7 +27,8 @@ Protocol:
 
 1. A `BLOCKED` node writes `_orch/inbox/Q-<n>.md` — the question, the node it
    blocks, and what the run will assume if it goes unanswered.
-2. The prime batches open questions at every gate.
+2. The prime batches open questions at every gate and ships the batch with a brief
+   (§8.1) — one page, three options per question, one recommendation.
 3. At each gate the prime scans `_orch/inbox/*.answer.md`, applies what
    arrived, and unblocks.
 4. An unanswered question at the final gate becomes a report line under
