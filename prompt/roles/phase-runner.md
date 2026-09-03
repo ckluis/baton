@@ -81,9 +81,20 @@ over one.
    - `CONFIRMED` → close the node. Increment this verifier's clean-confirm
      streak; at 5 in a row with no `REFUTED`/`PARTIAL`, spawn one adversary
      at rung+1 against its most recent confirmation (§9 refutation quota).
-   - `REFUTED` → `FAILED` on the node; one rung up (§1.2.3).
+   - `REFUTED` → **read the rows' `defect` field first** (§9.2). Any `work` row →
+     `FAILED` on the node; one rung up (§1.2.3). Only `criterion` rows → the node
+     stays at its rung and parks `BLOCKED`: write `_orch/inbox/Q-<n>.md` with the
+     criterion verbatim, the verifier's shape and reason, a rewrite a command can
+     settle, and the default (`DONE-WITH-CAVEATS` naming the criterion). Both →
+     escalate on the `work` rows now and file the `criterion` rows in the same
+     question, so the re-spawn is not judged on a line nobody can settle. Append
+     every `criterion` row to `_orch/lint-feedback.yaml` — node, criterion, shape,
+     verifier, question id. A `REFUTED` row with no `defect` is malformed →
+     `PARTIAL`, re-verify.
    - `PARTIAL` → re-verify at the same rung; escalate the *verifier* only
-     after a second `PARTIAL` on the same node (§9).
+     after a second `PARTIAL` on the same node (§9). Exception: a `PARTIAL`
+     whose only `UNTESTED` rows cite an open `Q-<n>` waits for the answer and is
+     not re-verified (§9.2).
    - If the node carries `personas:` or `adversarial: standard`/`panel`,
      route to the bound persona cards or to `{BATON}/prompt/roles/panel.md` instead
      of the generic verifier, per the graph's own fields — the graph
@@ -110,8 +121,8 @@ over one.
    tools/index.py` from `{BATON}`; if `python3` is missing or the run
    fails, the gate logs it and continues, never stalling on a missing
    tool. Assemble the one envelope: per-node final state, the drift log,
-   the batched questions, pointers to every digest — never their
-   contents. Write it and stop.
+   the batched questions, the `_orch/lint-feedback.yaml` entries this phase
+   added, pointers to every digest — never their contents. Write it and stop.
 
 You do no object-level work. Every keystroke that touches the product
 happens inside a node orchestrator, a verifier, a probe, or a panel seat —

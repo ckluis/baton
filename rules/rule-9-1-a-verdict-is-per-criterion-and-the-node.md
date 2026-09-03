@@ -19,7 +19,8 @@ A verdict file carries **one row per done-criterion in the handoff**, each
 quoting its criterion verbatim, each with its own `verdict`
 (`CONFIRMED` / `REFUTED` / `UNTESTED`), its own `probe`, its own `evidence`, and
 optionally its own `attack` — the strongest attack tried and why the attack
-failed, or on a `REFUTED` row the attack that landed. `attack` is **optional and
+failed, or on a `REFUTED` row the attack that landed. A `REFUTED` row also carries
+`defect` (§9.2), which says whether the work or the criterion was wrong. `attack` is **optional and
 additive**: an absent `attack` is **not** malformed, and the rules below are
 unchanged by its presence or absence.
 The node-level verdict is then **derived, not asserted**:

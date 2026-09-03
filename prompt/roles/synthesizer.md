@@ -30,6 +30,9 @@ The report contains, in this order:
   `escalation.md` packets and the ledger.
 - **Open questions** — every `_orch/inbox/*.md` with no matching
   `*.answer.md` at gate time becomes a line under **needs a human**
+- `_orch/lint-feedback.yaml`, if it exists, is listed in full under **needs a human**
+  as linter fixture candidates (§9.2) — each entry is a criterion this run could not
+  settle and `tools/lint-criteria.py` did not catch
   (CONTRACT §10.4). Do not resolve these yourself, and do not silently drop
   them as assumptions.
 - **The rung histogram** — attempts and seconds per rung from the ledger,

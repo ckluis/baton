@@ -130,7 +130,7 @@ file** — a half-remembered contract is worse than no run.
 1. **Read the rules and your mode file, and nothing else after that.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
    **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts, then **every rule their indexes list** — 47 small files, and they are the
+   contracts, then **every rule their indexes list** — 48 small files, and they are the
    entire rulebook — then `{BATON}/prompt/modes/<MODE>.md`.
 
    **If you received this as one pasted bundle, they are already in front of you** and

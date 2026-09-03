@@ -254,7 +254,7 @@ html.js .reveal.in{opacity:1;transform:none}
             <div class="vs"><span class="vl">Checks nobody measured</span><span class="va">&rarr;</span><span class="vr">10 instruments, each carrying its yield</span></div>
             <div class="vs"><span class="vl">Verdict asserted per node</span><span class="va">&rarr;</span><span class="vr">One computed row per criterion</span></div>
             <div class="vs"><span class="vl">A bundle nothing could read</span><span class="va">&rarr;</span><span class="vr">AIX level 1, checked by command</span></div>
-            <div class="vs"><span class="vl">Rules inline, restated four ways</span><span class="va">&rarr;</span><span class="vr">One file each &mdash; 47 rules, 83-line contracts</span></div>
+            <div class="vs"><span class="vl">Rules inline, restated four ways</span><span class="va">&rarr;</span><span class="vr">One file each &mdash; 48 rules, 84-line contracts</span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
             <span style="font-size:13px;color:var(--muted)">v2 is still tagged, and still runs. Five breaking changes.</span>
@@ -1468,7 +1468,7 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
         <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
           every session paid for every mode it was not running. v2 split it: a router you paste, and
           files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
-          under <code>rules/</code> &mdash; 47 of them, the ladder, the envelope, the digest, the graph,
+          under <code>rules/</code> &mdash; 48 of them, the ladder, the envelope, the digest, the graph,
           the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
           to 83. There is nowhere to amend a stale copy of a rule because there are no copies, and the
           index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
@@ -1493,7 +1493,7 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
   <span class="k">lenses/</span>             <span class="c">37 — expert seats, upgradeable</span>
   <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
   <span class="k">luminaries/</span>         <span class="c">40 — opt-in, builtin+luminaries</span>
-<span class="k">rules/</span>              <span class="c">47 — one file per rule, the only place each is defined</span>
+<span class="k">rules/</span>              <span class="c">48 — one file per rule, the only place each is defined</span>
 <span class="k">tools/</span>              <span class="c">10 instrument records + the AIX validator</span>
 <span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
       </div>
@@ -1708,7 +1708,7 @@ file** — a half-remembered contract is worse than no run.
 1. **Read the rules and your mode file, and nothing else after that.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
    **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts, then **every rule their indexes list** — 47 small files, and they are the
+   contracts, then **every rule their indexes list** — 48 small files, and they are the
    entire rulebook — then `{BATON}/prompt/modes/&lt;MODE&gt;.md`.
 
    **If you received this as one pasted bundle, they are already in front of you** and

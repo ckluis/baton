@@ -33,7 +33,7 @@ lifetime yield.
 | **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
 | **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
 | **Bundle interop** | none | optional `type` / `id` / `links` keys, validated at **AIX level 1** |
-| **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 47 of them, contracts down to 83 lines |
+| **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 48 of them, contracts down to 83 lines |
 
 - **A vendored 40-expert roster.** `personas/luminaries/` ships named domain
   experts with explicit `phases` and `tags`, because a roster that declares
@@ -41,7 +41,7 @@ lifetime yield.
 - **Two modes.** `CRAFT` examines the artifact as encountered, `POSITION` as
   sold — 24 seats between them, every one backed by a built-in lens, so both
   run with `PERSONAS: none`.
-- **Every rule is a file.** `rules/` holds 47 of them as OKF/AIX concepts with a
+- **Every rule is a file.** `rules/` holds 48 of them as OKF/AIX concepts with a
   stable `id` and typed links; the contracts are narrative plus a **generated**
   index. There is nowhere to amend a stale copy of a rule because there are no
   copies, and `tools/rules.py` refuses a duplicate id, a dangling link, a stale
@@ -284,7 +284,7 @@ personas/
   lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
   luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
-rules/                47 — one file per rule, the only place each is defined
+rules/                48 — one file per rule, the only place each is defined
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation + router into index.html
 tools/rules.py        regenerate the contract indexes; refuse a broken rule set

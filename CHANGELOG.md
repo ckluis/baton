@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Contract
+
+- **`prompt/CONTRACT.md` §9.2 — refutation triage.** A `REFUTED` row now carries `defect:
+  work | criterion`. `work` escalates as before. `criterion` — an enumeration with no generating
+  command, a measure of the tree or branch the node cannot change, or a form an answer already
+  superseded — parks the node on a question proposing a bounded rewrite instead of buying a
+  bigger model, and is appended to `_orch/lint-feedback.yaml` for the final report. §1.2 trigger
+  3 and §9.1 amended to match; `verifier.md`, `phase-runner.md` and `synthesizer.md` updated.
+  In baton's own run 6 of 21 traceable refutations changed the criterion rather than the
+  product, `P76` criterion 1 cost fourteen spawns, and a phase runner improvised this rule at
+  `ACCEPT-P90c`. It is the narrow successor to the withdrawn materiality draft
+  (`docs/designs/proportionality-and-detection.md` §1): it prices nothing.
+
+### Experiments
+
+- `docs/experiments/replay-refuted-at-rung-6.md` — a paste-ready GENERIC directive that
+  replays the 18 nodes this run refuted at first attempt with a rung-6 worker, holding the
+  verifier's rung constant, to settle whether the ladder is cost engineering. Decision rule
+  pre-registered; the tree-state confound stated and handled per node.
+
 ## v3.1 — 2026-09-02
 
 ### Modes and personas
