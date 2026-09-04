@@ -130,7 +130,7 @@ file** — a half-remembered contract is worse than no run.
 1. **Read the rules and your mode file, and nothing else after that.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
    **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts, then **every rule their indexes list** — 47 small files, and they are the
+   contracts, then **every rule their indexes list** — 49 small files, and they are the
    entire rulebook — then `{BATON}/prompt/modes/<MODE>.md`.
 
    **If you received this as one pasted bundle, they are already in front of you** and
@@ -204,7 +204,9 @@ Repeat until the graph has no runnable nodes:
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
-   worth.
+   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at rung 2 over
+   the batch; it writes `_orch/brief/blocked-<n>.html` (CONTRACT §8.1), and your
+   message names that path first.
 
 **Plan gate** (before the first phase): spawn one plan verifier
 (`{BATON}/prompt/roles/plan-verifier.md`) at rung 3 — rung
@@ -217,7 +219,10 @@ refutes the plan; one revision round with the planner if it lands findings. At
 — rung 5 only if the operator has approved fable for it — to write
 `final/report.md` from digests, verdicts, and the ledger. It ends with the
 **rung histogram**: where this run actually spent its money, so the next plan
-can assume better.
+can assume better. Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at
+rung 2 over the report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
+page, for a person, that says what was done, what is open, three options and one
+recommendation.
 
 ---
 
@@ -226,7 +231,8 @@ can assume better.
 Your closing message to the operator is small, and small is the whole point:
 
 - the verdict
-- the path to `final/report.md`
+- the path to `_orch/brief/final.html` — the page a person opens first
+- the path to `final/report.md` — the record it was derived from
 - at most five things that need a human
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch && rm -rf _orch`) or keep it to

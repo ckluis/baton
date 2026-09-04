@@ -17,8 +17,8 @@ and a mode may not invent a fifth:
    `BLOCKED`-and-batched; drift is reset; the next phase brief is written;
    the index refresh (`tools/index.py`) is optional — a missing tool or
    failed run is logged and never stalls the gate.
-3. **Blocked batch** — questions surfaced to the operator together.
-4. **Final gate** — synthesis, report, disposal line.
+3. **Blocked batch** — questions surfaced to the operator together, with a brief (§8.1).
+4. **Final gate** — synthesis, report, brief (§8.1), disposal line.
 
 Gate output is always a written file plus a one-line envelope. **A gate that
 produces only conversation did not happen.**

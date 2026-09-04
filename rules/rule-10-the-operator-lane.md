@@ -26,8 +26,10 @@ hand-edited file, or by an operator who typed it into the run directly.
 Protocol:
 
 1. A `BLOCKED` node writes `_orch/inbox/Q-<n>.md` — the question, the node it
-   blocks, and what the run will assume if it goes unanswered.
-2. The prime batches open questions at every gate.
+   blocks, and what the run will assume if it goes unanswered. Under §9.2 the
+   phase runner writes it on a parked node's behalf, same shape.
+2. The prime batches open questions at every gate and ships the batch with a brief
+   (§8.1) — one page, three options per question, one recommendation.
 3. At each gate the prime scans `_orch/inbox/*.answer.md`, applies what
    arrived, and unblocks.
 4. An unanswered question at the final gate becomes a report line under

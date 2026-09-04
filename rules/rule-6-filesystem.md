@@ -35,7 +35,9 @@ _orch/
   loops/
     L1/seen.yaml         §5.1
   inbox/                 §10
+  brief/                 §8.1 — blocked-<phase>.html, final.html; for a person
   ledger.csv             §7
+  lint-feedback.yaml     §9.2 — every UNSETTLEABLE criterion, for the linter
   ux-debt.yaml           friction that violates no criterion; report material
   final/
     report.md            end-of-run synthesis

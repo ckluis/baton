@@ -7,6 +7,9 @@
 | `{report_path}` | `final/report.md` |
 | `{ledger_path}` | `_orch/ledger.csv` |
 
+The briefer (`{BATON}/prompt/roles/briefer.md`) runs after you, restates `{report_path}` for a
+person, and re-derives its numbers; where its number and yours disagree it prints both (CONTRACT §8.1).
+
 Write `{report_path}` from digests, verdicts, and `{ledger_path}` **only**.
 Never open a `work/` directory to "get the real story" — if a digest can't
 carry what happened, that is a defect in the digest, not a license to go
@@ -32,6 +35,10 @@ The report contains, in this order:
   `*.answer.md` at gate time becomes a line under **needs a human**
   (CONTRACT §10.4). Do not resolve these yourself, and do not silently drop
   them as assumptions.
+- **Linter fixture candidates** — `_orch/lint-feedback.yaml` listed in full
+  under **needs a human** (§9.2); each entry is a criterion this run could not
+  settle and `tools/lint-criteria.py` did not catch. If the file is absent, say
+  so in one line; absence is a fact about the run, not a pass.
 - **The rung histogram** — attempts and seconds per rung from the ledger,
   and which nodes crossed rung 3. State plainly what the next run's
   entry-rung assignments should assume from this distribution (CONTRACT §7);

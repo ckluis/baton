@@ -17,7 +17,7 @@ is a duty nobody can check.
 
 A verdict file carries **one row per done-criterion in the handoff**, each
 quoting its criterion verbatim, each with its own `verdict`
-(`CONFIRMED` / `REFUTED` / `UNTESTED`), its own `probe`, its own `evidence`, and
+(`CONFIRMED` / `REFUTED` / `UNTESTED` / `UNSETTLEABLE`, the last per §9.2), its own `probe`, its own `evidence`, and
 optionally its own `attack` — the strongest attack tried and why the attack
 failed, or on a `REFUTED` row the attack that landed. `attack` is **optional and
 additive**: an absent `attack` is **not** malformed, and the rules below are
@@ -28,7 +28,7 @@ The node-level verdict is then **derived, not asserted**:
 |---|---|
 | every row `CONFIRMED` | `CONFIRMED` |
 | any row `REFUTED` | `REFUTED` |
-| any row `UNTESTED`, none `REFUTED` | `PARTIAL` |
+| any row `UNTESTED` or `UNSETTLEABLE`, none `REFUTED` | `PARTIAL` |
 
 A verdict whose row count does not match the handoff's criterion count, or whose
 node verdict disagrees with that table, is **malformed**: the phase runner reads

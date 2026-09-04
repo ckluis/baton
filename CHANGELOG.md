@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased
+
+### Contract
+
+- **`prompt/CONTRACT.md` §9.2 — refutation triage.** A verifier now has a fourth row
+  verdict, `UNSETTLEABLE`, for a criterion no execution inside the node could have settled as
+  written: an enumeration with no generating command, a measure of the tree or branch, a false
+  premise, a contradiction inside the handoff, or a form an answer already superseded. The row
+  must name its shape and carry the command that demonstrates it, or it is read as `REFUTED`.
+  The node computes to `PARTIAL`, is not re-verified, and parks as `BLOCKED`-and-batched on a
+  question the phase runner writes on its behalf proposing a bounded rewrite; it never buys a
+  bigger model. Every such row is appended to `_orch/lint-feedback.yaml` for the final report.
+  §1.2 trigger 3 is unchanged; §9.1, §6, §4.2, §10.1 amended; `verifier.md`, `phase-runner.md`
+  and `synthesizer.md` updated. In baton's own run, of twenty-one refutations examined fourteen
+  were traceable to their follow-up: six changed the criterion, eight the product; `P76`
+  criterion 1 cost fifteen spawns, and a phase runner improvised this rule at `ACCEPT-P90c`. It
+  is the narrow successor to the withdrawn materiality draft
+  (`docs/designs/proportionality-and-detection.md` §1): it adds the token at the row, where §9.1
+  already computes, and parks the node in a state the gates already know.
+
+- **`prompt/CONTRACT.md` §8.1 — the human brief.** The two gates that reach a person, the
+  blocked batch and the final gate, now ship one HTML page beside their record:
+  `_orch/brief/blocked-<n>.html` and `_orch/brief/final.html`, written by a new rung-2 role,
+  `prompt/roles/briefer.md`. Fixed shape: a title, an eighty-word context, one decision,
+  exactly three options with cost, risk and what each settles, one recommendation with the
+  consequence of doing nothing, a numbers table whose every row shows its command, the
+  needs-a-human list, and a visual only when a table cannot carry it. Plain technical English
+  by rule: short declarative sentences, defined terms, no metaphor, no numbers in prose. Derived
+  from the report, never authoritative, disposed of with `_orch/`. The router's closing message
+  names the brief before the report.
+
+### Experiments
+
+- `docs/experiments/replay-refuted-at-rung-6.md` — a paste-ready GENERIC directive that
+  replays the 18 nodes this run refuted at first attempt with a rung-6 worker, holding the
+  verifier's rung constant, to settle whether the ladder is cost engineering. Decision rule
+  pre-registered; the tree-state confound stated and handled per node.
+
 ## v3.1 — 2026-09-02
 
 ### Modes and personas

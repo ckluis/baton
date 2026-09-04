@@ -21,7 +21,10 @@ Triggers, any one sufficient:
 1. Verdict `ESCALATE` — the agent judged the work above its rung. Re-spawn one
    rung up immediately; do not retry at the current rung.
 2. Verdict `FAILED` — one rung up. (Not two failures. One. A rung is cheap.)
-3. A verifier `REFUTED` a `DONE` claim — counts as `FAILED`.
+3. A verifier `REFUTED` a `DONE` claim — counts as `FAILED`. An `UNSETTLEABLE`
+   row is not a refutation and does not escalate; the node parks on a question
+   (§9.2), because a bigger model cannot satisfy a criterion no execution can
+   settle.
 4. Two agents return contradictory conclusions about the same artifact — jump
    directly to rung 4 and spawn an adjudicator. Skip the intermediate rungs; a
    contradiction is not a difficulty, and grinding it out one rung at a time
