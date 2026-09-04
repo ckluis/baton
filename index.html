@@ -194,6 +194,39 @@ html.js .reveal.in{opacity:1;transform:none}
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   html.js .reveal{opacity:1!important;transform:none!important}
 }
+
+  /* the brief — a rendered decision slide, in the page's own tokens */
+  .brief{margin-top:16px;background:var(--card);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.618fr) minmax(0,1fr)}
+  .brief .bw{padding:32px 32px 28px;display:grid;gap:18px;align-content:start}
+  .brief .br{background:var(--soft);border-left:1px solid var(--hair);padding:26px 24px 28px;display:grid;gap:20px;align-content:start;font-size:13px;color:var(--body)}
+  .brief .bk{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+  .brief h3{font-size:clamp(22px,2.6vw,30px);letter-spacing:-.02em;line-height:1.15;color:var(--ink);text-wrap:balance}
+  .brief .bd{font-size:15px;color:var(--body);max-width:60ch}
+  .brief figure{margin:0}.brief figure svg{width:100%;height:auto;display:block}
+  .brief figcaption{font-size:12px;color:var(--muted);margin-top:8px}
+  .brief svg text{font-family:var(--sans);font-size:12px;fill:var(--body-2)}
+  .brief svg .lb{font-family:var(--mono);font-size:10px;letter-spacing:.12em;fill:var(--muted);text-transform:uppercase}
+  .brief svg .bx{fill:var(--card);stroke:var(--body);stroke-width:1.2}
+  .brief svg .bx.on{stroke:var(--yellow);stroke-width:2}
+  .brief svg .ar{stroke:var(--body);stroke-width:1.2;fill:none}
+  .brief .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .brief .opt{border:1px solid var(--hair-2);border-radius:8px;padding:14px 14px 12px;display:grid;gap:6px;align-content:start}
+  .brief .opt.rec{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
+  .brief .opt .l{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--yellow);display:flex;align-items:center;gap:8px}
+  .brief .opt .l .pill{padding:2px 8px;font-size:10px}
+  .brief .opt .n{font-weight:600;color:var(--ink);font-size:14px}
+  .brief .opt p{font-size:13px;color:var(--muted)}
+  .brief .br h5{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .brief .br p{font-size:13px;color:var(--body)}
+  .brief .br dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 10px}
+  .brief .br dt{font-family:var(--mono);font-weight:700;color:var(--yellow)}
+  .brief .br dd{color:var(--body)}
+  .brief .br table{width:100%;border-collapse:collapse;font-size:12px}
+  .brief .br td{padding:5px 6px 5px 0;border-bottom:1px solid var(--hair);vertical-align:top}
+  .brief .br td:nth-child(2){font-family:var(--mono);color:var(--cyan);white-space:nowrap}
+  .brief .br td:nth-child(3){font-family:var(--mono);color:var(--muted-2);font-size:11px}
+  .brief .br code{font-family:var(--mono);font-size:11px;color:var(--body-2)}
+  @media(max-width:860px){.brief{grid-template-columns:1fr}.brief .br{border-left:none;border-top:1px solid var(--hair)}.brief .opts{grid-template-columns:1fr}.brief .bw{padding:22px}}
 </style>
 </head>
 <body>
@@ -1274,6 +1307,76 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
           will spend them the same way next time, and the histogram is what makes the next plan's
           entry rungs an argument instead of a habit.</p>
       </div>
+    </div>
+    <div class="sechead reveal" style="margin-top:56px;margin-bottom:24px">
+      <span class="kicker c">The brief</span>
+      <h3 style="font-size:clamp(22px,3vw,34px);letter-spacing:-.02em;line-height:1.1;margin-top:12px">The report is the record. <em>This is what you open.</em></h3>
+      <p>Every gate that reaches a person ships one page beside it: one slide per decision, three
+        options, one recommendation, every number with the command that produced it. Below is the
+        real one &mdash; the brief for the pull request that added the brief.</p>
+    </div>
+    <div class="reveal d1">
+      <div class="code" style="border-radius:12px 12px 0 0;border-bottom:none">
+        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>_orch/brief/final.html</b> &middot; decision 1 of 3 &middot; PR #14</div></div>
+      </div>
+      <div class="brief" style="margin-top:0;border-radius:0 0 12px 12px">
+        <div class="bw">
+          <span class="bk">Decision 1 of 3 &middot; PR #14</span>
+          <h3>Merge the triage rule and the human brief</h3>
+          <p class="bd">You asked how much of baton exists to prop up a weaker model. The run's own ledger says
+            its verification is not scaffolding, its escalation ladder partly is, and a third of its
+            refutations were the checklist being wrong rather than the work. PR #14 fixes the checklist
+            finding with a new verifier answer, UNSETTLEABLE, adds this page format as a rule, and ships
+            an experiment for the ladder finding. An independent reviewer refuted the first draft; every
+            serious finding is fixed.</p>
+          <figure>
+            <svg viewBox="0 0 680 216" role="img" aria-label="Routing a failed criterion before and after rule 9.2">
+              <defs><marker id="brief-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cccccc"></path></marker></defs>
+              <text x="120" y="16" text-anchor="middle" class="lb">before</text>
+              <rect class="bx" x="45" y="28" width="150" height="32" rx="5"></rect><text x="120" y="48" text-anchor="middle">criterion fails</text>
+              <line class="ar" x1="120" y1="60" x2="120" y2="118" marker-end="url(#brief-ar)"></line>
+              <rect class="bx" x="45" y="122" width="150" height="44" rx="5"></rect><text x="120" y="140" text-anchor="middle">escalate</text><text x="120" y="156" text-anchor="middle">one rung, always</text>
+              <text x="470" y="16" text-anchor="middle" class="lb">after</text>
+              <rect class="bx" x="395" y="28" width="150" height="32" rx="5"></rect><text x="470" y="48" text-anchor="middle">criterion fails</text>
+              <path class="ar" d="M470,60 L400,90" marker-end="url(#brief-ar)"></path><path class="ar" d="M470,60 L560,90" marker-end="url(#brief-ar)"></path>
+              <rect class="bx" x="325" y="94" width="150" height="32" rx="5"></rect><text x="400" y="114" text-anchor="middle">row REFUTED</text>
+              <rect class="bx on" x="485" y="94" width="170" height="32" rx="5"></rect><text x="570" y="114" text-anchor="middle">row UNSETTLEABLE</text>
+              <line class="ar" x1="400" y1="126" x2="400" y2="166" marker-end="url(#brief-ar)"></line><line class="ar" x1="570" y1="126" x2="570" y2="166" marker-end="url(#brief-ar)"></line>
+              <rect class="bx" x="325" y="170" width="150" height="38" rx="5"></rect><text x="400" y="193" text-anchor="middle">escalate one rung</text>
+              <rect class="bx on" x="485" y="170" width="170" height="38" rx="5"></rect><text x="570" y="193" text-anchor="middle">question for you</text>
+            </svg>
+            <figcaption>Before: a failed checklist line always escalates the node to a costlier model. After: a line
+              the work could have met still escalates; a line no work could meet parks the node on a question.</figcaption>
+          </figure>
+          <div class="opts">
+            <div class="opt rec"><div class="l">A <span class="pill y">recommended</span></div><div class="n">Merge now, run the experiment after</div><p>Both rules land; the replay runs on its own schedule.</p></div>
+            <div class="opt"><div class="l">B</div><div class="n">Merge the triage rule only</div><p>Split the branch; the brief format waits for its own review.</p></div>
+            <div class="opt"><div class="l">C</div><div class="n">Hold until the experiment reports</div><p>Nothing merges until the replay has tested the ladder.</p></div>
+          </div>
+        </div>
+        <aside class="br">
+          <div><h5>Why A</h5><p>The triage rule fails safe. An UNSETTLEABLE row must carry the command that proves it or it
+            counts as an ordinary failure, and the node waits for you rather than deciding for itself. The
+            brief format is additive and produced this page.</p>
+            <p style="margin-top:8px"><b style="color:var(--ink)">If you do nothing:</b> the branch stays open, phase runners keep
+            improvising the rule by hand, and the next run's report is another forty-kilobyte document.</p></div>
+          <div><h5>Cost &middot; risk &middot; settles</h5><dl>
+            <dt>A</dt><dd>One merge. Risk: the rule parks real nodes before the experiment tests its premise. Settles: both mechanisms live on the next run.</dd>
+            <dt>B</dt><dd>Time to split two commits. Risk: the brief format sits unreviewed. Settles: the better-evidenced rule ships alone.</dd>
+            <dt>C</dt><dd>A delay of one experiment. Risk: a grounded rule waits on a question it does not depend on. Settles: nothing the merge does not.</dd>
+          </dl></div>
+          <div><h5>Numbers</h5><table>
+            <tr><td>nodes refuted at rung 1 / 2 / 3</td><td>28% / 29% / 21%</td><td>awk over verifier rows, ledger.csv</td></tr>
+            <tr><td>refutations traceable / of which the checklist was wrong</td><td>14 / 6</td><td>instruments/summary.md §2</td></tr>
+            <tr><td>spawns spent on one bad line, P76</td><td>15</td><td>ledger rows P76*, P90c*, P81*, P100*</td></tr>
+            <tr><td>workers that escalated on their own</td><td>0</td><td>awk '$7=="ESCALATE"' ledger.csv</td></tr>
+          </table></div>
+          <div><h5>Record</h5><p><code>rules/rule-9-2-refutation-triage.md</code> &middot; <code>rules/rule-8-1-the-human-brief.md</code> &middot; <code>prompt/roles/briefer.md</code> &middot; github.com/ckluis/baton/pull/14</p></div>
+        </aside>
+      </div>
+      <p style="margin-top:14px;font-size:13px;color:var(--muted)">Written from the report by a rung-2 briefer, never from the work. Decisions 2 and 3 &mdash; run the
+        replay experiment, delete what the run never used &mdash; are the next two slides. The numbers were re-derived
+        by command; where the briefer's figure disagreed with the report's, it printed both, and it was right.</p>
     </div>
   </div>
 </section>
