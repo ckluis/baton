@@ -18,35 +18,45 @@ cite. Claims come from the record; numbers come from commands you run against `{
 Where your number and the record's disagree, print both in the numbers table and name the
 command. Nothing else on the page may say what neither the record nor a command supports.
 
-## The shape, in order
+## The shape: one slide per decision
 
-1. `<title>` and an `<h1>`: a noun phrase naming the run and the gate. Not a summary.
-2. **Context.** One paragraph, at most eighty words: what the run was asked to do, what it
-   did, its verdict. Cite `manifest.json` for mode and target.
-3. **The decision.** One declarative sentence naming what is being decided, never a
-   question mark. For a blocked batch it names the question file: *"Q-03 asks whether check 6
-   is a snapshot diff."* A batch of several questions gets one section per question, each
-   with its own decision, options table and recommendation. For a final gate it is what to do
-   with the result, or, if nothing is open, *"No decision is open. The options below are about
-   what to do next."*
-4. **Three options.** A table with five columns: the option number, *what it is*, *what it
-   costs*, *what it risks*, *what it settles*. Exactly three rows per table. If only one option is real, row two is *do
-   nothing* — quote the default the question file names, per §10 — and row three is *defer*,
-   naming the trigger that would reopen it.
-5. **Recommendation.** The option by name, the reason in one paragraph, then a sentence
-   beginning *"If you do nothing:"* that states the consequence.
-6. **Numbers.** A table: measure, value, the command that produced it, as many rows as the
-   page has figures. Every number on the page lives here and nowhere else. Derive each one by running the command; a number copied
-   from prose in the report is a number you did not measure. Where the record states a figure
-   and yours differs, add a fourth cell quoting the record's figure and its path.
-7. **Needs a human.** The report's list, one line each, same order, each with its path.
-8. **A visual, only if it earns its place.** Use one when the reader needs a shape a table
-   cannot give: the phase sequence with where it stopped, a before-and-after count, the graph
-   around a blocked node. Inline SVG, drawn by you, labelled in the same voice. No icons, no
-   charts of two numbers, no decoration. Most briefs have none.
-9. **Where the record is.** The paths to the report or the question files, then the two
-   disposal commands from the router's §5 verbatim; the size of `_orch/` is a row in the
-   numbers table, not a figure in this paragraph.
+The page is a **deck**: one slide per decision, every slide the same skeleton. A final brief
+has one slide for the result and one for each open question; a blocked brief has one per
+question. Each slide is split at the golden ratio. The **wide side** reads like a sales slide:
+it carries only what a person needs to choose. The **rail** beside it carries everything that
+backs the choice. Nothing appears on the wide side that the rail cannot support.
+
+**Wide side, top to bottom:**
+
+1. A kicker: *Decision n of N* and the question id, or *the result*.
+2. A **title**, a noun phrase naming the decision. Not a summary, not a question.
+3. A **description**, two to four sentences: what was asked, what happened, what is being
+   decided. Cite `manifest.json` for mode and target on the first slide.
+4. A **visual**, only when it earns its place: the shape a table cannot give, such as the
+   routing before and after a rule, the phase sequence and where it stopped, a before-and-after
+   count. Inline SVG, drawn by you, labelled in the same voice. No icons, no decoration. A slide
+   with no such shape has no figure.
+5. **Three options, A, B and C**, as three cards in a row. Each card: the letter, a name of at
+   most six words, one sentence saying what it is. Exactly three. The recommended card carries
+   the `recommended` tag and the `rec` class. If only one option is real, B is *do nothing* —
+   the default the question file names, per §10 — and C is *defer*, naming the trigger that
+   would reopen it.
+
+**Rail, top to bottom:**
+
+1. **Why A** (or B or C): the reason in one paragraph, then a sentence beginning *"If you do
+   nothing:"* stating the consequence.
+2. **Cost · risk · settles**: for each option, one line each, in the option's letter.
+3. **Numbers**: a table of measure, value, and the command that produced it. Every number on
+   the slide lives here and nowhere else. Derive each one by running the command; a number
+   copied from prose in the report is a number you did not measure. Where the record states a
+   figure and yours differs, add a fourth cell quoting the record's figure and its path.
+4. **Record**: the paths this slide rests on. On the last slide, also the two disposal commands
+   from the router's §5 verbatim; the size of `_orch/` is a row in that slide's numbers table.
+
+**Needs a human.** The report's list maps onto the deck one to one: each line is either a
+slide of its own or one row of a slide's record. Nothing on the report's list is absent from
+the deck.
 
 ## The voice
 
@@ -69,9 +79,10 @@ imitate it here.
 
 ## The page
 
-Self-contained: inline CSS, no script, no external resource, opens from `file://`. Light
-and dark via `prefers-color-scheme`. One column, at most seventy characters wide in body
-text, system font. Tables scroll inside their own box on a narrow screen. Nothing else.
+Self-contained: inline CSS, no script, no external resource, opens from `file://`. Light and
+dark via `prefers-color-scheme`, with the `data-theme` guards below so an explicit choice wins.
+Slides stack on a narrow screen; tables scroll inside their own box. Use this skeleton as is
+and change nothing outside the placeholders:
 
 ```html
 <!doctype html>
@@ -81,49 +92,90 @@ text, system font. Tables scroll inside their own box on a narrow screen. Nothin
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{run id} · {gate} brief</title>
 <style>
-  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fafaf7; --line: #d8d8d2; --muted: #5a5a55; --accent: #1f5f8b; }
-  @media (prefers-color-scheme: dark) { :root { --fg: #e8e8e3; --bg: #151515; --line: #3a3a36; --muted: #a2a29c; --accent: #7fb3d5; } }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 42rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-  h1 { font-size: 1.6rem; line-height: 1.2; margin: 0 0 .25rem; }
-  h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2rem 0 .5rem; }
-  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
-  .decision { border-left: 3px solid var(--accent); padding: .5rem 1rem; margin: 1rem 0; font-weight: 600; }
-  .rec { border: 1px solid var(--line); border-radius: 6px; padding: 1rem; }
+  :root { color-scheme: light dark;
+    --bg: #f7f6f2; --panel: #ffffff; --fg: #15171b; --muted: #656a72; --line: #dcdad3;
+    --accent: #0e7c86; --accent-ink: #ffffff; --rail: #f0efe9; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #131416; --panel: #1b1d21; --fg: #e8e6e0; --muted: #9a9ea6; --line: #33363b;
+    --accent: #5eead4; --accent-ink: #0f1d1a; --rail: #17191c; } }
+  :root[data-theme="dark"] {
+    --bg: #131416; --panel: #1b1d21; --fg: #e8e6e0; --muted: #9a9ea6; --line: #33363b;
+    --accent: #5eead4; --accent-ink: #0f1d1a; --rail: #17191c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  header { max-width: 78rem; margin: 0 auto; padding: 2rem 1.5rem .5rem; color: var(--muted); font-size: .85rem;
+    text-transform: uppercase; letter-spacing: .08em; }
+  .deck { max-width: 78rem; margin: 0 auto; padding: 0 1.5rem 4rem; display: grid; gap: 1.5rem; }
+  .slide { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(0, 1fr); overflow: hidden; }
+  .wide { padding: 2.25rem 2.25rem 2rem; display: grid; gap: 1.25rem; align-content: start; }
+  .rail { background: var(--rail); border-left: 1px solid var(--line); padding: 1.75rem 1.5rem 2rem;
+    font-size: .88rem; display: grid; gap: 1.25rem; align-content: start; }
+  .kicker { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+  h1 { font-size: 2rem; line-height: 1.15; margin: 0; text-wrap: balance; }
+  .desc { font-size: 1.05rem; max-width: 36rem; margin: 0; }
+  .desc + .desc { margin-top: -.5rem; }
+  figure { margin: .25rem 0 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--muted); font-size: .82rem; margin-top: .5rem; }
+  .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+  .opt { border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1rem; display: grid; gap: .35rem;
+    align-content: start; position: relative; }
+  .opt.rec { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .opt .letter { font-weight: 700; color: var(--accent); font-size: .85rem; letter-spacing: .06em; }
+  .opt .name { font-weight: 600; }
+  .opt p { margin: 0; font-size: .9rem; color: var(--muted); }
+  .tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+    background: var(--accent); color: var(--accent-ink); padding: .15rem .45rem; border-radius: 4px;
+    font-weight: 700; margin-left: .35rem; vertical-align: middle; }
+  .rail h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 .4rem; }
+  .rail p { margin: 0; }
+  .rail dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: .25rem .75rem; }
+  .rail dt { font-weight: 700; color: var(--accent); }
+  .rail dd { margin: 0; }
   .wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
-  th, td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: .82rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; vertical-align: top; padding: .35rem .4rem; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; }
-  figure { margin: 1rem 0; } figcaption { color: var(--muted); font-size: .85rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; }
   svg text { font: 12px system-ui, sans-serif; fill: var(--fg); }
+  svg .box { fill: var(--panel); stroke: var(--fg); stroke-width: 1.3; }
+  svg .box.on { stroke: var(--accent); stroke-width: 2; }
+  svg .arrow { stroke: var(--fg); stroke-width: 1.3; fill: none; }
+  svg .bar { fill: var(--accent); } svg .bar.dim { fill: var(--line); }
+  svg .lbl { fill: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  @media (max-width: 860px) { .slide { grid-template-columns: 1fr; } .rail { border-left: 0; border-top: 1px solid var(--line); }
+    .options { grid-template-columns: 1fr; } .wide { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
+  @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
 </style>
 </head>
-<body><main>
-  <h1>…</h1>
-  <p class="meta">run · mode · target · gate · written {date -u} by the briefer at rung 2</p>
-  <p><!-- context, ≤ 80 words --></p>
-  <h2>The decision</h2>
-  <p class="decision">…</p>
-  <h2>Three options</h2>
-  <div class="wrap"><table>
-    <tr><th>option</th><th>what it is</th><th>what it costs</th><th>what it risks</th><th>what it settles</th></tr>
-    <tr><td>1</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
-    <tr><td>2</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
-    <tr><td>3</td><td>…</td><td>…</td><td>…</td><td>…</td></tr>
-  </table></div>
-  <h2>Recommendation</h2>
-  <div class="rec"><p><strong>Option n.</strong> …</p><p><strong>If you do nothing:</strong> …</p></div>
-  <h2>Numbers</h2>
-  <div class="wrap"><table>
-    <tr><th>measure</th><th>value</th><th>command</th></tr>
-  </table></div>
-  <h2>Needs a human</h2>
-  <ol></ol>
-  <!-- optional: <figure><svg …></svg><figcaption>…</figcaption></figure> -->
-  <h2>Where the record is</h2>
-  <p>…</p>
-</main></body>
+<body>
+<header>{run id} · {mode} · {target} · {gate} · written {date -u} by the briefer at rung 2</header>
+<div class="deck">
+
+  <section class="slide">
+    <div class="wide">
+      <div class="kicker">Decision 1 of N · {question id or "the result"}</div>
+      <h1>{title — the decision as a noun phrase}</h1>
+      <p class="desc">{description — what was asked, what happened, what is now being decided}</p>
+      <figure><!-- optional inline SVG --><figcaption>…</figcaption></figure>
+      <div class="options">
+        <div class="opt rec"><div class="letter">A<span class="tag">recommended</span></div><div class="name">…</div><p>…</p></div>
+        <div class="opt"><div class="letter">B</div><div class="name">…</div><p>…</p></div>
+        <div class="opt"><div class="letter">C</div><div class="name">…</div><p>…</p></div>
+      </div>
+    </div>
+    <aside class="rail">
+      <div><h2>Why A</h2><p>…</p><p><strong>If you do nothing:</strong> …</p></div>
+      <div><h2>Cost · risk · settles</h2><dl><dt>A</dt><dd>…</dd><dt>B</dt><dd>…</dd><dt>C</dt><dd>…</dd></dl></div>
+      <div><h2>Numbers</h2><div class="wrap"><table><tr><th>measure</th><th>value</th><th>command</th></tr></table></div></div>
+      <div><h2>Record</h2><p>{paths}</p></div>
+    </aside>
+  </section>
+
+</div>
+</body>
 </html>
 ```
 
@@ -131,11 +183,12 @@ text, system font. Tables scroll inside their own box on a narrow screen. Nothin
 
 Check each of these against the file you wrote, and fix the file rather than the checklist:
 
-- exactly three option rows in every options table;
+- exactly three option cards on every slide, exactly one carrying `rec`;
 - every number appears in the numbers table with its command, and no sentence contains a digit
   except a path, an id, a rule section, or a date; check each `<p>`, `<li>` and `<td>` on its
   own, not the file as one string;
-- every sentence that points at the numbers table names a row the table has;
+- every sentence that points at a numbers table names a row that slide's table has;
+- every slide has the same skeleton: kicker, title, description, options, rail with four blocks;
 - every claim cites a path under `_orch/` that exists;
 - no sentence over twenty-five words; no em-dash; no question mark outside a quotation from a question file;
 - the page has no `<script>` and no `http` reference;

@@ -36,24 +36,25 @@ tripwire that caught a stale count in this framework's own run. A brief that ass
 neither the record nor a command supports is a defect in the brief. It is temporary by
 construction: it lives under `_orch/`, gitignored with it (§6), and is disposed of with the run.
 
-**The shape is fixed — 1-3-1 per decision.** A title. One paragraph, at most eighty words, on
-what the run was asked to do and what it did. Then, once for a final brief and once per question
-for a blocked batch:
+**The shape is fixed: one slide per decision.** The page is a deck. A final brief has one slide
+for the result and one for each open question; a blocked brief has one per question. Every slide
+is split at the golden ratio. The **wide side** carries only what a person needs to choose:
 
-1. **One problem.** The decision this section puts in front of the reader, as one declarative
-   sentence naming the question file. A final brief with no decision states that plainly and the
-   three options below are about what to do with the result.
-2. **Three options.** Exactly three per decision. Each states what it is, what it costs, what it
-   risks, and what it settles. Fewer than three means the run has not looked; more is a menu, and
-   a menu is work handed back. When only one option is real, the other two are *do nothing* — the default
-   the run will assume per §10 — and *defer*, with the trigger that would reopen it.
-3. **One recommendation.** Which option, and the reason in one paragraph. Then what happens if
-   the reader does nothing, stated as a consequence rather than a warning.
+1. **A title** naming the decision, and a description of two to four sentences: what was asked,
+   what happened, what is being decided.
+2. **A visual**, only when it carries information a table cannot — the plan graph, a
+   before-and-after, a timeline. Inline SVG, no external resources, no decoration. Most slides
+   have none.
+3. **Three options, A, B and C.** Exactly three. Each is a name and one sentence. The
+   recommended one is marked. Fewer than three means the run has not looked; more is a menu,
+   and a menu is work handed back. When only one option is real, B is *do nothing* — the default
+   the run will assume per §10 — and C is *defer*, with the trigger that would reopen it.
 
-After the 1-3-1: a **numbers table** whose every row shows the command that produced it, the
-**needs-a-human list** mapped one to one onto the report's, and a **visual only when it carries
-information a table cannot** — the plan graph, a before-and-after, a timeline. Inline SVG, no
-external resources, no decoration.
+The **rail** beside it carries what backs the choice: the reason for the recommendation and what
+happens if the reader does nothing, stated as a consequence; each option's cost, risk and what it
+settles; a **numbers table** whose every row shows the command that produced it, which is the
+only place a number may appear; and the paths the slide rests on. The report's **needs-a-human**
+list maps onto the deck one to one, as a slide or as a record row.
 
 **The voice is not the contract's.** This contract is written for agents and argues as it
 goes. The brief is written for a person and does not. Its standard: declarative sentences of at
