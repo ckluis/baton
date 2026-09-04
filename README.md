@@ -31,7 +31,8 @@ lifetime yield.
 | **Built-in personas** | 28 | **44**, plus a 40-expert roster that is opt-in, never built-in |
 | **Persona conflicts** | Conflict Vectors in prose | **361 typed `links:` edges** a caster can act on |
 | **Acceptance checks** | run, unmeasured | **10 instrument records** — what each guards, what it caught, when it last fired |
-| **Verdicts** | one asserted per node | **one computed row per done-criterion**; a mismatched row count reads `PARTIAL` |
+| **Verdicts** | one asserted per node | **one computed row per done-criterion**, four row verdicts — `UNSETTLEABLE` for a line no work could meet — and a mismatched row count reads `PARTIAL` |
+| **What the operator reads** | a forty-kilobyte report | **one page per decision**: three options, one recommendation, the numbers with their commands, beside the report |
 | **Bundle interop** | none | optional `type` / `id` / `links` keys, validated at **AIX level 1** |
 | **Where a rule lives** | inline in a 663-line contract, restated in three or four other places | **one file each** under `rules/` — 49 of them, contracts down to 85 lines |
 
@@ -54,6 +55,30 @@ lifetime yield.
 
 **Five breaking changes** — see [MIGRATING.md](MIGRATING.md). If none of them
 touch you, the migration is changing one URL.
+
+---
+
+## Since v3.1
+
+Two additions, both from running baton on itself for eight days and reading the ledger.
+
+- **A verifier can say a checklist line is unsettleable.** Besides `CONFIRMED`, `REFUTED`
+  and `UNTESTED`, a per-criterion row may read `UNSETTLEABLE`: no execution inside the node
+  could have met the line as written — an enumeration with no generating command, a measure
+  of the tree or branch, a false premise, a contradiction in the handoff, or a form an answer
+  already superseded. The row must name the shape and carry the command that proves it, or it
+  counts as `REFUTED`. The node then parks on an operator question proposing a bounded
+  rewrite instead of escalating to a costlier model. In the self-run, a third of traceable
+  refutations were the criterion being wrong, and one bad line cost fifteen spawns
+  (`rules/rule-9-2-refutation-triage.md`).
+- **Every gate that reaches a person ships a brief.** The blocked batch and the final gate
+  write `_orch/brief/<gate>.html` beside their record: one slide per decision, split at the
+  golden ratio. The wide side carries a title, a description, a visual only when a table
+  cannot carry it, and three options A, B and C with the recommended one marked. The rail
+  beside it carries the reason, what happens if you do nothing, each option's cost, risk and
+  what it settles, a numbers table whose every row shows its command, and the paths. Plain
+  technical English by rule. The report stays the record; the brief is what you open first
+  (`rules/rule-8-1-the-human-brief.md`, `prompt/roles/briefer.md`).
 
 ---
 
@@ -278,7 +303,7 @@ prompt/
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         narrative + generated index; the rules live in rules/
   modes/              10 — directive + graph shape + entry rungs + seats + gates
-  roles/              11 — planner, phase-runner, verifier, panel, synthesizer…
+  roles/              12 — planner, phase-runner, verifier, briefer, panel, synthesizer…
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
   lenses/             37 — expert seats, upgradeable to named voices
@@ -288,6 +313,8 @@ rules/                49 — one file per rule, the only place each is defined
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation + router into index.html
 tools/rules.py        regenerate the contract indexes; refuse a broken rule set
+tools/lint-criteria.py flag a done-criterion no execution can settle, before dispatch
+docs/experiments/     paste-ready directives that test the framework's own claims
 index.html            the page
 baton-v1.html         v1, kept as it shipped
 ```
@@ -320,11 +347,16 @@ Everything lands in `_orch/` (gitignored by default):
 
 - `plan/graph.yaml` — the machine-readable plan
 - `nodes/<id>/` — handoff, envelope, digest, escalation packet, work products
-- `verify/<id>-verdict.json` — `CONFIRMED` / `REFUTED` / `PARTIAL` + evidence
+- `verify/<id>-verdict.json` — one row per done-criterion, `CONFIRMED` / `REFUTED` /
+  `UNTESTED` / `UNSETTLEABLE`, and the node verdict computed from them
 - `cast/roster.yaml` — who was cast, why, and who was excluded
 - `ledger.csv` — one row per spawn: rung, attempt, verdict, seconds
 - `final/report.md` — outcome per phase, caveats, open questions, and the
   **rung histogram**
+- `brief/final.html`, `brief/blocked-<n>.html` — **one slide per decision** for the
+  person who has to make it; derived from the report, never the record
+- `lint-feedback.yaml` — every criterion a verifier found unsettleable, as fixture
+  candidates for the linter
 
 A run that does not measure where it spent its rungs will spend them the same way
 next time.
@@ -339,7 +371,8 @@ A verdict file carries **one row per done-criterion** in the handoff — each
 quoting its criterion, each with its own probe and evidence — and the node
 verdict is derived from those rows, not asserted. A row count that disagrees
 with the handoff is malformed: the phase runner reads it as `PARTIAL` and
-re-verifies. The acceptance checks are held to the same standard: each of the
+re-verifies. A row may also read `UNSETTLEABLE` — the criterion, not the work, is
+the defect — and then the node parks on a question rather than climbing a rung. The acceptance checks are held to the same standard: each of the
 ten carries a `tools/*.instrument.md` record naming what it guards, what it has
 caught over its lifetime, and when it last fired. See
 [`docs/designs/instrument-lifecycle.md`](docs/designs/instrument-lifecycle.md).
