@@ -109,7 +109,21 @@ over one.
      phase gives it a different duty, output and rung (personas CONTRACT
      §4.3/§2), so the spawn must name which phase is in force.
 
-6. **Apply rung drift** after every node closes this phase (§1.5):
+6. **Retire the worktree, outputs first.** For a node carrying `isolation:
+   worktree` (§4) you created the tree, so you retire it — and **§6.2 binds the
+   order**. Copy every path in the node's envelope `outputs` into
+   `_orch/nodes/<id>/work/`, confirm each copy exists, and only then run `git
+   worktree remove`. A node's products live inside its worktree, because that is
+   the tree its handoff's paths resolve against, and they die with it.
+
+   An `outputs` path that stops resolving makes the envelope false (§2) and makes
+   every criterion resting on that artifact `UNTESTED` forever — no rung recovers
+   it, no resume rebuilds it. If a copy fails, leave the worktree standing and
+   return `BLOCKED` naming the path. A stranded worktree is a tidiness problem; a
+   destroyed artifact is not recoverable. **Do not accept the digest as a
+   substitute** — a digest is ten lines about the work, never the work (§3).
+
+7. **Apply rung drift** after every node closes this phase (§1.5):
    - Three nodes in this phase have now escalated past their entry rung →
      raise the default entry rung for the phase's *remaining* nodes by one.
      Log it.
@@ -118,12 +132,12 @@ over one.
      one. Log it.
    - Drift resets at the phase gate; it never crosses into the next phase.
 
-7. **Repeat from step 2** until no node in the phase is runnable or
+8. **Repeat from step 2** until no node in the phase is runnable or
    pending. Terminal states only: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched —
    which includes a node parked on an `UNSETTLEABLE` criterion (§9.2) — or
    `DONE-WITH-CAVEATS` accepted.
 
-8. **Close the phase.** Refresh the index first — run `python3
+9. **Close the phase.** Refresh the index first — run `python3
    tools/index.py` from `{BATON}`; if `python3` is missing or the run
    fails, the gate logs it and continues, never stalling on a missing
    tool. Assemble the one envelope: per-node final state, the drift log,

@@ -28,6 +28,10 @@ The plan is a directed graph, not a list. `plan/graph.yaml` holds it.
   done: "one line, objectively checkable without judgment"
 ```
 
+`isolation: worktree` runs the node in its own git worktree, and the node's products are written
+**inside that worktree** — so §6.2 binds: the layer that created it copies every `outputs` path
+into `_orch/nodes/<id>/work/` before removing it, or the node's evidence dies with the tree.
+
 `isolation: worktree` runs the node in its own git worktree. It costs setup time
 and disk per node, so it is for exactly one situation: **concurrent nodes that
 write to the same files and would otherwise collide.** A serial phase does not
