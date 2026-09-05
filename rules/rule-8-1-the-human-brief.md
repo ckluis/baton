@@ -61,6 +61,19 @@ is split at the golden ratio. The **wide side** carries only what a person needs
    and a menu is work handed back. When only one option is real, B is *do nothing* — the default
    the run will assume per §10 — and C is *defer*, with the trigger that would reopen it.
 
+**The rail has two layers, and only the first is on screen by default.** Visible: the reason for
+the recommendation and what happens if the reader does nothing, then each option's cost, risk and
+what it settles. Behind a `see more` disclosure: the numbers table and the record paths. The
+disclosure is a `<details>` element rendered as a dashed rule — `———— see more ————` — and it
+carries no script, because the brief has none.
+
+This is not decoration. A numbers table shows one command per row (below), commands are long, and
+a rail that renders them all is taller than the slide beside it. The rail then sets the slide's
+height, and a slide tall enough to hold every command has stopped being a slide and become a
+page — which is the document the deck exists to replace. The split also follows the reader: what
+a person needs in order to choose is one layer, and what they need in order to check the choice
+is the next one down.
+
 The **rail** beside it carries what backs the choice: the reason for the recommendation and what
 happens if the reader does nothing, stated as a consequence; each option's cost, risk and what it
 settles; a **numbers table** whose every row shows the command that produced it, which is the

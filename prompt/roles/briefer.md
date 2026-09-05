@@ -156,6 +156,23 @@ and change nothing outside the placeholders:
   svg .arrow { stroke: var(--fg); stroke-width: 1.3; fill: none; }
   svg .bar { fill: var(--accent); } svg .bar.dim { fill: var(--line); }
   svg .lbl { fill: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  /* The rail has two layers, and the split is §8.1's own: what a person needs in order to
+     choose stays visible; what backs the choice opens on demand. Without it the rail sets
+     the slide height — it carries a numbers table with one command per row — and a slide
+     tall enough to hold every command has stopped being a slide. No script: <details> is
+     the entire mechanism, and it is keyboard- and screen-reader-native. */
+  .more { display: grid; gap: 1.25rem; }
+  .more > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: .6rem;
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .more > summary::-webkit-details-marker { display: none; }
+  .more > summary::before, .more > summary::after { content: ""; flex: 1 1 0; border-top: 1px dashed var(--line); }
+  .more > summary::after { content: ""; }
+  .more > summary .lab::after { content: "see more"; }
+  .more[open] > summary .lab::after { content: "see less"; }
+  .more > summary:hover, .more > summary:focus-visible { color: var(--accent); }
+  .more > summary:hover::before, .more > summary:hover::after,
+  .more > summary:focus-visible::before, .more > summary:focus-visible::after { border-top-color: var(--accent); }
+  .more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
   @media (max-width: 860px) { .slide { grid-template-columns: 1fr; } .rail { border-left: 0; border-top: 1px solid var(--line); }
     .options { grid-template-columns: 1fr; } .wide { padding: 1.5rem; } h1 { font-size: 1.5rem; } }
   @media (prefers-reduced-motion: no-preference) { .opt { transition: border-color .15s; } }
@@ -180,8 +197,11 @@ and change nothing outside the placeholders:
     <aside class="rail">
       <div><h2>Why A</h2><p>…</p><p><strong>If you do nothing:</strong> …</p></div>
       <div><h2>Cost · risk · settles</h2><dl><dt>A</dt><dd>…</dd><dt>B</dt><dd>…</dd><dt>C</dt><dd>…</dd></dl></div>
-      <div><h2>Numbers</h2><div class="wrap"><table><tr><th>measure</th><th>value</th><th>command</th></tr></table></div></div>
-      <div><h2>Record</h2><p>{paths}</p></div>
+      <details class="more">
+        <summary><span class="lab"></span></summary>
+        <div><h2>Numbers</h2><div class="wrap"><table><tr><th>measure</th><th>value</th><th>command</th></tr></table></div></div>
+        <div><h2>Record</h2><p>{absolute paths}</p></div>
+      </details>
     </aside>
   </section>
 
