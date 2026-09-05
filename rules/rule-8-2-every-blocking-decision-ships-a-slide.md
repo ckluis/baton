@@ -51,6 +51,29 @@ that writes its own HTML has spent rung-3 tokens on typing (§1.3), and a layer 
 skips the page because writing one felt like ceremony has handed the decision back as
 prose.
 
+**A slide that schedules a decision has not made one.** The options on a slide are what to
+*do*. Options about **who decides** — *a human labels them / defer to a fresh agent* — or about
+**what order to decide in** — *answer Q-1 first / answer everything now* — settle nothing: the
+reader picks one, and the real question is still open, now with a round trip spent on it. Both
+shapes are the same error, which is a slide that has scheduled work instead of dispatching it.
+
+The test is mechanical. Read the recommended option and ask what changes on disk when the
+operator picks it. If the honest answer is *"we then decide"*, the slide is a defect and the
+decision underneath it is the one that needed the page.
+
+So: put the **real** decisions on slides, one each, even when there are four of them and they
+rhyme. Four label calls are four decisions, not one decision about labelling. A question the
+operator must answer gets its own slide carrying the question, not a slide asking which question
+to take first. The exception is narrow and real — when **sequencing genuinely is the decision**,
+because the order changes the outcome and not merely the calendar, the slide says so and names
+what the chosen order forecloses.
+
+Observed, again, in this framework's own replay run. The final deck asked *who should label
+`P121`'s four unsettleable rows* and *which parked question to answer first*. The operator
+answered both in one line, and both of the underlying decisions — the four labels, and `Q-1`
+itself — were still open afterwards and had to be put back to them. Two slides, one round trip,
+nothing settled.
+
 **Batching still applies and is not weakened.** §8.1's blocked batch is how slides
 reach a person: they accumulate into one deck at the next gate rather than
 interrupting six times (§4, *batch, do not interrupt*). One slide per decision, one

@@ -214,6 +214,10 @@ and change nothing outside the placeholders:
 
 Check each of these against the file you wrote, and fix the file rather than the checklist:
 
+- **for every slide, read the recommended option and ask what changes on disk when it is
+  picked. If the answer is "we then decide", the slide is a defect (§8.2): you have written a
+  slide about who decides or what order to decide in, and the decision underneath it is the one
+  that needed the page. Replace it, even if that means four slides where you had one;**
 - exactly three option cards on every slide, exactly one carrying `rec`;
 - every number appears in the numbers table with its command, and no sentence contains a digit
   except a path, an id, a rule section, or a date; check each `<p>`, `<li>` and `<td>` on its
