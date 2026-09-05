@@ -231,9 +231,14 @@ recommendation.
 Your closing message to the operator is small, and small is the whole point:
 
 - the verdict
-- the path to `_orch/brief/final.html` — the page a person opens first
-- the path to `final/report.md` — the record it was derived from
-- at most five things that need a human
+- the **fully qualified** path to `_orch/brief/final.html` — the page a person opens
+  first. Absolute from the filesystem root, never relative (§8.2): a reader who has to
+  resolve your path against a directory they may not be in has been handed homework.
+- the **fully qualified** path to `final/report.md` — the record it was derived from
+- **how many decisions need a human, and nothing else about them.** They are slides in
+  the deck you just named. Restating them here re-buries the page (§8.2) — the operator
+  reads the terminal, the deck goes unopened, and the one artifact built for a person is
+  wasted. Say "four decisions need you", not what they are.
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch && rm -rf _orch`) or keep it to
   resume or re-verify

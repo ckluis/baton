@@ -11,6 +11,9 @@ links:
   - rel: relates-to
     to: rule-10-the-operator-lane
     note: the blocked batch is one of the two gates that carry a brief
+  - rel: relates-to
+    to: rule-8-2-every-blocking-decision-ships-a-slide
+    note: 8.2 widens the trigger from these two gates to any decision that stalls work
 ---
 
 ### 8.1 The human brief
@@ -36,6 +39,14 @@ tripwire that caught a stale count in this framework's own run. A brief that ass
 neither the record nor a command supports is a defect in the brief. It is temporary by
 construction: it lives under `_orch/`, gitignored with it (§6), and is disposed of with the run.
 
+**The look is not the briefer's to invent.** Every brief inlines
+`{BATON}/prompt/brief-tokens.css` verbatim at the top of its `<style>` block and defines no
+palette of its own. One token set, one source of truth, for the same reason the rules live
+one-per-file: there is nowhere to amend a stale copy because there are no copies. A briefer that
+declares its own `--accent` has forked the house style, and the next brief will not match the
+last one or the project's own pages. Cyan marks the recommendation; yellow outlines the path a
+reader must not miss; never both on one element.
+
 **The shape is fixed: one slide per decision.** The page is a deck. A final brief has one slide
 for the result and one for each open question; a blocked brief has one per question. Every slide
 is split at the golden ratio. The **wide side** carries only what a person needs to choose:
@@ -49,6 +60,19 @@ is split at the golden ratio. The **wide side** carries only what a person needs
    recommended one is marked. Fewer than three means the run has not looked; more is a menu,
    and a menu is work handed back. When only one option is real, B is *do nothing* — the default
    the run will assume per §10 — and C is *defer*, with the trigger that would reopen it.
+
+**The rail has two layers, and only the first is on screen by default.** Visible: the reason for
+the recommendation and what happens if the reader does nothing, then each option's cost, risk and
+what it settles. Behind a `see more` disclosure: the numbers table and the record paths. The
+disclosure is a `<details>` element rendered as a dashed rule — `———— see more ————` — and it
+carries no script, because the brief has none.
+
+This is not decoration. A numbers table shows one command per row (below), commands are long, and
+a rail that renders them all is taller than the slide beside it. The rail then sets the slide's
+height, and a slide tall enough to hold every command has stopped being a slide and become a
+page — which is the document the deck exists to replace. The split also follows the reader: what
+a person needs in order to choose is one layer, and what they need in order to check the choice
+is the next one down.
 
 The **rail** beside it carries what backs the choice: the reason for the recommendation and what
 happens if the reader does nothing, stated as a consequence; each option's cost, risk and what it
