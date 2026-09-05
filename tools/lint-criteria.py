@@ -3,6 +3,9 @@
 
     python3 tools/lint-criteria.py _orch/nodes/P121/handoff.md
     python3 tools/lint-criteria.py _orch/nodes/*/handoff.md
+    python3 tools/lint-criteria.py --selftest   prove each rule can FLAG its known-bad
+                                               fixture and stays silent on the repaired
+                                               one beside it
 
 WHY.  This run authored nine unsettleable done-criteria, three of them inside the
 phase whose brief opened by warning against them.  Prose discipline failed nine
@@ -144,6 +147,83 @@ THE SHAPES IT REJECTS, each derived from a criterion this run actually authored
      not by whether the write actually happened.  A criterion that hides its
      instrument behind a cross-reference gets a warning, not a verdict.
 
+  F  a success token demanded from a check that only prints failures.  A criterion
+     requiring a named check of a named script to print its OK token, when that
+     check's body emits nothing but failure lines, cannot be settled by any correct
+     execution: silence IS that check's pass, so a clean run prints nothing and the
+     criterion demands output the instrument never produces.  `P111` #29 and `P112`
+     #30 are the same sentence in two handoffs - "checks 1, 2, 3, 5, 6, 7 and 8 print
+     their OK tokens" - and checks 1 and 8 of `_orch/nodes/P11/work/acceptance.sh`
+     have no OK token to print: check 1's only echo is `MISSING $k: $f`, check 8's
+     only echoes are `$m not authored` and two `has NO ...` lines.  Both handoffs
+     also forbid editing that script, so no permitted execution could add one.  The
+     operator decision authorising this rule is `_orch-replay/inbox/Q-7.answer.md` -
+     note the `_orch-replay/` prefix, a different question set from the archived
+     `_orch/inbox/` that rules A and B cite.
+
+     THIS IS NOT A KEYWORD MATCH, and it cannot be, because the corpus carries that
+     sentence in both its defective and its repaired form.  The linter opens the
+     script the criterion names - resolving a bare `acceptance.sh` through the paths
+     the handoff itself gives - splits it at its `echo "=== Check N: ... ==="`
+     banners, and classifies each check by the literals its own body echoes.  A check
+     that echoes any success literal is settleable and is never named.  That is the
+     whole discriminator, and it is what keeps `P121` #29, `P122` #24, `P132` #35 and
+     `P160` #43 silent: each names only checks 2, 3, 5, 6 and 7, every one of which
+     does print an OK token, and each says of checks 1 and 8 that they print nothing
+     at all.  A rule that flagged those has flagged the remedy.
+
+     The limit, stated rather than hidden.  A check whose body echoes nothing the
+     linter can classify - check 4 delegates to `sh tools/check4-hint-tags.sh` and
+     echoes nothing itself - is a WARN and never a FLAG; so is a criterion naming a
+     check the script does not have, and one that names a script the linter cannot
+     find.  A criterion that names a check but no script at all - `P51.1` #5, "Check
+     6 prints `index.html in sync`" - is settled against the handoff's harness when
+     the handoff names exactly one that exists, and is otherwise passed over in
+     silence: with two harnesses in scope the rule would be guessing which one the
+     criterion meant, and with none it has not identified an instrument at all.  That
+     silence is not a judgement that such a criterion is settleable.
+
+  G  a before/after contrast with no reachable before-state.  A criterion requiring
+     an artifact to behave one way BEFORE this node's change and the opposite way
+     after - "refused by the unmodified tool preserved at `work/instruments.py.pre`
+     and allowed by the current tool, so the fixture genuinely tests the change" -
+     settles the before half against a copy the node's own first act takes.  That
+     copy captures whatever the artifact already is at dispatch; it is a pre-change
+     copy only if a pre-change version exists somewhere the run can reach.  `P132`
+     #31 is the case: `git log --follow -- tools/instruments.py` reports one commit,
+     the file's first and only, and it already carries the behaviour the criterion
+     calls new, so no execution can produce the refusing half of the contrast.  The
+     operator decision is `_orch-replay/inbox/Q-10.answer.md` - again the replay
+     question, not the archived `_orch/inbox/Q-10.answer.md` rule A cites.
+
+     THE DISCRIMINATOR is four clauses of the criterion's own text and one question
+     put to git, and all five are needed, because most criteria that name a `.pre`
+     copy are perfectly settleable.  (1) the criterion names a snapshot path (`.pre`,
+     `.before`, `.orig`, `.bak`, `.baseline`, `.snapshot`) and calls it a before-state
+     - "unmodified", "original", "preserved at"; (2) it names the other half of the
+     contrast as the CURRENT artifact; (3) it requires the two to DIFFER in outcome -
+     a refused/allowed, rejected/accepted, fails/passes pair, or an explicit
+     "genuinely tests the change"; (4) it carries no instrument that reads history, no
+     `git log`, `git show <rev>:` or `git cat-file`, so it never asks whether the
+     before-state is reachable.  Then the linter asks `git log --follow` how many
+     commits touch the artifact: two or more and a distinct earlier version is
+     reachable, the contrast can be built, and the criterion is not flagged.
+
+     Clause (3) is what separates this from the ordinary use of a `.pre` copy, which
+     is to assert SAMENESS.  `P132` #7, #9 and #13, `P160` #41, `P121` #23 through
+     #26, `P122` #9, #10 and #22 all settle against a `.pre` snapshot and all claim
+     the two agree, or name exactly where they differ; none claims the snapshot
+     BEHAVES differently, so none needs a before-state that history must hold, and
+     every one stays silent.  A snapshot under another node's work directory is rule
+     E's subject, not this one's, and is left to it.
+
+     The limit.  The count is of commits, not of distinct contents: an artifact with
+     two commits that never changed it reads as reachable and stays silent.  Exactly
+     one commit is the flag.  Zero is a WARN and not a flag, because no commit at all
+     says as much about the path the linter resolved as about history - and so are a
+     criterion that names the artifact only by its snapshot, and a tree git cannot be
+     asked.
+
 NO CLOCK, NO STATE.  Two runs over an unchanged tree are byte-identical under
 `cmp`.  Nothing is cached, nothing is remembered, no field is a wall-clock reading.
 
@@ -275,6 +355,62 @@ HANDOFF_ID_RE = re.compile(r"^#\s*HANDOFF\s*[-\u2013\u2014]+\s*`?([A-Za-z0-9][A-
 # (3) the baseline is a SNAPSHOT of the artifact the claim is about.
 SNAPSHOT_SUFFIX_RE = re.compile(r"[.-](pre|before|orig|bak|baseline|snapshot)$", re.I)
 
+# --- rule F: a success token demanded from a check that only prints failures ---
+# the plural form the corpus authored four times over, defective and repaired:
+# "checks 1, 2, 3, 5, 6, 7 and 8 print their OK tokens".
+CHECK_LIST_RE = re.compile(
+    r"\bchecks?\s+((?:\d+\s*(?:,|and|&)\s*)*\d+)\s+"
+    r"(?:of\s+[^,.;]{0,40}?\s+)?(?:must\s+|each\s+|all\s+)?"
+    r"(?:print|prints|printing|show|shows|showing|emit|emits|emitting)\s+"
+    r"(?:their|its|the)\s+(?:OK|success|pass)\b", re.I)
+# the singular form, which names the literal: "check 6 prints `index.html in sync`".
+CHECK_TOKEN_RE = re.compile(
+    r"\bcheck\s+(\d+)\s+(?:print|prints|printing|show|shows|showing|emit|emits|emitting)\s+"
+    r"`([^`]+)`", re.I)
+NUMBER_RE = re.compile(r"\d+")
+# a check banner in the harness, and any banner at all - the second ends a body, so
+# the AIX check appended after check 9 does not read as part of check 9.
+CHECK_BANNER_RE = re.compile(r"^\s*echo\s+[\"']===\s*Check\s+(\d+)\b", re.I)
+BANNER_RE = re.compile(r"^\s*echo\s+[\"']===")
+ECHO_ARG_RE = re.compile(r"\becho\s+(?:\"([^\"]*)\"|'([^']*)'|([^;|&()\n]+))")
+# what an echoed literal says about the run that produced it.  SUCCESS is asked
+# first: a check that can print a success token satisfies the criterion whatever
+# else it may print on the failing path.
+SUCCESS_LITERAL_RE = re.compile(
+    r"\bOK\b|\bPASS(?:ED|ING)?\b|\bSUCCESS\b|\bin\s+sync\b|\bup\s+to\s+date\b|\bclean\b", re.I)
+FAILURE_LITERAL_RE = re.compile(
+    r"\bMISSING\b|\bFAIL(?:ED|URE|S)?\b|\bERROR\b|\bSTALE\b|\bBAD\b|\bnot?\b|\bnever\b|"
+    r"\bcannot\b|\bunresolved\b|\bunauthorised\b", re.I)
+
+# --- rule G: a before/after contrast with no reachable before-state -------------
+# (1) the snapshot is called a before-state rather than merely named
+BEFORE_STATE_RE = re.compile(
+    r"\b(?:unmodified|unrepaired|unfixed|unpatched|original|pre-change|pre-fix|"
+    r"preserved|previous|earlier|old)\b|\bbefore\s+the\s+(?:change|edit|fix|repair)\b", re.I)
+# (2) the other half of the contrast is the artifact as it is now
+CURRENT_PARTY_RE = re.compile(
+    r"\bthe\s+(?:current|new|edited|repaired|changed|updated|post-change)\b|"
+    r"\bafter\s+the\s+(?:change|edit|fix|repair)\b", re.I)
+# (3) the two are required to DIFFER.  A pair counts only when both halves appear;
+# this is what leaves every sameness claim against a `.pre` copy alone.
+OUTCOME_PAIRS = (
+    (re.compile(r"\brefus(?:e|es|ed|al)\b", re.I), re.compile(r"\ballow(?:s|ed)?\b|\badmit(?:s|ted)?\b", re.I)),
+    (re.compile(r"\breject(?:s|ed)?\b", re.I), re.compile(r"\baccept(?:s|ed)?\b", re.I)),
+    (re.compile(r"\bfail(?:s|ed)?\b", re.I), re.compile(r"\bpass(?:es|ed)?\b", re.I)),
+    (re.compile(r"\berror(?:s|ed)?\b", re.I), re.compile(r"\bsucceed(?:s|ed)?\b", re.I)),
+    (re.compile(r"\bblock(?:s|ed)?\b", re.I), re.compile(r"\bpermit(?:s|ted)?\b", re.I)),
+)
+CONTRAST_CLAIM_RE = re.compile(
+    r"\bgenuinely\s+tests?\s+the\s+change\b|\bproves?\s+the\s+change\b|"
+    r"\bwould\s+have\s+(?:been\s+)?(?:refused|rejected|failed|caught|missed)\b|"
+    r"\bbehaves?\s+differently\b|\bdifferent\s+(?:result|outcome|verdict|value|gate)\b", re.I)
+# (4) an instrument that reads history.  A criterion carrying one is asking the
+# question this rule exists to notice is missing, and is left alone.
+HISTORY_INSTRUMENT_RE = re.compile(
+    r"\bgit\s+(?:log|show|cat-file|rev-list|rev-parse|worktree)\b|\bHEAD[~^:]|"
+    r"\breachable\s+history\b|\bearlier\s+commit\b|\bcommitted\s+version\b|"
+    r"\bat\s+(?:commit|revision)\b", re.I)
+
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 BARE_PATH_RE = re.compile(r"(?<![`\w])(/(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+)")
 PLACEHOLDER_RE = re.compile(r"<[a-z_]+>", re.I)
@@ -341,6 +477,26 @@ def paths_in(text):
     return uniq
 
 
+TOKEN_SPLIT_RE = re.compile(r"[\s`'\"()\[\],;|<>*]+")
+
+
+def path_tokens(text):
+    """Every whitespace- or punctuation-delimited token of `text` that could be a
+    path, in document order.  `paths_in` reads a criterion, where a path is
+    backticked on its own; this reads a whole handoff, where the path that resolves
+    a criterion's bare filename is usually inside a command span - `cp
+    tools/instruments.py work/instruments.py.pre` - and so invisible to `paths_in`."""
+    out, seen = [], set()
+    for tok in TOKEN_SPLIT_RE.split(text):
+        tok = tok.strip().rstrip(".:")
+        if not tok or "/" not in tok:
+            continue
+        if tok not in seen:
+            seen.add(tok)
+            out.append(tok)
+    return out
+
+
 def has_settling_clause(text):
     if SETTLING_RE.search(text):
         return True
@@ -364,6 +520,7 @@ class Tracked(object):
     def __init__(self, root):
         self.root = root
         self._cache = {}
+        self._versions = {}
         self._git_ok = None
 
     def git_available(self):
@@ -380,10 +537,7 @@ class Tracked(object):
 
     def is_tracked(self, path):
         """True / False / None (could not resolve)."""
-        rel = path
-        if rel.startswith(self.root + os.sep):
-            rel = rel[len(self.root) + 1:]
-        rel = rel.lstrip("./")
+        rel = self.relative(path)
         if rel in self._cache:
             return self._cache[rel]
         if not self.git_available():
@@ -399,6 +553,106 @@ class Tracked(object):
             ans = None
         self._cache[rel] = ans
         return ans
+
+    def history_versions(self, path):
+        """How many commits in reachable history touch `path`; None if git cannot
+        say.  Rule G asks this and nothing else of history: a criterion that
+        contrasts an artifact's before-state against its after-state needs at least
+        two reachable versions for the contrast to exist at all."""
+        rel = self.relative(path)
+        if rel in self._versions:
+            return self._versions[rel]
+        if not self.git_available():
+            self._versions[rel] = None
+            return None
+        try:
+            p = subprocess.Popen(
+                ["git", "log", "--follow", "--format=%H", "--", rel], cwd=self.root,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            so, _ = p.communicate()
+            if p.returncode != 0:
+                ans = None
+            else:
+                ans = len([ln for ln in so.decode("utf-8", "replace").split("\n") if ln.strip()])
+        except (OSError, ValueError):
+            ans = None
+        self._versions[rel] = ans
+        return ans
+
+    def relative(self, path):
+        rel = path
+        if rel.startswith(self.root + os.sep):
+            rel = rel[len(self.root) + 1:]
+        return rel.lstrip("./")
+
+
+# ---------------------------------------------------------------------------
+# the acceptance harness, read - never run.  Rule F resolves what a check can
+# print by opening the script the criterion names, the way rule A resolves
+# trackedness with `git ls-files` rather than by keyword.
+# ---------------------------------------------------------------------------
+
+class Harness(object):
+    """Caches the per-check echo literals of a shell script.  Cache is
+    per-process, so output stays byte-identical across runs; nothing is written to
+    disk and no script is ever executed."""
+
+    def __init__(self, root):
+        self.root = root
+        self._cache = {}
+
+    def resolve(self, name, handoff_text):
+        """Absolute path of the script a criterion names, or None.  A criterion
+        that says `acceptance.sh` names the file without saying where it is; the
+        handoff that carries the criterion does say, so the basename is resolved
+        against the paths the handoff itself gives, in the order it gives them."""
+        base = os.path.basename(name)
+        cands = [name]
+        for p in path_tokens(handoff_text):
+            if os.path.basename(p) == base and p not in cands:
+                cands.append(p)
+        for c in cands:
+            ap = c if os.path.isabs(c) else os.path.join(self.root, c)
+            if os.path.isfile(ap):
+                return os.path.abspath(ap)
+        return None
+
+    def checks(self, path):
+        """{check number: [echoed literal, ...]} for a banner-structured script, or
+        None if it cannot be read.  A check's body runs from its banner to the next
+        banner of any kind, so a check appended after the numbered ones does not
+        read as part of the last."""
+        if path in self._cache:
+            return self._cache[path]
+        try:
+            fh = open(path, "r")
+            try:
+                body = fh.read()
+            finally:
+                fh.close()
+        except (IOError, OSError):
+            self._cache[path] = None
+            return None
+        out, cur = {}, None
+        for ln in body.split("\n"):
+            if ln.lstrip().startswith("#"):
+                continue  # a comment quoting an echo is not an echo
+            m = CHECK_BANNER_RE.match(ln)
+            if m:
+                cur = int(m.group(1))
+                out.setdefault(cur, [])
+                continue
+            if BANNER_RE.match(ln):
+                cur = None
+                continue
+            if cur is None:
+                continue
+            for g in ECHO_ARG_RE.findall(ln):
+                lit = (g[0] or g[1] or g[2]).strip()
+                if lit:
+                    out[cur].append(lit)
+        self._cache[path] = out
+        return out
 
 
 # ---------------------------------------------------------------------------
@@ -760,11 +1014,225 @@ def rule_e(num, text, self_id):
     return out
 
 
+def demanded_checks(text):
+    """The numbered checks a criterion requires a success token from, in the order
+    it names them.  Two forms, both authored by this run: the plural list ("checks
+    1, 2, 3, 5, 6, 7 and 8 print their OK tokens") and the singular named literal
+    ("check 6 prints `index.html in sync`")."""
+    out = []
+    for m in CHECK_LIST_RE.finditer(text):
+        for n in NUMBER_RE.findall(m.group(1)):
+            if int(n) not in out:
+                out.append(int(n))
+    for m in CHECK_TOKEN_RE.finditer(text):
+        n = int(m.group(1))
+        if n not in out:
+            out.append(n)
+    return out
+
+
+def commas(nums):
+    """Join numbers the way a criterion names them: "1 and 8", not "1, 8".  The
+    linter quotes criteria back at their authors, so it writes the way they do."""
+    s = [str(n) for n in nums]
+    if len(s) < 2:
+        return "".join(s)
+    return ", ".join(s[:-1]) + " and " + s[-1]
+
+
+def classify_check(literals):
+    """'success' if the check can print one, 'failure' if every literal it prints
+    is a failure line, 'unsettled' if it prints nothing or nothing classifiable."""
+    if any(SUCCESS_LITERAL_RE.search(lit) for lit in literals):
+        return "success"
+    failures = [lit for lit in literals if FAILURE_LITERAL_RE.search(lit)]
+    if failures and len(failures) == len(literals):
+        return "failure"
+    return "unsettled"
+
+
+def rule_f(num, text, handoff_text, harness):
+    """A success token demanded from a check that only prints failures.  See THE
+    SHAPES IT REJECTS, entry F."""
+    out = []
+    wanted = demanded_checks(text)
+    if not wanted:
+        return out
+    plural = "s" if len(wanted) > 1 else ""
+    scripts = [p for p in paths_in(text) if p.endswith(".sh")]
+    if scripts:
+        named = scripts[0]
+        path = harness.resolve(named, handoff_text)
+        if path is None:
+            out.append(("WARN", "F2",
+                        "this criterion requires check%s %s of `%s` to print a success token, and "
+                        "the linter could not find that script - neither at that path nor at any "
+                        "path the handoff gives for a file of that name. It could not settle "
+                        "whether the check has a success token to print."
+                        % (plural, commas(wanted), named)))
+            return out
+    else:
+        # The criterion names a check but not the script it belongs to - "Check 6
+        # prints `index.html in sync`".  One harness in the handoff and there is
+        # nothing to guess; two and there is, so the rule declines rather than
+        # picking one, and says nothing rather than warning about a criterion whose
+        # instrument it never identified.
+        cands = []
+        for p in path_tokens(handoff_text):
+            if not p.endswith(".sh"):
+                continue
+            ap = p if os.path.isabs(p) else os.path.join(harness.root, p)
+            ap = os.path.abspath(ap)
+            if os.path.isfile(ap) and ap not in cands:
+                cands.append(ap)
+        if len(cands) != 1:
+            return out
+        path = cands[0]
+    parsed = harness.checks(path)
+    if not parsed:
+        out.append(("WARN", "F2",
+                    "this criterion requires check%s %s of `%s` to print a success token, and the "
+                    "linter could not read that script as a banner-structured harness (expected "
+                    "`echo \"=== Check N: ... ===\"` lines), so it could not settle what any check "
+                    "prints." % (plural, commas(wanted), os.path.basename(path))))
+        return out
+    silent, unsettled = [], []
+    for n in wanted:
+        if n not in parsed:
+            unsettled.append((n, "the script has no check %d" % n))
+            continue
+        verdict = classify_check(parsed[n])
+        if verdict == "failure":
+            silent.append(n)
+        elif verdict == "unsettled":
+            unsettled.append((n, "check %d echoes nothing the linter can classify" % n))
+    if silent:
+        sample = []
+        for n in silent:
+            for lit in parsed[n][:1]:
+                sample.append("check %d's `%s`" % (n, lit))
+        out.append(("FLAG", "F1",
+                    "this criterion requires check%s %s of `%s` to print a success token, and "
+                    "%s only output lines are failures - %s. Silence IS their pass, so a clean "
+                    "run prints nothing and the criterion demands output the instrument never "
+                    "produces: no correct execution can satisfy it "
+                    "(`_orch-replay/inbox/Q-7.answer.md`, the `P111` #29 / `P112` #30 shape). "
+                    "The repaired wording - `P121` #29, `P122` #24, `P132` #35 - names only the "
+                    "checks that do print one and says of the rest that they print nothing at "
+                    "all, and is not flagged."
+                    % ("s" if len(silent) > 1 else "",
+                       commas(silent), os.path.basename(path),
+                       "their" if len(silent) > 1 else "its", "; ".join(sample))))
+    for n, why in unsettled:
+        out.append(("WARN", "F2",
+                    "this criterion requires check %d of `%s` to print a success token, and %s, "
+                    "so the linter could not settle whether that check has one to print. Name "
+                    "the literal the check prints, and this warning is answered."
+                    % (n, os.path.basename(path), why)))
+    return out
+
+
+def contrasted_outcomes(text):
+    """True when the criterion requires its two states to DIFFER: an opposed pair of
+    outcome words with both halves present, or an explicit claim that the contrast
+    is what the criterion tests.  A sameness claim carries neither."""
+    for lo, hi in OUTCOME_PAIRS:
+        if lo.search(text) and hi.search(text):
+            return True
+    return bool(CONTRAST_CLAIM_RE.search(text))
+
+
+def snapshot_operand(text):
+    """The first path the criterion names whose basename carries a snapshot suffix."""
+    for p in paths_in(text):
+        if SNAPSHOT_SUFFIX_RE.search(os.path.basename(p)):
+            return p
+    return None
+
+
+def contrast_subject(snapshot, text, handoff_text, root=None):
+    """The artifact a snapshot is a snapshot OF: the path, named by the criterion or
+    by the handoff around it, whose basename is the snapshot's basename stripped of
+    its suffix.  A path that exists is preferred over one that does not, because a
+    handoff often names the same basename twice - `tools/instruments.py` and
+    `work/instruments.py` - and history can only be asked about the real one.  None
+    when only the snapshot is named."""
+    base = os.path.basename(snapshot)
+    m = SNAPSHOT_SUFFIX_RE.search(base)
+    if not m:
+        return None
+    stem = base[:m.start()]
+    cands = []
+    for source in (paths_in(text), path_tokens(handoff_text)):
+        for p in source:
+            if p != snapshot and os.path.basename(p) == stem and p not in cands:
+                cands.append(p)
+    if root:
+        for p in cands:
+            ap = p if os.path.isabs(p) else os.path.join(root, p)
+            if os.path.isfile(ap):
+                return p
+    return cands[0] if cands else None
+
+
+def rule_g(num, text, handoff_text, self_id, tracked):
+    """A before/after contrast with no reachable before-state.  See THE SHAPES IT
+    REJECTS, entry G."""
+    out = []
+    snapshot = snapshot_operand(text)
+    if snapshot is None:
+        return out
+    if not (BEFORE_STATE_RE.search(text) and CURRENT_PARTY_RE.search(text)):
+        return out
+    if not contrasted_outcomes(text):
+        return out  # a sameness claim against a `.pre` copy.  Settleable, and common.
+    if HISTORY_INSTRUMENT_RE.search(text):
+        return out  # the criterion asks history the question this rule asks.
+    m = NODE_WORKDIR_RE.search(snapshot)
+    if m and self_id is not None and m.group(1) != self_id:
+        return out  # another node's snapshot is rule E's subject, not this one's.
+    subject = contrast_subject(snapshot, text, handoff_text, tracked.root)
+    if subject is None:
+        out.append(("WARN", "G2",
+                    "this criterion contrasts a before-state held at `%s` against the artifact as "
+                    "it is now, and names no path for the artifact itself, so the linter could "
+                    "not settle which file to ask history about." % snapshot))
+        return out
+    versions = tracked.history_versions(subject)
+    if not versions:
+        # None: git could not answer.  0: no commit touches that path at all, which
+        # says as much about the path the linter resolved as about history.  Either
+        # way it has not settled the question, and it says so rather than flagging.
+        out.append(("WARN", "G2",
+                    "this criterion contrasts `%s` before and after this node's change and settles "
+                    "the before half against `%s`, a copy taken at dispatch. `git log` reports no "
+                    "commit reachable for `%s`, so the linter could not settle whether a "
+                    "pre-change state exists to contrast against."
+                    % (subject, snapshot, subject)))
+        return out
+    if versions >= 2:
+        return out  # a distinct earlier version is reachable.  The contrast exists.
+    out.append(("FLAG", "G1",
+                "this criterion requires `%s` to behave one way before this node's change and the "
+                "opposite way after, and settles the before half against `%s` - a copy taken by "
+                "this node's own first act, which captures whatever the artifact already is at "
+                "dispatch. The criterion never asks whether a pre-change state is reachable, and "
+                "`git log --follow` reports %d commit%s touching `%s`, so no version distinct from "
+                "the current one is reachable and the contrast cannot be constructed at any rung. "
+                "The `P132` #31 shape (`_orch-replay/verify/P132-verdict.json` row 31: \"the "
+                "criterion's premise that this capture is a pre-`P132` tool distinct from current "
+                "is false\"; the decision is `_orch-replay/inbox/Q-10.answer.md`). Name the "
+                "revision the before-state comes from - `git show <rev>:%s` - or drop the contrast."
+                % (subject, snapshot, versions, "" if versions == 1 else "s", subject, subject)))
+    return out
+
+
 # ---------------------------------------------------------------------------
 # driver
 # ---------------------------------------------------------------------------
 
-USAGE = "usage: python3 tools/lint-criteria.py <handoff.md> [<handoff.md> ...]\n"
+USAGE = ("usage: python3 tools/lint-criteria.py <handoff.md> [<handoff.md> ...]\n"
+         "       python3 tools/lint-criteria.py --selftest\n")
 
 
 def repo_root(start):
@@ -778,7 +1246,7 @@ def repo_root(start):
         d = parent
 
 
-def lint_file(path, tracked, out):
+def lint_file(path, tracked, harness, out):
     try:
         fh = open(path, "r")
         try:
@@ -805,6 +1273,8 @@ def lint_file(path, tracked, out):
         findings += rule_c(num, ctext)
         findings += rule_d(num, ctext, crits, whole)
         findings += rule_e(num, ctext, self_id)
+        findings += rule_f(num, ctext, whole, harness)
+        findings += rule_g(num, ctext, whole, self_id, tracked)
         for level, rule, msg in findings:
             if level == "FLAG":
                 flags += 1
@@ -815,17 +1285,182 @@ def lint_file(path, tracked, out):
     return (flags, warns)
 
 
+# the harness the F fixtures are linted against.  Check 1 can only print a failure,
+# check 2 and check 3 each carry a success token, check 4 delegates and echoes
+# nothing of its own - the four cases rule F has to tell apart, in the shape the
+# real `_orch/nodes/P11/work/acceptance.sh` has.
+SELFTEST_HARNESS = """#!/bin/sh
+echo "=== Check 1: every vendored file sets all four keys ==="
+# a comment quoting `echo "OK"` must not read as an echo
+for f in a b; do
+  grep -q x "$f" || echo "MISSING $k: $f"
+done
+
+echo "=== Check 2: no override sections survived the cut ==="
+grep -l '^## In ' *.md || echo "OK: no override sections"
+
+echo "=== Check 3: the page is not stale ==="
+diff -q a b >/dev/null && echo "index.html in sync" || echo "PAGE STALE"
+
+echo "=== Check 4: every tag resolves ==="
+sh tools/delegated.sh
+
+echo "=== AIX check (not one of the numbered checks) ==="
+echo "AIX LEVEL 1 OK"
+"""
+
+SELFTEST_HANDOFF = """# HANDOFF - X1
+
+## Steps
+
+1. Run `sh tools/harness.sh` and paste all of it into `work/invariant.txt`.
+2. `cp tools/prober.py _orch/nodes/X1/work/prober.py.pre`
+3. `cp tools/twice.py _orch/nodes/X1/work/twice.py.pre`
+
+## Done-criteria
+
+1. %s
+"""
+
+
+def selftest():
+    """Prove each new rule FLAGS its known-bad fixture and stays SILENT on the
+    repaired wording beside it.  A rule that cannot fail is not a rule; a rule that
+    fires on the repair is worse than no rule, because it teaches authors to route
+    around the linter.  Every fixture below is inline and every file it touches is
+    inside a temporary tree: nothing under `_orch/` is read, and nothing anywhere is
+    written outside that tree, which is removed before this returns."""
+    import shutil, tempfile
+
+    tmp = tempfile.mkdtemp()
+    try:
+        os.makedirs(os.path.join(tmp, "tools"))
+        os.makedirs(os.path.join(tmp, "node"))
+        def write(rel, body):
+            fh = open(os.path.join(tmp, rel), "w")
+            try:
+                fh.write(body)
+            finally:
+                fh.close()
+
+        write("tools/harness.sh", SELFTEST_HARNESS)
+
+        def git(*args):
+            p = subprocess.Popen(["git", "-c", "user.name=selftest",
+                                  "-c", "user.email=selftest@localhost"] + list(args),
+                                 cwd=tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.communicate()
+            return p.returncode
+
+        # `prober.py` gets one commit - the shape `tools/instruments.py` has in the
+        # tree `P132` ran against.  `twice.py` gets two, so a pre-change version of
+        # it IS reachable and rule G must leave the same sentence alone.
+        git("init", "-q")
+        write("tools/prober.py", "gate = 'allow'\n")
+        write("tools/twice.py", "gate = 'refuse'\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "first")
+        write("tools/twice.py", "gate = 'allow'\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "second")
+
+        tracked, harness = Tracked(tmp), Harness(tmp)
+        hp = os.path.join(tmp, "node", "handoff.md")
+
+        def lint(criterion, letter):
+            write("node/handoff.md", SELFTEST_HANDOFF % criterion)
+            out = []
+            lint_file(hp, tracked, harness, out)
+            return [ln for ln in out if "[%s" % letter in ln]
+
+        def has(lines, tag):
+            return any("[%s]" % tag in ln for ln in lines)
+
+        cases = []
+
+        # --- rule F ------------------------------------------------------------
+        bad_f = ("`work/invariant.txt` contains a full `harness.sh` run in which checks "
+                 "1, 2 and 3 print their OK tokens, and the run ends `AIX LEVEL 1 OK`.")
+        good_f = ("`work/invariant.txt` contains a full `harness.sh` run in which checks "
+                  "2 and 3 print their OK tokens, check 1 prints nothing at all (its pass "
+                  "condition), and the run ends `AIX LEVEL 1 OK`.")
+        literal_f = ("`work/invariant.txt` contains a full `harness.sh` run with check 3 "
+                     "printing `index.html in sync`.")
+        delegated_f = ("`work/invariant.txt` contains a full `harness.sh` run in which "
+                       "checks 2 and 4 print their OK tokens.")
+        missing_f = ("`work/invariant.txt` contains a full `nowhere.sh` run in which "
+                     "checks 1 and 2 print their OK tokens.")
+        f1 = lint(bad_f, "F")
+        cases.append(("F flags the check whose only output lines are failures", has(f1, "F1")))
+        cases.append(("F names check 1 and not checks 2 or 3",
+                      any("check 1 of" in ln and "checks 2" not in ln for ln in f1)))
+        cases.append(("F is silent on the repaired wording, which names only checks that print one",
+                      not lint(good_f, "F")))
+        cases.append(("F is silent when the named literal is one the check prints",
+                      not lint(literal_f, "F")))
+        d = lint(delegated_f, "F")
+        cases.append(("F warns, never flags, on a check that echoes nothing classifiable",
+                      has(d, "F2") and not has(d, "F1")))
+        m = lint(missing_f, "F")
+        cases.append(("F warns, never flags, when the script cannot be found",
+                      has(m, "F2") and not has(m, "F1")))
+        cases.append(("F resolves the handoff's only harness when the criterion names none",
+                      has(lint("Check 1 prints its OK token.", "F"), "F1")))
+        cases.append(("F is silent on that same form when the check does print one",
+                      not lint("Check 3 prints `index.html in sync`.", "F")))
+
+        # --- rule G ------------------------------------------------------------
+        bad_g = ("The fixture is refused by the unmodified tool preserved at "
+                 "`work/prober.py.pre` and allowed by the current tool, so the fixture "
+                 "genuinely tests the change, settled by pasting both runs into "
+                 "`work/fixture-proof.md`.")
+        reachable_g = bad_g.replace("prober.py.pre", "twice.py.pre")
+        sameness_g = ("The comparison rule is unchanged, settled by quoting the function out "
+                      "of the current file and out of `work/prober.py.pre` and reading the two "
+                      "side by side.")
+        history_g = (bad_g[:-1] + ", and `git show HEAD~1:tools/prober.py` is the revision the "
+                     "before-state is taken from.")
+        cases.append(("G flags a before/after contrast whose before-state is not reachable",
+                      has(lint(bad_g, "G"), "G1")))
+        cases.append(("G is silent when a distinct earlier version IS reachable",
+                      not lint(reachable_g, "G")))
+        cases.append(("G is silent on a sameness claim against the same `.pre` copy",
+                      not lint(sameness_g, "G")))
+        cases.append(("G is silent when the criterion names the revision it compares against",
+                      not lint(history_g, "G")))
+
+        # --- no clock, no state -------------------------------------------------
+        cases.append(("two runs over one unchanged fixture are byte-identical",
+                      lint(bad_f, "F") == lint(bad_f, "F")))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    print("Each case below states what the linter must do. A rule that cannot flag its "
+          "known-bad\nfixture is not a rule; a rule that flags the repair is worse than no "
+          "rule.\n")
+    bad = 0
+    for label, ok in cases:
+        print("  %s  %s" % ("PASS" if ok else "FAIL", label))
+        if not ok:
+            bad += 1
+    print("\n%d/%d cases hold." % (len(cases) - bad, len(cases)))
+    return 1 if bad else 0
+
+
 def main(argv):
+    if "--selftest" in argv:
+        return selftest()
     if len(argv) < 2 or argv[1] in ("-h", "--help"):
         sys.stderr.write(USAGE)
         return 2 if len(argv) < 2 else 0
     root = repo_root(argv[1])
     tracked = Tracked(root)
+    harness = Harness(root)
     out = []
     total_flags = 0
     bad_input = False
     for path in argv[1:]:
-        res = lint_file(path, tracked, out)
+        res = lint_file(path, tracked, harness, out)
         if res is None:
             bad_input = True
         else:
