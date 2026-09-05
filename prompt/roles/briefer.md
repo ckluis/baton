@@ -92,15 +92,11 @@ and change nothing outside the placeholders:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{run id} · {gate} brief</title>
 <style>
-  :root { color-scheme: light dark;
-    --bg: #f7f6f2; --panel: #ffffff; --fg: #15171b; --muted: #656a72; --line: #dcdad3;
-    --accent: #0e7c86; --accent-ink: #ffffff; --rail: #f0efe9; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    --bg: #131416; --panel: #1b1d21; --fg: #e8e6e0; --muted: #9a9ea6; --line: #33363b;
-    --accent: #5eead4; --accent-ink: #0f1d1a; --rail: #17191c; } }
-  :root[data-theme="dark"] {
-    --bg: #131416; --panel: #1b1d21; --fg: #e8e6e0; --muted: #9a9ea6; --line: #33363b;
-    --accent: #5eead4; --accent-ink: #0f1d1a; --rail: #17191c; }
+  /* {BRIEF_TOKENS} — inline the whole of {BATON}/prompt/brief-tokens.css here, verbatim,
+     comment header included. Do not retype it, do not trim it, and do not declare a
+     palette of your own (CONTRACT §8.1). It defines --bg --panel --rail --line --fg
+     --muted --accent --accent-ink --outline --outline-bg --ok --bad --sans --mono for
+     light, dark, and an explicit data-theme choice. */
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
@@ -134,7 +130,22 @@ and change nothing outside the placeholders:
   .rail dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: .25rem .75rem; }
   .rail dt { font-weight: 700; color: var(--accent); }
   .rail dd { margin: 0; }
-  .wrap { overflow-x: auto; }
+  /* Overflow discipline. A brief is read in a narrow pane beside a terminal, so the page
+     must never scroll sideways and the rail must never clip. Long unbreakable strings —
+     re-derivation commands, absolute paths, node ids — are the whole problem, and they are
+     required content (§8.1: every number shows the command that produced it). Wrap them;
+     do not let them widen a grid track. */
+  .deck, .wide, .rail, .options, .opt, .wrap, .rail dl, .rail dd { min-width: 0; }
+  body, header, h1, .desc, .opt .name, .opt p, .rail p, .rail dd, figcaption { overflow-wrap: anywhere; }
+  .rail dl { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); }
+  .wrap { overflow-x: auto; max-width: 100%; }
+  table { table-layout: fixed; }
+  th, td { overflow-wrap: anywhere; }
+  th:nth-child(1), td:nth-child(1) { width: 30%; }
+  th:nth-child(2), td:nth-child(2) { width: 14%; }
+  th:nth-child(3), td:nth-child(3) { width: 56%; }
+  code { overflow-wrap: anywhere; }
+  td code, .rail code { display: block; white-space: pre-wrap; }
   table { border-collapse: collapse; width: 100%; font-size: .82rem; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; vertical-align: top; padding: .35rem .4rem; border-bottom: 1px solid var(--line); }
   th { color: var(--muted); font-weight: 600; }

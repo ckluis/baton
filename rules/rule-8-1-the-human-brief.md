@@ -11,6 +11,9 @@ links:
   - rel: relates-to
     to: rule-10-the-operator-lane
     note: the blocked batch is one of the two gates that carry a brief
+  - rel: relates-to
+    to: rule-8-2-every-blocking-decision-ships-a-slide
+    note: 8.2 widens the trigger from these two gates to any decision that stalls work
 ---
 
 ### 8.1 The human brief
@@ -35,6 +38,14 @@ with the record, the brief prints both and names the command, because that disag
 tripwire that caught a stale count in this framework's own run. A brief that asserts something
 neither the record nor a command supports is a defect in the brief. It is temporary by
 construction: it lives under `_orch/`, gitignored with it (§6), and is disposed of with the run.
+
+**The look is not the briefer's to invent.** Every brief inlines
+`{BATON}/prompt/brief-tokens.css` verbatim at the top of its `<style>` block and defines no
+palette of its own. One token set, one source of truth, for the same reason the rules live
+one-per-file: there is nowhere to amend a stale copy because there are no copies. A briefer that
+declares its own `--accent` has forked the house style, and the next brief will not match the
+last one or the project's own pages. Cyan marks the recommendation; yellow outlines the path a
+reader must not miss; never both on one element.
 
 **The shape is fixed: one slide per decision.** The page is a deck. A final brief has one slide
 for the result and one for each open question; a blocked brief has one per question. Every slide

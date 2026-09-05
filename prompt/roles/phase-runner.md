@@ -62,7 +62,10 @@ over one.
    - `FAILED` → one rung up, same rule (§1.2.2). A `REFUTED` verdict from
      step 5 counts as `FAILED` here too (§1.2.3).
    - `BLOCKED` → park the node. It wrote its own `_orch/inbox/Q-<n>.md`
-     (§10.1); add it to this phase's question batch and continue with the
+     (§10.1). **You hold the context, so you write the decision into that file:
+     what is being decided, why it stalls work, and the three real options with
+     one recommended (§8.2).** The briefer renders it; it cannot invent options
+     it was not given. Add it to this phase's question batch and continue with the
      rest of the phase. Do not stall on it.
    - Two envelopes reach contradictory conclusions about the same
      artifact → skip the ladder, spawn an adjudicator
