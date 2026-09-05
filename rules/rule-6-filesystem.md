@@ -30,6 +30,8 @@ _orch/
       digest.md          §3
       escalation.md      written on ESCALATE / FAILED
       work/              ALL artifacts. No layer above the node enters here.
+                         A worktree-isolated node writes into its worktree first; §6.2
+                         requires those outputs be landed here before it is removed.
   verify/
     T07-verdict.json     CONFIRMED | REFUTED | PARTIAL + evidence paths
   loops/
