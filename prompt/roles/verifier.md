@@ -48,7 +48,7 @@ computed from those rows — you do not assert it** (CONTRACT §9.1):
       "verdict": "CONFIRMED|REFUTED|UNTESTED|UNSETTLEABLE",
       "probe": "the command you ran or the check you performed",
       "evidence": ["paths"],
-      "shape": "UNSETTLEABLE rows only (CONTRACT §9.2): unbounded-enumeration|measures-outside-node|false-premise|self-contradictory|superseded-form"
+      "shape": "UNSETTLEABLE rows only (CONTRACT §9.2): unbounded-enumeration|measures-outside-node|false-premise|self-contradictory|superseded-form|reads-immutable-ref (the second and the last only after §9.3's retry)"
     }
   ],
   "verdict": "CONFIRMED|REFUTED|PARTIAL",
@@ -63,6 +63,30 @@ against the source. Then:
 - every row `CONFIRMED` → node `CONFIRMED`
 - any row `REFUTED` → node `REFUTED`
 - any row `UNTESTED` or `UNSETTLEABLE`, none `REFUTED` → node `PARTIAL`
+
+**Before you write `UNSETTLEABLE` on a criterion that reads the tree, the branch
+or the index, try it in isolation** (CONTRACT §9.3). Such a criterion is not
+unsettleable until the retry has failed. Re-run that criterion's own settling
+command **once**, in a private git worktree that holds the node's commit plus
+**this node's own changes and nothing else**:
+
+```sh
+git worktree add <scratch>/verify-<node> <the node's commit>
+# apply this node's work and only this node's: its landed `outputs`
+# (_orch/nodes/<id>/work/tree/..., §6.2) copied to their product paths, or its own
+# diff applied with `git apply` when the outputs are edits to tracked files
+# run the criterion's settling command there, and nowhere else
+git worktree remove --force <scratch>/verify-<node>
+```
+
+A retry without the node's changes settles nothing: `git diff --stat` in a bare
+checkout is empty for every node. It settles → the row is `CONFIRMED` or `REFUTED`
+on what it shows; say so, and do not park the node. It cannot settle because the
+criterion reads a thing no tree holds (a branch pointer, a tag list, another
+node's output, the index) → `shape: reads-immutable-ref`. It cannot settle
+because the target is outside the node's write set or its input was withheld →
+`shape: measures-outside-node`. Either way the demonstrating `probe` is the
+**isolated** run, never the shared-tree run. One retry; a second buys nothing.
 
 **`UNTESTED` is a legitimate answer and you should use it.** A criterion you
 could not check — no environment, a missing dependency, a command that will not
