@@ -114,7 +114,11 @@ over one.
    order**. Copy every path in the node's envelope `outputs` into
    `_orch/nodes/<id>/work/`, confirm each copy exists, and only then run `git
    worktree remove`. A node's products live inside its worktree, because that is
-   the tree its handoff's paths resolve against, and they die with it.
+   the tree its handoff's paths resolve against, and they die with it. A product
+   path lands under `work/tree/` at its worktree-relative path (§6.2), and the
+   envelope's `outputs` is rewritten to the landed paths with the original kept
+   beside each as `worktree_path`. Landing is evidence, not shipping: the product
+   reaches `main` only through a merge node the plan names.
 
    An `outputs` path that stops resolving makes the envelope false (§2) and makes
    every criterion resting on that artifact `UNTESTED` forever — no rung recovers

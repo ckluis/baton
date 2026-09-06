@@ -161,6 +161,15 @@ THE SHAPES IT REJECTS, each derived from a criterion this run actually authored
      note the `_orch-replay/` prefix, a different question set from the archived
      `_orch/inbox/` that rules A and B cite.
 
+     What the flag claims, stated exactly.  Not "unsatisfiable": the archived run's
+     two rung-3 verifiers CONFIRMED this very sentence, reading the silence as the
+     pass (`_orch/verify/P111-verdict.json` row 29, `_orch/verify/P112-verdict.json`
+     row 30), and the replay's two read it literally and did not.  The defect is
+     that two competent verifiers settle it opposite ways.  A harness reader that
+     only saw `echo` misjudged real scripts: it now reads `printf`, credits a check
+     with what a helper function it calls prints, and reads a negated failure noun
+     ("no differences found") as the success message it is.
+
      THIS IS NOT A KEYWORD MATCH, and it cannot be, because the corpus carries that
      sentence in both its defective and its repaired form.  The linter opens the
      script the criterion names - resolving a bare `acceptance.sh` through the paths
@@ -196,18 +205,26 @@ THE SHAPES IT REJECTS, each derived from a criterion this run actually authored
      operator decision is `_orch-replay/inbox/Q-10.answer.md` - again the replay
      question, not the archived `_orch/inbox/Q-10.answer.md` rule A cites.
 
-     THE DISCRIMINATOR is four clauses of the criterion's own text and one question
-     put to git, and all five are needed, because most criteria that name a `.pre`
-     copy are perfectly settleable.  (1) the criterion names a snapshot path (`.pre`,
-     `.before`, `.orig`, `.bak`, `.baseline`, `.snapshot`) and calls it a before-state
-     - "unmodified", "original", "preserved at"; (2) it names the other half of the
-     contrast as the CURRENT artifact; (3) it requires the two to DIFFER in outcome -
-     a refused/allowed, rejected/accepted, fails/passes pair, or an explicit
-     "genuinely tests the change"; (4) it carries no instrument that reads history, no
-     `git log`, `git show <rev>:` or `git cat-file`, so it never asks whether the
-     before-state is reachable.  Then the linter asks `git log --follow` how many
-     commits touch the artifact: two or more and a distinct earlier version is
-     reachable, the contrast can be built, and the criterion is not flagged.
+     THE DISCRIMINATOR is four clauses of the criterion's own text, one of the
+     handoff's, and one question put to git, and all six are needed, because most
+     criteria that name a `.pre` copy are perfectly settleable.  (1) the criterion
+     names a snapshot path (`.pre`, `.before`, `.orig`, `.bak`, `.baseline`,
+     `.snapshot`) and calls it a before-state - "unmodified", "original", "preserved
+     at"; (2) it names the other half of the contrast as the CURRENT artifact; (3) it
+     requires the two to DIFFER in outcome - a refused/allowed, rejected/accepted,
+     fails/passes pair, or an explicit "genuinely tests the change"; (4) it carries
+     no instrument that reads history, no `git log`, `git show <rev>:` or `git
+     cat-file`, so it never asks whether the before-state is reachable; (5) the
+     handoff nowhere tells THIS node to change the artifact - because when it does,
+     the `.pre` copy is the working tree at dispatch and the node's own edit is the
+     after-state, and the contrast exists whatever history holds.  That fifth clause
+     is what the archive proves: `P132` #31 was settled CONFIRMED in the original
+     run (`_orch/verify/P132-verdict.json` row 31), where the handoff told `P132` to
+     change the tool and the `.pre` copy predated the change.  It went unsettleable
+     in the replay only because the replay's tree already carried the edit.  Only
+     then does the linter ask `git log --follow` how many commits touch the artifact:
+     two or more and a distinct earlier version is reachable, the contrast can be
+     built, and the criterion is not flagged.
 
      Clause (3) is what separates this from the ordinary use of a `.pre` copy, which
      is to assert SAMENESS.  `P132` #7, #9 and #13, `P160` #41, `P121` #23 through
@@ -358,11 +375,18 @@ SNAPSHOT_SUFFIX_RE = re.compile(r"[.-](pre|before|orig|bak|baseline|snapshot)$",
 # --- rule F: a success token demanded from a check that only prints failures ---
 # the plural form the corpus authored four times over, defective and repaired:
 # "checks 1, 2, 3, 5, 6, 7 and 8 print their OK tokens".
+# The list may be a range ("checks 1-8"), may repeat the noun ("check 1 and check
+# 8"), may name the script inline ("of `acceptance.sh`" - a dot, so the clause
+# must not exclude one), and may say "report" or "pass, each printing".  Each of
+# those forms was silent before 2026-09-06 and each is a criterion a verifier
+# would read exactly as the corpus form.
 CHECK_LIST_RE = re.compile(
-    r"\bchecks?\s+((?:\d+\s*(?:,|and|&)\s*)*\d+)\s+"
-    r"(?:of\s+[^,.;]{0,40}?\s+)?(?:must\s+|each\s+|all\s+)?"
-    r"(?:print|prints|printing|show|shows|showing|emit|emits|emitting)\s+"
-    r"(?:their|its|the)\s+(?:OK|success|pass)\b", re.I)
+    r"\bchecks?\s+((?:\d+\s*(?:,|and|&|-|–|to|through)\s*(?:checks?\s+)?)*\d+)\s+"
+    r"(?:of\s+[^,;]{0,40}?\s+)?(?:pass(?:es)?,?\s+)?(?:must\s+|each\s+|all\s+)?"
+    r"(?:print|prints|printing|show|shows|showing|emit|emits|emitting|"
+    r"report|reports|reporting)\s+"
+    r"(?:their|its|the|an?)\s+(?:OK|success|pass)\b", re.I)
+CHECK_RANGE_RE = re.compile(r"(\d+)\s*(?:-|–|to|through)\s*(\d+)")
 # the singular form, which names the literal: "check 6 prints `index.html in sync`".
 CHECK_TOKEN_RE = re.compile(
     r"\bcheck\s+(\d+)\s+(?:print|prints|printing|show|shows|showing|emit|emits|emitting)\s+"
@@ -372,15 +396,28 @@ NUMBER_RE = re.compile(r"\d+")
 # the AIX check appended after check 9 does not read as part of check 9.
 CHECK_BANNER_RE = re.compile(r"^\s*echo\s+[\"']===\s*Check\s+(\d+)\b", re.I)
 BANNER_RE = re.compile(r"^\s*echo\s+[\"']===")
-ECHO_ARG_RE = re.compile(r"\becho\s+(?:\"([^\"]*)\"|'([^']*)'|([^;|&()\n]+))")
+ECHO_ARG_RE = re.compile(r"\b(?:echo|printf)\s+(?:\"([^\"]*)\"|'([^']*)'|([^;|&()\n]+))")
+# a shell function the harness defines - `ok() { echo "OK: $1"; }` - prints on the
+# check's behalf when the check calls it, so its literals belong to every check
+# that names it.  A rule that read only the check's own `echo` lines flagged a
+# harness whose success token came from a helper (2026-09-06 review).
+FUNC_DEF_RE = re.compile(r"^\s*(?:function\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{?")
+SEGMENT_SPLIT_RE = re.compile(r"\s*(?:;|&&|\|\||\|)\s*")
 # what an echoed literal says about the run that produced it.  SUCCESS is asked
 # first: a check that can print a success token satisfies the criterion whatever
-# else it may print on the failing path.
+# else it may print on the failing path.  A negated failure noun - "no differences
+# found", "no missing keys" - is a success message and reads as one.
 SUCCESS_LITERAL_RE = re.compile(
-    r"\bOK\b|\bPASS(?:ED|ING)?\b|\bSUCCESS\b|\bin\s+sync\b|\bup\s+to\s+date\b|\bclean\b", re.I)
+    r"\bOK\b|\bPASS(?:ED|ING)?\b|\bSUCCESS\b|\bin\s+sync\b|\bup\s+to\s+date\b|\bclean\b|"
+    r"\bno\s+(?:differences?|diffs?|missing|stale|errors?|failures?|violations?|"
+    r"mismatch(?:es)?|gaps?|problems?|issues?)\b", re.I)
 FAILURE_LITERAL_RE = re.compile(
-    r"\bMISSING\b|\bFAIL(?:ED|URE|S)?\b|\bERROR\b|\bSTALE\b|\bBAD\b|\bnot?\b|\bnever\b|"
-    r"\bcannot\b|\bunresolved\b|\bunauthorised\b", re.I)
+    r"\bMISSING\b|\bFAIL(?:ED|URE|S)?\b|\bERROR\b|\bSTALE\b|\bBAD\b|\bnot\b|\bnever\b|"
+    r"\bcannot\b|\bunresolved\b|\bunauthorised\b|\babsent\b|\bunresolvable\b", re.I)
+# the corpus shouts its failures - "has NO fallback lens" - and a bare lowercase
+# "no" is how a success message starts, so the shouted form is matched on its own
+# and case-sensitively.
+FAILURE_SHOUT_RE = re.compile(r"\bNO\b")
 
 # --- rule G: a before/after contrast with no reachable before-state -------------
 # (1) the snapshot is called a before-state rather than merely named
@@ -410,6 +447,23 @@ HISTORY_INSTRUMENT_RE = re.compile(
     r"\bgit\s+(?:log|show|cat-file|rev-list|rev-parse|worktree)\b|\bHEAD[~^:]|"
     r"\breachable\s+history\b|\bearlier\s+commit\b|\bcommitted\s+version\b|"
     r"\bat\s+(?:commit|revision)\b", re.I)
+# (5) the handoff tells THIS node to change the artifact.  Then the `.pre` copy is
+# the working tree at dispatch and the node's own edit is the after-state: the
+# contrast exists whatever `git log` says, because history is not where the
+# before-state lives.  `P132` #31 was settled CONFIRMED in the archived run for
+# exactly this reason (`_orch/verify/P132-verdict.json` row 31) and went
+# unsettleable in the replay only because the replay's tree already carried the
+# edit.  Without this clause the rule flagged every new tool a node is told to
+# change (`_orch-replay/final/report-errata.md`, E4).
+EDIT_VERB_RE = re.compile(
+    r"\b(?:edit|modify|modifi|change|repair|patch|fix|rewrite|rewrit|update|updat|"
+    r"extend|amend|teach|add|append)(?:e|s|es|ed|ing)?\b", re.I)
+# the path followed by a mark that it is the thing being changed - a handoff's
+# expected-outputs list writes "`tools/instruments.py` (edited)"
+POST_EDIT_RE = re.compile(
+    r"^[`'\"]?\s*(?:\((?:edited|modified|changed|repaired|extended|patched)\)|"
+    r"(?:is|gets|will\s+be|must\s+be|to\s+be)\s+(?:edited|modified|changed|repaired|extended|"
+    r"patched)|gains\b|so\s+that\b)", re.I)
 
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 BARE_PATH_RE = re.compile(r"(?<![`\w])(/(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+)")
@@ -633,10 +687,50 @@ class Harness(object):
         except (IOError, OSError):
             self._cache[path] = None
             return None
-        out, cur = {}, None
-        for ln in body.split("\n"):
+        lines = body.split("\n")
+        # first pass: the literals each shell function prints, so a check that
+        # calls `ok "check 1"` is credited with what `ok` echoes.
+        funcs, fname = {}, None
+        for ln in lines:
+            if ln.lstrip().startswith("#"):
+                continue
+            if fname is None:
+                m = FUNC_DEF_RE.match(ln)
+                if m:
+                    fname = m.group(1)
+                    funcs[fname] = []
+                    tail = ln[m.end():]
+                    for g in ECHO_ARG_RE.findall(tail):
+                        lit = (g[0] or g[1] or g[2]).strip()
+                        if lit:
+                            funcs[fname].append(lit)
+                    if tail.rstrip().endswith("}"):
+                        fname = None
+                continue
+            if ln.strip() == "}" or ln.rstrip().endswith("}"):
+                for g in ECHO_ARG_RE.findall(ln):
+                    lit = (g[0] or g[1] or g[2]).strip()
+                    if lit:
+                        funcs[fname].append(lit)
+                fname = None
+                continue
+            for g in ECHO_ARG_RE.findall(ln):
+                lit = (g[0] or g[1] or g[2]).strip()
+                if lit:
+                    funcs[fname].append(lit)
+        # second pass: the checks, skipping function bodies
+        out, cur, in_func = {}, None, False
+        for ln in lines:
             if ln.lstrip().startswith("#"):
                 continue  # a comment quoting an echo is not an echo
+            if in_func:
+                if ln.strip() == "}" or ln.rstrip().endswith("}"):
+                    in_func = False
+                continue
+            m = FUNC_DEF_RE.match(ln)
+            if m:
+                in_func = not ln[m.end():].rstrip().endswith("}")
+                continue
             m = CHECK_BANNER_RE.match(ln)
             if m:
                 cur = int(m.group(1))
@@ -651,6 +745,10 @@ class Harness(object):
                 lit = (g[0] or g[1] or g[2]).strip()
                 if lit:
                     out[cur].append(lit)
+            for seg in SEGMENT_SPLIT_RE.split(ln.strip()):
+                head = seg.split()[0] if seg.split() else ""
+                if head in funcs:
+                    out[cur].extend(funcs[head])
         self._cache[path] = out
         return out
 
@@ -667,13 +765,19 @@ NUM_RE = re.compile(r"^(\d+)\.\s+(.*)$")
 def parse_handoff(text):
     """Returns (criteria, whole_text).  criteria is a list of (number, text)."""
     lines = text.split("\n")
-    start = None
-    for i, ln in enumerate(lines):
-        if CRIT_HEAD_RE.match(ln):
-            start = i + 1
-            break
-    if start is None:
+    # A fan-out handoff carries two such headings - `F2` has "## Child done-criteria"
+    # at line 97 and "## Done-criteria for this node" at line 129 - and the node's
+    # own section is the one a verifier sweeps.  Prefer the heading that does not
+    # say "child"; among those, the last, because a node's own criteria close the
+    # handoff.  Taking the first heading linted `F2`'s nine child criteria and never
+    # its ten (`_orch-replay/final/report-errata.md`, E8).
+    heads = [i for i, ln in enumerate(lines) if CRIT_HEAD_RE.match(ln)]
+    own = [i for i in heads if "child" not in lines[i].lower()]
+    if own:
+        heads = own
+    if not heads:
         return [], text
+    start = heads[-1] + 1
     body = []
     for ln in lines[start:]:
         if HEAD_RE.match(ln):
@@ -1021,9 +1125,15 @@ def demanded_checks(text):
     ("check 6 prints `index.html in sync`")."""
     out = []
     for m in CHECK_LIST_RE.finditer(text):
-        for n in NUMBER_RE.findall(m.group(1)):
-            if int(n) not in out:
-                out.append(int(n))
+        span = m.group(1)
+        nums = []
+        for a, b in CHECK_RANGE_RE.findall(span):
+            nums.extend(range(int(a), int(b) + 1))
+        for n in NUMBER_RE.findall(CHECK_RANGE_RE.sub(" ", span)):
+            nums.append(int(n))
+        for n in nums:
+            if n not in out:
+                out.append(n)
     for m in CHECK_TOKEN_RE.finditer(text):
         n = int(m.group(1))
         if n not in out:
@@ -1045,7 +1155,8 @@ def classify_check(literals):
     is a failure line, 'unsettled' if it prints nothing or nothing classifiable."""
     if any(SUCCESS_LITERAL_RE.search(lit) for lit in literals):
         return "success"
-    failures = [lit for lit in literals if FAILURE_LITERAL_RE.search(lit)]
+    failures = [lit for lit in literals
+                if FAILURE_LITERAL_RE.search(lit) or FAILURE_SHOUT_RE.search(lit)]
     if failures and len(failures) == len(literals):
         return "failure"
     return "unsettled"
@@ -1114,8 +1225,12 @@ def rule_f(num, text, handoff_text, harness):
         out.append(("FLAG", "F1",
                     "this criterion requires check%s %s of `%s` to print a success token, and "
                     "%s only output lines are failures - %s. Silence IS their pass, so a clean "
-                    "run prints nothing and the criterion demands output the instrument never "
-                    "produces: no correct execution can satisfy it "
+                    "run prints nothing the criterion names, and the criterion is ambiguous: in "
+                    "this framework's own archive two verifiers read the silence as the pass and "
+                    "confirmed this sentence, and two others read it literally and called it "
+                    "unsatisfiable (`_orch/verify/P111-verdict.json` row 29 against "
+                    "`_orch-replay/verify/P111-verdict.json` row 29). A criterion two verifiers "
+                    "settle opposite ways is a defect in the words "
                     "(`_orch-replay/inbox/Q-7.answer.md`, the `P111` #29 / `P112` #30 shape). "
                     "The repaired wording - `P121` #29, `P122` #24, `P132` #35 - names only the "
                     "checks that do print one and says of the rest that they print nothing at "
@@ -1198,6 +1313,8 @@ def rule_g(num, text, handoff_text, self_id, tracked):
                     "it is now, and names no path for the artifact itself, so the linter could "
                     "not settle which file to ask history about." % snapshot))
         return out
+    if node_edits(subject, handoff_text):
+        return out  # the node's own edit is the after-state; the `.pre` copy is real.
     versions = tracked.history_versions(subject)
     if not versions:
         # None: git could not answer.  0: no commit touches that path at all, which
@@ -1216,15 +1333,44 @@ def rule_g(num, text, handoff_text, self_id, tracked):
                 "this criterion requires `%s` to behave one way before this node's change and the "
                 "opposite way after, and settles the before half against `%s` - a copy taken by "
                 "this node's own first act, which captures whatever the artifact already is at "
-                "dispatch. The criterion never asks whether a pre-change state is reachable, and "
-                "`git log --follow` reports %d commit%s touching `%s`, so no version distinct from "
-                "the current one is reachable and the contrast cannot be constructed at any rung. "
-                "The `P132` #31 shape (`_orch-replay/verify/P132-verdict.json` row 31: \"the "
-                "criterion's premise that this capture is a pre-`P132` tool distinct from current "
-                "is false\"; the decision is `_orch-replay/inbox/Q-10.answer.md`). Name the "
-                "revision the before-state comes from - `git show <rev>:%s` - or drop the contrast."
-                % (subject, snapshot, versions, "" if versions == 1 else "s", subject, subject)))
+                "dispatch. The handoff never tells this node to change `%s`, so that copy is the "
+                "current file; the criterion never asks whether a pre-change state is reachable, "
+                "and `git log --follow` reports %d commit%s touching `%s`, so no version distinct "
+                "from the current one is reachable and the contrast cannot be constructed at any "
+                "rung. The `P132` #31 shape as the replay met it (`_orch-replay/verify/"
+                "P132-verdict.json` row 31; the decision is `_orch-replay/inbox/Q-10.answer.md`) - "
+                "note the archived run settled that same row CONFIRMED because its handoff DID "
+                "tell the node to change the tool, which is why this rule asks. Name the revision "
+                "the before-state comes from - `git show <rev>:%s` - or tell the node to make the "
+                "change, or drop the contrast."
+                % (subject, snapshot, subject, versions, "" if versions == 1 else "s", subject,
+                   subject)))
     return out
+
+
+def node_edits(subject, handoff_text):
+    """True when the handoff instructs this node to change `subject`: an edit verb
+    within a short window of the path or its basename, outside the done-criteria
+    themselves.  The window is generous on purpose - a handoff says "edit
+    `tools/instruments.py` so that" or "in `tools/instruments.py`, add a rule" - and
+    a false negative here only returns rule G to the commit count it asked before."""
+    # Only the handoff's instruction sections are read - never the done-criteria,
+    # whose own prose says "the change" of the very contrast this rule is judging.
+    lines = handoff_text.split("\n")
+    heads = [i for i, ln in enumerate(lines) if CRIT_HEAD_RE.match(ln)]
+    own = [i for i in heads if "child" not in lines[i].lower()] or heads
+    text = "\n".join(lines[:own[-1]]) if own else handoff_text
+    base = os.path.basename(subject)
+    for needle in (subject, base):
+        for m in re.finditer(re.escape(needle), text):
+            before = text[max(0, m.start() - 120):m.start()]
+            after = text[m.end():m.end() + 40]
+            # the verb must come before the path within the window, or the path
+            # must be followed by an "(edited)" mark; a bare noun elsewhere is not
+            # an instruction.
+            if EDIT_VERB_RE.search(before) or POST_EDIT_RE.search(after):
+                return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -1305,9 +1451,23 @@ diff -q a b >/dev/null && echo "index.html in sync" || echo "PAGE STALE"
 echo "=== Check 4: every tag resolves ==="
 sh tools/delegated.sh
 
+echo "=== Check 5: every card has a domain ==="
+for f in a b; do
+  grep -q domain "$f" || echo "MISSING domain: $f"
+done
+ok "check 5"
+
+echo "=== Check 6: the router embeds ==="
+diff -q a b >/dev/null && printf 'OK: router embedded\\n' || echo "ROUTER STALE"
+
+echo "=== Check 7: the page matches its source ==="
+diff -q a b >/dev/null && echo "no differences found"
+
 echo "=== AIX check (not one of the numbered checks) ==="
 echo "AIX LEVEL 1 OK"
 """
+# the helper is defined before any banner, the way a real harness defines it
+SELFTEST_HARNESS = 'ok() { echo "OK: $1"; }\n' + SELFTEST_HARNESS
 
 SELFTEST_HANDOFF = """# HANDOFF - X1
 
@@ -1320,6 +1480,27 @@ SELFTEST_HANDOFF = """# HANDOFF - X1
 ## Done-criteria
 
 1. %s
+"""
+
+# the same handoff for a node that is told to change the artifact - the ordinary
+# case, in which the `.pre` copy is a real before-state whatever history holds.
+SELFTEST_HANDOFF_EDIT = SELFTEST_HANDOFF.replace(
+    "## Done-criteria",
+    "4. Edit `tools/prober.py` so the gate refuses a pure re-reviewer.\n\n## Done-criteria")
+
+# a fan-out handoff: the child section comes first and the node's own last
+SELFTEST_HANDOFF_FANOUT = """# HANDOFF - X2
+
+## Child done-criteria - each child is judged on these
+
+1. The child wrote its file.
+2. The child changed nothing else.
+
+## Done-criteria for this node
+
+1. %s
+2. Every child closed.
+3. The roll-up ran.
 """
 
 
@@ -1367,8 +1548,8 @@ def selftest():
         tracked, harness = Tracked(tmp), Harness(tmp)
         hp = os.path.join(tmp, "node", "handoff.md")
 
-        def lint(criterion, letter):
-            write("node/handoff.md", SELFTEST_HANDOFF % criterion)
+        def lint(criterion, letter, template=None):
+            write("node/handoff.md", (template or SELFTEST_HANDOFF) % criterion)
             out = []
             lint_file(hp, tracked, harness, out)
             return [ln for ln in out if "[%s" % letter in ln]
@@ -1408,6 +1589,27 @@ def selftest():
                       has(lint("Check 1 prints its OK token.", "F"), "F1")))
         cases.append(("F is silent on that same form when the check does print one",
                       not lint("Check 3 prints `index.html in sync`.", "F")))
+        # the forms that were silent or wrong before the 2026-09-06 review
+        cases.append(("F reads a range: 'checks 1-3'",
+                      has(lint("`work/invariant.txt` contains a full `harness.sh` run in which "
+                               "checks 1-3 print their OK tokens.", "F"), "F1")))
+        cases.append(("F reads the script named inline: 'checks 1 and 2 of `tools/harness.sh`'",
+                      has(lint("`work/invariant.txt` shows checks 1 and 2 of `tools/harness.sh` "
+                               "print their OK tokens.", "F"), "F1")))
+        cases.append(("F reads 'check 1 and check 2 each report their OK line'",
+                      has(lint("`work/invariant.txt` contains a full `harness.sh` run in which "
+                               "check 1 and check 2 each report their OK line.", "F"), "F1")))
+        cases.append(("F is silent when a helper function prints the success token",
+                      not lint("`work/invariant.txt` contains a full `harness.sh` run in which "
+                               "checks 2 and 5 print their OK tokens.", "F")))
+        cases.append(("F is silent when the success token comes from printf",
+                      not lint("`work/invariant.txt` contains a full `harness.sh` run in which "
+                               "checks 2 and 6 print their OK tokens.", "F")))
+        cases.append(("F reads a negated failure noun as a success message",
+                      not lint("`work/invariant.txt` contains a full `harness.sh` run in which "
+                               "checks 2 and 7 print their OK tokens.", "F")))
+        cases.append(("the parser lints the node's own criteria, not a fan-out's child section",
+                      len(parse_handoff(SELFTEST_HANDOFF_FANOUT % "x")[0]) == 3))
 
         # --- rule G ------------------------------------------------------------
         bad_g = ("The fixture is refused by the unmodified tool preserved at "
@@ -1428,6 +1630,8 @@ def selftest():
                       not lint(sameness_g, "G")))
         cases.append(("G is silent when the criterion names the revision it compares against",
                       not lint(history_g, "G")))
+        cases.append(("G is silent when the handoff tells the node to change the artifact",
+                      not lint(bad_g, "G", SELFTEST_HANDOFF_EDIT)))
 
         # --- no clock, no state -------------------------------------------------
         cases.append(("two runs over one unchanged fixture are byte-identical",
