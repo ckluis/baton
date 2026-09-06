@@ -35,6 +35,19 @@ So, as a duty on the layer that created the worktree:
 > `_orch/nodes/<id>/work/`.** Then verify each copied path exists. A worktree may not be removed
 > while any `outputs` path resolves only inside it.
 
+**Where the copy lands.** A product path keeps its path relative to the worktree root:
+`<worktree>/personas/lenses/type-system.md` lands at
+`_orch/nodes/<id>/work/tree/personas/lenses/type-system.md`, under a `tree/` prefix so it cannot
+collide with the node's own `work/` files. An output already under `_orch/nodes/<id>/work/` is
+already landed and is not copied again. The phase runner rewrites the envelope's `outputs` to the
+landed paths and keeps the original path beside each as `worktree_path`, so a verifier can still
+tell which tree the artifact was written in.
+
+**What this rule does not do.** It preserves evidence. It does not carry the product into the
+main tree: a worktree node's edits reach `main` only by a merge or a cherry-pick that the plan
+names as its own node (§4), never by the retirement step. A run that retires a worktree without
+such a node has kept the evidence and shipped nothing, and the final report says so.
+
 An `outputs` path that no longer resolves makes the envelope false (§2: *a path that does not
 exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on that artifact
 permanently unverifiable — not `REFUTED`, not `UNSETTLEABLE`, but `UNTESTED` forever, because the

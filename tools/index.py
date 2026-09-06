@@ -3,6 +3,8 @@
 
     python3 tools/index.py            # run from the repo root
     python3 tools/index.py <root>     # or point it at another corpus root
+    python3 tools/index.py --state-root _orch-replay   # a run whose state is not `_orch/`
+                                      # (or BATON_STATE_ROOT=_orch-replay)
 
 It reads `_orch/nodes/*/status.json`, `_orch/verify/*.json`, `_orch/ledger.csv`,
 `_orch/plan/graph.yaml` and `_orch/inbox/`, and writes exactly two files, both
@@ -165,6 +167,36 @@ class Findings(object):
 # corpus root discovery -- from the argument, the working directory, or the
 # script's own location. Never from ambient settings.
 # --------------------------------------------------------------------------
+
+
+STATE_ROOT_DEFAULT = "_orch"
+
+
+def state_root(argv):
+    """The run-state directory under the corpus root, `_orch` unless told otherwise.
+    `--state-root <dir>` or `--state-root=<dir>` on the command line wins, then the
+    `BATON_STATE_ROOT` environment variable.  A run that relocates its state - the
+    rung-6 replay wrote everything under `_orch-replay/` beside a read-only
+    `_orch/` - could not run this tool at all before this existed
+    (`_orch-replay/ledger.csv`, the three `INDEX-FAILED` rows).  The flag is
+    removed from `argv` so the positional root is read as before."""
+    val = os.environ.get("BATON_STATE_ROOT", "").strip() or STATE_ROOT_DEFAULT
+    keep = [argv[0]]
+    i = 1
+    while i < len(argv):
+        a = argv[i]
+        if a == "--state-root" and i + 1 < len(argv):
+            val = argv[i + 1].strip() or val
+            i += 2
+            continue
+        if a.startswith("--state-root="):
+            val = a[len("--state-root="):].strip() or val
+            i += 1
+            continue
+        keep.append(a)
+        i += 1
+    argv[:] = keep
+    return val
 
 
 def discover_root(argv):
@@ -554,9 +586,9 @@ def load_ledger(path, findings, root):
 # --------------------------------------------------------------------------
 
 
-def build_index(root):
+def build_index(root, state=STATE_ROOT_DEFAULT):
     findings = Findings()
-    orch = os.path.join(root, "_orch")
+    orch = os.path.join(root, state)
     nodes_dir = os.path.join(orch, "nodes")
     verify_dir = os.path.join(orch, "verify")
     inbox_dir = os.path.join(orch, "inbox")
@@ -798,10 +830,11 @@ def trim_to_ceiling(lines, ceiling=60):
 
 
 def main(argv):
+    state = state_root(argv)
     root = discover_root(argv)
-    index = build_index(root)
+    index = build_index(root, state)
 
-    out_dir = os.path.join(root, "_orch", "index")
+    out_dir = os.path.join(root, state, "index")
     try:
         os.makedirs(out_dir)
     except OSError:

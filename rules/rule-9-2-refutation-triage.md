@@ -69,6 +69,18 @@ row makes the node `REFUTED`; otherwise any `UNTESTED` or `UNSETTLEABLE` row mak
 - The answer authorises the rewrite. The criteria not named stay byte-identical; a fresh verifier
   re-verifies at the same rung. An unanswered question at the final gate is a *needs a human*
   line (§10.4), never an assumption.
+- **A rewrite is judged on substance against an artifact that predates it.** The artifact was
+  written to the old words. A rewrite may narrow what is measured or name the command that
+  measures it; it may not add a literal the artifact was never asked for — a fixed heading, a
+  file name, a specific command's raw output — and then refute the artifact for lacking it. A
+  re-verifier that finds the rewrite's substance met under a different heading or a different
+  but equivalent command writes `CONFIRMED` and says how it mapped the two. If the rewrite's
+  form cannot be mapped onto the artifact, the node is re-run at the same rung against the new
+  words, not refuted against them. Observed in this framework's own replay run: `P90b`'s
+  criterion 1 asked for "a clearly-headed amendment section"; the adopted rewrite named the
+  heading `## Amendment for Q-10.answer.md`, and twelve rows of an artifact with a clearly headed
+  amendment section came back `REFUTED` on the heading and on a command the worker never saw
+  (`_orch-replay/final/report-errata.md`, E6).
 - A verdict with both `REFUTED` and `UNSETTLEABLE` rows escalates on the `REFUTED` rows now. The
   phase runner files the question at the same time, so the re-spawn's verifier — which will find
   the same criterion and mark it `UNSETTLEABLE` again — lands `PARTIAL` and parks rather than
