@@ -2,7 +2,76 @@
 
 ## Unreleased
 
+## v3.2 — 2026-09-06
+
+Everything here came from running baton on itself: a replay of the eighteen nodes the self-run
+refuted, at the top rung, followed by an independent review of that replay. The two rules from the
+"Unreleased" section that preceded this release, §9.2 and §8.1, ship here too.
+
 ### Contract
+
+- **`prompt/CONTRACT.md` §8.2 — every blocking decision ships a slide, not only the two gates.**
+  The trigger is the consequence, not the gate: a decision that stalls work until a person answers
+  gets a slide in the run's brief; a decision the run continues past gets a ledger row. The expensive
+  layer writes the question, the shape and three options into `_orch/inbox/Q-<n>.md`; a rung-2
+  briefer renders it; the answer lands beside it as `Q-<n>.answer.md`; the run reads it at its next
+  gate. The deck is cumulative across the run, every path a person is asked to open is absolute, and
+  the closing message names the deck and says how many decisions need a human, never what they are.
+  **A slide that schedules a decision has not made one**: options about who decides or what order to
+  decide in settle nothing, and the test is mechanical — read the recommended option and ask what
+  changes on disk. One token set, `prompt/brief-tokens.css`, is inlined verbatim by every brief; a
+  briefer that declares its own palette has forked the house style. `prompt/roles/briefer.md`,
+  `prompt/roles/phase-runner.md` and `prompt/baton.md` updated.
+- **`prompt/CONTRACT.md` §6.2 — a worktree node lands its outputs before the worktree dies.** §6 said
+  `work/` holds all artifacts; §4's `isolation: worktree` had the node write its products into a
+  tree that was then removed. Now the layer that created the worktree copies every envelope
+  `outputs` path to `_orch/nodes/<id>/work/tree/<worktree-relative path>` and verifies each copy
+  before `git worktree remove`; the envelope is rewritten to the landed paths with the original kept
+  as `worktree_path`. Landing is evidence, not shipping: the product reaches `main` only through a
+  merge node the plan names. In the replay, `F2`'s fourteen lens files died with its worktree and
+  eight of its ten criteria became unverifiable forever.
+- **`prompt/CONTRACT.md` §9.3 — settle it in isolation before you call it unsettleable.** Before a
+  verifier writes `UNSETTLEABLE` on a criterion that reads the tree, the branch or the index, it
+  re-runs the criterion's own settling command once in a private worktree that holds the node's
+  commit plus the node's own landed outputs and nothing else. It settles → `CONFIRMED` or `REFUTED`.
+  It reads a thing no tree holds — a branch pointer, a tag list, another node's output, the index —
+  → the new shape `reads-immutable-ref`. Its target is outside the node's write set or its input was
+  withheld → `measures-outside-node`, kept. The retry is a worktree inside the verifier's spawn, not
+  a spawn. The replay's twenty-three `measures-outside-node` rows were all caused by the replay's
+  own harness, but that run isolated every node at concurrency one and so could not produce the
+  shape's founding case; the shape stays until an ordinary run labels its instances.
+- **`prompt/CONTRACT.md` §9.2 — a rewrite is judged on substance against an artifact that predates
+  it.** An answer's rewrite may narrow what is measured or name the command that measures it; it
+  may not add a literal the artifact was never asked for — a fixed heading, a file name, a command's
+  raw output — and then refute the artifact for lacking it. Observed on `P90b`: twelve rows of an
+  artifact with a clearly headed amendment section came back `REFUTED` on a heading chosen two days
+  later.
+
+### Tools
+
+- **`tools/lint-criteria.py` — two rules, and the right section.** Rule F flags a criterion that
+  demands a success token from a harness check whose only output lines are failures, reading the
+  script rather than matching keywords; it reads `printf`, credits a check with what a helper
+  function it calls prints, and reads a negated failure noun as the success message it is. Its
+  claim is ambiguity, not impossibility: the archived run's verifiers confirmed the same sentence
+  reading silence as the pass. Rule G flags a before/after contrast whose before-state is a copy the
+  node's own first act takes, when the handoff never tells the node to change the artifact and
+  history holds no distinct version. The parser now lints a fan-out handoff's own done-criteria
+  rather than its children's — `F2`'s ten node criteria had never been scored. `--selftest` grew
+  from thirteen cases to twenty-one; the flag count over the corpus is unchanged.
+- **`tools/index.py --state-root`** (or `BATON_STATE_ROOT`) — a run whose state is not `_orch/`
+  can be indexed. The replay logged three `INDEX-FAILED` rows because the path was hardcoded.
+
+### Experiments
+
+- **The rung-6 replay ran, and its pre-registered rule returned inconclusive.** Eighteen nodes the
+  self-run refuted were replayed with the worker at rung 6 and the verifier at the rung that refuted
+  each. Work-class arm: no first-try verdict carried a `REFUTED` row; every non-confirmation was an
+  environment or protocol row; under the pre-registered instrument the count sits in the rule's
+  inconclusive band, and the arm is not evidence about rung 6 in either direction. Criterion-class
+  arm: capability-independent on the rule's words. The run's report, addendum and errata live in
+  the run directory; `docs/experiments/replay-refuted-at-rung-6.md` carries the result.
+
 
 - **`prompt/CONTRACT.md` §9.2 — refutation triage.** A verifier now has a fourth row
   verdict, `UNSETTLEABLE`, for a criterion no execution inside the node could have settled as
@@ -31,13 +100,6 @@
   English by rule: short declarative sentences, defined terms, no metaphor, no numbers in prose.
   Derived from the report, never authoritative, disposed of with `_orch/`. The router's closing
   message names the brief before the report.
-
-### Experiments
-
-- `docs/experiments/replay-refuted-at-rung-6.md` — a paste-ready GENERIC directive that
-  replays the 18 nodes this run refuted at first attempt with a rung-6 worker, holding the
-  verifier's rung constant, to settle whether the ladder is cost engineering. Decision rule
-  pre-registered; the tree-state confound stated and handled per node.
 
 ## v3.1 — 2026-09-02
 

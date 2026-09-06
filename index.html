@@ -259,7 +259,7 @@ html.js .reveal.in{opacity:1;transform:none}
     <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
       <div>
         <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v3.1</span>
+          <span class="pill y">v3.2</span>
           <span class="pill c">router + 10 modes</span>
           <span class="pill c">40 named experts</span>
         </div>
@@ -1288,7 +1288,8 @@ html.js .reveal.in{opacity:1;transform:none}
 <span class="k">loops/</span>L1/seen.yaml    <span class="c">47 keys, 2 dry rounds</span>
 ledger.csv            <span class="c">58 rows, one per spawn</span>
 <span class="k">final/</span>report.md      <span class="c">+ the rung histogram</span>
-<span class="k">brief/</span>final.html      <span class="c">one slide per decision, for you</span></pre>
+<span class="k">brief/</span>final.html      <span class="c">one slide per decision, for you</span>
+<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer, beside the question</span></pre>
       </div>
       <div class="card" style="display:flex;flex-direction:column;justify-content:center">
         <span class="num">RUNG HISTOGRAM</span>
@@ -1311,9 +1312,14 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
     <div class="sechead reveal" style="margin-top:56px;margin-bottom:24px">
       <span class="kicker c">The brief</span>
       <h3 style="font-size:clamp(22px,3vw,34px);letter-spacing:-.02em;line-height:1.1;margin-top:12px">The report is the record. <em>This is what you open.</em></h3>
-      <p>Every gate that reaches a person ships one page beside it: one slide per decision, three
-        options, one recommendation, every number with the command that produced it. Below is the
-        real one &mdash; the brief for the pull request that added the brief.</p>
+      <p>Every decision that stalls work ships one slide, at a gate or mid-phase: three options, one
+        recommendation, every number with the command that produced it. The loop is on disk. A blocked
+        node writes its question to <code>_orch/inbox/Q-&lt;n&gt;.md</code>; a rung-2 briefer renders
+        the slide; your answer lands beside the question as <code>Q-&lt;n&gt;.answer.md</code>; the run
+        reads it at its next gate and moves. The deck is cumulative &mdash; an answered slide keeps its
+        place, marked with the answer &mdash; and a slide that only schedules a decision, who decides or
+        what order, is a defect. Below is a real one &mdash; the brief for the pull request that added
+        the brief.</p>
     </div>
     <div class="reveal d1">
       <div class="code" style="border-radius:12px 12px 0 0;border-bottom:none">
@@ -1577,7 +1583,10 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
           the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
           to 85. There is nowhere to amend a stale copy of a rule because there are no copies, and the
           index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
-          the paste is unchanged.</p>
+          the paste is unchanged. v3.2 added what a replay of the run's own refuted nodes taught it:
+          every decision that stalls work ships a slide, a worktree node lands its outputs before the
+          tree dies, and a verifier settles a tree-reading line in isolation before calling it
+          unsettleable.</p>
         <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
           <strong>the contract wins and the role prompt is the bug.</strong></p>
         <p style="margin-top:16px;font-size:16px">v3 made the repository legible to something other than baton. Persona frontmatter may carry optional <code>type</code>, <code>id</code> and <code>links</code> keys &mdash; ignored entirely by baton's own loader, meaningful only to an outside consumer &mdash; and <code>tools/aix-validate.py</code> holds this bundle to <strong>AIX level 1</strong> on every acceptance run.</p>
@@ -1628,10 +1637,10 @@ ledger.csv            <span class="c">58 rows, one per spawn</span>
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.1/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.2/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.1/MIGRATING.md</pre>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.2/MIGRATING.md</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
@@ -1652,7 +1661,7 @@ Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.
         <h4>The URL is the whole dependency.</h4>
         <p>No clone, no install, no config file. Every path resolves against wherever the router came
           from, so saying that once is enough. It also makes the base URL the version pin: point at
-          <code>/v3.1</code> instead of <code>/main</code> and the entire framework comes from that
+          <code>/v3.2</code> instead of <code>/main</code> and the entire framework comes from that
           tag, with no second version to keep in sync.</p>
       </div>
       <div class="card sm">
@@ -1675,7 +1684,7 @@ Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 260 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 265 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
@@ -1914,9 +1923,14 @@ recommendation.
 Your closing message to the operator is small, and small is the whole point:
 
 - the verdict
-- the path to `_orch/brief/final.html` — the page a person opens first
-- the path to `final/report.md` — the record it was derived from
-- at most five things that need a human
+- the **fully qualified** path to `_orch/brief/final.html` — the page a person opens
+  first. Absolute from the filesystem root, never relative (§8.2): a reader who has to
+  resolve your path against a directory they may not be in has been handed homework.
+- the **fully qualified** path to `final/report.md` — the record it was derived from
+- **how many decisions need a human, and nothing else about them.** They are slides in
+  the deck you just named. Restating them here re-buries the page (§8.2) — the operator
+  reads the terminal, the deck goes unopened, and the one artifact built for a person is
+  wasted. Say "four decisions need you", not what they are.
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch &amp;&amp; rm -rf _orch`) or keep it to
   resume or re-verify
@@ -1995,7 +2009,7 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
       <div>
         <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
           <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3.1</span>
+          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3.2</span>
         </div>
         <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
           rebuilt around what it costs. The repository is the artifact.</p>

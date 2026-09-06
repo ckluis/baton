@@ -1,5 +1,18 @@
 # Migrating between baton versions
 
+## v3.1 → v3.2
+
+Change the base URL to `.../ckluis/baton/v3.2`. That is the whole migration: nothing breaks.
+
+Everything in v3.2 is additive. Three rules were added (§6.2, §8.2, §9.3) and one gained a
+clause (§9.2); a verifier may now write one more `shape`, `reads-immutable-ref`, and the shapes
+it could write before are unchanged. `tools/lint-criteria.py` has two more rules and reads a
+fan-out handoff's own done-criteria, so a handoff that carries both a child section and a node
+section may score differently than it did — that is the linter reading the right section, not a
+new requirement. `tools/index.py` accepts `--state-root` and behaves as before without it.
+
+---
+
 ## v3.0 → v3.1
 
 Change the base URL to `.../ckluis/baton/v3.1`. For almost everyone that is the
