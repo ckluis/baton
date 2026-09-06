@@ -37,6 +37,8 @@ write `REFUTED`. It writes the fourth row verdict:
 1. the criterion quoted verbatim;
 2. a **`shape`**, one of: `unbounded-enumeration` (asks for *every* instance with no command that
    generates the enumeration, so each verifier finds a different gap),
+   `measures-outside-node` (reads a path outside the node's write set or an input it was not
+   given; §9.3 — only after §9.3's retry has failed to settle it),
    `false-premise` (asserts a fact about the input that was never true),
    `self-contradictory` (conflicts with another line of the same handoff),
    `superseded-form` (an answer file or brief has already rewritten it and the handoff still
@@ -47,9 +49,9 @@ write `REFUTED`. It writes the fourth row verdict:
    can make it two. What the artifact actually shows goes in `evidence`, so the rewrite can be
    judged against it.
 
-**`measures-outside-node` was a shape here and is not one any more.** §9.3 explains what replaced
-it and why. A verdict written before that change may still carry it; read such a row as a §9.3
-candidate that was never retried, not as a settled finding.
+**`measures-outside-node` and `reads-immutable-ref` are written only after §9.3's retry.** A
+verdict written before §9.3 existed may carry `measures-outside-node` with no retry behind it;
+read such a row as a §9.3 candidate that was never retried, not as a settled finding.
 
 Hard is not unsettleable. A criterion the artifact *could* have met as written is `REFUTED`
 however much work meeting it would take. An `UNSETTLEABLE` row missing its shape or its
