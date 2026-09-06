@@ -1,6 +1,6 @@
 # Experiment: replay the refuted nodes at rung 6
 
-Drafted 2026-09-02 · Status: **READY TO RUN** · Cost cap: 45 spawns
+Drafted 2026-09-02 · Ran 2026-09-04 to 2026-09-05 · Reviewed 2026-09-06 · Status: **RUN — inconclusive** · Cost cap: 45 spawns (47 true spawns at the final gate)
 
 ## The question
 
@@ -152,3 +152,35 @@ worktree removed. No product file in the main tree is changed.
 - Token cost. The ledger records seconds. If the decision turns on dollars, add a token
   count per spawn from the harness before reading the result.
 - Anything about phases, digests, or the phase runner. This is a node-level replay.
+
+## Result
+
+Recorded 2026-09-06 after an independent review of the run. The run directory (`_orch-replay/`)
+is gitignored; its report, addendum, errata and decision deck are the record.
+
+- **Work-class arm: inconclusive, and not evidence about rung 6 in either direction.** All nine
+  discriminating nodes ran. No first-try verdict carried a `REFUTED` row. Four nodes came back
+  `CONFIRMED`; every non-confirmation was an environment or protocol row — a process claim about
+  network provenance, a read-only corpus and withheld answer files, a file already tracked at the
+  replay's commit, a tag list, a roster absent at `e78e7b0`. Under the instrument this document
+  pre-registered for `P41` (the single-claim persona seat) the count is 5 of 9, the rule's
+  inconclusive band; a full sweep adopted after the run moves it to 4 of 9, and that swap is the
+  only thing that would make the rule read "holds". "Does not collapse" is safe; "holds" is not
+  supported. A ninth cell that is confounded every way it can be counted is the honest summary.
+- **Criterion-class arm: capability-independent on the rule's words.** All seven nodes stayed
+  not `CONFIRMED`. Of the eight original criteria, one came back `CONFIRMED` (`P111` #21), three
+  settled false, and four stayed `UNSETTLEABLE`. The node-level rule counts a node as support for
+  §9.2 whenever any row fails, so the outcome is weakly earned; the next experiment should count
+  criteria and separate "unsettleable" from "false".
+- **What the run mostly measured was its own harness.** Twenty-three of thirty-two `UNSETTLEABLE`
+  rows carried `measures-outside-node`, every one caused by the read-only corpus, the withheld
+  inputs, or worktrees pinned past the original tree. The tree-state confound declared above
+  manufactured `P80`'s refutation. Three fixtures labelled genuine were criteria the original
+  run's own verifiers had confirmed. One node's blind did not hold: the archived ledger names
+  verdicts, and `P121` grepped it.
+- **What it changed.** §6.2, §8.2, §9.3, a clause in §9.2, two linter rules and a parser fix,
+  and `tools/index.py --state-root` — see `CHANGELOG.md` v3.2.
+
+**Not settled, still.** A stronger verifier (the second arm named above), token cost, and
+anything about phases. And the ladder's escalation half: this run could not measure it.
+

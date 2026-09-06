@@ -1,6 +1,6 @@
 # baton
 
-**v3.1** · An orchestrator of orchestrators, rebuilt around what it costs.
+**v3.2** · An orchestrator of orchestrators, rebuilt around what it costs.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
@@ -58,9 +58,10 @@ touch you, the migration is changing one URL.
 
 ---
 
-## Since v3.1
+## v3.2 — since v3.1
 
-Two additions, both from running baton on itself for eight days and reading the ledger.
+Six additions, all from running baton on itself: eight days of the self-run, then a replay of the
+eighteen nodes that run refuted at the top rung, then an independent review of the replay.
 
 - **A verifier can say a checklist line is unsettleable.** Besides `CONFIRMED`, `REFUTED`
   and `UNTESTED`, a per-criterion row may read `UNSETTLEABLE`: no execution inside the node
@@ -79,6 +80,37 @@ Two additions, both from running baton on itself for eight days and reading the 
   what it settles, a numbers table whose every row shows its command, and the paths. Plain
   technical English by rule. The report stays the record; the brief is what you open first
   (`rules/rule-8-1-the-human-brief.md`, `prompt/roles/briefer.md`).
+- **Every blocking decision ships a slide, not only the two gates.** The trigger is the
+  consequence: work that stalls until a person answers earns a slide; work the run continues past
+  earns a ledger row. The layer holding the context writes the question and three options to
+  `_orch/inbox/Q-<n>.md`, a rung-2 briefer renders the slide, your answer lands beside it as
+  `Q-<n>.answer.md`, and the run reads it at its next gate. The deck is cumulative and every path
+  it asks you to open is absolute. A slide that only schedules a decision — who decides, what order
+  — is a defect: read the recommended option and ask what changes on disk. One token file,
+  `prompt/brief-tokens.css`, is the whole house style (`rules/rule-8-2-every-blocking-decision-ships-a-slide.md`).
+- **A worktree node lands its outputs before the worktree dies.** A node isolated in its own git
+  worktree writes its products there, and the worktree is removed when it closes. Now the layer that
+  made the worktree copies every output under `work/tree/` first and checks each copy. In the replay
+  a node's fourteen files died with its tree and eight of its ten criteria became unverifiable at
+  any rung (`rules/rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md`).
+- **Settle it in isolation before you call it unsettleable.** A criterion that reads the tree or
+  the branch is retried once in a private worktree holding the node's commit plus the node's own
+  work and nothing else. It settles, or it names what no tree can hold — a branch pointer, a tag
+  list, the index — as the new shape `reads-immutable-ref`. And an answer's rewrite may narrow a
+  criterion but may not add a literal the finished artifact was never asked for
+  (`rules/rule-9-3-settle-it-in-isolation-before-you-call-it-unsettleable.md`, `rules/rule-9-2-refutation-triage.md`).
+- **Two more linter rules, and a linter that reads the right section.** `tools/lint-criteria.py`
+  now flags a criterion that demands a success token from a check that only prints failures, and a
+  before/after contrast whose before-state nothing can reach; it reads the harness script rather
+  than matching words, and a fan-out handoff is scored on its own criteria rather than its
+  children's. Twenty-one selftest cases. `tools/index.py --state-root` indexes a run whose state is
+  not under `_orch/`.
+- **The replay experiment ran, and reported inconclusive.** Nine work-class nodes at rung 6: not one
+  first-try `REFUTED` row, every non-confirmation an environment or protocol row, and the
+  pre-registered rule lands in its own inconclusive band once its own instrument is used. The
+  criterion-class arm returns capability-independent on the rule's words. What the run mostly
+  measured was its own harness, and the rules above are what it taught
+  (`docs/experiments/replay-refuted-at-rung-6.md`, "Result").
 
 ---
 
@@ -252,10 +284,10 @@ reached with `PERSONAS: builtin+luminaries`.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.1/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.2/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.1/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.2/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -275,7 +307,7 @@ Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v3.1` instead of `/main` and
+  The base URL is also the version pin: point at `/v3.2` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
@@ -322,7 +354,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/v3.1`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v3.2`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 
