@@ -48,7 +48,7 @@ computed from those rows — you do not assert it** (CONTRACT §9.1):
       "verdict": "CONFIRMED|REFUTED|UNTESTED|UNSETTLEABLE",
       "probe": "the command you ran or the check you performed",
       "evidence": ["paths"],
-      "shape": "UNSETTLEABLE rows only (CONTRACT §9.2): unbounded-enumeration|measures-outside-node|false-premise|self-contradictory|superseded-form"
+      "shape": "UNSETTLEABLE rows only (CONTRACT §9.2): unbounded-enumeration|false-premise|self-contradictory|superseded-form|reads-immutable-ref"
     }
   ],
   "verdict": "CONFIRMED|REFUTED|PARTIAL",
@@ -63,6 +63,27 @@ against the source. Then:
 - every row `CONFIRMED` → node `CONFIRMED`
 - any row `REFUTED` → node `REFUTED`
 - any row `UNTESTED` or `UNSETTLEABLE`, none `REFUTED` → node `PARTIAL`
+
+**Before you write `UNSETTLEABLE` on a criterion that reads the tree, the branch
+or the index, try it in isolation** (CONTRACT §9.3). Such a criterion is not
+unsettleable until the retry has failed. Re-run that criterion's own settling
+command **once**, in a clean private git worktree at the node's commit, with
+nothing else in the tree:
+
+```sh
+git worktree add <scratch>/verify-<node> <the node's commit>
+# run the criterion's settling command there, and nowhere else
+git worktree remove --force <scratch>/verify-<node>
+```
+
+It settles → the row is `CONFIRMED` or `REFUTED` on what it shows; say so, and do
+not park the node. It still cannot settle → `shape: reads-immutable-ref`, and the
+demonstrating `probe` is the **isolated** run that failed, never the shared-tree
+run. One retry; a second buys nothing.
+
+This replaced a shape that fired on 71% of one run's parked criteria and was
+right about none of them. The first criterion tried this way settled
+immediately, and settled false — a real defect the old label had been hiding.
 
 **`UNTESTED` is a legitimate answer and you should use it.** A criterion you
 could not check — no environment, a missing dependency, a command that will not

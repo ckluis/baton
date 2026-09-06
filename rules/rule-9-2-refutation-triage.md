@@ -36,16 +36,20 @@ write `REFUTED`. It writes the fourth row verdict:
 
 1. the criterion quoted verbatim;
 2. a **`shape`**, one of: `unbounded-enumeration` (asks for *every* instance with no command that
-   generates the enumeration, so each verifier finds a different gap), `measures-outside-node`
-   (reads the tree, branch or index, which nothing inside the node can change),
+   generates the enumeration, so each verifier finds a different gap),
    `false-premise` (asserts a fact about the input that was never true),
-   `self-contradictory` (conflicts with another line of the same handoff), or
+   `self-contradictory` (conflicts with another line of the same handoff),
    `superseded-form` (an answer file or brief has already rewritten it and the handoff still
-   carries the old text);
+   carries the old text), or `reads-immutable-ref` (§9.3 — and only after §9.3's retry has failed
+   to settle it);
 3. a **`probe` that is the command whose output shows the criterion cannot be settled** — the
    form `_orch/inbox/Q-10.md` used: the measured branch has thirty-one changed files and no rung
    can make it two. What the artifact actually shows goes in `evidence`, so the rewrite can be
    judged against it.
+
+**`measures-outside-node` was a shape here and is not one any more.** §9.3 explains what replaced
+it and why. A verdict written before that change may still carry it; read such a row as a §9.3
+candidate that was never retried, not as a settled finding.
 
 Hard is not unsettleable. A criterion the artifact *could* have met as written is `REFUTED`
 however much work meeting it would take. An `UNSETTLEABLE` row missing its shape or its
