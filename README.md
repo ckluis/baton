@@ -1,6 +1,6 @@
 # baton
 
-**v3.2** · An orchestrator of orchestrators, rebuilt around what it costs.
+**v3.3** · An orchestrator of orchestrators, rebuilt around what it costs.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
@@ -55,6 +55,32 @@ lifetime yield.
 
 **Five breaking changes** — see [MIGRATING.md](MIGRATING.md). If none of them
 touch you, the migration is changing one URL.
+
+---
+
+## v3.3 — since v3.2
+
+Two additions, both about the framework's own footprint rather than a new capability — the
+kind of change you make once the tool-using runtimes (Claude Code, Codex, OpenCode) outnumber
+the paste-into-a-fresh-chat runtime baton was designed for first.
+
+- **The prime stops reading the whole rulebook before it does anything.** Every spawn below the
+  prime already fetches a rule on demand, through the contract footer's "read it if you need a
+  rule you do not already have" (`rules/rule-11-contract-footer.md`). The prime was the one layer
+  still reading all of them up front. It now reads the three rules it cites by id —
+  `rule-6-filesystem`, `rule-8-1-the-human-brief`, `rule-8-2-every-blocking-decision-ships-a-slide`
+  — plus its mode file, and fetches any other the same on-demand way. A pasted bundle is
+  unaffected: `bundle.sh` still concatenates every rule, and a paste has no per-file cost to defer.
+- **`tools/index.py --sqlite`.** The same corpus `index.json` already derives from — nodes,
+  verdict rows, the ledger, questions, findings — also as a disposable SQLite file, so a
+  cross-cutting question ("which criterion failed twice") is a `WHERE` clause instead of a
+  one-off script. Same contract as the two files it already writes: DERIVED, NEVER AUTHORITATIVE,
+  stdlib only, deleted and rebuilt on every run.
+
+A third idea — demoting the acceptance checks and mechanisms this run's instruments show as
+never-fired — did not make this release. `tools/*.instrument.md` already carries a considered
+answer to that exact question (`dormant_because: never-fired` is a status, not a judgment,
+recorded per check), and overriding it needs new evidence, not a smaller rulebook.
 
 ---
 

@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+## v3.3 — 2026-09-17
+
+Two changes, both about baton's own footprint under a tool-using runtime rather than a new
+capability. A third idea, considered and not applied, is recorded at the end.
+
+### Contract
+
+- **`prompt/baton.md` §2.2 step 1 — the prime reads on demand, like every spawn already does.**
+  Step 1 read all 52 rule files before creating `_orch/`, in the one context the router calls
+  "the scarcest thing in the run." Every spawn below the prime already fetches a rule on demand
+  through the contract footer (`rules/rule-11-contract-footer.md`). The prime now reads the three
+  rules it cites by id — `rule-6-filesystem`, `rule-8-1-the-human-brief`,
+  `rule-8-2-every-blocking-decision-ships-a-slide` — plus its mode file, and fetches any other the
+  same way. Unaffected: the pasted-bundle path, where `bundle.sh` already concatenates every rule
+  and there is no per-file cost to defer.
+
+### Tools
+
+- **`tools/index.py --sqlite`.** Writes `_orch/index/run.db` beside `index.json` and
+  `summary.md` — `nodes`, `verdict_rows` (one row per done-criterion across every sweep verdict),
+  `ledger` (unaggregated), `questions`, `findings`. Same contract as the two files it already
+  writes: DERIVED, NEVER AUTHORITATIVE, stdlib only (`sqlite3`), rebuilt from the same corpus on
+  every run.
+
+### Considered, not applied
+
+- **Demoting the acceptance checks and mechanisms this run's instruments recorded as
+  never-fired** (the refutation quota, rung drift's lower branch, the `PRIME_TURNS` deputy
+  handover, eight of the ten acceptance checks). `tools/*.instrument.md` already carries a
+  considered answer: `dormant_because: never-fired` is a status, not a judgment, checked against
+  `_orch/inbox/Q-*.md` per instrument. Overriding that needs new evidence from a run it actually
+  failed, not a smaller rulebook.
+
 ## v3.2 — 2026-09-06
 
 Everything here came from running baton on itself: a replay of the eighteen nodes the self-run

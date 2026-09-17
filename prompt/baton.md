@@ -127,18 +127,31 @@ file** — a half-remembered contract is worse than no run.
 
 ### 2.2 Then, in order, and briefly
 
-1. **Read the rules and your mode file, and nothing else after that.**
+1. **Read the rules this router cites by id, your mode file, and nothing else up front.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
    **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts, then **every rule their indexes list** — 49 small files, and they are the
-   entire rulebook — then `{BATON}/prompt/modes/<MODE>.md`.
+   contracts. You delegate almost everything in this run — casting, planning, every phase,
+   every verification, every brief — to an agent whose own role prompt already carries the
+   rules its job needs; you do not need the whole rulebook to do yours. Read
+   `rule-6-filesystem`, `rule-8-1-the-human-brief`, and
+   `rule-8-2-every-blocking-decision-ships-a-slide` — the three this file cites by id —
+   then `{BATON}/prompt/modes/<MODE>.md`.
 
-   **If you received this as one pasted bundle, they are already in front of you** and
-   there is nothing to fetch: `bundle.sh` concatenates every rule inline. Fetching is only
-   for the URL form, where a contract on its own is a table of contents and would leave you
-   orchestrating with no ladder and no envelope schema.
+   **Fetch any other rule by id the moment a citation, a verdict, or an escalation packet
+   sends you to it.** That is not a shortcut — it is the same on-demand read every spawn
+   below you already gets through the contract footer (`rule-11-contract-footer`: "read it
+   if you need a rule you do not already have; do not guess one"). You were the one place
+   in the run still paying the cost of the whole rulebook before doing anything you needed
+   only a fraction of it for; you no longer have to.
 
-   Together with this router that is the last of the framework you will read for the run.
+   **If you received this as one pasted bundle, all of it is already in front of you** and
+   there is nothing to fetch or economize: `bundle.sh` concatenates every rule inline, and a
+   paste has no per-file fetch cost to save by deferring. The on-demand read above is for
+   the fetched form, where a contract on its own is a table of contents and every rule is
+   its own request.
+
+   Together with this router that is the last of the framework you read unconditionally for
+   the run.
 2. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
      `prime_turns_spent: 0`, phase pointer
