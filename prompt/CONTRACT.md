@@ -72,6 +72,7 @@ session resumes and no context is load-bearing. The prime spends its turns on
 | 6 | 6. Filesystem | [`rule-6-filesystem.md`](../rules/rule-6-filesystem.md) |
 | &nbsp;&nbsp;6.1 | 6.1. Framework locators vs run state | [`rule-6-1-framework-locators-vs-run-state.md`](../rules/rule-6-1-framework-locators-vs-run-state.md) |
 | &nbsp;&nbsp;6.2 | 6.2. A worktree node lands its outputs before the worktree dies | [`rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md`](../rules/rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md) |
+| &nbsp;&nbsp;6.3 | 6.3. Append-only lists are directories of rows | [`rule-6-3-append-only-lists-are-directories-of-rows.md`](../rules/rule-6-3-append-only-lists-are-directories-of-rows.md) |
 | 7 | 7. The Ledger | [`rule-7-the-ledger.md`](../rules/rule-7-the-ledger.md) |
 | &nbsp;&nbsp;7.1 | 7.1. `ts` and `seconds` are measured, never remembered | [`rule-7-1-ts-and-seconds-are-measured-never-remembered.md`](../rules/rule-7-1-ts-and-seconds-are-measured-never-remembered.md) |
 | &nbsp;&nbsp;7.2 | 7.2. Two row classes, and exactly one writer each | [`rule-7-2-two-row-classes-and-exactly-one-writer.md`](../rules/rule-7-2-two-row-classes-and-exactly-one-writer.md) |
