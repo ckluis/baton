@@ -31,4 +31,14 @@ So a spawn prompt routinely carries both: a remote locator for the role file it
 should follow, and a local path for the work it should do. Envelopes, digests,
 verdicts, and ledgers are local paths without exception.
 
+**Under `TEAM` (router §1) the local `_orch/` is a git worktree of the run's own
+ref, `baton/run/<id>`.** Still a directory on the runner's disk, still every path
+a rule names — and additionally committed by the layer that received each
+envelope and pushed at every node close and every gate (§8), so the ref is the
+record once pushed and any machine can resume it with a fetch. That is not state
+at a URL: nothing reads the ref back into a run except a resume, and nothing
+writes it except the runner. The checkout is the working copy; the ref is the
+record. Every path a verdict cites gains a second form,
+`/blob/<sha>/_orch/...`, that outlives the machine.
+
 ---

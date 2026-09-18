@@ -34,7 +34,8 @@ close and the prime's gate are different facts and each gets its own row, distin
 
 This is the file's only concurrency assumption, so state it plainly: the ledger is append-only
 and single-writer **per row**, not per file. Concurrent phase runners appending their own rows
-is fine.
+is fine — and under §6.3 a row is its own file, so the assumption is true by construction rather
+than by discipline.
 
 Observed in this framework's own run, and the reason both halves of this section exist. Three
 gate events were written twice, by the phase runner and the prime, with **different content each
