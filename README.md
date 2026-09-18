@@ -310,10 +310,10 @@ reached with `PERSONAS: builtin+luminaries`.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.2/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.3/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.2/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.3/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -333,7 +333,7 @@ Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v3.2` instead of `/main` and
+  The base URL is also the version pin: point at `/v3.3` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
@@ -380,7 +380,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/v3.2`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v3.3`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 
