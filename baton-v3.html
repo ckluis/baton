@@ -3,24 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>baton v4 — the cheapest agent that can succeed, for you or a team</title>
+<title>baton v3 (archived) — the cheapest agent that can succeed</title>
+<link rel="canonical" href="https://ckluis.github.io/baton/">
 <link rel="canonical" href="https://ckluis.github.io/baton/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ckluis / baton">
 <meta property="og:url" content="https://ckluis.github.io/baton/">
-<meta property="og:title" content="baton v4 — the cheapest agent that can succeed, for you or a team">
-<meta property="og:description" content="An orchestrator of orchestrators, rebuilt around cost — and now built for a team. One line puts the run's state on a git ref any machine resumes, its questions in Issues anyone answers, its product changes in pull requests with the verdict as a check. Six rungs of model x effort, ten modes, 44 personas plus 40 named experts, verdicts computed per criterion.">
+<meta property="og:title" content="baton v3 — the cheapest agent that can succeed">
+<meta property="og:description" content="An orchestrator of orchestrators, rebuilt around cost. Six rungs of model x effort, ten modes — two of them examining the artifact as encountered and as sold — 44 built-in personas plus a 40-expert opt-in roster, and verdicts computed per criterion rather than asserted.">
 <meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="baton v4 — six rungs, one default. The cheapest agent that can succeed, for you or a team.">
+<meta property="og:image:alt" content="baton v3 — six rungs, one default. The cheapest agent that can succeed.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@ckluis">
 <meta name="twitter:creator" content="@ckluis">
-<meta name="twitter:title" content="baton v4 — the cheapest agent that can succeed, for you or a team">
-<meta name="twitter:description" content="An orchestrator of orchestrators, rebuilt around cost — and now built for a team: the run on a git ref, questions as Issues, product changes as pull requests with the verdict as a check. Six rungs, ten modes, 44 personas plus 40 named experts.">
+<meta name="twitter:title" content="baton v3 — the cheapest agent that can succeed">
+<meta name="twitter:description" content="An orchestrator of orchestrators, rebuilt around cost. Six rungs of model x effort, ten modes, 44 built-in personas plus a 40-expert opt-in roster, and verdicts computed per criterion.">
 <meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
-<meta name="description" content="baton v4 is a router prompt that turns a fresh session into a cost-disciplined multi-agent run — and, with one more line, a team's: the run's state on a git ref any machine resumes, its questions as GitHub Issues anyone answers, its product changes as pull requests with the computed verdict as a check. Six rungs of model x effort, sonnet as the default, ten modes, 44 built-in personas plus 40 named experts, verdicts computed per criterion rather than asserted.">
+<meta name="description" content="baton v3 is a router prompt that turns a fresh session into a cost-disciplined multi-agent run: six rungs of model x effort, sonnet as the default, ten modes including two that examine the artifact as encountered and as sold, 44 built-in personas plus a 40-expert opt-in roster, and verdicts computed per criterion rather than asserted.">
 <meta name="theme-color" content="#0a0a0a">
 <script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -232,22 +233,49 @@ html.js .reveal.in{opacity:1;transform:none}
 <body>
 
 <!-- ============ NAV ============ -->
+<a href="index.html" class="xa-back" aria-label="Back to baton v4"><span class="xa-arrow">←</span> baton v4</a>
 <nav style="position:sticky;top:0;z-index:900;background:rgba(10,10,10,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)">
   <div class="wrap" style="height:64px;display:flex;align-items:center;justify-content:space-between;gap:20px">
     <a href="#top" style="display:flex;align-items:baseline;gap:9px">
       <span style="font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-      <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v4</span>
+      <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3</span>
     </a>
     <div style="display:flex;align-items:center;gap:26px">
       <a href="#ladder" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">The ladder</a>
       <a href="#topology" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Graphs &amp; loops</a>
       <a href="#modes" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Modes</a>
       <a href="#personas" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Personas</a>
-      <a href="#team" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Team</a>
       <a href="#prompt" class="btn p" style="height:38px;padding:0 17px">Get the prompt</a>
     </div>
   </div>
 </nav>
+<div class="v2note">
+  <div class="wrap">
+    <b>v3 &middot; archived</b>
+    <span>This is baton as v3 shipped &mdash; ten modes, 44 built-in personas, 40 named experts opt-in,
+      verdicts computed per criterion &mdash; kept as of <code>v3.3</code>, whose tag still resolves and
+      still runs. <a href="index.html">baton v4</a> replaces it: the same run for a team &mdash; its state
+      on a git ref any machine resumes, its questions as Issues anyone answers, its product changes as
+      pull requests with the verdict as a check.
+      <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md">One breaking change, one command</a>.</span>
+    <a class="v2cta" href="index.html">Read v4 &rarr;</a>
+  </div>
+</div>
+<style>
+  .xa-back{position:fixed;left:18px;top:78px;z-index:960;display:inline-flex;align-items:center;gap:8px;
+    padding:9px 15px;border-radius:999px;border:1px solid var(--hair);background:var(--raised);
+    color:var(--ink);font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;
+    text-decoration:none;transition:transform .18s ease}
+  .xa-back:hover{transform:translateY(-2px)}
+  .v2note{background:rgba(94,234,212,.07);border-bottom:1px solid rgba(94,234,212,.26);
+    padding:13px 0;font-size:14px;line-height:1.5}
+  .v2note .wrap{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  .v2note b{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
+  .v2note span{color:var(--muted);max-width:80ch}
+  .v2note a{color:var(--cyan)}
+  .v2cta{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){.xa-back{transition:none}}
+</style>
 <style>
   .nl{transition:color .16s ease}.nl:hover{color:var(--ink)}
   @media(max-width:900px){nav .wrap > div:last-child a.nl{display:none}}
@@ -260,41 +288,39 @@ html.js .reveal.in{opacity:1;transform:none}
     <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
       <div>
         <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v4.0</span>
+          <span class="pill y">v3.3</span>
           <span class="pill c">router + 10 modes</span>
           <span class="pill c">40 named experts</span>
-          <span class="pill c">for you, or a team</span>
         </div>
         <h1 class="reveal d1">The cheapest agent<br><span class="reg" data-reg="that can succeed.">that can succeed.</span></h1>
-        <p class="lede reveal d2" style="margin-top:26px;max-width:58ch">
+        <p class="lede reveal d2" style="margin-top:26px;max-width:56ch">
           baton is a router prompt that turns a fresh session into a multi-agent run with a
-          budget. Six rungs of model &times; effort, <em>Sonnet by default</em>, escalation measured
-          in rungs. And now one more line &mdash; <code>TEAM: github</code> &mdash; gives the same run
-          to a team: its state on a git ref any machine can resume, its questions as Issues anyone
-          can answer, its product changes as pull requests with the verdict as a check.
+          budget. Six rungs of model &times; effort. <em>Sonnet is the default.</em> Failure buys
+          more thinking before it buys a bigger model &mdash; and the top of the ladder is reached
+          by asking, not by drifting.
         </p>
         <div class="btnrow reveal d3" style="margin-top:34px">
           <a href="#prompt" class="btn p">Copy the router &darr;</a>
-          <a href="#team" class="btn s">For a team &rarr;</a>
+          <a href="#ladder" class="btn s">See the ladder</a>
         </div>
       </div>
 
-      <!-- v3 -> v4 card -->
+      <!-- v2 -> v3 card -->
       <div class="reveal d2">
         <div class="card" style="padding:0;overflow:hidden">
-          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v3 &rarr; v4</div></div>
+          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v2 &rarr; v3</div></div>
           <div style="padding:8px 0">
-            <div class="vs"><span class="vl">One laptop holds the run</span><span class="va">&rarr;</span><span class="vr">A git ref any machine resumes &mdash; every cited path a permalink</span></div>
-            <div class="vs"><span class="vl">One person answers, at one keyboard</span><span class="va">&rarr;</span><span class="vr">Anyone answers from an Issue &mdash; <code>/answer</code>, from a phone</span></div>
-            <div class="vs"><span class="vl">A worktree's products could die with it</span><span class="va">&rarr;</span><span class="vr">The branch is the landing: a draft PR, the verdict as a check</span></div>
-            <div class="vs"><span class="vl">Four files two layers wrote</span><span class="va">&rarr;</span><span class="vr">Directories of rows, one writer each &mdash; the one breaking change</span></div>
-            <div class="vs"><span class="vl">A gate wrote local files</span><span class="va">&rarr;</span><span class="vr">A gate publishes: sync, derive, push, summary, deck</span></div>
-            <div class="vs"><span class="vl">Evidence one <code>rm -rf</code> from gone</span><span class="va">&rarr;</span><span class="vr">A ruleset blocks force-push and delete; disposal is a release</span></div>
-            <div class="vs"><span class="vl">The prime read every rule first</span><span class="va">&rarr;</span><span class="vr">Reads the three it cites; fetches the rest on demand</span></div>
-            <div class="vs"><span class="vl">Nothing to prove it without a token</span><span class="va">&rarr;</span><span class="vr">30 end-to-end checks against fake repos and a fake <code>gh</code></span></div>
+            <div class="vs"><span class="vl">8 modes, all as built</span><span class="va">&rarr;</span><span class="vr">10 &mdash; as encountered, as sold</span></div>
+            <div class="vs"><span class="vl">28 built-in personas</span><span class="va">&rarr;</span><span class="vr">44, plus 40 named experts opt-in</span></div>
+            <div class="vs"><span class="vl">Conflict Vectors in prose</span><span class="va">&rarr;</span><span class="vr">361 typed edges between personas</span></div>
+            <div class="vs"><span class="vl">Checks nobody measured</span><span class="va">&rarr;</span><span class="vr">10 instruments, each carrying its yield</span></div>
+            <div class="vs"><span class="vl">Verdict asserted per node</span><span class="va">&rarr;</span><span class="vr">One computed row per criterion &mdash; and a line no work can meet parks the node, never escalates it</span></div>
+            <div class="vs"><span class="vl">A forty-kilobyte report to read</span><span class="va">&rarr;</span><span class="vr">One slide per decision: three options, one recommendation</span></div>
+            <div class="vs"><span class="vl">A bundle nothing could read</span><span class="va">&rarr;</span><span class="vr">AIX level 1, checked by command</span></div>
+            <div class="vs"><span class="vl">Rules inline, restated four ways</span><span class="va">&rarr;</span><span class="vr">One file each &mdash; 49 rules, 85-line contracts</span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-            <span style="font-size:13px;color:var(--muted)">v3 is still tagged, and still runs. One breaking change, one command.</span>
+            <span style="font-size:13px;color:var(--muted)">v2 is still tagged, and still runs. Five breaking changes.</span>
             <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener"
                style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read MIGRATING &rarr;</a>
           </div>
@@ -304,9 +330,9 @@ html.js .reveal.in{opacity:1;transform:none}
 
     <div class="stats reveal d4" style="margin-top:clamp(56px,7vw,88px)">
       <div class="stat"><b>1</b><span>The default rung. <code>sonnet/medium</code> until the work proves otherwise.</span></div>
-      <div class="stat c"><b>+1</b><span>Line. <code>TEAM: github</code> is the whole difference between your run and your team's.</span></div>
+      <div class="stat c"><b>10&times;</b><span>Fewer top-tier turns on a 40-node run, from one structural change.</span></div>
       <div class="stat"><b>10</b><span>Modes. Each one a graph shape, not a paragraph of advice.</span></div>
-      <div class="stat c"><b>~25</b><span>Moments a run needs a person, out of ~3,500 things it writes. Those go to Issues; the rest go to git.</span></div>
+      <div class="stat c"><b>44</b><span>Built-in personas &mdash; and any repo's roster loads unmodified.</span></div>
     </div>
   </div>
 </section>
@@ -316,7 +342,7 @@ html.js .reveal.in{opacity:1;transform:none}
   .vs .va{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center}
   .vs .vr{font-size:13px;color:var(--body-2);font-weight:500}
 
-  /* lineage cards — v1 -> v2 -> v3 -> v4 */
+  /* lineage cards — v1 -> v2 -> v3 */
   .lin{height:100%}
   .lin .codebar b{color:var(--ink)}
   .lin.cur{border-color:var(--cyan-dim)}
@@ -360,10 +386,10 @@ html.js .reveal.in{opacity:1;transform:none}
           leaves, escalation measured in rungs instead of models, and a layer whose entire job
           is to spend the turns the conductor used to spend.
         </p>
-        <p style="margin-top:16px;font-size:16px">That bill is still the reason the phase runner exists, and none of it was undone: v3 inherited the ladder whole and changed what a run may leave unexamined. <strong>v4 inherits both and changes who a run belongs to</strong> &mdash; not what it costs, not what it examines, but that it no longer needs one laptop and one person.</p>
+        <p style="margin-top:16px;font-size:16px">That bill is still the reason the phase runner exists, and none of it was undone: v3 inherits the ladder, the layers and the cost argument whole. <strong>v3's change is a different one</strong> &mdash; not what a run costs, but what a run is allowed to leave unexamined.</p>
       </div>
     </div>
-      <div class="grid g4 reveal d1" style="margin-top:40px;align-items:stretch">
+      <div class="grid g3 reveal d1" style="margin-top:40px;align-items:stretch">
 
         <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
           <div class="codebar"><div class="fn"><b>v1</b> &middot; the original</div><span class="pill d">archived</span></div>
@@ -398,8 +424,8 @@ html.js .reveal.in{opacity:1;transform:none}
           <a class="linf" href="baton-v2.html">Read baton v2 &rarr;</a>
         </div>
 
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v3</b> &middot; the roster</div><span class="pill d">archived</span></div>
+        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v3</b> &middot; the roster</div><span class="pill c">current</span></div>
           <div class="linb">
             <h4 class="lint">A roster, and checks that answer for themselves.</h4>
             <p class="lind">Every mode examined the artifact as built. Two new ones examine it as
@@ -408,27 +434,9 @@ html.js .reveal.in{opacity:1;transform:none}
             <div class="dlist">
               <div class="dl"><span class="dp">+</span><span><code>CRAFT</code> and <code>POSITION</code></span></div>
               <div class="dl"><span class="dp">+</span><span>40 named experts, opt-in</span></div>
+              <div class="dl"><span class="dp">+</span><span>361 typed edges between personas</span></div>
               <div class="dl"><span class="dp">+</span><span>Ten instruments, each carrying its yield</span></div>
-              <div class="dl"><span class="dp">+</span><span>One computed row per criterion</span></div>
               <div class="dl"><span class="dm">&minus;</span><span>Verdicts asserted per node</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v3.html">Read baton v3 &rarr;</a>
-        </div>
-
-        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v4</b> &middot; the team</div><span class="pill c">current</span></div>
-          <div class="linb">
-            <h4 class="lint">A team, and a run that outlives the laptop.</h4>
-            <p class="lind">One setting puts the run's state on a git ref, its questions in Issues
-              and its product changes in pull requests. The run itself executes as before, from local
-              disk.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span><code>TEAM: github</code> &mdash; one line</span></div>
-              <div class="dl"><span class="dp">+</span><span>Git is the record; every verdict a permalink</span></div>
-              <div class="dl"><span class="dp">+</span><span>Issues are the doorbell; anyone answers</span></div>
-              <div class="dl"><span class="dp">+</span><span>PRs carry the product, the verdict as a check</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Four files two layers wrote</span></div>
             </div>
           </div>
           <a class="linf" href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener">You are here &middot; migrating &rarr;</a>
@@ -1307,10 +1315,10 @@ html.js .reveal.in{opacity:1;transform:none}
   <span class="k">work/</span>               <span class="c">nothing above opened it</span>
 <span class="k">verify/</span>T31.json       <span class="v">"CONFIRMED"</span><span class="c"> + the probe</span>
 <span class="k">loops/</span>L1/seen.yaml    <span class="c">47 keys, 2 dry rounds</span>
-<span class="k">ledger/</span>               <span class="c">58 rows, one file each &mdash; ledger.csv derived</span>
+ledger.csv            <span class="c">58 rows, one per spawn</span>
 <span class="k">final/</span>report.md      <span class="c">+ the rung histogram</span>
 <span class="k">brief/</span>final.html      <span class="c">one slide per decision, for you</span>
-<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer beside the question &mdash; or a teammate's, from an Issue</span></pre>
+<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer, beside the question</span></pre>
       </div>
       <div class="card" style="display:flex;flex-direction:column;justify-content:center">
         <span class="num">RUNG HISTOGRAM</span>
@@ -1522,12 +1530,6 @@ html.js .reveal.in{opacity:1;transform:none}
           hand-edited file, or by you typing it into the run. <strong>The disk protocol is the
           contract. Messaging is only a faster doorbell.</strong> With
           <code>INBOX: off</code> a run behaves the same way, with longer pauses.</p>
-        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is an
-          Issue. Every blocked question opens as one &mdash; a sub-issue of the run's own &mdash; and
-          anyone on the repository answers by commenting <code>/answer &hellip;</code>. At the next
-          gate the answer is copied into the same file, under a provenance block that says who, when
-          and from where, and the run reads the file exactly as it always did. Same contract; a
-          doorbell anyone can ring.</p>
       </div>
     </div>
   </div>
@@ -1557,9 +1559,7 @@ html.js .reveal.in{opacity:1;transform:none}
         are held to it too: each of the ten carries an Instrument record naming what it guards, what it
         has caught over its lifetime, and when it last fired. The one that mattered most turned out to
         be unsound and reporting the right answer by luck &mdash; it was repaired, fixtured, and it
-        immediately found what it had been hiding. v4 added an instrument nobody had to build: GitHub
-        records every push server-side, so a ledger row whose timestamp is later than the push that
-        carried it was not measured &mdash; <code>inbox-gh.py clock</code> names it.</p>
+        immediately found what it had been hiding.</p>
     </div>
   </div>
 </section>
@@ -1591,9 +1591,8 @@ html.js .reveal.in{opacity:1;transform:none}
         <span class="num">STEP 03</span>
         <h4>Answer one question</h4>
         <p style="margin-top:12px">The router proposes the mode it thinks fits and you confirm it.
-          Then it casts, plans, and gates on its own. Everything lives on disk &mdash; for a team, on
-          a git ref &mdash; so a session limit costs one node, not a run, and a dead laptop costs a
-          fetch.</p>
+          Then it casts, plans, and gates on its own. Everything lives on disk, so a session limit
+          costs one node &mdash; not a run.</p>
       </div>
     </div>
   </div>
@@ -1609,7 +1608,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
           every session paid for every mode it was not running. v2 split it: a router you paste, and
           files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
-          under <code>rules/</code> &mdash; 53 of them, the ladder, the envelope, the digest, the graph,
+          under <code>rules/</code> &mdash; 49 of them, the ladder, the envelope, the digest, the graph,
           the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
           to 85. There is nowhere to amend a stale copy of a rule because there are no copies, and the
           index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
@@ -1618,10 +1617,7 @@ html.js .reveal.in{opacity:1;transform:none}
           tree dies, and a verifier settles a tree-reading line in isolation before calling it
           unsettleable. v3.3 turned that same discipline on the framework's own footprint: the prime
           reads only the rules it cites by id instead of the whole rulebook, and <code>tools/index.py
-          --sqlite</code> makes the run's own evidence queryable. v4.0 gave the same run to a team:
-          one setting puts its state on a git ref, its questions in Issues and its product changes in
-          draft pull requests &mdash; and every append-only list became a directory of rows, so none
-          of it needs a merge protocol.</p>
+          --sqlite</code> makes the run's own evidence queryable.</p>
         <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
           <strong>the contract wins and the role prompt is the bug.</strong></p>
         <p style="margin-top:16px;font-size:16px">v3 made the repository legible to something other than baton. Persona frontmatter may carry optional <code>type</code>, <code>id</code> and <code>links</code> keys &mdash; ignored entirely by baton's own loader, meaningful only to an outside consumer &mdash; and <code>tools/aix-validate.py</code> holds this bundle to <strong>AIX level 1</strong> on every acceptance run.</p>
@@ -1642,9 +1638,8 @@ html.js .reveal.in{opacity:1;transform:none}
   <span class="k">lenses/</span>             <span class="c">37 — expert seats, upgradeable</span>
   <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
   <span class="k">luminaries/</span>         <span class="c">40 — opt-in, builtin+luminaries</span>
-<span class="k">rules/</span>              <span class="c">53 — one file per rule, the only place each is defined</span>
-<span class="k">tools/</span>              <span class="c">10 instrument records, the AIX validator, the team tools</span>
-<span class="k">migrations/</span>         <span class="c">from-v1, from-v2, from-v3 — one file per older version</span>
+<span class="k">rules/</span>              <span class="c">49 — one file per rule, the only place each is defined</span>
+<span class="k">tools/</span>              <span class="c">10 instrument records + the AIX validator</span>
 <span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
       </div>
     </div>
@@ -1673,36 +1668,14 @@ html.js .reveal.in{opacity:1;transform:none}
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.3/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v4.0/MIGRATING.md</pre>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.3/MIGRATING.md</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
         line you have to touch.</p>
-    </div>
-
-    <div class="reveal d1" style="margin-top:24px">
-      <div class="code">
-        <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>for a team</b> &middot; 10 lines</div>
-        </div>
-        <pre id="tsrc"># Goal
-Find and fix what the test suite is failing to catch in the billing module.
-
-# Settings
-TEAM:        github
-
-# Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
-You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
-against that same base URL. Read it completely before you start any work.</pre>
-      </div>
-      <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>One line more.</strong>
-        <code>TEAM: github</code> puts the run's state on a git ref any machine can resume, its
-        questions in Issues anyone can answer, and its product changes in draft pull requests with the
-        verdict as a check. <a href="#team">Section 12</a> says what moves and what does not.</p>
     </div>
 
     <div class="grid g3 reveal d2" style="margin-top:32px">
@@ -1719,7 +1692,7 @@ against that same base URL. Read it completely before you start any work.</pre>
         <h4>The URL is the whole dependency.</h4>
         <p>No clone, no install, no config file. Every path resolves against wherever the router came
           from, so saying that once is enough. It also makes the base URL the version pin: point at
-          <code>/v4.0</code> instead of <code>/main</code> and the entire framework comes from that
+          <code>/v3.3</code> instead of <code>/main</code> and the entire framework comes from that
           tag, with no second version to keep in sync.</p>
       </div>
       <div class="card sm">
@@ -1742,7 +1715,7 @@ against that same base URL. Read it completely before you start any work.</pre>
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 297 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 278 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
@@ -1774,8 +1747,6 @@ below, and you do not ask the operator about a default that is already correct.
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
 | `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
-| `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/&lt;id&gt;`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
-| `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
 verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
@@ -1909,13 +1880,6 @@ file** — a half-remembered contract is worse than no run.
      `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
-
-   Under `TEAM: github`, create it with `tools/publish-run.sh init &lt;run-id&gt;`
-   instead of `mkdir` — it makes `_orch/` a worktree of `baton/run/&lt;run-id&gt;`
-   and refuses a public target without `RUNS_REPO` — write the same two files,
-   then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
-   under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
-   a run that publishes needs the tools on disk.
 3. **Cast** (rung 1) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
 4. **Plan** (rung 3) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
@@ -1972,11 +1936,7 @@ Repeat until the graph has no runnable nodes:
 3. **Phase gate.** Confirm every node is `DONE`+`CONFIRMED`, `BLOCKED`, or
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
    unblock what the operator answered. Reset rung drift. Increment
-   `prime_turns_spent`. Under `TEAM`, run the gate's publish sequence (CONTRACT
-   §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
-   `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
-   gate you just closed, and the answers a teammate left on an Issue reach the
-   run at the only moment it reads them.
+   `prime_turns_spent`.
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
@@ -2018,12 +1978,6 @@ Your closing message to the operator is small, and small is the whole point:
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch &amp;&amp; rm -rf _orch`) or keep it to
   resume or re-verify
-- **under `TEAM`, three more lines and a different disposal line** — the run
-  Issue's URL, the run ref and the permalink base its last push printed
-  (`/blob/&lt;sha&gt;/_orch/`), and the deck's URL on Pages. Disposal is
-  `tools/publish-run.sh dispose &lt;run-id&gt;`: the archive becomes a release, the
-  ref is deleted, and every permalink keeps resolving because the release tag
-  pins the sha. Or keep the ref; it is 26 MB.
 
 Cleanup is the operator's act, never yours. The report, every envelope, and
 every verdict cite paths inside `_orch/` — an agent that deletes it has
@@ -2060,7 +2014,7 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
   html.js .copybtn{display:inline-flex}
   .copybtn:hover{background:var(--yellow-2)}
   .copybtn.ok{background:var(--ok);color:#04140a}
-  #psrc,#tsrc{font-size:13px;line-height:1.7}
+  #psrc{font-size:13px;line-height:1.7}
   #rsrc{max-height:60vh;overflow:auto;font-size:12.5px;line-height:1.65}
   code.brk{overflow-wrap:anywhere;word-break:break-word}
   .rdet{margin-top:40px;border-top:1px solid var(--hair);padding-top:28px}
@@ -2071,92 +2025,6 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
   .rdet[open] summary::before{content:"\2212  "}
   .rdet summary:hover{color:var(--yellow)}
 </style>
-
-<!-- ============ TEAM ============ -->
-<section id="team" class="tight">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">12 &mdash; For a team</span>
-      <h2>One more line.<br><em>Three things move; the run does not.</em></h2>
-      <p>The instinct is to put a team's run in GitHub Issues. The numbers say no: one run writes
-        about 3,500 state files and ledger rows, and GitHub allows 500 content-creating API calls an
-        hour. Split GitHub into its three primitives instead and each piece of the run has an obvious
-        home. Git carries the record, pull requests carry the product, Issues carry the ~25 moments a
-        run needs a person. The run itself still executes on one machine, from local disk, exactly as
-        before.</p>
-    </div>
-
-    <div class="grid g3 reveal d1" style="margin-top:32px">
-      <div class="card sm">
-        <span class="num">THE RECORD</span>
-        <h4>Git holds the run.</h4>
-        <p><code>_orch/</code> becomes a worktree of the run's own ref, <code>baton/run/&lt;id&gt;</code>,
-          committed by the layer that received each envelope and pushed at every node close and gate.
-          Still local disk, still every path a rule names &mdash; and every path a verdict cites gains
-          <code>/blob/&lt;sha&gt;/&hellip;</code>, so the evidence outlives the laptop and any machine
-          resumes with a fetch. No rate limit applies to a push.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">THE DOORBELL</span>
-        <h4>Issues hold the questions.</h4>
-        <p>Every blocked question becomes an Issue, a sub-issue of the run's own. Anyone on the
-          repository answers by commenting <code>/answer &hellip;</code> &mdash; from a phone, in a
-          meeting. At the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a
-          provenance block, and the run reads the file exactly as it always did. Who may answer is the
-          assignee, a list, or anyone; anyone else is recorded and not obeyed.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">THE DIFF</span>
-        <h4>Pull requests hold the product.</h4>
-        <p>A node that writes code runs on a branch with a draft pull request, and its computed verdict
-          lands on the branch as the check <code>baton/verify</code> &mdash; green, red, or pending,
-          linking to the rows that decided it. The branch is the landing, so nothing can die with a
-          worktree any more, and the merge node the plan names is the pull request's merge. A team
-          reads baton's changes the way it reads anyone's.</p>
-      </div>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:20px">
-      <div class="card sm">
-        <span class="num">STAYS ON THE LAPTOP</span>
-        <h4>The node that is running.</h4>
-        <p>Its <code>work/</code> and the agent's own context. Everything else is a checkout of the
-          ref. One structural change made this safe: every append-only list &mdash; the ledger first
-          &mdash; is now a directory of rows, one file each, so no two writers ever share a path and
-          nothing needs a merge protocol. That change is the one breaking change in v4.0, and it costs
-          a run in flight one command.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">ONE-TIME SETUP</span>
-        <h4>Configuration, not code.</h4>
-        <p><code>gh</code> authenticated on the machine that runs the prime; the tools on disk
-          (<code>git clone</code>, then <code>BATON: ./baton</code>); a private target repository, or
-          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: a ruleset
-          on <code>baton/**</code> that blocks force-pushes and deletions &mdash; the two new ways to
-          destroy evidence &mdash; and Pages for the briefs. A secret scan gates every push.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">DOES NOT CHANGE</span>
-        <h4>Everything the run thinks.</h4>
-        <p>The ladder, the envelope, the digest, the graph, the verifier, the gates &mdash; 45 of 53
-          rules are untouched, and all ten modes. With the line absent, a v4.0 run is byte-identical to
-          a single-user run. Every team tool is proven without touching GitHub:
-          <code>tools/test-team.sh</code> runs the lot against throwaway repositories and a fake
-          <code>gh</code>, thirty checks, no network.</p>
-      </div>
-    </div>
-
-    <div class="code reveal d2" style="margin-top:32px">
-      <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what a gate does under TEAM</b> &middot; rule 8</div></div>
-<pre><span class="c"># before the prime reads the inbox</span>
-python3 tools/inbox-gh.py sync          <span class="c">questions out to Issues, answers in to files</span>
-python3 tools/lists.py derive           <span class="c">the four list files from their rows</span>
-tools/publish-run.sh publish            <span class="c">secret scan, commit, push the run ref</span>
-python3 tools/inbox-gh.py post-summary  <span class="c">the sixty-line index onto the run Issue</span>
-tools/publish-run.sh pages              <span class="c">the deck, at a URL, when the gate wrote one</span></pre>
-    </div>
-  </div>
-</section>
 
 <!-- ============ CTA ============ -->
 <section style="padding-bottom:0">
@@ -2171,8 +2039,7 @@ tools/publish-run.sh pages              <span class="c">the deck, at a URL, when
           price of an afternoon at rung 1.</p>
         <div class="btnrow" style="margin-top:32px;justify-content:center">
           <a href="#prompt" class="btn" style="background:var(--on-yellow);color:var(--yellow)">Copy the router &uarr;</a>
-          <a href="#team" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">For a team &rarr;</a>
-          <a href="baton-v3.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v3 &rarr;</a>
+          <a href="baton-v1.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v1 &rarr;</a>
         </div>
       </div>
     </div>
@@ -2186,14 +2053,13 @@ tools/publish-run.sh pages              <span class="c">the deck, at a URL, when
       <div>
         <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
           <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v4.0</span>
+          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v3.3</span>
         </div>
         <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
           rebuilt around what it costs. The repository is the artifact.</p>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:10px 24px;font-size:14px;color:var(--muted)">
         <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="nl">Repo &nearr;</a>
-        <a href="baton-v3.html" class="nl">baton v3 &rarr;</a>
         <a href="baton-v1.html" class="nl">baton v1 &rarr;</a>
         <a href="https://ckluis.github.io/luminaryTeam/" target="_blank" rel="noopener" class="nl">luminaryTeam &nearr;</a>
         <a href="https://ckluis.github.io/experiments/" target="_blank" rel="noopener" class="nl">Experiments &nearr;</a>
