@@ -25,8 +25,16 @@ several checks collapses them into a single row, and the row can go
 `CONFIRMED` without any one of the bundled checks having been verified on its
 own.
 
-`tools/lint-criteria.py` runs over a handoff before dispatch, flagging two proven
-unsettleable shapes: an instrument reading the tree or branch not the node's own
-work, and a universal carrying no command that generates its enumeration.
+`tools/lint-criteria.py` runs over a handoff before dispatch, flagging the
+unsettleable shapes this framework has actually authored — an instrument reading
+the tree or branch rather than the node's own work, a universal carrying no
+command that generates its enumeration, a fresh measurement pinned to an old
+recorded value, a criterion its own handoff contradicts, a baseline another node
+owns, a success token demanded from a check that only prints failures, a
+before/after contrast with no reachable before-state, one mutation required to
+refute both arms of a complementary pair, and a precondition the run's own
+sequencing forbids. Each shape's evidence, discriminator and stated limit live in
+the tool's own header; `--selftest` proves every rule flags its known-bad fixture
+and stays silent on the repaired wording beside it.
 
 ---

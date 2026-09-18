@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **`tools/lint-criteria.py` — two more rules, from the ADR-048 coverage register.** Rule H flags
+  an arithmetic contradiction across two criteria: one mutation required to refute both arms of a
+  complementary pair (`> 0.8` against `<= 0.8` on the same threshold). Exactly one of those holds
+  for any value, so only a constant that crashes both runs satisfies both — and the cost is not a
+  failed check but a vacuous one, because a positive control that cannot be refuted by mutation
+  proves nothing and the node reads green. The discriminator is arithmetic: one comparison per
+  criterion, exact complements, the same threshold compared as a number, a mutation asked to refute
+  each arm, and the two mutations said to be the same one. Rule I flags a precondition the run's own
+  sequencing forbids, in two shapes. I1 reads `plan/graph.yaml` and flags a criterion depending on
+  an artifact under a node the `needs` closure places strictly after this one — ordering settled
+  from the plan, the way rule A settles trackedness with `git ls-files`. I3 needs no graph: a
+  criterion asserting an artifact unchanged inside a handoff whose own instructions tell this node
+  to rewrite it, which is rule D2's contradiction read against the instructions rather than against
+  a sibling criterion — where a criterion authored mid-flight contradicts itself, five of the six
+  recorded occurrences having been authored by an orchestrator with no sibling criterion to
+  contradict yet. `node_edits` no longer reads a verb standing behind a prohibition as an
+  instruction, so "Do not edit `X`" beside a criterion asserting `X` unchanged is silent. Forty-seven
+  selftest cases, up from twenty-one.
+
 ## v3.2 — 2026-09-06
 
 Everything here came from running baton on itself: a replay of the eighteen nodes the self-run
