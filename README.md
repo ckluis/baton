@@ -1,6 +1,6 @@
 # baton
 
-**v3.2** · An orchestrator of orchestrators, rebuilt around what it costs.
+**v4.0** · An orchestrator of orchestrators, rebuilt around what it costs.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a budget: a plan on disk, a
@@ -8,9 +8,13 @@ default rung most work never leaves, escalation measured in rungs instead of
 models, adversarial verification that has to name the attack it tried, and a
 report that ends by telling you where the money actually went.
 
+Add one line — `TEAM: github` — and the same run belongs to a team: its state on a
+git ref any machine can resume, its questions as Issues anyone can answer from a
+phone, its product changes as draft pull requests with the verdict as a check.
+
 **→ [Read the page](https://ckluis.github.io/baton/)** ·
 [Changelog](CHANGELOG.md) ·
-[Migrating from v2](MIGRATING.md) ·
+[Migrating from v1, v2 or v3](MIGRATING.md) ·
 [baton v1](https://ckluis.github.io/baton/baton-v1.html) ·
 [luminaryTeam](https://ckluis.github.io/luminaryTeam/)
 
@@ -55,6 +59,80 @@ lifetime yield.
 
 **Five breaking changes** — see [MIGRATING.md](MIGRATING.md). If none of them
 touch you, the migration is changing one URL.
+
+---
+
+## v4.0 — since v3.3
+
+baton for a team, without moving the run off the runner's disk. The instinct was "put the state
+in GitHub Issues so it scales to many people"; the numbers said no — one run writes ~3,500 state
+files and rows against a 500-per-hour content-creation cap — and the rules said no too
+(`rules/rule-6-1-framework-locators-vs-run-state.md`: run state is always local disk). Split
+GitHub into its three primitives instead and each piece of `_orch/` has an obvious home.
+
+- **One structural change, and it is the breaking one.** The four files more than one layer
+  appended to — the ledger, `lint-feedback`, `ux-debt`, `plan/decisions` — are now directories of
+  rows, one file each, with the old file derived by `tools/lists.py derive`. Everything else under
+  `_orch/` was already written by exactly one layer under a path that names it, so this makes the
+  whole layout conflict-free: two runners on two machines can each add a row and neither can
+  clobber the other. A run in flight needs one command, `lists.py split`, and `derive` refuses to
+  overwrite a file that holds rows its directory does not, so forgetting costs a refusal and never
+  a row. The derivation reproduces this framework's own 230-row ledger to the byte
+  (`rules/rule-6-3-append-only-lists-are-directories-of-rows.md`, `migrations/from-v3.md`).
+- **`TEAM: github` — git is the record.** `_orch/` becomes a worktree of the run's own ref,
+  `baton/run/<id>`, committed by the layer that received each envelope and pushed at every node
+  close and gate. Still local disk, still every path a rule names; and every path a verdict cites
+  gains `/blob/<sha>/_orch/…`, any machine resumes with a fetch, and the evidence outlives the
+  laptop (`rules/rule-6-1-framework-locators-vs-run-state.md`, `tools/publish-run.sh`).
+- **Issues are the human lane.** Every blocked question becomes an Issue — a sub-issue of the run's
+  — that anyone on the repository answers by commenting `/answer …`; at the next gate the answer
+  is copied into `Q-<n>.answer.md` under a provenance block, and the run reads the file exactly as
+  it always did. Who may answer is the assignee, a list in the manifest, or anyone; anyone else is
+  recorded and not obeyed (`rules/rule-10-the-operator-lane.md`, `tools/inbox-gh.py`).
+- **Pull requests are the product changes.** A product-writing node runs on a branch,
+  `baton/node/<run-id>/<node>`, with a draft pull request, and its computed verdict lands on the
+  branch as the commit status `baton/verify` with a link to the rows that decided it. The branch
+  is the landing — nothing can die with a worktree any more — and the merge node the plan names is
+  the pull request's merge (`rules/rule-4-the-graph.md`,
+  `rules/rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md`, `tools/node-pr.sh`).
+- **A gate publishes**, in a fixed order the gate's envelope names: sync, derive, publish, post the
+  summary, publish the deck (`rules/rule-8-gates.md`). Protection is configuration: a ruleset on
+  `baton/**` blocks force-pushes and deletions, a secret scan gates every push, and disposal
+  archives to a release before the ref is deleted, so permalinks keep resolving
+  (`tools/github-setup.sh`).
+- **Every tool is proven without touching GitHub.** `tools/test-team.sh` runs the lot against
+  throwaway repositories and a fake `gh` — thirty checks. It caught two defects in the design as
+  briefed before either reached a rule: a ref cannot nest under another ref, and the first
+  derivation could have overwritten a v3 ledger (`docs/designs/github-native-team-mode.md`).
+
+Single-user mode is byte-identical with the line absent. What comes next — an Actions-hosted
+runner, phases as matrix jobs — is configuration rather than code because of the first bullet.
+
+---
+
+## v3.3 — since v3.2
+
+Two additions, both about the framework's own footprint rather than a new capability — the
+kind of change you make once the tool-using runtimes (Claude Code, Codex, OpenCode) outnumber
+the paste-into-a-fresh-chat runtime baton was designed for first.
+
+- **The prime stops reading the whole rulebook before it does anything.** Every spawn below the
+  prime already fetches a rule on demand, through the contract footer's "read it if you need a
+  rule you do not already have" (`rules/rule-11-contract-footer.md`). The prime was the one layer
+  still reading all of them up front. It now reads the three rules it cites by id —
+  `rule-6-filesystem`, `rule-8-1-the-human-brief`, `rule-8-2-every-blocking-decision-ships-a-slide`
+  — plus its mode file, and fetches any other the same on-demand way. A pasted bundle is
+  unaffected: `bundle.sh` still concatenates every rule, and a paste has no per-file cost to defer.
+- **`tools/index.py --sqlite`.** The same corpus `index.json` already derives from — nodes,
+  verdict rows, the ledger, questions, findings — also as a disposable SQLite file, so a
+  cross-cutting question ("which criterion failed twice") is a `WHERE` clause instead of a
+  one-off script. Same contract as the two files it already writes: DERIVED, NEVER AUTHORITATIVE,
+  stdlib only, deleted and rebuilt on every run.
+
+A third idea — demoting the acceptance checks and mechanisms this run's instruments show as
+never-fired — did not make this release. `tools/*.instrument.md` already carries a considered
+answer to that exact question (`dormant_because: never-fired` is a status, not a judgment,
+recorded per check), and overriding it needs new evidence, not a smaller rulebook.
 
 ---
 
@@ -284,10 +362,10 @@ reached with `PERSONAS: builtin+luminaries`.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.2/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.2/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v4.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -301,13 +379,34 @@ is why it asks about them instead of requiring them. In a session that cannot as
 — a cron job, a headless run — the router infers them, records the inference *as*
 an inference, and says so in its first message and its final report.
 
+**For a team**, one line more:
+
+```
+# Goal
+Find and fix what the test suite is failing to catch in the billing module.
+
+# Settings
+TEAM:        github
+
+# Process
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
+against that same base URL. Read it completely before you start any work.
+```
+
+It needs `gh` authenticated on the machine that runs the prime, the tools on disk
+(`git clone --depth 1 https://github.com/ckluis/baton`, then `BATON: ./baton`),
+and a private target repository — or a private `RUNS_REPO: owner/name`. One-time
+repository setup is `tools/github-setup.sh --apply`. See
+[`prompt/invoke.md`](prompt/invoke.md), "For a team", for what moves and why.
+
 ### How it resolves
 
 Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v3.2` instead of `/main` and
+  The base URL is also the version pin: point at `/v4.0` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
@@ -341,11 +440,20 @@ personas/
   lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
   luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
-rules/                49 — one file per rule, the only place each is defined
+rules/                53 — one file per rule, the only place each is defined
 bundle.sh             flatten to a single paste
-tools/embed.py        re-embed the invocation + router into index.html
+tools/embed.py        re-embed the invocation cards + router into index.html
 tools/rules.py        regenerate the contract indexes; refuse a broken rule set
 tools/lint-criteria.py flag a done-criterion no execution can settle, before dispatch
+tools/index.py        the five resume questions off disk; --sqlite for a queryable copy
+tools/lists.py        the four append-only lists as directories of rows (§6.3): derive, check, split
+tools/inbox-gh.py     TEAM — questions out to Issues, answers in to files; clock; summary
+tools/publish-run.sh  TEAM — the run's state on a git ref: init, publish, pages, dispose
+tools/node-pr.sh      TEAM — a product node as a branch, a draft PR, a check
+tools/github-setup.sh TEAM — the ruleset and Pages, as configuration
+tools/test-team.sh    every TEAM tool, end to end, against throwaway repos and a fake gh
+migrations/           from-v1, from-v2, from-v3 — one file per older version; MIGRATING.md indexes them
+docs/designs/         design records, including v4.0's github-native-team-mode.md
 docs/experiments/     paste-ready directives that test the framework's own claims
 index.html            the page
 baton-v1.html         v1, kept as it shipped
@@ -354,7 +462,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/v3.2`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v4.0`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 

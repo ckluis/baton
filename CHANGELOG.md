@@ -2,6 +2,125 @@
 
 ## Unreleased
 
+## v4.0 — 2026-09-18
+
+baton for a team, without moving the run off the runner's disk. Split GitHub into its three
+primitives and each piece of `_orch/` has a home: git is the record, pull requests are the
+product changes, Issues are the human lane. One structural change makes it possible; everything
+else is opt-in under one setting. Design record: `docs/designs/github-native-team-mode.md`.
+
+### Breaking
+
+- **`prompt/CONTRACT.md` §6.3 — append-only lists are directories of rows.** The four files more
+  than one layer appended to — `ledger.csv`, `lint-feedback.yaml`, `ux-debt.yaml`,
+  `plan/decisions.md` — are now derived from `ledger/`, `lint-feedback/`, `ux-debt/` and
+  `plan/decisions/`, one row per file. A layer that has a row to add writes one new file and
+  touches nothing else; `tools/lists.py derive` writes the file, in filename order, byte-for-byte
+  reproducible. A run in flight needs one command before it resumes:
+  `python3 tools/lists.py split ledger` (and `lint-feedback`, `decisions` if the files exist).
+  `derive` refuses to overwrite a file that holds rows its directory does not, so forgetting
+  costs a refusal, never a row. Verified on this framework's own run: the 230-row ledger, the
+  32-row lint-feedback and the 9-section decisions each round-trip to the byte. Why a rule: two
+  layers writing one file was the only concurrency the layout ever had, and it is where the record
+  broke (§7.2's doubled gate events; `ledger-clock.md`). `MIGRATING.md` → `migrations/from-v3.md`.
+
+### Contract — everything below is under `TEAM: github` and silent without it
+
+- **Router §1 — `TEAM` and `RUNS_REPO`.** `TEAM: github` makes `_orch/` a worktree of the run ref
+  `baton/run/<id>`, every blocked question an Issue, every product-writing node a branch with a
+  draft pull request. `RUNS_REPO` names a private repository for the ref, Issues and pages when
+  the target is public or not yours; `TEAM: github` refuses a public target without it.
+- **§6.1 — the ref is the record, the checkout is the working copy.** Still local disk, still every
+  path a rule names; committed by the layer that received the envelope and pushed at every node
+  close and gate, so any machine resumes with a fetch and every cited path gains
+  `/blob/<sha>/_orch/…`. Not state at a URL: nothing reads the ref back into a run but a resume.
+- **§6 — the layout.** `run-ref.json`, `wt/<id>/`, the four directories, `index/` as never-tracked;
+  `_orch/` is a worktree of its own ref under `TEAM`, with `index/`, `wt/` and `**/work/tree/`
+  ignored inside it.
+- **§6.2 — the branch is the landing.** A worktree node's tree is the pushed branch
+  `baton/node/<run-id>/<node>`; nothing can die with the worktree. The layer checks that commit out
+  under `work/tree/` so every `outputs` path stays local and writes `landed.json` beside it.
+- **§4 — team-mode isolation default.** A `surface: code|ui` node writing into the product tree is
+  `isolation: worktree` by default, its worktree the branch above, its verdict a commit status; the
+  plan verifier refutes a team-mode plan that leaves one at `isolation: none`.
+- **§7 — a row is a file; the server bounds the clock.** `ledger/<ts>-<node>-<attempt>.csv`. A row
+  whose `ts` is later than the push that carried it was not measured; `tools/inbox-gh.py clock`
+  reports every row against that bound.
+- **§8 — a gate publishes.** In order: `inbox-gh.py sync`, `lists.py derive`, `publish-run.sh
+  publish`, `inbox-gh.py post-summary`, `publish-run.sh pages`. A gate that produced only local
+  files, under `TEAM`, did not happen either.
+- **§10 — two doorbells, one contract.** One Issue per question, a sub-issue of the run's Issue;
+  an answer is a comment beginning `/answer` or the closing comment; copied into
+  `Q-<n>.answer.md` under a provenance block; the run still reads the file. Who may answer: the
+  assignee, `manifest.json` `answerers:`, else any collaborator — anyone else is recorded with
+  `unauthorized: true`, not applied, and surfaced in the next brief.
+- **`prompt/roles/phase-runner.md`** — branch before a product node runs; write the row file and
+  publish on receipt; post the verdict as `baton/verify`; land through the branch; derive and
+  publish at close. **`prompt/baton.md`** §2.2, §4.3, §5 — init and open the run Issue; sync before
+  the gate reads the inbox; the closing message names the run Issue, the ref, the deck; disposal
+  archives to a release.
+
+### Tools
+
+- **`tools/lists.py`** (new) — `derive`, `check`, `split`, `--selftest` (19 cases, including the
+  real corpus round-trips and the refusal above).
+- **`tools/inbox-gh.py`** (new) — `open-run`, `sync`, `post-summary`, `clock`, `status`,
+  `--dry-run`, `--selftest` (12 cases against a fake `gh`: idempotence, authorized and
+  unauthorized answers, the clock bound). Stdlib; talks to GitHub only through `gh`.
+- **`tools/publish-run.sh`** (new) — `init` (adopts an `_orch/` the router already wrote),
+  `publish` (gitleaks or `--unscanned`, derive, commit, push, permalink base), `pages`, `dispose`
+  (release, delete ref, remove worktree), `status`.
+- **`tools/node-pr.sh`** (new) — `branch`, `land`, `pr`, `status`.
+- **`tools/github-setup.sh`** (new) — the ruleset on `refs/heads/baton/**` and Pages, printed as
+  JSON by default, applied with `--apply`.
+- **`tools/test-team.sh`** (new) — every tool above, end to end, against throwaway repositories
+  and a fake `gh`; 30 checks, no network. It found the two defects in the design as briefed — a
+  ref cannot nest under another ref, and `derive` could have overwritten a v3 ledger — before
+  either reached a rule.
+- **`tools/index.py`** — reads `ledger/` directly when it exists (§6.3), so the histogram never
+  waits on the derivation. **`tools/embed.py`** — embeds the team card as well.
+
+### Page and docs
+
+- **Two invocation cards** on the page and in the README: "for you" and "for a team", one line
+  apart. A new section, "12 — For a team", says what moves and what does not.
+- **`MIGRATING.md` is an index; `migrations/from-v1.md`, `from-v2.md`, `from-v3.md`** each carry
+  the full path from that version to v4.0: what breaks, what does not, what to do with a run in
+  flight.
+
+## v3.3 — 2026-09-17
+
+Two changes, both about baton's own footprint under a tool-using runtime rather than a new
+capability. A third idea, considered and not applied, is recorded at the end.
+
+### Contract
+
+- **`prompt/baton.md` §2.2 step 1 — the prime reads on demand, like every spawn already does.**
+  Step 1 read all 52 rule files before creating `_orch/`, in the one context the router calls
+  "the scarcest thing in the run." Every spawn below the prime already fetches a rule on demand
+  through the contract footer (`rules/rule-11-contract-footer.md`). The prime now reads the three
+  rules it cites by id — `rule-6-filesystem`, `rule-8-1-the-human-brief`,
+  `rule-8-2-every-blocking-decision-ships-a-slide` — plus its mode file, and fetches any other the
+  same way. Unaffected: the pasted-bundle path, where `bundle.sh` already concatenates every rule
+  and there is no per-file cost to defer.
+
+### Tools
+
+- **`tools/index.py --sqlite`.** Writes `_orch/index/run.db` beside `index.json` and
+  `summary.md` — `nodes`, `verdict_rows` (one row per done-criterion across every sweep verdict),
+  `ledger` (unaggregated), `questions`, `findings`. Same contract as the two files it already
+  writes: DERIVED, NEVER AUTHORITATIVE, stdlib only (`sqlite3`), rebuilt from the same corpus on
+  every run.
+
+### Considered, not applied
+
+- **Demoting the acceptance checks and mechanisms this run's instruments recorded as
+  never-fired** (the refutation quota, rung drift's lower branch, the `PRIME_TURNS` deputy
+  handover, eight of the ten acceptance checks). `tools/*.instrument.md` already carries a
+  considered answer: `dormant_because: never-fired` is a status, not a judgment, checked against
+  `_orch/inbox/Q-*.md` per instrument. Overriding that needs new evidence from a run it actually
+  failed, not a smaller rulebook.
+
 ## v3.2 — 2026-09-06
 
 Everything here came from running baton on itself: a replay of the eighteen nodes the self-run
