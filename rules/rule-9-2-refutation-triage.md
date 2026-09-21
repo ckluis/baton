@@ -29,8 +29,8 @@ write `REFUTED`. It writes the fourth row verdict:
 
 | row verdict | means | node computes to |
 |---|---|---|
-| `REFUTED` | the artifact fails a criterion it could have met | `REFUTED` — §1.2 trigger 3, one rung up |
-| `UNSETTLEABLE` | the criterion cannot be settled as written | `PARTIAL`, parked on a question — **not** one rung up |
+| `REFUTED` | the artifact fails a criterion it could have met | `REFUTED` — §1.2's next move, the rows in the retry's handoff |
+| `UNSETTLEABLE` | the criterion cannot be settled as written | `PARTIAL`, parked on a question — **not** a retry |
 
 **`UNSETTLEABLE` is a demonstrated finding, not an excuse.** The row must carry all three:
 
@@ -45,7 +45,7 @@ write `REFUTED`. It writes the fourth row verdict:
    carries the old text), or `reads-immutable-ref` (§9.3 — and only after §9.3's retry has failed
    to settle it);
 3. a **`probe` that is the command whose output shows the criterion cannot be settled** — the
-   form `_orch/inbox/Q-10.md` used: the measured branch has thirty-one changed files and no rung
+   form `_orch/inbox/Q-10.md` used: the measured branch has thirty-one changed files and no tier
    can make it two. What the artifact actually shows goes in `evidence`, so the rewrite can be
    judged against it.
 
@@ -73,7 +73,7 @@ row makes the node `REFUTED`; otherwise any `UNTESTED` or `UNSETTLEABLE` row mak
   blocked node's (§4.1). Resume reads the state off disk: a verdict with an `UNSETTLEABLE` row
   and no matching `_orch/inbox/Q-<n>.answer.md` is parked.
 - The answer authorises the rewrite. The criteria not named stay byte-identical; a fresh verifier
-  re-verifies at the same rung. An unanswered question at the final gate is a *needs a human*
+  re-verifies with a fresh verifier. An unanswered question at the final gate is a *needs a human*
   line (§10.4), never an assumption.
 - **A rewrite is judged on substance against an artifact that predates it.** The artifact was
   written to the old words. A rewrite may narrow what is measured or name the command that
@@ -81,7 +81,7 @@ row makes the node `REFUTED`; otherwise any `UNTESTED` or `UNSETTLEABLE` row mak
   file name, a specific command's raw output — and then refute the artifact for lacking it. A
   re-verifier that finds the rewrite's substance met under a different heading or a different
   but equivalent command writes `CONFIRMED` and says how it mapped the two. If the rewrite's
-  form cannot be mapped onto the artifact, the node is re-run at the same rung against the new
+  form cannot be mapped onto the artifact, the node is re-run at its tier against the new
   words, not refuted against them. Observed in this framework's own replay run: `P90b`'s
   criterion 1 asked for "a clearly-headed amendment section"; the adopted rewrite named the
   heading `## Amendment for Q-10.answer.md`, and twelve rows of an artifact with a clearly headed

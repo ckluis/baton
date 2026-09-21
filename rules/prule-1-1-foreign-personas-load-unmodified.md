@@ -13,7 +13,7 @@ links:
 ### 1.1 Foreign personas load unmodified
 
 A persona file with **only** `name` and `domain` in its frontmatter is valid.
-The loader fills defaults: `kind: expert`, `phases: [AUDIT, CLASH]`, `rung: 2`.
+The loader fills defaults: `kind: expert`, `phases: [AUDIT, CLASH]`, `rung: 1`.
 
 This is deliberate. It means `PERSONAS: repo:github.com/ckluis/luminaryTeam`
 works against that repository exactly as it is published, forty files, no fork,

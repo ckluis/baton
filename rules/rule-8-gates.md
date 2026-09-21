@@ -14,7 +14,7 @@ and a mode may not invent a fifth:
 
 1. **Plan gate** — the graph is refuted before any of it is executed.
 2. **Phase gate** — a phase's nodes are all `DONE`+`CONFIRMED` or
-   `BLOCKED`-and-batched; drift is reset; the next phase brief is written;
+   `BLOCKED`-and-batched; the next phase brief is written;
    the index refresh (`tools/index.py`) is optional — a missing tool or
    failed run is logged and never stalls the gate.
 3. **Blocked batch** — questions surfaced to the operator together, with a brief (§8.1).

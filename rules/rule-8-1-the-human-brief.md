@@ -26,7 +26,7 @@ Two of the four gates reach a person: the **blocked batch** (gate 3) and the **f
 | blocked batch | `_orch/brief/blocked-<n>.html`, `<n>` the phase number of the gate | the batch's `_orch/inbox/Q-*.md` files, `manifest.json` |
 | final gate | `_orch/brief/final.html` | `final/report.md`, `manifest.json`, `ledger.csv` |
 
-The brief is written by the **briefer** (`{BATON}/prompt/roles/briefer.md`) at rung 2, spawned
+The brief is written by the **briefer** (`{BATON}/prompt/roles/briefer.md`) at frontier, spawned
 by the prime inside the same gate turn, after the report or the batch exists. The prime's
 closing message names the brief's path before the report's, because the brief is the page a
 person opens first.
@@ -89,5 +89,5 @@ sentence.
 
 **Why a rule.** This framework's own final report is forty kilobytes and correct; its
 operator asked, after reading it, what had been done and what to do next. A record that is
-complete and unread has not reached anyone. The brief is the run spending one rung-2 spawn so
+complete and unread has not reached anyone. The brief is the run spending one spawn so
 the person does not spend an hour.

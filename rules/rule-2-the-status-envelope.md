@@ -15,7 +15,7 @@ Written by every spawned agent as its **last act**, to its assigned
 ```json
 {
   "node": "T03",
-  "rung": 2,
+  "rung": 1,
   "model": "sonnet",
   "effort": "high",
   "attempt": 2,
@@ -35,8 +35,8 @@ Written by every spawned agent as its **last act**, to its assigned
 | `outputs` | paths only. A path that does not exist is a `FAILED`, not a `DONE`. |
 | `digest` | required on `DONE` / `DONE-WITH-CAVEATS`; must satisfy §3 |
 | `summary` | three sentences, hard cap. The reader is routing, not learning. |
-| `escalation_reason` | required on `ESCALATE`; names what exceeded the rung |
-| `handback` | required when §1.3 applies: the rung-1 node this agent is spinning off |
+| `escalation_reason` | required on `ESCALATE`; names what exceeded the tier |
+| `handback` | optional: a `cheap` node this agent is spinning off for separable mechanical follow-through (§1.1) |
 
 A **verifier** writes `verify/<node>-verdict.json` as its work product and still
 returns an ordinary envelope, with the verdict path as its sole `output` and its

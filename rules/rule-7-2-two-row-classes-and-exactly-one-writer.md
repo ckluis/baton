@@ -13,7 +13,7 @@ links:
 ### 7.2 Two row classes, and exactly one writer each
 
 The schema above describes a **spawn row**. Runs also need to record events that are not
-spawns — a gate closing, a drift applied, a node accepted over a caveat. Those are **event
+spawns — a gate closing, a question answered, a node accepted over a caveat. Those are **event
 rows**, and they are a different shape wearing the same columns:
 
 | | `rung` / `model` / `effort` | `seconds` | `started_at` |
@@ -23,7 +23,7 @@ rows**, and they are a different shape wearing the same columns:
 
 An event row writes `n/a` rather than `0`, because `0` is a real rung (§1) and an event has no
 rung at all. It writes `seconds` empty for the same reason §7.1 gives: an absent measurement is
-better than an invented one. **Event rows are excluded from the rung histogram** — they describe
+better than an invented one. **Event rows are excluded from the tier histogram** — they describe
 the run, not its spending.
 
 **Exactly one layer writes any given row.** The layer that received the envelope writes the
@@ -43,7 +43,7 @@ time** — one carried drift and streak counts, the other the phase's outcome. N
 the schema had nowhere to put two perspectives on one event, so one row clobbered another.
 
 And the event rows already written carry real rungs, not `n/a`: measured across that run's
-ledger, thirteen carry `0`, one carries `1`, one carries `2`. Rung `0` is `haiku/low` (§1), so a
+ledger, thirteen carry `0`, one carries `1`, one carries `2`. Rung `0` was `haiku/low` under the ladder that run used, so a
 gate that spawned nothing is currently indistinguishable in the histogram from a haiku node that
 did work. **The histogram this framework uses to plan its next run is contaminated today.** That
 is what the `n/a` rule above fixes, and it is why event rows are excluded from the histogram

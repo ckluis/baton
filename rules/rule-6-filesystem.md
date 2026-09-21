@@ -13,7 +13,7 @@ All state on disk, so any fresh session resumes and no context is load-bearing.
 
 ```
 _orch/
-  manifest.json          run id, mode, ceiling, prime turns spent, phase pointer
+  manifest.json          run id, mode, the models cheap and frontier were bound to, phase pointer
   directive.md           the directive, verbatim
   run-ref.json           TEAM only — the run's git ref, remote and repository (§6.1)
   plan/

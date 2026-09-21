@@ -34,10 +34,10 @@ So the trigger is not the gate. The trigger is the consequence:
 | work stalls until a human answers | **a slide** — §8.1's shape, in the run's brief |
 | the run continues either way | a ledger row (§7) and a report line |
 
-That is the whole rule. A `BLOCKED` node mid-phase, a node that hits `CEILING` on
-escalation (§1.4), a `SPLIT` the decomposer cannot resolve alone, a node parked on an
+That is the whole rule. A `BLOCKED` node mid-phase, a node whose second frontier failure
+reaches a person (§1.2), a `SPLIT` the decomposer cannot resolve alone, a node parked on an
 `UNSETTLEABLE` criterion (§9.2), a confound a phase runner discovers in its own
-protocol — each stalls work, so each earns a slide. A drift, a streak, an accepted
+protocol — each stalls work, so each earns a slide. A retry, an accepted
 caveat, an index refresh that failed: none of them stall anything, so none of them
 gets a page.
 
@@ -46,8 +46,8 @@ decision is, *why* it is a decision, and what the three real options are needs t
 run's whole context and belongs to the layer holding it — the prime at a gate, the
 phase runner inside a phase. Rendering it needs none of that context. So the
 expensive layer writes the question, the shape and the three options into
-`_orch/inbox/Q-<n>.md`, and a **rung-2 briefer** turns that into the page. A layer
-that writes its own HTML has spent rung-3 tokens on typing (§1.3), and a layer that
+`_orch/inbox/Q-<n>.md`, and a **briefer at frontier** turns that into the page. A layer
+that writes its own HTML has spent the context it was protecting on typing, and a layer that
 skips the page because writing one felt like ceremony has handed the decision back as
 prose.
 

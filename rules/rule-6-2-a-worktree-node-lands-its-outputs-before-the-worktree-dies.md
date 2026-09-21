@@ -13,7 +13,7 @@ links:
     note: adds the missing half of `isolation: worktree`
   - rel: relates-to
     to: rule-9-evidence
-    note: a criterion whose artifact no longer exists cannot be re-verified at any rung
+    note: a criterion whose artifact no longer exists cannot be re-verified at any tier
   - rel: relates-to
     to: rule-2-the-status-envelope
     note: `outputs` paths must still resolve after the worktree is gone
@@ -61,7 +61,7 @@ under `TEAM` is that pull request's merge.
 An `outputs` path that no longer resolves makes the envelope false (§2: *a path that does not
 exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on that artifact
 permanently unverifiable — not `REFUTED`, not `UNSETTLEABLE`, but `UNTESTED` forever, because the
-thing being judged is gone. No rung can recover it and no resume can rebuild it.
+thing being judged is gone. No tier can recover it and no resume can rebuild it.
 
 **A digest is not a substitute.** §3 caps a digest at ten lines and forbids it from crossing
 layers as a document. It says what changed; it is not the artifact and cannot be verified against.
@@ -78,6 +78,6 @@ brief required. When the operator later adopted a rewrite of one criterion and a
 re-verification, ten criteria were re-read and **eight came back `UNTESTED`, permanently**: the
 only surviving product was `lens-build-log.md`, a log *about* the lenses. The verifier could settle
 the two criteria that read the log and none of the eight that read the lenses. The node's own
-verdict is now unimprovable at any rung, and no evidence of the fourteen files exists anywhere in
+verdict is now unimprovable at any tier, and no evidence of the fourteen files exists anywhere in
 the run. Nothing was done wrong — every rule was followed exactly, which is what makes it a defect
 in the rules rather than in the run.
