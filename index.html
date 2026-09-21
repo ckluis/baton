@@ -291,7 +291,7 @@ html.js .reveal.in{opacity:1;transform:none}
             <div class="vs"><span class="vl">A phase runner spawned to dispatch</span><span class="va">&rarr;</span><span class="vr">The harness dispatches when it can; the phase runner is the fallback</span></div>
             <div class="vs"><span class="vl">A verifier at the node's own rung</span><span class="va">&rarr;</span><span class="vr">Always frontier, always a fresh spawn &mdash; independence is the mechanism</span></div>
             <div class="vs"><span class="vl"><code>CEILING</code> and <code>PRIME_TURNS</code></span><span class="va">&rarr;</span><span class="vr"><code>CHEAP</code> and <code>FRONTIER</code> &mdash; models the harness names, not limits</span></div>
-            <div class="vs"><span class="vl">"The cheapest agent that can succeed"</span><span class="va">&rarr;</span><span class="vr">"Agents do the work. baton keeps the record."</span></div>
+            <div class="vs"><span class="vl">An Issue per question, a branch and PR per node, Pages, releases</span><span class="va">&rarr;</span><span class="vr">One pull request, one branch, one hidden ref &mdash; what a colleague's work leaves</span></div>
             <div class="vs"><span class="vl">A v4 run or checkout</span><span class="va">&rarr;</span><span class="vr">Resumes untouched; <code>tools/tiers.py</code> remaps a checkout in one command</span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
@@ -1521,12 +1521,12 @@ html.js .reveal.in{opacity:1;transform:none}
           hand-edited file, or by you typing it into the run. <strong>The disk protocol is the
           contract. Messaging is only a faster doorbell.</strong> With
           <code>INBOX: off</code> a run behaves the same way, with longer pauses.</p>
-        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is an
-          Issue. Every blocked question opens as one &mdash; a sub-issue of the run's own &mdash; and
-          anyone on the repository answers by commenting <code>/answer &hellip;</code>. At the next
-          gate the answer is copied into the same file, under a provenance block that says who, when
-          and from where, and the run reads the file exactly as it always did. Same contract; a
-          doorbell anyone can ring.</p>
+        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is the
+          run's pull request. Every blocked question is posted there as a comment, and anyone on the
+          repository answers by replying <code>/answer Q-&lt;n&gt; &hellip;</code>. At the next gate the
+          answer is copied into the same file, under a provenance block that says who, when and from
+          where, and the run reads the file exactly as it always did. Same contract; a doorbell anyone
+          can ring, on a thread the repository already has.</p>
       </div>
     </div>
   </div>
@@ -1744,7 +1744,7 @@ against that same base URL. Read it completely before you start any work.</pre>
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 303 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 306 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
@@ -1776,7 +1776,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
 | `FRONTIER` | the harness's most capable model, at its highest effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
-| `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/&lt;id&gt;`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
+| `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/&lt;id&gt;` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
 | `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
@@ -1913,9 +1913,11 @@ file** — a half-remembered contract is worse than no run.
      followed by the invocation's Goal block verbatim
 
    Under `TEAM: github`, create it with `tools/publish-run.sh init &lt;run-id&gt;`
-   instead of `mkdir` — it makes `_orch/` a worktree of `baton/run/&lt;run-id&gt;`
-   and refuses a public target without `RUNS_REPO` — write the same two files,
-   then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
+   instead of `mkdir` — it makes `_orch/` the worktree that `publish` pushes to
+   the hidden ref `refs/baton/run/&lt;run-id&gt;`, creates the run branch
+   `baton/&lt;run-id&gt;`, and refuses a public target without `RUNS_REPO` — write the
+   same two files, then `python3 tools/inbox-gh.py open-run` to open the run's
+   thread: a draft pull request on that branch. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
 3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
@@ -1984,9 +1986,9 @@ Repeat until the graph has no runnable nodes:
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
    unblock what the operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
    §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
-   `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
-   gate you just closed, and the answers a teammate left on an Issue reach the
-   run at the only moment it reads them.
+   `publish-run.sh publish`, `inbox-gh.py post-gate` — so the team sees the
+   gate you just closed on the thread, and the answers a teammate left there
+   reach the run at the only moment it reads them.
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
@@ -2026,12 +2028,13 @@ Your closing message to the operator is small, and small is the whole point:
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch &amp;&amp; rm -rf _orch`) or keep it to
   resume or re-verify
-- **under `TEAM`, three more lines and a different disposal line** — the run
-  Issue's URL, the run ref and the permalink base its last push printed
-  (`/blob/&lt;sha&gt;/_orch/`), and the deck's URL on Pages. Disposal is
-  `tools/publish-run.sh dispose &lt;run-id&gt;`: the archive becomes a release, the
-  ref is deleted, and every permalink keeps resolving because the release tag
-  pins the sha. Or keep the ref; it is 26 MB.
+- **under `TEAM`, two more lines and a different disposal line** — the pull
+  request's URL (the thread: the deck in its last gate comment, the product as
+  one commit per node, every question and answer), and the hidden ref with the
+  permalink base its last push printed (`/blob/&lt;sha&gt;/`). Disposal is
+  `tools/publish-run.sh dispose &lt;run-id&gt;`: the hidden ref is deleted and the
+  pull request stays as the record a person can read. Or keep the ref; it is
+  26 MB, and nobody sees it.
 
 Cleanup is the operator's act, never yours. The report, every envelope, and
 every verdict cite paths inside `_orch/` — an agent that deletes it has
@@ -2089,38 +2092,39 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
       <p>The instinct is to put a team's run in GitHub Issues. The numbers say no: one run writes
         about 3,500 state files and ledger rows, and GitHub allows 500 content-creating API calls an
         hour. Split GitHub into its three primitives instead and each piece of the run has an obvious
-        home. Git carries the record, pull requests carry the product, Issues carry the ~25 moments a
-        run needs a person. The run itself still executes on one machine, from local disk, exactly as
-        before.</p>
+        home. Git carries the record on a ref nobody sees; one pull request carries the product as a
+        commit per node, and the ~25 moments a run needs a person as comments. What a run leaves on
+        your repository is what a colleague's work leaves: one pull request, one branch, commits.</p>
     </div>
 
     <div class="grid g3 reveal d1" style="margin-top:32px">
       <div class="card sm">
         <span class="num">THE RECORD</span>
         <h4>Git holds the run.</h4>
-        <p><code>_orch/</code> becomes a worktree of the run's own ref, <code>baton/run/&lt;id&gt;</code>,
-          committed by the layer that received each envelope and pushed at every node close and gate.
-          Still local disk, still every path a rule names &mdash; and every path a verdict cites gains
+        <p><code>_orch/</code> is pushed at every node close and gate to
+          <code>refs/baton/run/&lt;id&gt;</code> &mdash; a ref GitHub lists nowhere, not a branch. Still
+          local disk, still every path a rule names &mdash; and every path a verdict cites gains
           <code>/blob/&lt;sha&gt;/&hellip;</code>, so the evidence outlives the laptop and any machine
-          resumes with a fetch. No rate limit applies to a push.</p>
+          resumes with a fetch. Invisible in the UI; one command to delete.</p>
       </div>
       <div class="card sm">
         <span class="num">THE DOORBELL</span>
         <h4>Issues hold the questions.</h4>
-        <p>Every blocked question becomes an Issue, a sub-issue of the run's own. Anyone on the
-          repository answers by commenting <code>/answer &hellip;</code> &mdash; from a phone, in a
-          meeting. At the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a
-          provenance block, and the run reads the file exactly as it always did. Who may answer is the
-          assignee, a list, or anyone; anyone else is recorded and not obeyed.</p>
+        <p>Every blocked question is a comment on the run's pull request. Anyone on the repository
+          answers with <code>/answer Q-&lt;n&gt; &hellip;</code> &mdash; from a phone, in a meeting. At
+          the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a provenance
+          block, and the run reads the file exactly as it always did. Every gate posts its summary and
+          its decisions on the same thread. No Issue per question, no label.</p>
       </div>
       <div class="card sm">
         <span class="num">THE DIFF</span>
         <h4>Pull requests hold the product.</h4>
-        <p>A node that writes code runs on a branch with a draft pull request, and its computed verdict
-          lands on the branch as the check <code>baton/verify</code> &mdash; green, red, or pending,
-          linking to the rows that decided it. The branch is the landing, so nothing can die with a
-          worktree any more, and the merge node the plan names is the pull request's merge. A team
-          reads baton's changes the way it reads anyone's.</p>
+        <p>A node that writes code lands as one commit on the run's branch &mdash; the pull request
+          &mdash; with its node id in the trailer and its computed verdict as the check
+          <code>baton/verify</code> on that commit: green, red, or pending, linking to the rows that
+          decided it. The commit is the landing, so nothing can die with a worktree, and the merge node
+          the plan names is merging the one pull request. A reviewer reads N commits, the way they read
+          anyone's branch.</p>
       </div>
     </div>
 
@@ -2139,9 +2143,9 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
         <h4>Configuration, not code.</h4>
         <p><code>gh</code> authenticated on the machine that runs the prime; the tools on disk
           (<code>git clone</code>, then <code>BATON: ./baton</code>); a private target repository, or
-          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: a ruleset
-          on <code>baton/**</code> that blocks force-pushes and deletions &mdash; the two new ways to
-          destroy evidence &mdash; and Pages for the briefs. A secret scan gates every push.</p>
+          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: one ruleset
+          on <code>baton/**</code> that blocks force-pushes and deletions of run branches. That is all
+          &mdash; no labels, no Pages, no environments. A secret scan gates every push.</p>
       </div>
       <div class="card sm">
         <span class="num">DOES NOT CHANGE</span>
@@ -2157,11 +2161,10 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
     <div class="code reveal d2" style="margin-top:32px">
       <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what a gate does under TEAM</b> &middot; rule 8</div></div>
 <pre><span class="c"># before the prime reads the inbox</span>
-python3 tools/inbox-gh.py sync          <span class="c">questions out to Issues, answers in to files</span>
+python3 tools/inbox-gh.py sync          <span class="c">questions out as comments, answers in to files</span>
 python3 tools/lists.py derive           <span class="c">the four list files from their rows</span>
-tools/publish-run.sh publish            <span class="c">secret scan, commit, push the run ref</span>
-python3 tools/inbox-gh.py post-summary  <span class="c">the sixty-line index onto the run Issue</span>
-tools/publish-run.sh pages              <span class="c">the deck, at a URL, when the gate wrote one</span></pre>
+tools/publish-run.sh publish            <span class="c">secret scan, commit, push the hidden ref</span>
+python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and the decisions, one comment</span></pre>
     </div>
   </div>
 </section>

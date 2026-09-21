@@ -49,6 +49,30 @@ as such. New spawns write `0` or `1`. A graph entry that still says `rung: 3`
 reads as frontier; `python3 tools/tiers.py remap --state-root _orch` normalises
 `plan/graph.yaml` and the handoffs if you want the files to say so.
 
+## 2b. Team mode's footprint
+
+v4.0's `TEAM: github` created a branch per run, a branch and draft pull request
+per product node, an Issue per question, three labels, a Pages folder per run
+and a release per disposal. v5.0's creates **one pull request, one branch, one
+hidden ref** — what a colleague's own work leaves:
+
+| v4.0 | v5.0 |
+|---|---|
+| branch `baton/run/<id>` holding `_orch/` | hidden ref `refs/baton/run/<id>` — not a branch; listed nowhere |
+| branch + draft PR per node, `baton/node/<id>/<node>` | one commit per node on the run branch `baton/<id>`; the run has one draft PR |
+| an Issue per question, sub-issues, labels | a comment per question on the PR; `/answer Q-<n> …` replies |
+| `gh-pages/runs/<id>/` decks, `post-summary` on a run Issue | one gate comment carrying the summary and the deck's markdown twin |
+| a release per disposal | delete the hidden ref; the PR stays |
+| `tools/publish-run.sh pages`, `tools/node-pr.sh pr` | gone |
+
+Nothing had run under v4.0's surface. If a run did: push its record to the hidden
+ref and drop the branch (`git push origin baton/run/<id>:refs/baton/run/<id>` and
+`git push origin :baton/run/<id>`); questions already answered on Issues keep
+their `Q-<n>.answer.md`; unanswered ones get a comment on the run's pull request
+at the next `sync`; node branches can be merged into the run branch or left.
+`tools/github-setup.sh --apply` again reduces the ruleset to the one that
+remains.
+
 ## 3. What changed around the value
 
 - **Entry is frontier unless the work is a command** (`rules/rule-1-1-entry-rung.md`).

@@ -89,6 +89,36 @@ persona cards and the ledger, so nothing that reads them changes; its values are
    `tools/tiers.py` (with `--check`), so a v4 `_orch/` resumes under v5 without
    conversion — its old rung values simply read as frontier.
 
+## Team mode, quiet — decided during the same review
+
+Chris's next objection, once the ladder was gone: v4's team mode "polluted"
+GitHub. It put a new object on the repository for every baton concept — a
+branch per run, a branch and draft pull request per node, an Issue per question,
+labels, a Pages folder per run, a release per disposal. Nothing had run under it.
+
+v5's team mode uses only the three things a repository already has, and leaves
+what a colleague's own work leaves: **one pull request, one branch, commits.**
+
+| concern | v4.0 | v5.0 |
+|---|---|---|
+| the record | branch `baton/run/<id>` | hidden ref `refs/baton/run/<id>` — pushable, fetchable, permalinkable by sha, listed nowhere |
+| the product | branch + draft PR per node | one commit per node on the run branch `baton/<id>`, trailers `Baton-Node`/`Baton-Run`, one draft PR for the run |
+| the doorbell | Issue per question, sub-issues, labels | a comment per question on the PR; `/answer Q-<n> …` replies; every gate one comment |
+| the deck | Pages | the brief's markdown twin, inside the gate comment |
+| disposal | a release, then delete | delete the hidden ref; the PR stays |
+| verdicts | commit status per node branch | commit status per node commit — the PR's checks |
+
+What is given up: per-node review granularity becomes per-commit (a gain); a
+ruleset cannot protect a custom ref, so the hidden record has no force-push guard
+— it is protected by push permission and by being re-pushable from any checkout;
+and the deck in a comment is markdown, not a page, which is less pretty and more
+where people look. `tools/test-team.sh` now ends with the footprint assertion:
+1 branch, 1 thread, 0 issues, 0 labels, 0 pages, 0 releases.
+
+One assumption the fakes cannot verify: that GitHub opens a pull request from a
+branch that is one *empty* commit ahead of its base. The tool falls back to an
+Issue as the thread if it cannot; the first real run settles it.
+
 ## Rejected
 
 - **Rename `rung` to `tier` everywhere.** Correct in name, breaking in every reader

@@ -89,6 +89,18 @@ name, so nothing downstream breaks. Design record: `docs/designs/v5-accountabili
   run agents in parallel and wait for their envelopes dispatches a phase's nodes itself, under the
   same handoff-and-envelope contract; the phase runner is the fallback. Layers are a discipline of
   context and independence, not a hierarchy of spawns.
+- **Team mode leaves what a colleague's work leaves: one pull request, one branch, commits.**
+  v4 put a new object on GitHub for every baton concept — a branch per run, a branch and draft
+  PR per node, an Issue per question, labels, a Pages folder, a release. v5 uses three things a
+  repository already has. The run's record goes to a hidden ref, `refs/baton/run/<id>`, that
+  GitHub lists nowhere and any machine can resume from
+  (`rules/rule-6-1-framework-locators-vs-run-state.md`). The pull request is the thread:
+  questions are comments, answers are `/answer Q-<n> …` replies, every gate posts its summary
+  and its decisions there (`rules/rule-10-the-operator-lane.md`, `rules/rule-8-gates.md`).
+  Every product node lands as one commit on the pull request's branch with its verdict as the
+  check `baton/verify` (`rules/rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md`).
+  No Issue per question, no branch per node, no label,
+  no page, no release — `tools/test-team.sh` asserts the footprint.
 - **Rules are invariants.** Five deleted — de-escalation, the ceiling, who assigns the rung, rung
   drift, effort-as-a-rung — the refutation quota cut from §9, `PRIME_TURNS` and its deputy gone,
   `CEILING` replaced by `CHEAP` and `FRONTIER`, which name models rather than limits. 53 rules
@@ -490,10 +502,10 @@ tools/lint-criteria.py flag a done-criterion no execution can settle, before dis
 tools/index.py        the five resume questions off disk; --sqlite for a queryable copy
 tools/lists.py        the four append-only lists as directories of rows (§6.3): derive, check, split
 tools/tiers.py        v4 rungs → v5 tiers (§1): remap a checkout or a run, check, selftest
-tools/inbox-gh.py     TEAM — questions out to Issues, answers in to files; clock; summary
-tools/publish-run.sh  TEAM — the run's state on a git ref: init, publish, pages, dispose
-tools/node-pr.sh      TEAM — a product node as a branch, a draft PR, a check
-tools/github-setup.sh TEAM — the ruleset and Pages, as configuration
+tools/inbox-gh.py     TEAM — the run's thread: open-run, sync (questions out, answers in), post-gate, clock
+tools/publish-run.sh  TEAM — the record on a hidden ref and the run branch: init, publish, dispose
+tools/node-pr.sh      TEAM — a product node as one commit on the run branch, its verdict as a check
+tools/github-setup.sh TEAM — one ruleset, as configuration
 tools/test-team.sh    every TEAM tool, end to end, against throwaway repos and a fake gh
 migrations/           from-v1 … from-v4 — one file per older version; MIGRATING.md indexes them
 docs/designs/         design records, including v4.0's github-native-team-mode.md

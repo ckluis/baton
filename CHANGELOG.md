@@ -43,6 +43,15 @@ Design record: `docs/designs/v5-accountability-layer.md`.
   run on; there is no ceiling because frontier is the ceiling, and no prime turn budget because
   §3's context discipline is what protects the prime. An invocation that still names either is
   told so in the first message and otherwise ignored.
+- **Team mode's footprint on the repository is one pull request, one branch, one hidden ref.**
+  v4.0's team mode — a branch per run, a branch and draft pull request per node, an Issue per
+  question, three labels, a Pages folder per run, a release per disposal — is replaced whole;
+  nothing had run under it. The record now goes to `refs/baton/run/<id>`, a ref GitHub lists
+  nowhere; the pull request on `baton/<id>` is the thread (questions and answers are comments,
+  every gate posts one comment); every product node is one commit on that branch with its
+  verdict as the check `baton/verify`; briefs gain a markdown twin the gate posts. A v4 team run
+  in flight, if one existed, pushes its `baton/run/<id>` branch to the hidden ref and deletes the
+  branch — `migrations/from-v4.md` §2b.
 
 ### Contract
 
@@ -73,8 +82,24 @@ Design record: `docs/designs/v5-accountability-layer.md`.
 
 - **`tools/tiers.py`** (new) — `remap` / `check` for a framework checkout (`--framework`) or a run
   (`--state-root`); the ledger is never rewritten; `--selftest` 9 cases.
-- `tools/index.py`, `tools/lists.py`, `tools/lint-criteria.py`, every team tool: unchanged — the
-  field they read kept its name.
+- **`tools/publish-run.sh`** — `init` makes `_orch/` a worktree of a local branch that `publish`
+  pushes to the hidden ref, and creates the run branch `baton/<id>` from the base with one empty
+  commit so the pull request can open before any node lands; `dispose` deletes the hidden ref and
+  keeps the pull request; `pages` is gone.
+- **`tools/node-pr.sh`** — `branch` from the run branch's head; `land` commits the node's changes
+  as one commit on the run branch (trailers `Baton-Node`, `Baton-Run`), rebasing onto whatever
+  landed since, pushes, checks the commit out under `work/tree/`; `status` posts the check on that
+  commit; `pr` is gone.
+- **`tools/inbox-gh.py`** — `open-run` opens the draft pull request on the run branch (an Issue if
+  a pull request cannot be opened); `sync` posts questions as comments and reads `/answer Q-<n>`
+  replies back; `post-gate` posts the index summary and the gate's markdown deck as one comment;
+  `clock` bounds rows against pushes to the hidden ref. `--selftest` 13 cases; the fake `gh` proves
+  no Issue, label, close or page is ever created for a question.
+- **`tools/github-setup.sh`** — one ruleset on `refs/heads/baton/**`; Pages removed.
+- **`tools/test-team.sh`** — rewritten for the quiet surface: 37 checks, ending with the footprint
+  assertion — 1 branch, 1 thread, 0 issues, 0 labels, 0 pages, 0 releases.
+- `tools/index.py`, `tools/lists.py`, `tools/lint-criteria.py`: unchanged — the field they read
+  kept its name.
 
 ### Page and docs
 
