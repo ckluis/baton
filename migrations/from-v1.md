@@ -1,4 +1,7 @@
-# Migrating from baton v1 to v4.0
+# Migrating from baton v1 to v5.0
+
+> Written for the v4.0 hop; still the whole story, with one addition at the end:
+> v5.0 replaced the six-rung ladder with three tiers. See §5.
 
 v1 was one prompt — 571 lines, pasted whole — with the prime on the top model
 dispatching every task itself. It is kept exactly as it shipped at
@@ -62,6 +65,13 @@ point `TARGET` at them.
 
 ## 4. What did not change
 
-The reason the tool exists. v1's problem was the bill, and v4's every rule is
-about who pays for what: rungs, digests, envelopes, gates. If v1 worked for you,
-v4 is v1 with the meter running visibly.
+The reason the tool exists. v1's problem was the bill, and every rule since is
+about who pays for what: digests, envelopes, gates, and now tiers. If v1 worked
+for you, v5 is v1 with the meter running visibly.
+
+## 5. The v5.0 hop
+
+Point 1 above — the ladder — is now three tiers rather than six rungs: `cheap` for
+what a command can settle, `frontier` for everything with judgment (the default),
+and a person when frontier has failed twice. Nothing else in this document
+changes; [`from-v4.md`](from-v4.md) §2 has the table.

@@ -1,7 +1,8 @@
-# Migrating from baton v3.x to v4.0
+# Migrating from baton v3.x to v5.0
 
 Covers v3.0, v3.1, v3.2 and v3.3. Every hop inside v3 was additive; v4.0 carries
-**one** breaking change, and it costs one command per run in flight.
+**one** breaking change that costs one command per run in flight (§2), and v5.0
+carries one more that costs one command per checkout (§6).
 
 ## 1. The move itself
 
@@ -81,3 +82,13 @@ existing `_orch/` into a worktree of the run ref — it copies what is there, so
 half-finished v3 run becomes the first commit on its ref — and `tools/inbox-gh.py
 sync` opens an Issue for every question that is still unanswered. Questions
 answered by hand under v3 keep their `Q-<n>.answer.md` and get no Issue.
+
+## 6. The v5.0 hop
+
+A `rung` value now means a tier (`prompt/CONTRACT.md` §1): `0` cheap, `1`
+frontier, `n/a` for an event row. A v3 run resumes untouched — `rung: 3` in its
+graph reads as frontier. A checkout of the framework runs
+`python3 tools/tiers.py remap --framework` once; `check` refuses any value above
+1. `CEILING` and `PRIME_TURNS` are gone from the invocation; `CHEAP` and
+`FRONTIER` name the models if you want to. [`from-v4.md`](from-v4.md) has the
+table, the escalation that replaced the ladder, and what did not change.
