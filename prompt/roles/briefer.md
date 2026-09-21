@@ -6,7 +6,7 @@
 |---|---|
 | `{gate}` | `blocked` or `final` |
 | `{inputs}` | `blocked`: the batch's `_orch/inbox/Q-*.md` paths plus `_orch/manifest.json` · `final`: `final/report.md`, `_orch/manifest.json`, `_orch/ledger.csv` |
-| `{brief_path}` | `_orch/brief/blocked-<n>.html` (`<n>` the gate's phase number) or `_orch/brief/final.html` |
+| `{brief_path}` | `_orch/brief/blocked-<n>.html` (`<n>` the gate's phase number) or `_orch/brief/final.html` — and, under `TEAM`, its markdown twin at the same path with `.md` (CONTRACT §8.1) |
 
 You write one HTML page for a person who did not watch the run and will not read the
 report first. CONTRACT §8.1 fixes the shape; this file tells you how to fill it. You are
@@ -59,6 +59,13 @@ slide of its own or one row of a slide's record. Nothing on the report's list is
 the deck.
 
 ## The voice
+
+**Under `TEAM`, write the markdown twin too** — the same slides as `##` sections,
+one per decision: title, the description, the three options with the
+recommended one marked, and the numbers as a markdown table with the command
+beside each row. No styling, no visual. It is posted as a comment on the run's
+thread by the gate (CONTRACT §8, §10), where a page cannot go; a reader on a
+phone gets the decisions, and the HTML stays for anyone who opens the file.
 
 Write for a reader of fifteen who is given the definitions. Concretely:
 

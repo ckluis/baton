@@ -48,15 +48,16 @@ main tree: a worktree node's edits reach `main` only by a merge or a cherry-pick
 names as its own node (§4), never by the retirement step. A run that retires a worktree without
 such a node has kept the evidence and shipped nothing, and the final report says so.
 
-**Under `TEAM`, the branch is the landing.** A worktree node's tree is the pushed branch
-`baton/node/<run-id>/<id>` (§4), so nothing can die with the worktree: the branch holds the tree
-at the node's commit, and a draft pull request holds the diff for a person. The layer that
-created the worktree still checks that commit out under `_orch/nodes/<id>/work/tree/` — so every
-`outputs` path stays a local path (§6.1) — and writes `landed.json` beside it: branch, sha, pull
-request. The copy above is what a single-user run does; the checkout is what a team run does;
+**Under `TEAM`, the commit is the landing.** A worktree node's changes land as **one commit on
+the run's branch** `baton/<id>` — the pull request's branch — carrying `Baton-Node` and
+`Baton-Run` trailers (§4), so nothing can die with the worktree: the commit holds the tree, and
+the pull request holds the diff for a person, one commit per node. The layer that created the
+worktree checks that commit out under `_orch/nodes/<id>/work/tree/` — so every `outputs` path
+stays a local path (§6.1) — and writes `landed.json` beside it: branch, sha, the commit's
+permalink. The copy above is what a single-user run does; the checkout is what a team run does;
 the invariant is the same — no `outputs` path may resolve only inside a tree about to be
 removed. The product still reaches `main` only through the merge node the plan names, which
-under `TEAM` is that pull request's merge.
+under `TEAM` is merging the run's one pull request. No branch and no pull request per node.
 
 An `outputs` path that no longer resolves makes the envelope false (§2: *a path that does not
 exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on that artifact

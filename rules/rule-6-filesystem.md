@@ -15,7 +15,7 @@ All state on disk, so any fresh session resumes and no context is load-bearing.
 _orch/
   manifest.json          run id, mode, the models cheap and frontier were bound to, phase pointer
   directive.md           the directive, verbatim
-  run-ref.json           TEAM only — the run's git ref, remote and repository (§6.1)
+  run-ref.json           TEAM only — the run's hidden ref, run branch, remote and repository (§6.1)
   plan/
     graph.yaml           §4 — the machine-readable plan
     roadmap.md           phases, rationale, risks; table first, prose after
@@ -42,7 +42,7 @@ _orch/
   loops/
     L1/seen.yaml         §5.1
   inbox/                 §10 — Q-<n>.md and Q-<n>.answer.md; github.json under TEAM
-  brief/                 §8.1 — blocked-<phase>.html, final.html; for a person
+  brief/                 §8.1 — blocked-<phase>.html, final.html; for a person. Under TEAM each has a .md twin
   ledger/                §7 — one row per file (§6.3)
   ledger.csv             derived from ledger/ — `python3 tools/lists.py derive`
   lint-feedback/         §9.2 — one UNSETTLEABLE criterion per file (§6.3)
@@ -56,7 +56,7 @@ _orch/
 ```
 
 `_orch/` is gitignored by the product tree. Under `TEAM` (router §1) it is a git
-worktree of the run's own ref, `baton/run/<id>` (§6.1): still ignored by the
-product tree, tracked by its own ref, with `index/`, `wt/` and `**/work/tree/`
-ignored inside it because each is either derived or a checkout of something the
-ref already records.
+worktree of a local branch that `publish` pushes to the hidden ref
+`refs/baton/run/<id>` (§6.1): still ignored by the product tree, never a branch
+on the remote, with `index/`, `wt/` and `**/work/tree/` ignored inside it because
+each is either derived or a checkout of something the ref already records.

@@ -44,9 +44,9 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    failed run is logged and dispatched past; the linter never stalls the run.
 
    **Under `TEAM`, a product-writing node gets its branch before it runs:**
-   `tools/node-pr.sh branch <id>` creates the worktree at `_orch/wt/<id>/` on
-   `baton/node/<run-id>/<id>` (§4, §6.2) and the handoff's paths resolve
-   against it. The brief carries the run id; `_orch/run-ref.json` carries it too.
+   `tools/node-pr.sh branch <id>` creates the worktree at `_orch/wt/<id>/` from
+   the run branch's head (§4, §6.2) and the handoff's paths resolve against it.
+   The brief carries the run id; `_orch/run-ref.json` carries it too.
 
 **You write the spawn row for every node you dispatched, and nobody else does** (§7.2). If you
 also have something to record about a gate the prime holds, write your own **event row** for it
@@ -121,10 +121,11 @@ over one.
 
    Under `TEAM`, once a verdict has a shape you accept, post it where the
    team looks: `tools/node-pr.sh status <id> <CONFIRMED|REFUTED|PARTIAL>` puts
-   the computed node verdict on the node's branch head as the commit status
-   `baton/verify` — green, red, or pending — with the verdict file's permalink
-   as its link (§6.2). A teammate reading the pull request sees the same
-   verdict the ledger records, and can open the row that decided it.
+   the computed node verdict on the node's commit — its landing on the run
+   branch — as the check `baton/verify`, green, red, or pending, with the
+   verdict file's permalink as its link (§6.2). A teammate reading the pull
+   request sees each node as one commit with the same verdict the ledger
+   records, and can open the row that decided it.
 
 6. **Retire the worktree, outputs first.** For a node carrying `isolation:
    worktree` (§4) you created the tree, so you retire it — and **§6.2 binds the
@@ -144,13 +145,13 @@ over one.
    destroyed artifact is not recoverable. **Do not accept the digest as a
    substitute** — a digest is ten lines about the work, never the work (§3).
 
-   **Under `TEAM`, the branch is the landing** (§6.2): `tools/node-pr.sh land
-   <id>` commits what the node left in its worktree onto its branch, pushes it,
-   checks that commit out under `_orch/nodes/<id>/work/tree/` so every
-   `outputs` path is still a local path, writes `landed.json` beside it, and
-   only then removes `_orch/wt/<id>/`. `tools/node-pr.sh pr <id>` opens the
-   draft pull request if the node's branch has none. Nothing can die with the
-   worktree, because the branch already holds the tree.
+   **Under `TEAM`, the commit is the landing** (§6.2): `tools/node-pr.sh land
+   <id>` commits what the node left in its worktree as one commit on the run
+   branch, pushes it, checks that commit out under `_orch/nodes/<id>/work/tree/`
+   so every `outputs` path is still a local path, writes `landed.json` beside
+   it, and only then removes `_orch/wt/<id>/`. Nothing can die with the
+   worktree, because the run branch already holds the tree — and the pull
+   request shows the node as one commit.
 
 7. **Repeat from step 2** until no node in the phase is runnable or
    pending. Terminal states only: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched —

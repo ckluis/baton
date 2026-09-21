@@ -26,14 +26,15 @@ produces only conversation did not happen.**
 Under `TEAM` (router §1) a gate also publishes, in this order, and each step is
 a command the gate's envelope names:
 
-1. `python3 tools/inbox-gh.py sync` — questions out to Issues, answers in to
-   `_orch/inbox/*.answer.md` (§10), *before* the gate scans the inbox.
+1. `python3 tools/inbox-gh.py sync` — questions out to the run's thread as
+   comments, answers in to `_orch/inbox/*.answer.md` (§10), *before* the gate
+   scans the inbox.
 2. `python3 tools/lists.py derive` — the four list files from their rows (§6.3).
-3. `tools/publish-run.sh publish` — secret scan, commit, push the run ref (§6.1).
-4. `python3 tools/inbox-gh.py post-summary` — `_orch/index/summary.md` onto the
-   run Issue, so the team reads the same sixty lines the prime does.
-5. `tools/publish-run.sh pages` — when the gate wrote a brief (§8.1), so the
-   slide a question links to opens as a page.
+3. `tools/publish-run.sh publish` — secret scan, commit, push the hidden ref (§6.1).
+4. `python3 tools/inbox-gh.py post-gate` — one comment on the thread:
+   `_orch/index/summary.md`, and the brief's markdown twin when the gate wrote
+   one (§8.1), so the team reads the same sixty lines the prime does and the
+   decisions beside them.
 
 A gate that produced only local files, under `TEAM`, did not happen either.
 

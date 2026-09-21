@@ -24,7 +24,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
 | `FRONTIER` | the harness's most capable model, at its highest effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
-| `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/<id>`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
+| `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/<id>` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
 | `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
@@ -161,9 +161,11 @@ file** — a half-remembered contract is worse than no run.
      followed by the invocation's Goal block verbatim
 
    Under `TEAM: github`, create it with `tools/publish-run.sh init <run-id>`
-   instead of `mkdir` — it makes `_orch/` a worktree of `baton/run/<run-id>`
-   and refuses a public target without `RUNS_REPO` — write the same two files,
-   then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
+   instead of `mkdir` — it makes `_orch/` the worktree that `publish` pushes to
+   the hidden ref `refs/baton/run/<run-id>`, creates the run branch
+   `baton/<run-id>`, and refuses a public target without `RUNS_REPO` — write the
+   same two files, then `python3 tools/inbox-gh.py open-run` to open the run's
+   thread: a draft pull request on that branch. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
 3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
@@ -232,9 +234,9 @@ Repeat until the graph has no runnable nodes:
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
    unblock what the operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
    §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
-   `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
-   gate you just closed, and the answers a teammate left on an Issue reach the
-   run at the only moment it reads them.
+   `publish-run.sh publish`, `inbox-gh.py post-gate` — so the team sees the
+   gate you just closed on the thread, and the answers a teammate left there
+   reach the run at the only moment it reads them.
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
@@ -274,12 +276,13 @@ Your closing message to the operator is small, and small is the whole point:
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch && rm -rf _orch`) or keep it to
   resume or re-verify
-- **under `TEAM`, three more lines and a different disposal line** — the run
-  Issue's URL, the run ref and the permalink base its last push printed
-  (`/blob/<sha>/_orch/`), and the deck's URL on Pages. Disposal is
-  `tools/publish-run.sh dispose <run-id>`: the archive becomes a release, the
-  ref is deleted, and every permalink keeps resolving because the release tag
-  pins the sha. Or keep the ref; it is 26 MB.
+- **under `TEAM`, two more lines and a different disposal line** — the pull
+  request's URL (the thread: the deck in its last gate comment, the product as
+  one commit per node, every question and answer), and the hidden ref with the
+  permalink base its last push printed (`/blob/<sha>/`). Disposal is
+  `tools/publish-run.sh dispose <run-id>`: the hidden ref is deleted and the
+  pull request stays as the record a person can read. Or keep the ref; it is
+  26 MB, and nobody sees it.
 
 Cleanup is the operator's act, never yours. The report, every envelope, and
 every verdict cite paths inside `_orch/` — an agent that deletes it has
