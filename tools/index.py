@@ -5,13 +5,28 @@
     python3 tools/index.py <root>     # or point it at another corpus root
     python3 tools/index.py --state-root _orch-replay   # a run whose state is not `_orch/`
                                       # (or BATON_STATE_ROOT=_orch-replay)
+    python3 tools/index.py --sqlite   # also write _orch/index/run.db
 
 It reads `_orch/nodes/*/status.json`, `_orch/verify/*.json`, `_orch/ledger.csv`,
-`_orch/plan/graph.yaml` and `_orch/inbox/`, and writes exactly two files, both
-under `_orch/index/`:
+`_orch/plan/graph.yaml` and `_orch/inbox/`, and writes two files, both under
+`_orch/index/`, or three with `--sqlite`:
 
     _orch/index/index.json   the machine view
     _orch/index/summary.md   the human view, 60 lines or fewer
+    _orch/index/run.db       (--sqlite only) the same corpus, queryable: a
+                              `nodes` table (one row per node dir, its bucket,
+                              status and verdict), `verdict_rows` (one row per
+                              done-criterion across every sweep verdict, so
+                              "which criterion failed twice" is a WHERE clause
+                              instead of a script), `ledger` (ledger.csv,
+                              unaggregated), `questions`, and `findings`. Same
+                              contract as the two files above: DERIVED, NEVER
+                              AUTHORITATIVE — delete it, it rebuilds byte-for-
+                              byte from the same corpus, and nothing ever reads
+                              it back into a run. Example:
+                                sqlite3 _orch/index/run.db \
+                                  "select node, verdict, count(*) from
+                                   verdict_rows group by node, verdict"
 
 The five questions, one section each in both outputs:
 
@@ -83,6 +98,7 @@ import csv
 import json
 import os
 import re
+import sqlite3
 import sys
 
 # --------------------------------------------------------------------------
@@ -398,7 +414,12 @@ def load_verdicts(verify_dir, nodes_dir, findings, root):
                   "criteria_counts_in_handoff": allowed,
                   "malformed": bool(problems),
                   "malformation": "; ".join(problems) or None,
-                  "effective": "PARTIAL" if problems else computed}
+                  "effective": "PARTIAL" if problems else computed,
+                  # Not surfaced in index.json (it already reports rows/malformed
+                  # summaries, not the rows themselves) - kept on the record only
+                  # so --sqlite can populate `verdict_rows` without re-reading
+                  # every verdict file a second time.
+                  "criteria": criteria}
         if problems:
             findings.add("verdict-malformed", rel(root, path),
                          "%s; malformed, so it reads as PARTIAL (CONTRACT §9.1)"
@@ -581,6 +602,30 @@ def load_ledger(path, findings, root):
             "source": rel(root, path)}
 
 
+def load_ledger_rows(path):
+    """Every ledger.csv row, unaggregated, for --sqlite's `ledger` table.  Used
+    only there: `load_ledger` above stays the histogram the JSON/summary views
+    have always shipped, unchanged.  Never crashes - an absent or malformed
+    ledger yields no rows, same as `load_ledger` yields an empty histogram."""
+    text = read_text(path)
+    if text is None:
+        return []
+    try:
+        rows = list(csv.reader(text.splitlines()))
+    except (csv.Error, ValueError):
+        return []
+    if not rows:
+        return []
+    header = [c.strip() for c in rows[0]]
+    out = []
+    for row in rows[1:]:
+        if not row or not any(c.strip() for c in row):
+            continue
+        padded = row + [""] * (len(header) - len(row))
+        out.append(dict(zip(header, padded[:len(header)])))
+    return out
+
+
 # --------------------------------------------------------------------------
 # the index itself
 # --------------------------------------------------------------------------
@@ -734,7 +779,7 @@ def build_index(root, state=STATE_ROOT_DEFAULT):
         "non_verdict_files": extras["non_verdict_files"],
         "findings": finding_rows,
     }
-    return index
+    return index, sweep
 
 
 # --------------------------------------------------------------------------
@@ -825,14 +870,125 @@ def trim_to_ceiling(lines, ceiling=60):
 
 
 # --------------------------------------------------------------------------
+# --sqlite: the same corpus, as a derived, queryable, disposable file
+# --------------------------------------------------------------------------
+
+LEDGER_DEFAULT_COLUMNS = (
+    "ts", "node", "rung", "model", "effort", "attempt", "verdict", "seconds", "note")
+
+
+def safe_ident(name, fallback_index):
+    ident = re.sub(r"[^A-Za-z0-9_]", "_", name) or ("col_%d" % fallback_index)
+    if ident[0].isdigit():
+        ident = "c_" + ident
+    return ident
+
+
+def add_node_row(cur, row, bucket):
+    cur.execute(
+        "insert into nodes (node, phase, title, bucket, status, verdict, "
+        "verdict_file, note) values (?,?,?,?,?,?,?,?)",
+        (row.get("node"), row.get("phase"), row.get("title"), bucket,
+         row.get("status"), row.get("verdict"), row.get("verdict_file"),
+         row.get("why") or row.get("note") or row.get("summary") or row.get("reason")))
+
+
+def write_sqlite(index, sweep, ledger_rows, out_path):
+    """DERIVED, NEVER AUTHORITATIVE - same rule as index.json and summary.md.
+    Nothing in a baton run ever reads this file; deleting it loses nothing,
+    and the next `--sqlite` run rebuilds it from the same corpus. No ambient
+    config, stdlib only (`sqlite3` ships with Python), never crashes: a row
+    this script cannot make sense of is simply not inserted, same posture as
+    `Findings` above for the JSON view."""
+    try:
+        os.remove(out_path)
+    except OSError:
+        pass
+    conn = sqlite3.connect(out_path)
+    cur = conn.cursor()
+
+    cur.execute("create table nodes (node TEXT, phase TEXT, title TEXT, "
+                "bucket TEXT, status TEXT, verdict TEXT, verdict_file TEXT, "
+                "note TEXT)")
+    for row in index["pending"]:
+        add_node_row(cur, row, "pending")
+    for row in index["terminal"]:
+        add_node_row(cur, row, "terminal")
+    for row in index["done_unconfirmed"]:
+        add_node_row(cur, row, "done_unconfirmed")
+    for row in index["blocked"]:
+        add_node_row(cur, row, "blocked")
+    for rows in index["other_verdicts"].values():
+        for row in rows:
+            add_node_row(cur, row, "other")
+    for node in index["verifier_spawns"]:
+        add_node_row(cur, {"node": node}, "verifier_spawn")
+
+    cur.execute("create table verdict_rows (node TEXT, file TEXT, seq INTEGER, "
+                "criterion TEXT, verdict TEXT, probe TEXT, shape TEXT, "
+                "evidence TEXT)")
+    for node_id, records in sweep.items():
+        for record in records:
+            for crow in (record.get("criteria") or []):
+                if not isinstance(crow, dict):
+                    continue
+                evidence = crow.get("evidence")
+                cur.execute(
+                    "insert into verdict_rows (node, file, seq, criterion, "
+                    "verdict, probe, shape, evidence) values (?,?,?,?,?,?,?,?)",
+                    (node_id, record.get("file"), record.get("seq"),
+                     crow.get("criterion"), crow.get("verdict"), crow.get("probe"),
+                     crow.get("shape"),
+                     json.dumps(evidence, ensure_ascii=False)
+                     if evidence is not None else None))
+
+    cols = list(ledger_rows[0].keys()) if ledger_rows else list(LEDGER_DEFAULT_COLUMNS)
+    safe_cols = [safe_ident(c, i) for i, c in enumerate(cols)]
+    cur.execute("create table ledger (%s)"
+                % ", ".join("%s TEXT" % c for c in safe_cols))
+    if ledger_rows:
+        placeholders = ",".join(["?"] * len(safe_cols))
+        cur.executemany(
+            "insert into ledger values (%s)" % placeholders,
+            [[row.get(c) for c in cols] for row in ledger_rows])
+
+    cur.execute("create table questions (id TEXT, file TEXT, answer_file TEXT, "
+                "frontmatter_status TEXT, answered INTEGER)")
+    for row in index["unanswered_questions"]:
+        cur.execute(
+            "insert into questions (id, file, answer_file, frontmatter_status, "
+            "answered) values (?,?,?,?,0)",
+            (row.get("id"), row.get("file"), row.get("answer_file"),
+             row.get("frontmatter_status")))
+    for row in index["answered_questions"]:
+        cur.execute(
+            "insert into questions (id, file, answer_file, frontmatter_status, "
+            "answered) values (?,?,?,?,1)",
+            (row.get("id"), row.get("file"), row.get("answer_file"),
+             row.get("frontmatter_status")))
+
+    cur.execute("create table findings (kind TEXT, file TEXT, detail TEXT)")
+    cur.executemany("insert into findings values (?,?,?)",
+                     [(f.get("kind"), f.get("file"), f.get("detail"))
+                      for f in index["findings"]])
+
+    conn.commit()
+    conn.close()
+
+
+# --------------------------------------------------------------------------
 # entry point
 # --------------------------------------------------------------------------
 
 
 def main(argv):
+    argv = list(argv)
+    want_sqlite = "--sqlite" in argv
+    if want_sqlite:
+        argv = [a for a in argv if a != "--sqlite"]
     state = state_root(argv)
     root = discover_root(argv)
-    index = build_index(root, state)
+    index, sweep = build_index(root, state)
 
     out_dir = os.path.join(root, state, "index")
     try:
@@ -854,14 +1010,25 @@ def main(argv):
         sys.stderr.write("index: cannot write into %s (%s)\n" % (out_dir, exc))
         return 0
 
+    db_note = ""
+    if want_sqlite:
+        ledger_rows = load_ledger_rows(os.path.join(root, state, "ledger.csv"))
+        db_path = os.path.join(out_dir, "run.db")
+        try:
+            write_sqlite(index, sweep, ledger_rows, db_path)
+            db_note = "  wrote %s\n" % rel(root, db_path)
+        except sqlite3.Error as exc:
+            sys.stderr.write("index: --sqlite failed (%s); json and summary "
+                             "still wrote\n" % exc)
+
     counts = index["counts"]
     sys.stdout.write(
         "index: %s\n  %d pending  %d DONE-unconfirmed  %d blocked  "
-        "%d unanswered questions  %d findings\n  wrote %s and %s\n"
+        "%d unanswered questions  %d findings\n  wrote %s and %s\n%s"
         % (os.path.abspath(root), counts["pending"], counts["done_unconfirmed"],
            counts["blocked"], counts["questions_unanswered"], counts["findings"],
            rel(root, os.path.join(out_dir, "index.json")),
-           rel(root, os.path.join(out_dir, "summary.md"))))
+           rel(root, os.path.join(out_dir, "summary.md")), db_note))
     return 0
 
 
