@@ -1,4 +1,4 @@
-# BATON v2 — the router
+# BATON v5 — the router
 
 You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
 because your invocation pointed you at it. **Read it to the end before you act.**
@@ -21,8 +21,8 @@ below, and you do not ask the operator about a default that is already correct.
 | `MODE` | **required** | selects `{BATON}/prompt/modes/<MODE>.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
 | `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
-| `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
-| `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
+| `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
+| `FRONTIER` | the harness's most capable model, at its highest effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
 | `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/<id>`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
 | `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
@@ -111,7 +111,7 @@ prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules the
 rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
                             digest, the graph, the loop, gates, evidence. Read them.
 rules/prule-*.md            the persona rules, likewise
-prompt/modes/<MODE>.md      your directive, graph skeleton, entry rungs, seats, gates
+prompt/modes/<MODE>.md      your directive, graph skeleton, entry tiers, seats, gates
 prompt/roles/<role>.md      the prompt body for each agent you spawn
 personas/CONTRACT.md        persona schema and per-phase duties
 personas/lenses/<slug>.md   expert seats
@@ -155,8 +155,8 @@ file** — a half-remembered contract is worse than no run.
    Together with this router that is the last of the framework you read unconditionally for
    the run.
 2. **Create `_orch/`** per CONTRACT §6, and write:
-   - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
-     `prime_turns_spent: 0`, phase pointer
+   - `manifest.json` — run id, mode, the models `cheap` and `frontier` were
+     bound to, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
 
@@ -166,9 +166,9 @@ file** — a half-remembered contract is worse than no run.
    then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
-3. **Cast** (rung 1) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
+3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-4. **Plan** (rung 3) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+4. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
    directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
@@ -195,7 +195,7 @@ no digest, the node violated the contract and the fix is to ask for the digest,
 not to open the file.
 
 **You may never do object-level work.** No edits, no test runs, no browsing.
-Every keystroke that touches the product happens at rung 4 or below.
+Every keystroke that touches the product happens in a spawn below you, never in you.
 
 **You dispatch phases, not nodes.** This is the change that pays for v2. You
 write a phase brief and hand it to a phase runner; the phase runner spends the
@@ -212,17 +212,25 @@ final gate. Protect it the way you would protect a battery on a long flight.
 Repeat until the graph has no runnable nodes:
 
 1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
-   `_orch/phases/P<n>/brief.md`: the node ids in this phase, their entry rungs,
+   `_orch/phases/P<n>/brief.md`: the node ids in this phase, their entry tiers,
    the concurrency limit, the seats in play, and the phase's exit condition.
-   Spawn one **phase runner** (`{BATON}/prompt/roles/phase-runner.md`) at rung 3 — rung
-   2 when the phase is fewer than five nodes and none exceed entry rung 1.
-2. **Wait for one envelope.** The phase runner returns a single envelope
-   summarizing the phase. It has already dispatched every node, routed every
-   escalation, run every verifier, and applied rung drift. You did not watch.
+   Then dispatch it, one of two ways (CONTRACT §0):
+   - **Your session can run agents in parallel and wait for their envelopes**
+     — an agent tool, a workflow, a job matrix. Dispatch each node through it
+     yourself: the handoff locator and a tier in, an envelope out, a row file
+     on every receipt (§7), and §1.2's two moves when one fails. You still
+     never read a work product; the facility does the waiting the phase runner
+     used to do.
+   - **It cannot** — a paste, a session with no such tool. Spawn one **phase
+     runner** (`{BATON}/prompt/roles/phase-runner.md`) at frontier and let it
+     own the phase.
+2. **Wait for the envelopes.** A phase runner returns one for the whole phase;
+   a harness returns one per node. Either way, every escalation has been
+   routed and every verifier has run before you read anything. You did not
+   watch.
 3. **Phase gate.** Confirm every node is `DONE`+`CONFIRMED`, `BLOCKED`, or
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
-   unblock what the operator answered. Reset rung drift. Increment
-   `prime_turns_spent`. Under `TEAM`, run the gate's publish sequence (CONTRACT
+   unblock what the operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
    §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
    `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
    gate you just closed, and the answers a teammate left on an Issue reach the
@@ -230,23 +238,21 @@ Repeat until the graph has no runnable nodes:
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
-   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at rung 2 over
+   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at frontier over
    the batch; it writes `_orch/brief/blocked-<n>.html` (CONTRACT §8.1), and your
    message names that path first.
 
 **Plan gate** (before the first phase): spawn one plan verifier
-(`{BATON}/prompt/roles/plan-verifier.md`) at rung 3 — rung
-4 if the graph exceeds fifteen nodes, any node is flagged cross-cutting, the
-planner's envelope carries caveats, or the directive itself is ambiguous. It
+(`{BATON}/prompt/roles/plan-verifier.md`) at frontier, as a fresh spawn. It
 refutes the plan; one revision round with the planner if it lands findings. At
 `adversarial: panel` the mode's PLAN seats run instead.
 
-**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at rung 3
-— rung 5 only if the operator has approved fable for it — to write
-`final/report.md` from digests, verdicts, and the ledger. It ends with the
-**rung histogram**: where this run actually spent its money, so the next plan
-can assume better. Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at
-rung 2 over the report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
+**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at
+frontier to write `final/report.md` from digests, verdicts, and the ledger. It
+ends with the **tier histogram**: how much of this run ran cheap, how much
+frontier, and how much needed a person — so the next plan can assume better.
+Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at frontier over the
+report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
 page, for a person, that says what was done, what is open, three options and one
 recommendation.
 

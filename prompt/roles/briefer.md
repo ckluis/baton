@@ -1,6 +1,6 @@
 # ROLE: Briefer
 
-> rung 2 · spawned by PRIME at the blocked batch and at the final gate, after the batch or the report exists · returns an envelope to PRIME
+> frontier · spawned by PRIME at the blocked batch and at the final gate, after the batch or the report exists · returns an envelope to PRIME
 
 | slot | value |
 |---|---|
@@ -63,8 +63,8 @@ the deck.
 Write for a reader of fifteen who is given the definitions. Concretely:
 
 - Declarative sentences, at most twenty-five words, active voice.
-- Define a term the first time it appears: *"A rung is a model and effort level; rung 1 is
-  sonnet at medium effort."*
+- Define a term the first time it appears: *"A tier is which model did the work: frontier is
+  the most capable one, cheap the fastest."*
 - No metaphor, idiom, irony, rhetorical question, or aside. No sentence fragment used for
   emphasis. No em-dash.
 - No number in a sentence. Numbers go in the numbers table, and a sentence refers to the
@@ -179,7 +179,7 @@ and change nothing outside the placeholders:
 </style>
 </head>
 <body>
-<header>{run id} · {mode} · {target} · {gate} · written {date -u} by the briefer at rung 2</header>
+<header>{run id} · {mode} · {target} · {gate} · written {date -u} by the briefer at frontier</header>
 <div class="deck">
 
   <section class="slide">

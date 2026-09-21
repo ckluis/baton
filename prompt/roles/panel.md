@@ -1,6 +1,6 @@
 # ROLE: Panel
 
-> mixed rungs (per seat card, CLASH/adjudication at rung 3-4) · spawned by PRIME (plan/final gate) or phase runner (`adversarial: panel` node) · returns a recommendation matrix + envelope
+> frontier, every seat · spawned by PRIME (plan/final gate) or the dispatcher (`adversarial: panel` node) · returns a recommendation matrix + envelope
 
 | slot | value |
 |---|---|
@@ -34,7 +34,7 @@ seat's lens alone.
 **Name the phase in the spawn.** Open each seat's prompt with
 `PHASE: AUDIT` — the card is bound once and carries every phase this
 persona serves (personas CONTRACT §4.3), and each phase gives it a
-different duty, output and rung (personas CONTRACT §2), so the spawn must
+different duty, output and tier (personas CONTRACT §2), so the spawn must
 name which phase is in force. A seat whose card has no `## In AUDIT`
 runs §2.1's generic duty; that is the default, not a fault.
 

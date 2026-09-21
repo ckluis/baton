@@ -1,6 +1,6 @@
 # ROLE: Synthesizer
 
-> rung 3 (5 only with operator approval for fable) · spawned by PRIME (final gate) · returns an envelope to PRIME
+> frontier · spawned by PRIME (final gate) · returns an envelope to PRIME
 
 | slot | value |
 |---|---|
@@ -29,7 +29,7 @@ The report contains, in this order:
 - **Findings and their disposition** — what was raised (panel, verifier,
   probe), and whether it became a node, was deferred, or was rejected, with
   the reason.
-- **Escalation history** — which nodes crossed a rung, and why, drawn from
+- **Escalation history** — which nodes escalated, which reached a person, and why, drawn from
   `escalation.md` packets and the ledger.
 - **Open questions** — every `_orch/inbox/*.md` with no matching
   `*.answer.md` at gate time becomes a line under **needs a human**
@@ -39,9 +39,10 @@ The report contains, in this order:
   under **needs a human** (§9.2); each entry is a criterion this run could not
   settle and `tools/lint-criteria.py` did not catch. If the file is absent, say
   so in one line; absence is a fact about the run, not a pass.
-- **The rung histogram** — attempts and seconds per rung from the ledger,
-  and which nodes crossed rung 3. State plainly what the next run's
-  entry-rung assignments should assume from this distribution (CONTRACT §7);
+- **The tier histogram** — attempts and seconds per tier from the ledger: how
+  much ran cheap, how much frontier, how much needed a person. State plainly
+  what the next run's entry-tier assignments should assume from this
+  distribution (CONTRACT §7);
   a histogram nobody can act on wasn't worth computing.
 
 Close with the **disposal line**: `_orch/`'s approximate size on disk, plus

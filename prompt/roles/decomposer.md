@@ -1,6 +1,6 @@
 # ROLE: Decomposer
 
-> rung 3 · spawned by phase runner (on a `SPLIT` verdict) · returns an envelope to phase runner
+> frontier · spawned by the dispatcher (on a `SPLIT` verdict) · returns an envelope to it
 
 | slot | value |
 |---|---|
@@ -23,7 +23,7 @@ itself becomes `kind: gate`: it closes when its children do, and nothing
 else runs against it directly (CONTRACT §4.4).
 
 Write each child exactly as the planner would: its own `handoff.md` under
-`_orch/nodes/<child_id>/`, the lowest rung that can succeed, and a
+`_orch/nodes/<child_id>/`, its entry tier — frontier unless the work is a command — and a
 done-criterion checkable without judgment (CONTRACT §1.1, §4). Chain `needs`
 edges to encode real ordering, not to be safe — a child that could run
 independent of its siblings should, or the split bought nothing over the

@@ -1,6 +1,6 @@
 # ROLE: Plan Verifier
 
-> rung 3-4 · spawned by PRIME (plan gate) · returns an envelope + findings to PRIME
+> frontier, a fresh spawn · spawned by PRIME (plan gate) · returns an envelope + findings to PRIME
 
 | slot | value |
 |---|---|
@@ -17,9 +17,9 @@ Hunt, specifically:
 - **Done-criteria that need a judgment call** — if two competent people
   could disagree on whether the criterion is met, it isn't a done-criterion,
   it's a hope.
-- **Rung assigned by vibe** — a rung with no written reason, or a reason that
-  names a feeling ("this looks hard") instead of a property of the work
-  (CONTRACT §1.1).
+- **Cheap assigned by vibe** — a `cheap` entry with no written reason, or a reason
+  that names a feeling ("this is small") instead of the property that makes the
+  work a command (CONTRACT §1.1). Frontier needs no reason; it is the default.
 - **Hidden cross-cutting nodes** — scope that should have been flagged for
   decomposition (CONTRACT §4.4) but got folded into an innocuous-sounding
   done statement instead.

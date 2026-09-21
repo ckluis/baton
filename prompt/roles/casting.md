@@ -1,6 +1,6 @@
 # ROLE: Casting
 
-> rung 1 · spawned by PRIME (bootstrap, concurrent with planning) · returns an envelope to PRIME
+> frontier · spawned by PRIME (bootstrap, concurrent with planning) · returns an envelope to PRIME
 
 | slot | value |
 |---|---|
@@ -37,7 +37,7 @@ panel; it never blocks a run** — every mode is designed to run with
 
 **Schema validation.** Apply §1 and §1.1: a file with only `name` and
 `domain` is valid on its own — fill `kind: expert`, `phases: [AUDIT, CLASH]`,
-`rung: 2` as defaults. Do not reject a sparse foreign file; do not edit it.
+`rung: 1` as defaults. Do not reject a sparse foreign file; do not edit it.
 If it wants richer behavior, that is a local overlay's job, not yours.
 
 **Selection.** Three to seven candidates total, shown work (§4.1): for each
