@@ -553,12 +553,37 @@ def load_inbox(inbox_dir, findings, root):
 # --------------------------------------------------------------------------
 
 
+def ledger_text(path):
+    """The ledger as CSV text. CONTRACT §6.3: when `ledger/` exists beside
+    `ledger.csv`, the directory is the record - one row file each, header line
+    first - and is read directly so the histogram never waits on `lists.py
+    derive`. Otherwise the file, as before. Returns (text, source_path)."""
+    d = os.path.join(os.path.dirname(path), "ledger")
+    if os.path.isdir(d):
+        header, body = None, []
+        for name in listdir(d):
+            if not name.endswith(".csv"):
+                continue
+            text = read_text(os.path.join(d, name))
+            if not text or not text.strip():
+                continue
+            lines = text.splitlines()
+            if header is None:
+                header = lines[0]
+            if lines[0] != header:
+                continue
+            body.extend(l for l in lines[1:] if l.strip())
+        if header is not None:
+            return "\n".join([header] + body) + "\n", d
+    return read_text(path), path
+
+
 def load_ledger(path, findings, root):
     """Rung histogram from the `rung` column. Survives short and malformed rows."""
     histogram = {}
     total = 0
     skipped = 0
-    text = read_text(path)
+    text, path = ledger_text(path)
     if text is None:
         findings.add("ledger-absent", rel(root, path),
                      "no ledger.csv; the rung histogram is empty")
@@ -607,7 +632,7 @@ def load_ledger_rows(path):
     only there: `load_ledger` above stays the histogram the JSON/summary views
     have always shipped, unchanged.  Never crashes - an absent or malformed
     ledger yields no rows, same as `load_ledger` yields an empty histogram."""
-    text = read_text(path)
+    text, _source = ledger_text(path)
     if text is None:
         return []
     try:

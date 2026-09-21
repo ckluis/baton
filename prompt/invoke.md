@@ -14,10 +14,10 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v3.3/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v3.3/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v4.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -30,6 +30,43 @@ That third line is what makes the rest work: **every path in every baton file is
 relative to wherever the router came from.** Say it once and the framework
 resolves itself from there — modes, roles, contracts, personas, fetched as they
 are needed and never before.
+
+---
+
+## For a team
+
+One more line. Everything else is the same paste.
+
+```
+# Goal
+Find and fix what the test suite is failing to catch in the billing module.
+
+# Settings
+TEAM:        github
+
+# Process
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
+against that same base URL. Read it completely before you start any work.
+```
+
+`TEAM: github` changes where three things live and nothing about how the run
+thinks. The run's state is still `_orch/` on the machine running it — now as a
+worktree of a git ref, `baton/run/<id>`, pushed at every node close and gate, so
+the evidence outlives the laptop and any machine can resume it. Every blocked
+question becomes an Issue that anyone on the repository can answer by commenting
+`/answer …` — from a phone, in a meeting — and the answer lands in the run at
+its next gate. Every product-writing node becomes a branch with a draft pull
+request, its verdict a commit status a reviewer can click through to the row
+that decided it. Single-user mode is byte-identical with the line absent.
+
+It needs three things on the machine that runs the prime: `gh` authenticated,
+the baton tools on disk (`git clone --depth 1 https://github.com/ckluis/baton`,
+then `BATON: ./baton`), and the target repository to be private — or a private
+`RUNS_REPO: owner/name` to hold the run's ref, Issues and pages when it is not.
+One-time repository setup, all of it configuration, is
+`tools/github-setup.sh --apply`: a ruleset that blocks force-pushes and
+deletions on `baton/**`, and Pages for the briefs.
 
 ---
 
@@ -48,11 +85,12 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/v3.3
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v4.0
 PERSONAS:    builtin
 CEILING:     4
 PRIME_TURNS: 12
 INBOX:       off
+TEAM:        off
 
 # Process
 Fetch and follow {BATON}/prompt/baton.md
@@ -69,6 +107,8 @@ against that same base URL. Read it completely before you start any work.
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. |
 | `PRIME_TURNS` | `12` | the conductor's own turn budget |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
+| `TEAM` | `off` | `github`: the run's state on a git ref, every question an Issue, every product node a draft PR — see "For a team" above |
+| `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref, Issues and pages when the target is public or not yours |
 
 `TARGET` and `MODE` are the only two a run may not silently guess — which is why
 they are the two it asks about instead. In a session that cannot ask (a cron
@@ -78,7 +118,7 @@ inference, and says so in its first message and its final report.
 ### Pinning a version
 
 The base URL is the pin. The default above is already pinned to a tag —
-`v3.3`, the current release — rather than floating on `main`. Point at a
+`v4.0`, the current release — rather than floating on `main`. Point at a
 different tag instead (an older release, frozen forever) — or at `main` for
 the bleeding edge — and the whole framework — router, contracts, modes,
 roles, personas — comes from that base, because everything resolves relative

@@ -24,6 +24,8 @@ below, and you do not ask the operator about a default that is already correct.
 | `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
 | `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
+| `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/<id>`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
+| `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
 verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
@@ -157,6 +159,13 @@ file** — a half-remembered contract is worse than no run.
      `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
+
+   Under `TEAM: github`, create it with `tools/publish-run.sh init <run-id>`
+   instead of `mkdir` — it makes `_orch/` a worktree of `baton/run/<run-id>`
+   and refuses a public target without `RUNS_REPO` — write the same two files,
+   then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
+   under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
+   a run that publishes needs the tools on disk.
 3. **Cast** (rung 1) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
 4. **Plan** (rung 3) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
@@ -213,7 +222,11 @@ Repeat until the graph has no runnable nodes:
 3. **Phase gate.** Confirm every node is `DONE`+`CONFIRMED`, `BLOCKED`, or
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
    unblock what the operator answered. Reset rung drift. Increment
-   `prime_turns_spent`.
+   `prime_turns_spent`. Under `TEAM`, run the gate's publish sequence (CONTRACT
+   §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
+   `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
+   gate you just closed, and the answers a teammate left on an Issue reach the
+   run at the only moment it reads them.
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
@@ -255,6 +268,12 @@ Your closing message to the operator is small, and small is the whole point:
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch && rm -rf _orch`) or keep it to
   resume or re-verify
+- **under `TEAM`, three more lines and a different disposal line** — the run
+  Issue's URL, the run ref and the permalink base its last push printed
+  (`/blob/<sha>/_orch/`), and the deck's URL on Pages. Disposal is
+  `tools/publish-run.sh dispose <run-id>`: the archive becomes a release, the
+  ref is deleted, and every permalink keeps resolving because the release tag
+  pins the sha. Or keep the ref; it is 26 MB.
 
 Cleanup is the operator's act, never yours. The report, every envelope, and
 every verdict cite paths inside `_orch/` — an agent that deletes it has

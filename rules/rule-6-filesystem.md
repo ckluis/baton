@@ -15,10 +15,13 @@ All state on disk, so any fresh session resumes and no context is load-bearing.
 _orch/
   manifest.json          run id, mode, ceiling, prime turns spent, phase pointer
   directive.md           the directive, verbatim
+  run-ref.json           TEAM only — the run's git ref, remote and repository (§6.1)
   plan/
     graph.yaml           §4 — the machine-readable plan
     roadmap.md           phases, rationale, risks; table first, prose after
     traceability.yaml    mode-dependent (BUILD, MIGRATE)
+    decisions/           §6.3 — one documented default per file
+    decisions.md         derived from decisions/ — never written by a layer
   cast/
     roster.yaml          selected personas, source, phases served
     <slug>.card.md       one bound persona card per selection
@@ -34,16 +37,26 @@ _orch/
                          requires those outputs be landed here before it is removed.
   verify/
     T07-verdict.json     CONFIRMED | REFUTED | PARTIAL + evidence paths
+  wt/
+    T07/                 a worktree-isolated node's checkout (§4); under TEAM, its branch (§6.2)
   loops/
     L1/seen.yaml         §5.1
-  inbox/                 §10
+  inbox/                 §10 — Q-<n>.md and Q-<n>.answer.md; github.json under TEAM
   brief/                 §8.1 — blocked-<phase>.html, final.html; for a person
-  ledger.csv             §7
-  lint-feedback.yaml     §9.2 — every UNSETTLEABLE criterion, for the linter
-  ux-debt.yaml           friction that violates no criterion; report material
+  ledger/                §7 — one row per file (§6.3)
+  ledger.csv             derived from ledger/ — `python3 tools/lists.py derive`
+  lint-feedback/         §9.2 — one UNSETTLEABLE criterion per file (§6.3)
+  lint-feedback.yaml     derived from lint-feedback/
+  ux-debt/               friction that violates no criterion, one item per file (§6.3)
+  ux-debt.yaml           derived from ux-debt/; report material
+  index/                 derived by tools/index.py — delete it, it rebuilds; never tracked
   final/
     report.md            end-of-run synthesis
     flows/               per-journey flow documents with embedded screenshots
 ```
 
-`_orch/` is gitignored unless the operator says otherwise.
+`_orch/` is gitignored by the product tree. Under `TEAM` (router §1) it is a git
+worktree of the run's own ref, `baton/run/<id>` (§6.1): still ignored by the
+product tree, tracked by its own ref, with `index/`, `wt/` and `**/work/tree/`
+ignored inside it because each is either derived or a checkout of something the
+ref already records.
