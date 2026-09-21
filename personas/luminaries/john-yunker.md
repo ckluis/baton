@@ -5,7 +5,7 @@ id: john-yunker
 kind: expert
 domain: Localization & Global Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [localization, architecture, correctness, quality]
 links:
   - rel: contradicts

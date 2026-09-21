@@ -5,7 +5,7 @@ id: spec-fidelity
 kind: expert
 domain: Build-vs-Specification Correctness
 phases: [PLAN, AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [requirements, correctness, specification, verification]
 links:
   - rel: contradicts

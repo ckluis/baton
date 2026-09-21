@@ -5,7 +5,7 @@ id: val-head
 kind: expert
 domain: Interface Motion Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [motion-design, accessibility, performance, quality]
 links:
   - rel: contradicts

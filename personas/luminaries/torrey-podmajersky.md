@@ -5,7 +5,7 @@ id: torrey-podmajersky
 kind: expert
 domain: UX Writing & Microcopy
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [ux-writing, accessibility, quality, consistency]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: seth-godin
 kind: expert
 domain: Marketing Strategy & Permission
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [strategy, product, quality]
 links:
   - rel: contradicts

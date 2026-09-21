@@ -5,7 +5,7 @@ id: peter-morville
 kind: expert
 domain: Information Architecture
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [information-architecture, architecture, consistency, quality]
 links:
   - rel: contradicts

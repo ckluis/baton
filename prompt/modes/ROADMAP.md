@@ -11,7 +11,7 @@ state with citations — what exists, what it costs, what already constrains the
 quoting the evidence rather than characterizing it. Enumerate the options honestly,
 including do-nothing, and price each in the same units: what it buys, what it forecloses,
 what it costs to reverse. Choose a direction and say what would have changed the choice.
-Decompose it into a graph conforming to CONTRACT §4 — phases, edges, entry rungs assigned
+Decompose it into a graph conforming to CONTRACT §4 — phases, edges, entry tiers assigned
 by a property of the work, objective done-criteria, named risks — and hand every open
 question to the operator as a batch rather than resolving it by assumption. Subject the
 graph to an adversarial panel and revise until the panel admits nothing new. Done when
@@ -25,14 +25,14 @@ run with no memory of this one can execute the graph from the files alone.
 - id: T01
   kind: task                          # map the current state with citations
   phase: 0
-  rung: 2
+  rung: 1
   surface: doc
   handoff: _orch/nodes/T01/handoff.md
   done: "state.md — every claim about {TARGET} carries a ≤20-word quote and a path"
 - id: T02
   kind: task                          # enumerate options incl. do-nothing, draft the graph
   phase: 0
-  rung: 3
+  rung: 1
   needs: [T01]
   done: "options.md prices every option in the same units; plan/graph.yaml validates against CONTRACT §4"
 - id: F1
@@ -44,7 +44,7 @@ run with no memory of this one can execute the graph from the files alone.
 - id: A-feasibility
   kind: task                          # PLAN — refute the graph from this lens alone
   phase: 0
-  rung: 2
+  rung: 1
   needs: [F1]
   refutes: T02
   adversarial: panel
@@ -59,7 +59,7 @@ run with no memory of this one can execute the graph from the files alone.
 - id: P1
   kind: task                          # revise the graph against the findings
   phase: 0
-  rung: 3
+  rung: 1
   needs: [B1]
   done: "every finding is applied to graph.yaml or refused in writing with a reason"
 - id: L1
@@ -76,10 +76,10 @@ run with no memory of this one can execute the graph from the files alone.
 - id: S1
   kind: task                          # write the roadmap a cold run can execute
   phase: 1
-  rung: 3
+  rung: 1
   needs: [L1]
   personas: []                        # SYNTH is neutral
-  done: "plan/roadmap.md — table first: node id, phase, rung, done-criterion, risk; prose after"
+  done: "plan/roadmap.md — table first: node id, phase, tier, done-criterion, risk; prose after"
 ```
 
 The planner may add seats, split `T01` per surface, and phase the graph as the work
@@ -90,13 +90,12 @@ output executable cold: the graph names inputs by path, never by "the thing we d
 option stays in `roadmap.md` with the reason it lost, do-nothing included, or the next run
 re-derives it within an hour of starting.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| fanout, barrier | 1 | Bookkeeping against a closed list. |
-| state map (`T01`), seats | 2 | Citation-grade reading of an unfamiliar surface; PLAN is rung 2 per personas/CONTRACT.md §2.1. |
-| options and graph (`T02`), revision (`P1`), synthesis (`S1`) | 3 | Judgment across contested alternatives, and the graph itself — the artifact every later run inherits. ROADMAP is small and rung-heavy on purpose: a mistake here propagates into every run that follows. |
+| — | 0 `cheap` | ROADMAP has no mechanical node: nothing here is a command with an exit code. |
+| everything — fanout, barrier, state map (`T01`), seats, options and graph (`T02`), revision (`P1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Judgment across contested alternatives, and the graph itself — the artifact every later run inherits. ROADMAP is small on purpose: a mistake here propagates into every run that follows. |
 
 ## Seats
 
@@ -104,7 +103,7 @@ re-derives it within an hour of starting.
 |---|---|---|---|
 | `feasibility` | expert | PLAN, CLASH | Whether each phase can actually be done with what exists — skills, access, dependencies, time — or is a wish with a done-criterion. |
 | `dependency-order` | expert | PLAN, CLASH | Whether `needs` edges match reality: work scheduled before its prerequisite, cycles, false ordering that serializes independent work. |
-| `rung-fit` | expert | PLAN | Whether entry rungs name a property of the work (CONTRACT §1.1) or were assigned by vibe, in both directions. |
+| `rung-fit` | expert | PLAN | Whether entry tiers name a property of the work (CONTRACT §1.1) — cheap only for a command — or were assigned by vibe. |
 | `scope-creep` | expert | PLAN | Which nodes serve {TARGET} and which arrived because they were nearby. |
 
 Casting prefers experts tagged `delivery`/`estimation` for `feasibility`,
@@ -123,7 +122,7 @@ Casting prefers experts tagged `delivery`/`estimation` for `feasibility`,
 
 ## Done
 
-`plan/graph.yaml` validates against CONTRACT §4 and §5; every node above rung 1 carries a
+`plan/graph.yaml` validates against CONTRACT §4 and §5; every node at cheap carries a
 written reason and every node a `done` checkable without judgment; every loop declares all
 four fields; `plan/roadmap.md` opens with the node table and prices every option including
 do-nothing; no node in the graph was executed.
@@ -135,9 +134,10 @@ do-nothing; no node in the graph was executed.
   be stated as a table row is one nobody else can pick up.
 - **Do-nothing omitted.** The option that most often wins is the one nobody wrote down, and
   a roadmap that never priced it cannot defend what it chose. `scope-creep` audits for it.
-- **Rungs assigned by ambition.** Everything important is drafted at rung 4, so the run
-  executing this plan is expensive before it starts. `rung-fit` checks both directions: the
-  padded rung and the node that will escalate three times.
+- **Tiers assigned by vibe.** Judgment drafted at cheap to look frugal, so the run
+  executing this plan fails its first verification before it starts. `rung-fit` checks the
+  one direction that costs: the cheap node that will be refuted and retried at frontier
+  anyway (§1.2).
 - **Panel theater.** Seats return findings, `P1` applies the cosmetic ones, and `L1` goes
   dry because the plan stopped changing rather than stopped being wrong. Every finding is
   applied or refused **in writing**, and the ledger keys findings by shape — a refused

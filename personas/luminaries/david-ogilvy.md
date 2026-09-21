@@ -5,7 +5,7 @@ id: david-ogilvy
 kind: expert
 domain: Advertising & Brand Copywriting
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [copywriting, quality, trust]
 links:
   - rel: contradicts

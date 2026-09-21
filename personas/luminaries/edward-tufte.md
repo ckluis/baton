@@ -5,7 +5,7 @@ id: edward-tufte
 kind: expert
 domain: Data Visualization & Information Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [data-visualization, statistical-rigor, quality]
 links:
   - rel: contradicts

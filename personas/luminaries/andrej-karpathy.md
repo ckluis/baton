@@ -5,7 +5,7 @@ id: andrej-karpathy
 kind: expert
 domain: AI/ML Systems & LLM Integration
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [security, testing, quality]
 links:
   - rel: contradicts

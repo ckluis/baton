@@ -24,7 +24,7 @@ does.
   kind: task
   phase: 1
   title: Establish the completion condition and the evidence that would prove it
-  rung: 3
+  rung: 1
   done: "_orch/directive.md carries a COMPLETION: line — quoted from the notes or answered from the inbox — plus the artifact paths that would demonstrate it"
 - id: F1
   kind: fanout
@@ -36,7 +36,7 @@ does.
 - id: V1
   kind: fanout
   phase: 2
-  title: Refute each claimed result at its own rung
+  title: Refute each claimed result at its own tier
   rung: 1
   needs: [F1]
   refutes: F1
@@ -61,7 +61,7 @@ does.
 
 Shaping an arbitrary directive, in order: find the completion condition or ask
 for it; make the artifacts that prove it the final gate's `done:`; record a
-rung-0 baseline of whatever the directive changes, because preservation is
+cheap-tier baseline of whatever the directive changes, because preservation is
 undecidable without one; split at the directive's own conjunctions — each *and*
 is usually a node, each *until* a loop; fix the surface (`code` | `ui` | `doc` |
 `data`), which selects the seats; rewrite any `done:` needing judgment; add one
@@ -69,24 +69,23 @@ is usually a node, each *until* a loop; fix the surface (`code` | `ui` | `doc` |
 content-derived ledger key. A directive with nothing to converge on gets no loop
 node — a one-pass graph is a legitimate GENERIC plan.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| baselines, command runs, collection | 0 | one command, one file |
-| execution, authoring, verification of a specified claim | 1 | the default, and where an unfamiliar directive starts — an unknown is not a reason to spend |
-| directive interpretation (`T00`) | 3 | deciding what an English sentence obliges is contract ambiguity, and every node below inherits that reading |
+| baselines, command runs, collection | 0 `cheap` | one command, one file |
+| everything else — execution, authoring, verification of a specified claim, directive interpretation (`T00`) | 1 `frontier` | the default (CONTRACT §1.1). An unfamiliar directive is not a reason to spend less, and deciding what an English sentence obliges is contract ambiguity that every node below inherits. |
 
-`T00` is the only node above rung 1, and only when it must: notes that already
-carry a completion condition, named artifacts, and a surface make it a rung-1 node.
+Notes that already carry a completion condition, named artifacts and a surface
+make `T00` a small node; they do not make it a cheap one.
 
 ## Seats
 
 | seat slug | kind | phases | what it examines |
 |---|---|---|---|
-| `feasibility` | expert | PLAN | whether this graph is executable at these rungs at all |
+| `feasibility` | expert | PLAN | whether this graph is executable at these tiers at all |
 | `dependency-order` | expert | PLAN | edges that should be `needs` and are not; work ordered by narrative |
-| `rung-fit` | expert | PLAN | rungs assigned by vibe, in either direction |
+| `rung-fit` | expert | PLAN | entry tiers assigned by vibe — cheap for judgment, or a reason that names a feeling (CONTRACT §1.1) |
 | `scope-creep` | expert | PLAN, VERIFY | nodes doing work the directive does not ask for |
 
 Those four seat on every GENERIC run: they judge the plan rather than the domain,
@@ -124,10 +123,10 @@ one node id in `plan/graph.yaml`, and every node maps back to a clause.
 - **The graph is the directive's sentences in order.** Prose ordering becomes
   `needs` edges, serializing independent work and parallelizing dependent work.
   `dependency-order` at PLAN exists for exactly this.
-- **Everything enters at rung 3 because the work is unfamiliar.** Unfamiliar to
-  the planner is not above rung 1; §1.1's asymmetry does not weaken because a
-  directive is novel. `rung-fit` refutes at PLAN, rung drift (§1.5) corrects what
-  the gate missed.
+- **Everything enters at cheap because the directive looks small.** Small to the
+  planner is not mechanical; §1.1's test is whether the work is a command, and a
+  novel directive rarely is. `rung-fit` refutes at PLAN, and a cheap node's first
+  failure costs exactly one frontier retry (§1.2).
 - **A clause quietly goes unbuilt.** With no traceability matrix there is no
   structural memory of what was asked. The substitute is the two-way mapping
   checked at the final gate — clause to node, node to clause, unmatched clauses

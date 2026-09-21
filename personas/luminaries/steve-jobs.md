@@ -5,7 +5,7 @@ id: steve-jobs
 kind: expert
 domain: Customer Experience & Product Quality
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [quality, product, trust]
 links:
   - rel: contradicts

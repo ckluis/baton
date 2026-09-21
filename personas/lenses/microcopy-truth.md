@@ -5,7 +5,7 @@ id: microcopy-truth
 kind: expert
 domain: Interface Copy & Error Language
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [ux-writing, quality, trust, consistency]
 links:
   - rel: contradicts

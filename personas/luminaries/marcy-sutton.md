@@ -5,7 +5,7 @@ id: marcy-sutton
 kind: expert
 domain: Accessibility & Inclusive Engineering
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [accessibility, a11y, assistive-tech, testing]
 links:
   - rel: contradicts

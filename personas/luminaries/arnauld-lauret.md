@@ -5,7 +5,7 @@ id: arnauld-lauret
 kind: expert
 domain: API Design & Governance
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [api-design, api, contracts, consistency]
 links:
   - rel: contradicts

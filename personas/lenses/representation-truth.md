@@ -5,7 +5,7 @@ id: representation-truth
 kind: expert
 domain: State Representation, Invalid-State Design & Structural Simplification
 phases: [AUDIT, CLASH]
-rung: 3
+rung: 1
 tags: [domain-modeling, architecture, maintainability, correctness, refactoring]
 links:
   - rel: contradicts

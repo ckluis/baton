@@ -5,7 +5,7 @@ id: james-bach
 kind: expert
 domain: Testing, QA & Automation Strategy
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [testing, quality, coverage, verification, exploratory-testing, test-design]
 links:
   - rel: contradicts

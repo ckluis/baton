@@ -5,7 +5,7 @@ id: grace-jansen
 kind: expert
 domain: Developer Experience & Modern Tooling
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [tooling, maintainability, refactoring, quality]
 links:
   - rel: contradicts

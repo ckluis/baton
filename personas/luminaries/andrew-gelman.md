@@ -5,7 +5,7 @@ id: andrew-gelman
 kind: expert
 domain: Statistical Rigor & Inference
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [analysis, statistical-rigor, evidence, risk]
 links:
   - rel: contradicts

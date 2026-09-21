@@ -5,7 +5,7 @@ id: integration-risk
 kind: expert
 domain: Seam & Cross-System Failure
 phases: [PLAN, AUDIT, CLASH, VERIFY]
-rung: 3
+rung: 1
 tags: [integration, systems, architecture, seams, contracts]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: paula-scher
 kind: expert
 domain: Brand Identity Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [brand-identity, consistency, quality, strategy]
 links:
   - rel: contradicts

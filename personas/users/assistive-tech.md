@@ -4,7 +4,7 @@ type: Persona
 id: assistive-tech
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [accessibility, screen-reader, keyboard-only, a11y]
 ---
 

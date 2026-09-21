@@ -43,14 +43,14 @@ the suite is green.
   kind: task
   phase: 1
   title: "Discovery pass A — static: grep, AST, type checker, call graph"
-  rung: 2
+  rung: 1
   needs: []
   done: "register-a.yaml lists every candidate site with path, line, and the exact old-form text"
 - id: D2
   kind: task
   phase: 1
   title: "Discovery pass B — non-static: runtime traces, config, fixtures, generated code, docs, strings"
-  rung: 2
+  rung: 1
   needs: []
   informs: []                         # deliberately empty — must not see register-a
   done: "register-b.yaml lists every candidate site found by a method that does not read the same text D1 read"
@@ -64,7 +64,7 @@ the suite is green.
   kind: task
   phase: 1
   title: Reconcile the registers and freeze the site list
-  rung: 3
+  rung: 1
   needs: [B1]
   done: "register.yaml — every entry appears in A, in B, or carries a written reason it is a site or is not"
 - id: G1
@@ -118,7 +118,7 @@ the suite is green.
   kind: task
   phase: 3
   title: "AUDIT — did discovery actually find every site"
-  rung: 2
+  rung: 1
   needs: [B2]
   refutes: D3
   adversarial: panel
@@ -128,7 +128,7 @@ the suite is green.
   kind: task
   phase: 3
   title: Integrate the verified batches and run the full suite
-  rung: 2
+  rung: 1
   surface: code
   needs: [B2, A-call-site-truth]
   done: "one integrated tree, suite green, baseline comparison shows no behavioral difference"
@@ -139,7 +139,7 @@ integration order matters. It may **not** give `D2` an `informs` edge from `D1`,
 transform before `G1` freezes the register, let a transform node author its own
 verification, or widen a batch to include a site the register does not name.
 
-The transform nodes are rung 1 and shaped for wide parallelism, and CONTRACT §4.3 caps
+The transform nodes are frontier and shaped for wide parallelism, and CONTRACT §4.3 caps
 concurrency at 2. That tension is real and the cap wins. The answer is pipeline
 discipline, not a wider fan: batch 01 verifies while batch 02 transforms, so wall-clock
 is the slowest single chain rather than the sum of the stages, and a session limit
@@ -160,22 +160,21 @@ differently, in contexts that cannot see each other. `D1` reads the code. `D2` i
 forbidden to: it must find sites through execution traces, configuration, fixtures,
 generated output, serialized data, documentation, or anything else that names the old
 form without spelling it the way the source does. Agreement between them is evidence
-because disagreement was possible. Every delta is adjudicated at rung 3 into a site or a
+because disagreement was possible. Every delta is adjudicated at frontier into a site or a
 written not-a-site, and `A-call-site-truth` re-runs the sweep after integration against
 the frozen register — if it finds an occurrence that is not on the exception list, `D3`
 is refuted and the register reopens.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| baseline (`T00`) | 0 | Run the suite, record numbers to files. Verifiable by command. |
-| transform (`X-*`), verify (`Y-*`), fanout, barrier, gate | 1 | The default. A transform against a frozen register and an explicit new form is bounded implementation; a verifier comparing to a recorded baseline is bounded checking. This is where nearly every node in the mode lives. |
-| discovery (`D1`, `D2`), audit seats, integrate (`I1`) | 2 | Discovery is search under an adversarial assumption that the obvious method is incomplete. Integration resolves overlapping diffs across worktrees. Audit seats are rung 2 per personas/CONTRACT.md §2.1. |
-| reconcile (`D3`) | 3 | The only judgment call in the mode, and the one that cannot be undone later: deciding what is and is not a site. Everything downstream inherits it. |
+| baseline (`T00`) | 0 `cheap` | Run the suite, record numbers to files. Verifiable by command. |
+| everything else — transform (`X-*`), verify (`Y-*`), fanout, barrier, gate, discovery (`D1`, `D2`), audit seats, integrate (`I1`), reconcile (`D3`) | 1 `frontier` | the default (CONTRACT §1.1). A transform against a frozen register is bounded, but it is still a rewrite of the product; discovery is search under an adversarial assumption that the obvious method is incomplete; reconciling what is and is not a site is the one call the mode cannot undo later. |
 
-Nothing enters above 3. A `REFUTED` transform costs one rung (CONTRACT §1.2) and the
-retry is cheap — that asymmetry is why transforms start at 1 and stay there.
+A `REFUTED` transform costs one frontier retry carrying the verdict's rows
+(CONTRACT §1.2); a second refutation of the same batch is a question, not a third
+pass.
 
 ## Seats
 
@@ -200,7 +199,7 @@ for `integration-risk`, and `discipline`/`code-review` for `scope-creep`.
   resolved in writing and the frozen entry count is in `manifest.json`. An unresolved
   delta is `BLOCKED`, not a default.
 - **Phase gate.** Phase 2 passes when every batch is CONFIRMED or reverted; a `REFUTED`
-  batch is reverted and re-entered at one rung up, never patched forward.
+  batch is reverted and re-entered with the verdict's rows in its handoff (§1.2), never patched forward.
 - **Blocked batch.** Sites the run cannot transform without a product decision — an API
   with no equivalent, a config the run cannot reach — batch together at the phase gate.
 - **Final gate.** Passes when the post-integration sweep finds only the written

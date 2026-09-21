@@ -5,7 +5,7 @@ id: joe-celko
 kind: expert
 domain: SQL, Data Modeling & Database Design
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [data-integrity, correctness, contracts, performance, consistency]
 links:
   - rel: contradicts

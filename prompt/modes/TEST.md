@@ -40,7 +40,7 @@ the baseline recorded in phase 1.
   kind: task
   phase: 1
   title: Map every test to the behavior it pins; flag the weak, duplicate, tautological
-  rung: 3
+  rung: 1
   needs: [T01]
   personas: [suite-economics, coverage-truth]
   done: "work/suite-map.yaml covers every test once; work/flagged.yaml gives each flag a ≤20-word quote, a location, and one of redundant-with <id> | tautological | asserts-implementation"
@@ -48,7 +48,7 @@ the baseline recorded in phase 1.
   kind: task
   phase: 2
   title: Design the attack set from the contract surface, not from observed output
-  rung: 2
+  rung: 1
   needs: [T01]
   informs: [T03]
   done: "work/attacks.yaml rows carry target symbol, failure class, input, expected result, and the contract citation the expectation came from"
@@ -88,9 +88,9 @@ the baseline recorded in phase 1.
 - id: T11
   kind: task
   phase: 3
-  title: Harvest failures at rung 0, then root-cause each admitted one in writing
-  rung: 3
-  done: "work/failures.yaml keys each failure by file + test id + assertion shape; work/root-causes.md names the defective symbol and mechanism per failure and emits a rung-1 handback per CONTRACT §1.3"
+  title: Harvest failures at cheap, then root-cause each admitted one in writing
+  rung: 1
+  done: "work/failures.yaml keys each failure by file + test id + assertion shape; work/root-causes.md names the defective symbol and mechanism per failure and emits a `cheap` handback for the typing per CONTRACT §1.1"
 - id: T12
   kind: task
   phase: 3
@@ -124,18 +124,16 @@ regress coverage. It may not give `T12` an edge that lets it edit tests, may not
 place a test-authoring node downstream of a fix node, and may not replace `L1`
 with a fixed number of fix rounds.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| baseline, suite runs, coverage collection, failure harvest | 0 | one command, one file; assignment only — `T11` spawns its harvest here rather than reading at rung 3 |
-| test authoring, consolidation, regression tests, refutation of a diagnosed claim | 1 | the default — bounded work against an approved attack row or flag row |
-| attack design (`T04`) | 2 | enumerating failure classes a module has never been shown is where more thinking pays and a bigger model does not |
-| suite audit (`T03`) | 3 | necessary-vs-redundant is the named rung-3 judgment; a rung-1 agent deletes what it does not understand |
-| root cause (`T11`) | 3 | the named rung-3 diagnosis, and §1.3 forces the typing back down to `T12` |
+| baseline, suite runs, coverage collection, failure harvest | 0 `cheap` | one command, one file; assignment only — `T11` spawns its harvest here rather than reading it at frontier |
+| everything else — test authoring, consolidation, regression tests, refutation of a diagnosed claim, attack design (`T04`), suite audit (`T03`), root cause (`T11`) | 1 `frontier` | the default (CONTRACT §1.1). Necessary-vs-redundant is judgment — a cheap agent deletes what it does not understand — and enumerating failure classes a module has never been shown is where thinking pays. |
 
-Nothing in TEST enters at rung 4. A contested call about the same test reaches
-the adjudication rung through §1.2 trigger 4, never by assignment.
+A contested call about the same test reaches an adjudicator at frontier through
+§1.2, never by assignment; an adjudicator that cannot rule on the evidence is a
+question.
 
 ## Seats
 
@@ -167,7 +165,7 @@ is undecidable from the contract — the test may be wrong or the code may be, a
 nobody inside the run can tell. Those park and batch while the loop keeps
 running. An unavoidable coverage regression blocks; it never passes as a caveat.
 
-**Final gate.** Synthesis over digests, verdicts, ledger, rung histogram. `T20`
+**Final gate.** Synthesis over digests, verdicts, ledger, tier histogram. `T20`
 is its evidence.
 
 ## Done

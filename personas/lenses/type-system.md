@@ -5,7 +5,7 @@ id: type-system
 kind: expert
 domain: Typography & Reading Surface
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [typography, accessibility, quality, consistency]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: heather-meeker
 kind: expert
 domain: Open-Source Licensing & IP
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [licensing, governance, risk, accountability]
 links:
   - rel: contradicts

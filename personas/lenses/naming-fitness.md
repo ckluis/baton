@@ -5,7 +5,7 @@ id: naming-fitness
 kind: expert
 domain: Product & Feature Naming
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [copywriting, brand-identity, consistency, quality]
 links:
   - rel: contradicts

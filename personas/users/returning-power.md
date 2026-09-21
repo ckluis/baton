@@ -4,7 +4,7 @@ type: Persona
 id: returning-power
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [power-user, retention, muscle-memory, efficiency]
 ---
 

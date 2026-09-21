@@ -5,7 +5,7 @@ id: information-scent
 kind: expert
 domain: Information Architecture & Findability
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [information-architecture, interaction-design, architecture, quality]
 links:
   - rel: contradicts

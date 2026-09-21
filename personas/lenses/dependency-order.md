@@ -5,7 +5,7 @@ id: dependency-order
 kind: expert
 domain: Graph Edge Correctness
 phases: [PLAN, CLASH]
-rung: 2
+rung: 1
 tags: [planning, graph, dependencies, architecture, sequencing]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: claim-evidence
 kind: expert
 domain: Commercial Claims & Their Support
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [evidence, copywriting, content-marketing, trust, persuasion]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: documentation-structure
 kind: expert
 domain: Documentation Architecture & Reader Need Fit
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [documentation, technical-writing, architecture, quality]
 links:
   - rel: contradicts

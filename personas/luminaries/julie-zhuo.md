@@ -5,7 +5,7 @@ id: julie-zhuo
 kind: expert
 domain: UI & Visual Design Systems
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [visual-design, accessibility, consistency, quality]
 links:
   - rel: contradicts

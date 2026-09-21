@@ -5,7 +5,7 @@ id: madhavan-ramanujam
 kind: expert
 domain: Pricing & Monetization Strategy
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [pricing, economics, strategy, roi]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: matrix-coverage
 kind: expert
 domain: Persona x Journey Coverage Completeness
 phases: [PLAN, AUDIT]
-rung: 2
+rung: 1
 tags: [ux-research, coverage, planning, personas]
 links:
   - rel: contradicts

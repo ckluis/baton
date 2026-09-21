@@ -5,7 +5,7 @@ id: equivalence
 kind: expert
 domain: Cross-Form Behavioral Equivalence, Bugs Included
 phases: [AUDIT, CLASH, VERIFY]
-rung: 3
+rung: 1
 tags: [migration, correctness, data-integrity, equivalence]
 links:
   - rel: contradicts

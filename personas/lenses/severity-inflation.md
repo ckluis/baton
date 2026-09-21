@@ -5,7 +5,7 @@ id: severity-inflation
 kind: expert
 domain: Priority Discipline
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [triage, priority, discipline, evidence]
 links:
   - rel: contradicts

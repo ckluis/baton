@@ -5,7 +5,7 @@ id: rory-sutherland
 kind: expert
 domain: Behavioral Marketing & Persuasion Psychology
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [persuasion, trust, strategy, economics]
 links:
   - rel: contradicts

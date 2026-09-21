@@ -5,7 +5,7 @@ id: timnit-gebru
 kind: expert
 domain: Responsible AI & Algorithmic Harm
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [responsible-ai, accountability, risk, governance]
 links:
   - rel: contradicts

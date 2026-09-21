@@ -5,7 +5,7 @@ id: daniele-procida
 kind: expert
 domain: Technical Writing & Documentation Architecture
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [documentation, architecture, quality]
 links:
   - rel: contradicts

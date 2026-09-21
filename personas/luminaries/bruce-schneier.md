@@ -5,7 +5,7 @@ id: bruce-schneier
 kind: expert
 domain: Security & Threat Modeling
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [security, threat-modeling, fuzzing, permissions]
 links:
   - rel: contradicts

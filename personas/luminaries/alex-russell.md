@@ -5,7 +5,7 @@ id: alex-russell
 kind: expert
 domain: Web Performance & Frontend Platform
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [performance, efficiency, systems, ci]
 links:
   - rel: contradicts

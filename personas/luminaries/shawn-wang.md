@@ -5,7 +5,7 @@ id: shawn-wang
 kind: expert
 domain: Developer Relations & Community
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [developer-relations, strategy, adoption]
 links:
   - rel: contradicts

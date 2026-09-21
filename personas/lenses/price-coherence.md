@@ -5,7 +5,7 @@ id: price-coherence
 kind: expert
 domain: Pricing, Packaging & Value Capture
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [pricing, economics, roi, strategy]
 links:
   - rel: contradicts

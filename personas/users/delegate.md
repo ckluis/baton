@@ -4,7 +4,7 @@ type: Persona
 id: delegate
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [delegation, incomplete-context, proxy-user, assistants]
 ---
 

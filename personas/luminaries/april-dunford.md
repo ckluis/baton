@@ -5,7 +5,7 @@ id: april-dunford
 kind: expert
 domain: Positioning & Go-to-Market Strategy
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [positioning, strategy, product]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: persona-fidelity
 kind: expert
 domain: In-Character Behavior of User Probes
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [ux-research, personas, authenticity, knowledge-limits]
 links:
   - rel: contradicts

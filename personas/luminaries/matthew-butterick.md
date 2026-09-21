@@ -5,7 +5,7 @@ id: matthew-butterick
 kind: expert
 domain: Typography
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [typography, accessibility, quality]
 links:
   - rel: contradicts

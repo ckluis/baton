@@ -38,7 +38,7 @@ statement absent from the matrix.
   kind: task
   phase: 1
   title: Hunt ambiguities, contradictions, and unstated assumptions
-  rung: 3
+  rung: 1
   needs: [T01]
   personas: [requirement-gaps, spec-fidelity]
   done: "plan/spec-questions.md classifies every question material | cosmetic, cites the requirement ids it affects, and states the default it would take unanswered"
@@ -69,7 +69,7 @@ statement absent from the matrix.
   kind: barrier
   phase: 3
   title: Integrate — wire the clusters, resolve cross-cluster contracts once
-  rung: 2
+  rung: 1
   needs: [T10, F1]
   personas: [integration-risk]
   done: "the acceptance tests from T10 run against the integrated tree with a recorded result per requirement id"
@@ -85,7 +85,7 @@ statement absent from the matrix.
   kind: gate
   phase: 3
   title: Coverage-of-spec — walk the matrix end to end
-  rung: 2
+  rung: 1
   needs: [V1]
   personas: [spec-fidelity, requirement-gaps]
   done: "work/coverage-of-spec.md lists every row with no CONFIRMED path and assigns each a P0 or P1; deviations listed with their approval trail"
@@ -125,17 +125,15 @@ verification node be authored by the agent that produced its target (§4.1), and
 it may not delete a matrix row; a row that turns out not to be a requirement is
 resolved by an inbox answer, not by an edit.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| baseline commands, fixture setup, matrix regeneration from a template | 0 | one command, one file |
-| requirement extraction, test authoring, implementation, gap closure, verification | 1 | the default; the spec is the clear spec that rung 1 is defined against |
-| integration (`B1`), coverage-of-spec (`T20`) | 2 | both reconcile independently produced work against one document — more thinking, same model (§1.2) |
-| ambiguity hunt (`T02`) | 3 | resolving what a contract does and does not say is the named rung-3 judgment, and misclassifying material as cosmetic is the one error this mode cannot recover from |
+| baseline commands, fixture setup, matrix regeneration from a template | 0 `cheap` | one command, one file |
+| everything else — requirement extraction, test authoring, implementation, gap closure, verification, integration (`B1`), coverage-of-spec (`T20`), the ambiguity hunt (`T02`) | 1 `frontier` | the default (CONTRACT §1.1). Reconciling independently produced work against one document, and deciding what a contract does and does not say, are judgment; misclassifying material as cosmetic is the one error this mode cannot recover from, which is why `T02`'s second failure is a question rather than a third attempt (§1.2). |
 
-Nothing in BUILD enters at rung 4. A spec that genuinely needs rung 4 to read is
-a spec that needs an operator question first.
+A spec that genuinely cannot be read at frontier is a spec that needs an
+operator question first.
 
 ## Seats
 
@@ -171,7 +169,7 @@ spec reader could not see. An unanswered material question at the final gate
 becomes a **needs a human** line, never an assumption (§10).
 
 **Final gate.** Synthesis names, per requirement, the evidence path that proves
-it, plus every deviation and its approval trail, plus the rung histogram.
+it, plus every deviation and its approval trail, plus the tier histogram.
 
 ## Done
 

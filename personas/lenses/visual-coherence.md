@@ -5,7 +5,7 @@ id: visual-coherence
 kind: expert
 domain: Visual System, Colour & Data Display
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [visual-design, brand-identity, data-visualization, consistency]
 links:
   - rel: contradicts

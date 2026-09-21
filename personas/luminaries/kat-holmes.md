@@ -5,7 +5,7 @@ id: kat-holmes
 kind: expert
 domain: Inclusive Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [inclusive-design, accessibility, personas, edge-cases]
 links:
   - rel: contradicts
