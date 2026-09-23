@@ -568,12 +568,13 @@ html.js .reveal.in{opacity:1;transform:none}
     </div>
 
     <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
-      <span class="num">PRIME_TURNS</span>
-      <h4 style="font-size:21px;letter-spacing:-.015em">The conductor has a budget, and running out of it is a normal outcome.</h4>
-      <p style="margin-top:10px">One line of the run config caps how many turns the prime may spend.
-        The count lives in <code>manifest.json</code>. When it is exhausted the prime hands its
-        remaining gates to an opus deputy and records the handover in the final report &mdash;
-        it does not quietly keep spending, and it does not stop the run.</p>
+      <span class="num">NO RULE NAMES A MODEL</span>
+      <h4 style="font-size:21px;letter-spacing:-.015em">The conductor is protected by what it reads, not by a budget.</h4>
+      <p style="margin-top:10px">v3 capped the prime&rsquo;s turns and handed the remainder to a deputy; the cap never
+        fired, and v5 cut it. What keeps the top of the stack cheap is the discipline above: listings,
+        digests and envelopes cross layers, contents never do. Which models the tiers run on is the
+        harness&rsquo;s to say &mdash; <code>CHEAP</code> and <code>FRONTIER</code> name them, the ledger records
+        what actually ran, and a rule that named a model would be wrong within a year.</p>
     </div>
   </div>
 </section>
