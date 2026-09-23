@@ -2298,6 +2298,31 @@ def selftest():
                       parse_graph(SELFTEST_GRAPH)["N1"] == set(["N0"])
                       and parse_graph(SELFTEST_GRAPH)["N2"] == set(["N1"])))
 
+        # --- genuine rows, verbatim from the Opus 5.5 two-tier replay ------------
+        # `docs/experiments/replay-two-tiers-opus-5-5.md`: three original criteria stayed
+        # UNSETTLEABLE at frontier with the same shape they had at rung 6, labelled
+        # genuine rather than replay artefacts, and their handoffs were dispatched past
+        # these flags.  They are the known-bad fixtures the operator adopted, word for word.
+        p01b_4 = ("Each of the three files still contains its literal `PHASE:` instruction "
+                  "(`PHASE: AUDIT`, `PHASE: PROBE`, `PHASE: VERIFY` respectively).")
+        p112_15 = ("Against the live corpus, the yield row for `check-4-hint-tag-resolution` "
+                   "reports 0 lifetime defects caught, agreeing with the ADR's *Worked "
+                   "Example* table.")
+        p112_29 = ("No file outside `tools/instruments.py`, `_orch/instruments/` and "
+                   "`_orch/nodes/P112/` was created or modified by this node, settled by the "
+                   "same `find`.")
+        mandates_index = SELFTEST_HANDOFF.replace(
+            "## Done-criteria",
+            "4. Run `python3 tools/index.py` and paste its summary.\n\n## Done-criteria")
+        cases.append(("C flags P01b #4 verbatim: a preservation claim with nothing settling it",
+                      has(lint(p01b_4, "C"), "C3")))
+        cases.append(("C flags P112 #15 verbatim: a fresh measurement pinned to prose",
+                      has(lint(p112_15, "C"), "C2")))
+        cases.append(("D flags P112 #29 verbatim when the handoff mandates `tools/index.py`",
+                      has(lint(p112_29, "D", mandates_index), "D1")))
+        cases.append(("D1 is silent on P112 #29 when nothing in the handoff writes `_orch/index/`",
+                      not has(lint(p112_29, "D"), "D1")))
+
         # --- no clock, no state -------------------------------------------------
         cases.append(("two runs over one unchanged fixture are byte-identical",
                       lint(bad_f, "F") == lint(bad_f, "F")))
