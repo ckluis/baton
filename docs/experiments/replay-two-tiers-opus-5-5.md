@@ -195,7 +195,26 @@ worker-plus-verifier pair against 75% of a frontier pair.
   both arms, and it favours first-try confirmation in both.
 - **Anything about phases, digests or the phase runner.** This run had no phase runner.
 
-## Draft: a clause for rules/rule-7-the-ledger.md (not applied)
+## Decisions taken
+
+The operator took every recommendation on the final brief on 2026-09-23.
+
+- **The result stands as written.** Both class verdicts are unchanged.
+- **Parked nodes close; they are not re-run.** `P00`'s baseline stands as the pre-state (`Q-1`).
+  `P160`, `F2`, `P80`, `P111` and `P122` close at PARTIAL on replay-artefact rows. `P01b` and
+  `P112` close at PARTIAL with their genuine rows kept. `P121` closes at PARTIAL with both genuine
+  rows marked unpromotable, because no text rule separates them without keying on node identity:
+  a cross-handoff gap the linter does not cover. `P132` is recorded as unmeasurable (`Q-13`) and
+  counts as no measurement. The rulings are run state, under `_orch/inbox/`.
+- **Three genuine rows become linter fixtures.** `P01b` #4 ([C3]), `P112` #15 ([C2]) and `P112`
+  #29 ([D1]) are quoted verbatim in `tools/lint-criteria.py --selftest`, which now holds 51 of 51
+  cases.
+- **The clause below is applied** to `rules/rule-7-the-ledger.md`.
+- **The next experiment prices the ladder on this harness.** It re-runs each node's original
+  worker and verifier tiers through the same dispatcher and records `total_cost_usd` for every
+  spawn. That measures the one number the dollar verdict above turns on.
+
+## The clause for rules/rule-7-the-ledger.md (applied 2026-09-23)
 
 The `model` column records the model the dispatcher asked for: the binding of the row's tier, as
 passed to the harness. It is never rewritten from what came back. The `note` column records what
