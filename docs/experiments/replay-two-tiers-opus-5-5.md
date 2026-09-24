@@ -212,7 +212,9 @@ The operator took every recommendation on the final brief on 2026-09-23.
 - **The clause below is applied** to `rules/rule-7-the-ledger.md`.
 - **The next experiment prices the ladder on this harness.** It re-runs each node's original
   worker and verifier tiers through the same dispatcher and records `total_cost_usd` for every
-  spawn. That measures the one number the dollar verdict above turns on.
+  spawn. That measures the one number the dollar verdict above turns on. **It has run:** the
+  ladder came in 23.5% cheaper, so the dollar case for frontier-by-default does not hold on this
+  corpus ([ladder-price-on-two-tier-harness.md](ladder-price-on-two-tier-harness.md)).
 
 ## The clause for rules/rule-7-the-ledger.md (applied 2026-09-23)
 
