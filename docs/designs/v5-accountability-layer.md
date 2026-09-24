@@ -136,3 +136,26 @@ Every spawn still records tier, model, effort and seconds. If frontier-by-defaul
 costs more than the runs it saves, the histogram will say so; if the cheap tier's
 work starts failing verification, the ledger will say where. The replay harness is
 the experiment: run the same eighteen nodes under v5's two tiers, and compare.
+
+**It was measured, and the dollar half of the premise did not hold.** Two runs on the
+same eighteen nodes and the same harness:
+
+- `docs/experiments/replay-two-tiers-opus-5-5.md`: frontier at every seat confirmed
+  6 of 9 work-class nodes first try (rung 6 got 5), for $78.53 in pairs. The cheap
+  tier's one node passed a frontier verifier.
+- `docs/experiments/ladder-price-on-two-tier-harness.md`: each node at its original
+  rung confirmed 4 of 9. Charged a frontier retry for both nodes it lost, it still came
+  to $60.09, **23.5% cheaper**, pre-registered and outside the wash band. Seconds were
+  even (3h37m against 3h40m), and verifier strictness did not follow tier.
+
+So "assigning cheap to judgment costs more than it saves" is false on this corpus:
+the asymmetry the premise predicted is there, and smaller than the price gap.
+
+**Frontier stays the default, for a different reason.** The reason is operational.
+One agent tier needs no entry-tier assignment, and a fresh run cannot plan one well:
+the ladder's winning rungs came from a ledger a new run does not have. There is no
+drift or de-escalation to audit, and one binding to change when models move. That
+argument is unpriced, and it is the one v5 now rests on. The open measurement is
+whether effort buys the saving without the ladder: the same nodes with the frontier
+model at medium effort in both seats. If it matches frontier's yield at the ladder's
+price, v5 keeps one model and lowers its default effort.

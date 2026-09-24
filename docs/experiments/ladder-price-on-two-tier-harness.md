@@ -213,3 +213,32 @@ than four. That is an argument about operations, and no run so far has priced it
   checked that artifact, and one command-run node is not a rate.
 - **Anything outside this corpus.** Eighteen nodes the self-run refuted, replayed on a tree where
   most fixes are already landed.
+
+## Decisions taken
+
+The operator took every recommendation on this run's final brief on 2026-09-24.
+
+- **The result stands as committed.** The pre-registered outcome and its worst-case reading are
+  unchanged.
+- **v5 keeps frontier as its default and restates the reason.** The dollar case failed here, so the
+  design record's bet section (`docs/designs/v5-accountability-layer.md`) and PR #30's description
+  now give the reason as operational: one tier to bind, plan and audit. They no longer claim it is
+  cheaper. The ladder is not adopted instead: its rungs came from a ledger a fresh run does not
+  have, and a real retry's price was not measured.
+- **The next measurement is a third arm:** Opus 5.5 at medium effort in both seats, on the same
+  nodes, under the same rule. It asks whether effort alone buys the ladder's saving at frontier's
+  yield. Its design is registered on its own before it runs.
+- **These commits reach `main` through PR #30.** `opus55-replay` is a fast-forward of
+  `v5-accountability`, so PR #30 carries its own evidence.
+- **The run record is kept and archived.** A copy of `_orch/` sits outside the checkout at
+  `/Users/clank/Desktop/projects/baton-runs-archive/opus55-replay-and-ladder-orch-20260924.tar.gz`.
+- **One genuine UNSETTLEABLE row is recorded as unpromotable,** beside `P121`'s cross-handoff gap.
+  `P132` #24 reads: *"Each finding present after the change and absent before it is named
+  individually in `work/records-valid.md` with a statement of why it is correct, settled by
+  `diff`ing `work/scorecard-before.txt` against `work/scorecard-after.txt` and reading that
+  difference against the named list."* Its premise is false. `tools/instruments.py` prints only a
+  six-line aggregate summary, and never lists individual findings. So the two scorecards the
+  criterion diffs cannot contain the findings it asks about, and for this change they are
+  identical. The defect lives in what a tool prints, not in the criterion's words. A linter rule
+  keyed on those words would flag sound diff criteria, so no rule is added. It is the same reason
+  `P121`'s genuine rows were ruled unpromotable.
