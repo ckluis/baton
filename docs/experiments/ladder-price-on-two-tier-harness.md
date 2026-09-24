@@ -169,9 +169,9 @@ worker spent 1,121 s doing the work.
    What this run cannot rule out is the overcount itself. No frontier verifier read a ladder
    artifact. The worst case prices that at 11.8%, still outside the band.
 2. **Today's models.** Rungs 1 and 2 are both Sonnet 5, so the ladder has three models, not four.
-   Rung 3 is the frontier model at medium effort rather than high. On the five heaviest criterion
-   nodes that cost 0.63 of the frontier pair, with no change in first-try yield (zero in both
-   arms). Part of the ladder's saving is therefore effort, not model.
+   Rung 3 is the frontier model at medium effort rather than high. On its five nodes, four
+   criterion-class and one work-class (`P160`), that cost 0.63 of the frontier pair, with no
+   change in first-try yield (zero in both arms). Part of the ladder's saving is therefore effort, not model.
 3. **Tree state and harness fell on both arms.** Both ran at `acae87c` with the same withheld set.
    The ladder's extra UNSETTLEABLE rows are mostly `P90b`'s twelve, which confound 1 accounts for.
    The harness also leaked in both arms: the ladder `P111` worker's `tools/instruments.py` walked up
