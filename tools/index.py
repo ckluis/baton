@@ -122,7 +122,7 @@ CRITERIA_HEADING_RE = re.compile(
 ANY_HEADING_RE = re.compile(r"^\s{0,3}#{1,4}\s")
 NUMBERED_ITEM_RE = re.compile(r"^\d+\.\s")
 GRAPH_ID_RE = re.compile(r"^-\s+id:\s*(\S+)\s*$")
-GRAPH_KEY_RE = re.compile(r"^\s+(phase|title|rung|kind):\s*(.*?)\s*$")
+GRAPH_KEY_RE = re.compile(r"^\s+(phase|title|rung|kind|effort):\s*(.*?)\s*$")
 FRONTMATTER_STATUS_RE = re.compile(r"^status:\s*(.*?)\s*$")
 
 MAX_LIST_IN_SUMMARY = 8
@@ -237,7 +237,7 @@ def discover_root(argv):
 
 
 def load_graph(path, findings, root):
-    """Return {node_id: {phase, title, rung, kind}} from the flat `- id:` list."""
+    """Return {node_id: {phase, title, rung, kind, effort}} from the flat `- id:` list."""
     nodes = {}
     text = read_text(path)
     if text is None:
@@ -253,7 +253,7 @@ def load_graph(path, findings, root):
         if match:
             current = match.group(1).strip().strip("\"'")
             nodes.setdefault(current, {"phase": None, "title": None,
-                                       "rung": None, "kind": None})
+                                       "rung": None, "kind": None, "effort": None})
             continue
         if current is None:
             continue
@@ -587,17 +587,17 @@ def load_ledger(path, findings, root):
     if text is None:
         findings.add("ledger-absent", rel(root, path),
                      "no ledger.csv; the rung histogram is empty")
-        return {"by_rung": {}, "rows_counted": 0, "rows_unparsed": 0,
+        return {"by_rung": {}, "by_rung_effort": {}, "rows_counted": 0, "rows_unparsed": 0,
                 "source": rel(root, path)}
     try:
         rows = list(csv.reader(text.splitlines()))
     except (csv.Error, ValueError) as exc:
         findings.add("ledger-unparseable", rel(root, path),
                      "ledger.csv could not be parsed as CSV (%s)" % str(exc)[:120])
-        return {"by_rung": {}, "rows_counted": 0, "rows_unparsed": 0,
+        return {"by_rung": {}, "by_rung_effort": {}, "rows_counted": 0, "rows_unparsed": 0,
                 "source": rel(root, path)}
     if not rows:
-        return {"by_rung": {}, "rows_counted": 0, "rows_unparsed": 0,
+        return {"by_rung": {}, "by_rung_effort": {}, "rows_counted": 0, "rows_unparsed": 0,
                 "source": rel(root, path)}
     header = [c.strip() for c in rows[0]]
     try:
@@ -606,6 +606,8 @@ def load_ledger(path, findings, root):
         column = 2
         findings.add("ledger-header", rel(root, path),
                      "header row names no `rung` column; fell back to column 3")
+    effort_col = header.index("effort") if "effort" in header else None
+    by_effort = {}
     for number, row in enumerate(rows[1:], start=2):
         if not row or not any(c.strip() for c in row):
             continue
@@ -620,10 +622,15 @@ def load_ledger(path, findings, root):
             value = "(blank)"
         histogram[value] = histogram.get(value, 0) + 1
         total += 1
+        if value != "n/a" and effort_col is not None and len(row) > effort_col:
+            key = "%s/%s" % (value, row[effort_col].strip() or "(blank)")
+            by_effort[key] = by_effort.get(key, 0) + 1
     ordered = {}
     for key in sorted(histogram, key=natural_key):
         ordered[key] = histogram[key]
-    return {"by_rung": ordered, "rows_counted": total, "rows_unparsed": skipped,
+    return {"by_rung": ordered,
+            "by_rung_effort": dict((k, by_effort[k]) for k in sorted(by_effort, key=natural_key)),
+            "rows_counted": total, "rows_unparsed": skipped,
             "source": rel(root, path)}
 
 
@@ -651,6 +658,23 @@ def load_ledger_rows(path):
     return out
 
 
+def check_effort(graph, rows, findings, where):
+    """CONTRACT §1.1: a node's declared `effort:` is what its own spawn rows ran at.
+    A spawn row for the node whose `effort` differs is a finding - the planner chose
+    one effort and the dispatcher spent another. Rows for other names (a verifier's
+    `<id>-VERIFY`), event rows (`n/a`) and nodes that declare nothing are not checked."""
+    for row in rows:
+        node = (row.get("node") or "").strip()
+        declared = (graph.get(node) or {}).get("effort")
+        ran = (row.get("effort") or "").strip()
+        if not declared or row.get("rung", "").strip() in ("n/a", "") or ran in ("", "n/a"):
+            continue
+        if ran != declared:
+            findings.add("effort-mismatch", "%s: %s attempt %s" % (where, node, row.get("attempt", "?")),
+                         "graph declares effort: %s, the spawn ran at %s (CONTRACT §1.1)"
+                         % (declared, ran))
+
+
 # --------------------------------------------------------------------------
 # the index itself
 # --------------------------------------------------------------------------
@@ -671,6 +695,8 @@ def build_index(root, state=STATE_ROOT_DEFAULT):
     sweep, extras = load_verdicts(verify_dir, nodes_dir, findings, root)
     unanswered, answered = load_inbox(inbox_dir, findings, root)
     ledger = load_ledger(os.path.join(orch, "ledger.csv"), findings, root)
+    check_effort(graph, load_ledger_rows(os.path.join(orch, "ledger.csv")), findings,
+                 rel(root, os.path.join(orch, "ledger.csv")))
 
     pending, terminal, done_unconfirmed, blocked = [], [], [], []
     other = {}
@@ -863,6 +889,9 @@ def render_summary(index):
     cells = ", ".join("rung %s: %d" % (k, v) for k, v in hist["by_rung"].items())
     lines.append("## Rung histogram (%d ledger rows)" % hist["rows_counted"])
     lines.append("- %s" % (cells or "no rows"))
+    by_effort = hist.get("by_rung_effort") or {}
+    if by_effort:
+        lines.append("- by rung/effort: %s" % ", ".join("%s: %d" % kv for kv in by_effort.items()))
     if hist["rows_unparsed"]:
         lines.append("- %d row(s) too short to carry a rung; skipped"
                      % hist["rows_unparsed"])
