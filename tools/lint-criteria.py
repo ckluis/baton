@@ -241,6 +241,109 @@ THE SHAPES IT REJECTS, each derived from a criterion this run actually authored
      criterion that names the artifact only by its snapshot, and a tree git cannot be
      asked.
 
+  H  an arithmetic contradiction across two criteria: one mutation required to
+     refute both arms of a complementary pair.  A node's positive control asks a
+     single mutation to flip an assertion from pass to fail - that flip is what
+     proves the assertion refutable at all.  Two criteria of one handoff asked the
+     SAME mutation to flip an arm asserting a value is ABOVE a threshold and a
+     second arm asserting the complementary outcome, at or below that threshold.
+     Exactly one of those two holds for any value, so no honest construction
+     satisfies both; only a constant that crashes both runs does.  The consequence
+     was worse than a failed check.  The node's positive control was not in fact
+     refutable by mutation, so the anti-tautology guarantee the pair existed to
+     provide was vacuous, and the node read as green.
+
+     THE DISCRIMINATOR is arithmetic rather than vocabulary, and it has four
+     clauses.  (1) each criterion names exactly ONE comparison against a threshold -
+     `> 0.8`, "at or below 0.8", "at least 5" - because a criterion naming two says
+     nothing about which one its mutation is meant to flip, and the linter will not
+     guess; (2) the two operators are exact complements (`>` against `<=`, `<`
+     against `>=`) on the SAME threshold, compared as numbers, so `0.8` and `.80`
+     are one threshold and `0.8` and `0.9` are two; (3) each criterion requires a
+     mutation to REFUTE its arm - a mutation noun and a flip verb, both present, so
+     a criterion that merely mentions a bound is not a party to this; and (4) the
+     mutation is the same mutation.  Clause (4) is what separates the defect from
+     the pair that reads almost identically and is perfectly satisfiable: two
+     complementary arms flipped by two DIFFERENT mutations are exactly how a
+     two-armed gate is positively controlled, and a rule that flagged them would
+     flag the remedy.
+
+     Clause (4) is settled from the text and nowhere else.  A criterion that points
+     at its sibling's mutation - "that same mutation", "the same one-line change" -
+     establishes it, and that is a FLAG.  Two criteria that each spell a mutation
+     out without saying whether it is the same one establish nothing, and that is a
+     WARN naming the sibling and what it could not settle; the WARN additionally
+     requires the two to name a path in common, so a coincidence of thresholds
+     across unrelated criteria never raises it.
+
+     The limit, stated rather than hidden.  This rule reads a PAIR of criteria.  A
+     single criterion requiring one mutation to flip both arms in one sentence is
+     the same defect and is NOT detected: binding each arm to its own flip verb
+     inside one sentence is an interpretive act, and a rule that guessed the binding
+     would flag "the mutation flips the `> 0.8` arm while the `<= 0.8` arm is
+     unaffected", which is the correct wording.  Nor does the rule read the metric:
+     two complementary arms over two different quantities, flipped by one mutation,
+     are satisfiable, and clause (4) is all that stands between this rule and that
+     case.  Its silence is not a judgement that a criterion is settleable.
+
+  I  a precondition the run's own sequencing forbids.  Two shapes under one rule,
+     because both are a criterion that cannot be evaluated at the point it is
+     checked.  Five of the six occurrences this register records were authored by an
+     orchestrator mid-flight, which is exactly when a criterion skips review.
+
+     I1 is the ordering case, and it is settled from the plan rather than from
+     words.  A criterion of node `X` that reads an artifact under `nodes/<Y>/work/`
+     for a `Y` the graph places strictly AFTER `X` can never be evaluated: at the
+     moment `X` is verified that artifact does not exist, and no execution of `X`
+     can make it exist.  §4 puts the machine-readable plan at
+     `<orch>/plan/graph.yaml` and gives every node a `needs` list, so downstream is
+     a fact to look up rather than a word to match - the same move rule A makes with
+     `git ls-files` and rule F makes by opening the script.  `Y` is downstream of
+     `X` when `X` lies in the transitive closure of `Y`'s `needs`.  A path named
+     only in order to be ruled OUT - "not against `_orch/nodes/P9/work/x`" - is
+     excluded first, the way rule E excludes a forbidden baseline.  The reverse read
+     is the common and legitimate one and stays silent: `P124` #27 reads
+     `_orch/nodes/P120/work/check4-after.txt`, an UPSTREAM node's finished artifact,
+     and that is the operator-adopted way this run pins check 4.
+
+     I2 is the same scan finding a node the plan does not contain.  A criterion
+     depending on `nodes/<Y>/work/` where the graph names this node but no `Y` at
+     all is a WARN and never a FLAG: the linter has found a dependency the plan does
+     not explain, and it cannot tell a typo from a node authored outside the graph.
+
+     I3 is the rewrite case, and it needs no graph: a criterion asserting an
+     artifact is unchanged - "`tools/prober.py` is byte-identical to
+     `work/prober.py.pre`" - inside a handoff whose own instructions tell THIS node
+     to rewrite that same artifact.  The criterion's precondition is that the file
+     still holds its dispatch state; the handoff's own steps destroy it.  This is
+     rule D2's contradiction taken from the other side.  D2 reads one criterion
+     against a sibling CRITERION; I3 reads one criterion against the handoff's
+     INSTRUCTIONS, which is where a mid-flight criterion's contradiction lives,
+     because at the moment it is written there is often no sibling criterion to
+     contradict yet.
+
+     THE DISCRIMINATOR for I3 is three clauses of the criterion's own text.  (1) the
+     sameness claim is PREDICATIVE - "is byte-identical", "remains unchanged", "was
+     not modified" - and never attributive, so "the unmodified tool preserved at
+     `work/prober.py.pre`" describes a snapshot and does not trip it; (2) the claim
+     carries no exception ("other than", "apart from", "except", "outside"), because
+     a criterion that names the change it expects is settleable and is the repaired
+     form; and (3) the claim is about the WHOLE artifact rather than a region of it
+     - a criterion scoping its sameness to a section, a block, a line range or a
+     named function stays silent, because a node told to change a file elsewhere can
+     leave that region byte-identical.  The subject must also be the artifact and
+     not the snapshot of it.
+
+     The limit.  I1 needs a graph.  With no `plan/graph.yaml` above the handoff,
+     with a file it cannot parse under §4's documented shape, or with this node
+     absent from it, the rule declines in silence rather than guess an ordering, and
+     that silence is not a judgement.  It reads `needs`, the hard edge, and not
+     `informs`, because a soft edge orders nothing.  It triggers on a PATH under
+     another node's directory and never on a bare node id in prose, which is usually
+     a citation.  I3 is bounded by `node_edits`, which wants an edit verb near the
+     path in the handoff's instruction sections: a handoff that mandates the rewrite
+     through a command alone, naming no verb, is invisible to it.
+
 NO CLOCK, NO STATE.  Two runs over an unchanged tree are byte-identical under
 `cmp`.  Nothing is cached, nothing is remembered, no field is a wall-clock reading.
 
@@ -464,6 +567,107 @@ POST_EDIT_RE = re.compile(
     r"^[`'\"]?\s*(?:\((?:edited|modified|changed|repaired|extended|patched)\)|"
     r"(?:is|gets|will\s+be|must\s+be|to\s+be)\s+(?:edited|modified|changed|repaired|extended|"
     r"patched)|gains\b|so\s+that\b)", re.I)
+
+# --- rule H: one mutation required to refute both arms of a complementary pair ---
+# (3) the criterion asks a MUTATION to refute its arm.  Both halves are required:
+# a criterion that merely names a bound is not making a refutability claim at all.
+MUTATION_RE = re.compile(
+    r"\bmutat(?:e|es|ed|ing|ion|ions)\b|\bsabotag(?:e|es|ed|ing)\b|"
+    r"\bone-line\s+(?:change|edit|mutation)\b|\bsingle-line\s+(?:change|edit)\b|"
+    r"\ba\s+single\s+(?:edit|change|line\s+change)\b|\bpositive\s+control\b|"
+    r"\bperturb(?:s|ed|ing|ation)?\b", re.I)
+REFUTE_RE = re.compile(
+    r"\bflip(?:s|ped|ping)?\b|\brefut(?:e|es|ed|ing|able)\b|"
+    r"\bfrom\s+pass\s+to\s+fail\b|\bturns?\s+.{0,24}?\bred\b|"
+    r"\bmakes?\s+(?:it\s+|that\s+|the\s+\w+\s+)?(?:arm\s+)?fail\b|"
+    r"\bcauses?\s+.{0,24}?\bto\s+fail\b|\bno\s+longer\s+(?:holds?|passes)\b|"
+    r"\bbreaks?\s+(?:the\s+)?(?:arm|assertion|check|criterion)\b", re.I)
+# (4) the mutation is the SAME mutation.  This is the clause that separates the
+# defect from the ordinary two-mutation positive control, so it is never inferred:
+# the criterion has to point at its sibling's mutation in words.
+SAME_MUTATION_RE = re.compile(
+    r"\b(?:that|the|this)\s+same\s+(?:one-line\s+|single-line\s+)?"
+    r"(?:mutation|change|edit|sabotage|perturbation)\b|"
+    r"\bthat\s+mutation\b|\bthe\s+mutation\s+(?:above|already\s+named)\b|"
+    r"\bthe\s+(?:same\s+)?mutation\s+(?:of|in|from)\s+criterion\s+\d+\b", re.I)
+_H_NUM = r"(\d+(?:\.\d+)?|\.\d+)"
+# (1) and (2): the comparison and its threshold.  Order matters - "at or below"
+# contains "below", so the two-sided forms are matched first and an overlapping
+# one-sided match over the same span is dropped.  Symbolic forms exclude their own
+# two-character spellings: `<` does not match the `<` of `<=`.
+COMPARISON_FORMS = (
+    (re.compile(r"(?:at\s+or\s+below|no\s+(?:more|greater|higher)\s+than|at\s+most|"
+                r"not\s+(?:more|greater|higher)\s+than)\s+" + _H_NUM + r"\s*(%?)", re.I), "<="),
+    (re.compile(r"(?:at\s+or\s+above|no\s+(?:less|lower|fewer)\s+than|at\s+least|"
+                r"not\s+(?:less|lower|fewer)\s+than)\s+" + _H_NUM + r"\s*(%?)", re.I), ">="),
+    (re.compile(r"(?:strictly\s+)?(?:above|greater\s+than|more\s+than|higher\s+than|"
+                r"exceed(?:s|ing)?)\s+" + _H_NUM + r"\s*(%?)", re.I), ">"),
+    (re.compile(r"(?:strictly\s+)?(?:below|less\s+than|fewer\s+than|lower\s+than)\s+"
+                + _H_NUM + r"\s*(%?)", re.I), "<"),
+    (re.compile(r"<=\s*" + _H_NUM + r"\s*(%?)"), "<="),
+    (re.compile(r">=\s*" + _H_NUM + r"\s*(%?)"), ">="),
+    (re.compile(r"<(?!=)\s*" + _H_NUM + r"\s*(%?)"), "<"),
+    (re.compile(r">(?!=)\s*" + _H_NUM + r"\s*(%?)"), ">"),
+)
+# the same four operators with the threshold named by anaphora instead of a number -
+# "at or below that threshold" - which is how the second half of a complementary
+# pair is usually written.  Only consulted when the criterion names no number, and
+# the resulting arm binds to whatever threshold its partner names.
+COMPARISON_ANAPHORA = (
+    (re.compile(r"(?:at\s+or\s+below|no\s+(?:more|greater)\s+than|at\s+most)\s+"
+                r"(?:that|the\s+same|the)\s+threshold\b", re.I), "<="),
+    (re.compile(r"(?:at\s+or\s+above|no\s+less\s+than|at\s+least)\s+"
+                r"(?:that|the\s+same|the)\s+threshold\b", re.I), ">="),
+    (re.compile(r"(?:above|greater\s+than|more\s+than|exceed(?:s|ing)?)\s+"
+                r"(?:that|the\s+same|the)\s+threshold\b", re.I), ">"),
+    (re.compile(r"(?:below|less\s+than)\s+(?:that|the\s+same|the)\s+threshold\b", re.I), "<"),
+)
+COMPLEMENT = {">": "<=", "<=": ">", "<": ">=", ">=": "<"}
+
+# --- rule I: a precondition the run's own sequencing forbids --------------------
+# a path under some node's work directory, whatever the orchestration root is
+# called.  The archived run wrote `_orch/`, the replay `_orch-replay/`, so the
+# prefix is not matched - only the `nodes/<id>/` segment §6 fixes.
+NODE_ANY_DIR_RE = re.compile(r"(?:^|/)nodes/([A-Za-z0-9][A-Za-z0-9_.-]*)/")
+# the §4 graph, read for exactly two keys - `id` and `needs`.  A node entry opens
+# with `- id:`; a
+# list item that opens with any other key means the file is not in the shape §4
+# documents, and the parser declines the whole file rather than mis-attribute an
+# edge to the wrong node.  `informs` is a soft edge and orders nothing, so it is
+# not read.
+GRAPH_ID_RE = re.compile(r"^\s*-\s+id:\s*[\"']?([A-Za-z0-9][A-Za-z0-9_.-]*)[\"']?\s*(?:#.*)?$")
+GRAPH_DASH_KEY_RE = re.compile(r"^\s*-\s+[A-Za-z_][A-Za-z0-9_]*\s*:")
+GRAPH_KEY_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*?)\s*(?:#.*)?$")
+GRAPH_FLOW_RE = re.compile(r"^\[(.*)\]$")
+GRAPH_ITEM_RE = re.compile(r"^\s*-\s+[\"']?([A-Za-z0-9][A-Za-z0-9_.-]*)[\"']?\s*(?:#.*)?$")
+GRAPH_EMPTY = ("", "~", "null", "[]", "Null", "NULL")
+# (1) the sameness claim, PREDICATIVE.  An attributive "the unmodified tool
+# preserved at `work/prober.py.pre`" describes a snapshot and is rule G's subject,
+# not this one's; without the copula this rule would flag rule G's own known-bad.
+UNCHANGED_CLAIM_RE = re.compile(
+    r"\b(?:is|are|remains?|stays?|must\s+be|should\s+be|shall\s+be|was|were|be)\s+"
+    r"(?:still\s+)?(?:byte-identical|byte-for-byte\s+identical|bit-identical|identical|"
+    r"unchanged|unmodified|untouched)\b|"
+    r"\b(?:is|are|was|were|has|have)\s+not\s+(?:been\s+)?"
+    r"(?:modified|changed|edited|touched|rewritten|regenerated)\b|"
+    r"\bno\s+(?:byte|line|character)\s+of\b", re.I)
+# (3) a claim scoped to a REGION of the artifact.  A node told to change a file
+# elsewhere can leave a named region byte-identical, so a scoped claim is not
+# contradicted by the instruction to edit and stays silent.
+REGION_SCOPE_RE = re.compile(
+    r"\b(?:the|that|its|a)\s+(?:\w+[-\s]){0,3}?"
+    r"(?:region|section|block|stanza|paragraph|frontmatter|front-matter|header|footer|"
+    r"preamble|heading|table|body\s+of)\b|"
+    r"\blines?\s+\d+\b|\bbetween\s+`[^`]+`\s+and\s+`[^`]+`|"
+    r"\bthe\s+`[^`]+`\s+(?:function|method|class|rule|clause|field|key|entry|section)\b", re.I)
+# a prohibition standing immediately in front of an edit verb.  "Do not edit
+# `tools/foo.py`" is not an instruction to change it, and reading it as one would
+# make rule I3 flag the one pairing that is always correct - a criterion asserting
+# a file unchanged in a handoff that forbids changing it.
+PROHIBITION_RE = re.compile(
+    r"\b(?:do\s+not|don'?t|does\s+not|did\s+not|must\s+not|may\s+not|cannot|can'?t|"
+    r"never|not|without|forbidden\s+to|rather\s+than|instead\s+of|no)"
+    r"(?:\s+\w+){0,2}\s*$", re.I)
 
 BACKTICK_RE = re.compile(r"`([^`]+)`")
 BARE_PATH_RE = re.compile(r"(?<![`\w])(/(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+)")
@@ -751,6 +955,122 @@ class Harness(object):
                     out[cur].extend(funcs[head])
         self._cache[path] = out
         return out
+
+
+# ---------------------------------------------------------------------------
+# the plan graph, read - never written.  Rule I1 resolves node ordering the way
+# rule A resolves trackedness and rule F resolves a check: by opening the thing
+# that knows, rather than by matching a word.  §4 puts it at `plan/graph.yaml`
+# under the orchestration root, and §6 fixes the handoff at `nodes/<id>/handoff.md`
+# beside it, so the graph is found by walking up from the handoff itself and the
+# root may be called `_orch/` or `_orch-replay/` or anything else.
+# ---------------------------------------------------------------------------
+
+class Graph(object):
+    """Caches parsed `plan/graph.yaml` files, keyed by path.  Cache is per-process,
+    so output stays byte-identical across runs; nothing is written to disk."""
+
+    def __init__(self, root):
+        self.root = root
+        self._cache = {}
+
+    def locate(self, handoff_path):
+        """The `plan/graph.yaml` above this handoff, or None.  Walks up from the
+        handoff's own directory, so the orchestration root's name is never assumed."""
+        d = os.path.abspath(os.path.dirname(handoff_path) or ".")
+        while True:
+            cand = os.path.join(d, "plan", "graph.yaml")
+            if os.path.isfile(cand):
+                return cand
+            parent = os.path.dirname(d)
+            if parent == d:
+                return None
+            d = parent
+
+    def nodes_for(self, handoff_path):
+        """{node id: set of ids it `needs`} for the plan above this handoff, or None
+        when there is no graph or the file is not in the shape §4 documents."""
+        path = self.locate(handoff_path)
+        if path is None:
+            return None
+        if path in self._cache:
+            return self._cache[path]
+        try:
+            fh = open(path, "r")
+            try:
+                body = fh.read()
+            finally:
+                fh.close()
+        except (IOError, OSError):
+            self._cache[path] = None
+            return None
+        self._cache[path] = parse_graph(body)
+        return self._cache[path]
+
+    def downstream(self, nodes, start):
+        """Every node the plan places strictly after `start`: the transitive closure
+        of the reverse `needs` edge.  `informs` is a soft edge and orders nothing, so
+        it is not read."""
+        rev = {}
+        for nid, needs in nodes.items():
+            for up in needs:
+                rev.setdefault(up, set()).add(nid)
+        seen, stack = set(), [start]
+        while stack:
+            cur = stack.pop()
+            for nxt in sorted(rev.get(cur, ())):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        seen.discard(start)
+        return seen
+
+
+def parse_graph(text):
+    """`- id: T07` opens a node, `needs:` carries its hard edges in either YAML
+    spelling.  Returns None the moment a list item opens with a key other than
+    `id`: the file is then not in §4's documented shape, and a parser that guessed
+    which node an edge belonged to would invent an ordering.  No YAML library -
+    this module is stdlib-only on 3.9, the same constraint `tools/index.py` works
+    under."""
+    nodes, cur, collecting = {}, None, False
+    for line in text.split("\n"):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        m = GRAPH_ID_RE.match(line)
+        if m:
+            cur, collecting = m.group(1), False
+            nodes.setdefault(cur, set())
+            continue
+        if GRAPH_DASH_KEY_RE.match(line):
+            return None  # a node entry that does not open with `id`.  Decline.
+        if cur is None:
+            continue
+        mi = GRAPH_ITEM_RE.match(line)
+        if collecting and mi:
+            nodes[cur].add(mi.group(1))
+            continue
+        mk = GRAPH_KEY_RE.match(line)
+        if not mk:
+            collecting = False
+            continue
+        key, val = mk.group(1), mk.group(2)
+        collecting = False
+        if key != "needs":
+            continue
+        val = val.strip()
+        if val == "":
+            collecting = True   # a block sequence follows on the lines below
+            continue
+        if val in GRAPH_EMPTY:
+            continue
+        mf = GRAPH_FLOW_RE.match(val)
+        if mf:
+            for tok in mf.group(1).split(","):
+                tok = tok.strip().strip("\"'")
+                if tok:
+                    nodes[cur].add(tok)
+    return nodes or None
 
 
 # ---------------------------------------------------------------------------
@@ -1367,11 +1687,165 @@ def node_edits(subject, handoff_text):
             after = text[m.end():m.end() + 40]
             # the verb must come before the path within the window, or the path
             # must be followed by an "(edited)" mark; a bare noun elsewhere is not
-            # an instruction.
-            if EDIT_VERB_RE.search(before) or POST_EDIT_RE.search(after):
+            # an instruction.  A verb standing behind a prohibition - "Do not edit
+            # `tools/foo.py`" - is not an instruction to change it either, and
+            # reading it as one would make rule I3 flag the one pairing that is
+            # always correct: a criterion asserting a file unchanged inside a
+            # handoff that forbids changing it.
+            for v in EDIT_VERB_RE.finditer(before):
+                lead = before[max(0, v.start() - 30):v.start()]
+                if not PROHIBITION_RE.search(lead):
+                    return True
+            if POST_EDIT_RE.search(after):
                 return True
     return False
 
+
+def comparison_arms(text):
+    """Every distinct (operator, threshold) this criterion compares against, in
+    document order.  The threshold is normalised numerically so `0.8` and `.80` are
+    one threshold and a percent sign stays part of it; it is None when the criterion
+    names the bound by anaphora ("at or below that threshold") instead of a number,
+    in which case it binds to whatever its partner names.  Two-sided forms are read
+    first and a one-sided match over the same span is dropped, because "at or below"
+    contains "below"."""
+    def scan(forms, numeric):
+        arms, spans = [], []
+        for rx, op in forms:
+            for m in rx.finditer(text):
+                if any(m.start() < e and st < m.end() for st, e in spans):
+                    continue  # "at or below" contains "below"; the wider form won
+                spans.append((m.start(), m.end()))
+                thresh = "%g%s" % (float(m.group(1)), m.group(2) or "") if numeric else None
+                if (op, thresh) not in arms:
+                    arms.append((op, thresh))
+        return arms
+
+    return scan(COMPARISON_FORMS, True) or scan(COMPARISON_ANAPHORA, False)
+
+
+def refutation_claim(text):
+    """True when the criterion asks a MUTATION to refute its arm.  Both halves are
+    required: a mutation with nothing it flips is a step, and a flip with no
+    mutation behind it is an ordinary outcome."""
+    return bool(MUTATION_RE.search(text) and REFUTE_RE.search(text))
+
+
+def rule_h(num, text, all_crits):
+    """One mutation required to refute both arms of a complementary pair.  See THE
+    SHAPES IT REJECTS, entry H."""
+    out = []
+    mine = comparison_arms(text)
+    if len(mine) != 1:
+        return out  # two arms in one criterion says nothing about which is flipped
+    if not refutation_claim(text):
+        return out
+    op, thresh = mine[0]
+    want = COMPLEMENT[op]
+    for onum, otext in all_crits:
+        if onum <= num:
+            continue  # the pair is reported once, from the earlier of the two
+        theirs = comparison_arms(otext)
+        if len(theirs) != 1:
+            continue
+        oop, othresh = theirs[0]
+        if oop != want:
+            continue
+        if thresh is not None and othresh is not None and thresh != othresh:
+            continue
+        if not refutation_claim(otext):
+            continue
+        shown = thresh if thresh is not None else othresh
+        named = shown if shown is not None else "that threshold"
+        if SAME_MUTATION_RE.search(text) or SAME_MUTATION_RE.search(otext):
+            out.append(("FLAG", "H1",
+                        "this criterion requires one mutation to flip an arm asserting `%s %s`, "
+                        "and criterion %d of the same handoff requires that SAME mutation to flip "
+                        "an arm asserting `%s %s`. Exactly one of those two holds for any value, "
+                        "so no honest construction satisfies both - only a constant that crashes "
+                        "both runs does. The cost is not a failed check: a positive control that "
+                        "cannot be refuted by mutation proves nothing, so the anti-tautology "
+                        "guarantee this pair exists to provide is vacuous and the node reads "
+                        "green. Flip the two arms with two different mutations, or drop one."
+                        % (op, named, onum, oop, named)))
+            break
+        shared = [p for p in paths_in(text) if p in paths_in(otext)]
+        if not shared:
+            continue  # a coincidence of thresholds across unrelated criteria
+        out.append(("WARN", "H2",
+                    "this criterion requires a mutation to flip an arm asserting `%s %s`, and "
+                    "criterion %d of the same handoff requires a mutation to flip an arm "
+                    "asserting the exact complement, `%s %s`, over a path both name (`%s`). The "
+                    "linter could not settle from either text whether the two mutations are the "
+                    "same one. If they are, no execution satisfies both and rule H1 applies; if "
+                    "they are two different mutations the pair is the ordinary positive control "
+                    "and is fine. Say which, and this warning is answered."
+                    % (op, named, onum, oop, named, shared[0])))
+        break
+    return out
+
+
+def rule_i(num, text, handoff_text, self_id, graph, handoff_path):
+    """A precondition the run's own sequencing forbids.  See THE SHAPES IT REJECTS,
+    entry I."""
+    out = []
+    # I1 / I2 - an artifact under a node the plan places after this one
+    nodes = graph.nodes_for(handoff_path) if graph is not None else None
+    if nodes and self_id is not None and self_id in nodes:
+        down = graph.downstream(nodes, self_id)
+        forbidden = forbidden_baselines(text)
+        for p in paths_in(text):
+            if p in forbidden:
+                continue
+            m = NODE_ANY_DIR_RE.search(p)
+            if not m:
+                continue
+            other = m.group(1)
+            if other == self_id:
+                continue
+            if other in down:
+                out.append(("FLAG", "I1",
+                            "this criterion depends on `%s`, an artifact under node `%s`'s work "
+                            "directory, and `plan/graph.yaml` places `%s` strictly AFTER this "
+                            "node: `%s` reaches this node through its `needs` chain. At the "
+                            "moment this node is verified that artifact does not exist, and no "
+                            "execution of this node can make it exist, so the criterion cannot "
+                            "be evaluated at the point it is checked. Read an artifact this "
+                            "node's own work produces, or move the criterion to `%s`."
+                            % (p, other, other, other, other)))
+                break
+            if other not in nodes:
+                out.append(("WARN", "I2",
+                            "this criterion depends on `%s`, under a node `%s` that "
+                            "`plan/graph.yaml` does not contain, though it does contain this "
+                            "node. The linter could not settle whether `%s` runs before this "
+                            "node, after it, or at all, so it could not settle whether that "
+                            "artifact exists when this criterion is checked."
+                            % (p, other, other)))
+                break
+    # I3 - an artifact asserted unchanged that this handoff tells this node to rewrite
+    if (UNCHANGED_CLAIM_RE.search(text) and not EXCEPTION_RE.search(text)
+            and not REGION_SCOPE_RE.search(text) and not RANGE_EXTRACTOR_RE.search(text)):
+        for p in paths_in(text):
+            if SNAPSHOT_SUFFIX_RE.search(os.path.basename(p)):
+                continue  # the snapshot is the baseline, not the subject
+            if not node_edits(p, handoff_text):
+                continue
+            out.append(("FLAG", "I3",
+                        "this criterion asserts `%s` is unchanged, and the same handoff's own "
+                        "instructions tell this node to change `%s`. The criterion's precondition "
+                        "is that the file still holds the state it had at dispatch; the handoff's "
+                        "steps destroy that state before the criterion is ever read, so no node "
+                        "that obeys the handoff can satisfy it. This is the `P120` #14 "
+                        "contradiction from the other side - D2 reads a criterion against a "
+                        "sibling criterion, and this reads one against the instructions, which is "
+                        "where a criterion authored mid-flight contradicts itself, because at "
+                        "that moment there is no sibling criterion yet. Name the change the "
+                        "criterion expects (\"byte-identical other than ...\"), scope the claim to "
+                        "a region the node does not touch, or assert the sameness of something "
+                        "this node is not told to rewrite." % (p, p)))
+            break
+    return out
 
 # ---------------------------------------------------------------------------
 # driver
@@ -1392,7 +1866,7 @@ def repo_root(start):
         d = parent
 
 
-def lint_file(path, tracked, harness, out):
+def lint_file(path, tracked, harness, graph, out):
     try:
         fh = open(path, "r")
         try:
@@ -1421,6 +1895,8 @@ def lint_file(path, tracked, harness, out):
         findings += rule_e(num, ctext, self_id)
         findings += rule_f(num, ctext, whole, harness)
         findings += rule_g(num, ctext, whole, self_id, tracked)
+        findings += rule_h(num, ctext, crits)
+        findings += rule_i(num, ctext, whole, self_id, graph, path)
         for level, rule, msg in findings:
             if level == "FLAG":
                 flags += 1
@@ -1504,6 +1980,71 @@ SELFTEST_HANDOFF_FANOUT = """# HANDOFF - X2
 """
 
 
+# a two-criterion handoff, because rule H reads a PAIR: the arithmetic
+# contradiction lives between two criteria, never inside one.
+SELFTEST_HANDOFF_PAIR = """# HANDOFF - X3
+
+## Steps
+
+1. Run `python3 tools/gate.py` and paste every line into `work/gate.txt`.
+
+## Done-criteria
+
+1. %s
+2. %s
+"""
+
+# a handoff that FORBIDS the edit.  "Do not edit `tools/prober.py`" is not an
+# instruction to change it, and rule I3 must not read it as one: a criterion
+# asserting a file unchanged inside a handoff that forbids changing it is the one
+# pairing that is always correct.
+SELFTEST_HANDOFF_FORBID = SELFTEST_HANDOFF.replace(
+    "## Done-criteria",
+    "4. Do not edit `tools/prober.py`; it is an input and nothing else.\n\n## Done-criteria")
+
+# a handoff at its §6 address, so `plan/graph.yaml` sits two directories above it
+# and `self_node_id` reads `N1` off the path rather than off a heading.
+SELFTEST_HANDOFF_GRAPH = """# HANDOFF - N1
+
+## Steps
+
+1. Write `_orch/nodes/N1/work/out.txt`.
+
+## Done-criteria
+
+1. %s
+"""
+
+# `N2` needs `N1` and `N3` needs `N2`, so both are strictly after this node - `N3`
+# only transitively, which is why the rule closes the edge rather than reading one
+# hop.  `N0` is upstream.  `Z9` only INFORMS `N1`: a soft edge orders nothing, so
+# reading `Z9`'s work directory is not a defect.  Both YAML spellings of a list
+# appear, because the parser has to read the one the plan happens to use.
+SELFTEST_GRAPH = """- id: N0
+  kind: task
+  needs: []
+  handoff: _orch/nodes/N0/handoff.md
+- id: N1
+  kind: task
+  needs: [N0]            # hard edge
+  handoff: _orch/nodes/N1/handoff.md
+- id: N2
+  kind: task
+  needs:
+    - N1
+  handoff: _orch/nodes/N2/handoff.md
+- id: N3
+  kind: task
+  needs: [N2]
+  handoff: _orch/nodes/N3/handoff.md
+- id: Z9
+  kind: task
+  needs: []
+  informs: [N1]
+  handoff: _orch/nodes/Z9/handoff.md
+"""
+
+
 def selftest():
     """Prove each new rule FLAGS its known-bad fixture and stays SILENT on the
     repaired wording beside it.  A rule that cannot fail is not a rule; a rule that
@@ -1545,13 +2086,34 @@ def selftest():
         git("add", "-A")
         git("commit", "-q", "-m", "second")
 
-        tracked, harness = Tracked(tmp), Harness(tmp)
+        # the plan the graph-reading half of rule I is settled against, at the §6
+        # address: `<orch>/plan/graph.yaml`, with the handoff at `<orch>/nodes/<id>/`.
+        os.makedirs(os.path.join(tmp, "_orch", "plan"))
+        os.makedirs(os.path.join(tmp, "_orch", "nodes", "N1"))
+        write("_orch/plan/graph.yaml", SELFTEST_GRAPH)
+
+        tracked, harness, graph = Tracked(tmp), Harness(tmp), Graph(tmp)
         hp = os.path.join(tmp, "node", "handoff.md")
+        gp = os.path.join(tmp, "_orch", "nodes", "N1", "handoff.md")
 
         def lint(criterion, letter, template=None):
             write("node/handoff.md", (template or SELFTEST_HANDOFF) % criterion)
             out = []
-            lint_file(hp, tracked, harness, out)
+            lint_file(hp, tracked, harness, graph, out)
+            return [ln for ln in out if "[%s" % letter in ln]
+
+        def lint_pair(first, second, letter):
+            """Rule H reads two criteria of one handoff, so its fixtures are pairs."""
+            write("node/handoff.md", SELFTEST_HANDOFF_PAIR % (first, second))
+            out = []
+            lint_file(hp, tracked, harness, graph, out)
+            return [ln for ln in out if "[%s" % letter in ln]
+
+        def lint_graph(criterion, letter):
+            """The same lint from inside a run that has a plan, so rule I1 can ask it."""
+            write("_orch/nodes/N1/handoff.md", SELFTEST_HANDOFF_GRAPH % criterion)
+            out = []
+            lint_file(gp, tracked, harness, graph, out)
             return [ln for ln in out if "[%s" % letter in ln]
 
         def has(lines, tag):
@@ -1633,6 +2195,109 @@ def selftest():
         cases.append(("G is silent when the handoff tells the node to change the artifact",
                       not lint(bad_g, "G", SELFTEST_HANDOFF_EDIT)))
 
+        # --- rule H ------------------------------------------------------------
+        above_h = ("The positive control holds: mutating `tools/gate.py` so the reviewer "
+                   "count is reported as a constant flips the arm asserting the score is "
+                   "above 0.8 from pass to fail, pasted into `work/gate.txt`.")
+        same_below_h = ("That same mutation flips the arm asserting the score is at or "
+                        "below 0.8 from pass to fail, pasted into `work/gate.txt`.")
+        other_below_h = ("Mutating `tools/gate.py` so the reviewer count is reported as zero "
+                         "flips the arm asserting the score is at or below 0.8 from pass to "
+                         "fail, pasted into `work/gate.txt`.")
+        anaphoric_h = ("That same mutation flips the arm asserting the score is at or below "
+                       "that threshold from pass to fail, pasted into `work/gate.txt`.")
+        far_below_h = same_below_h.replace("0.8", "0.9")
+        unrelated_h = ("Mutating `tools/latency.py` so the timer is reported as a constant "
+                       "flips the arm asserting the latency is at or below 0.8 from pass to "
+                       "fail, pasted into `work/other.txt`.")
+        both_arms_h = ("The positive control holds: mutating `tools/gate.py` flips the arm "
+                       "asserting the score is above 0.8 while the arm asserting it is at or "
+                       "below 0.8 is unaffected, pasted into `work/gate.txt`.")
+        no_mutation_h = ("`work/gate.txt` records the score as at or below 0.8 for the "
+                         "fixture, quoted from `tools/gate.py`'s own output.")
+        h1 = lint_pair(above_h, same_below_h, "H")
+        cases.append(("H flags one mutation asked to refute both arms of a complementary pair",
+                      has(h1, "H1")))
+        cases.append(("H reports the pair once, from the earlier criterion", len(h1) == 1))
+        cases.append(("H binds a threshold named by anaphora to the one its partner names",
+                      has(lint_pair(above_h, anaphoric_h, "H"), "H1")))
+        cases.append(("H reads `> 0.8` and `<= 0.8` in their symbolic spelling too",
+                      has(lint_pair(
+                          "Mutating `tools/gate.py` flips the `> 0.8` arm from pass to fail.",
+                          "That same mutation flips the `<= 0.8` arm from pass to fail.",
+                          "H"), "H1")))
+        two = lint_pair(above_h, other_below_h, "H")
+        cases.append(("H warns, never flags, when the two mutations are not said to be the same",
+                      has(two, "H2") and not has(two, "H1")))
+        cases.append(("H is silent when the complementary arms sit on different thresholds",
+                      not lint_pair(above_h, far_below_h, "H")))
+        cases.append(("H does not even warn when two unattributed mutations share no path, "
+                      "so the arms are not shown to measure one thing",
+                      not lint_pair(above_h, unrelated_h, "H")))
+        cases.append(("H is silent on a criterion that names both arms, which says nothing "
+                      "about which one the mutation flips",
+                      not lint_pair(both_arms_h, same_below_h, "H")))
+        cases.append(("H is silent when no mutation is asked to refute anything",
+                      not lint_pair(no_mutation_h,
+                                    "`work/gate.txt` records the score as above 0.8.", "H")))
+        cases.append(("H is silent on the same two arms flipped by two mutations in one "
+                      "direction, which is the ordinary positive control",
+                      not lint_pair(above_h, above_h, "H")))
+
+        # --- rule I ------------------------------------------------------------
+        down_i = ("`work/out.txt` agrees line for line with "
+                  "`_orch/nodes/N2/work/summary.txt`, pasted into `work/proof.md`.")
+        deep_i = down_i.replace("N2", "N3")
+        up_i = down_i.replace("N2", "N0")
+        own_i = down_i.replace("N2", "N1")
+        soft_i = down_i.replace("N2", "Z9")
+        absent_i = down_i.replace("N2", "N7")
+        ruled_out_i = ("`work/out.txt` agrees line for line with `work/own-copy.txt` - not "
+                       "against `_orch/nodes/N2/work/summary.txt`, which is the wrong copy - "
+                       "pasted into `work/proof.md`.")
+        cases.append(("I flags a criterion depending on a node the plan places after this one",
+                      has(lint_graph(down_i, "I"), "I1")))
+        cases.append(("I closes the `needs` chain rather than reading one hop",
+                      has(lint_graph(deep_i, "I"), "I1")))
+        cases.append(("I is silent on an upstream node's finished artifact, the `P124` #27 read",
+                      not lint_graph(up_i, "I")))
+        cases.append(("I is silent on this node's own work directory", not lint_graph(own_i, "I")))
+        cases.append(("I is silent on a soft `informs` edge, which orders nothing",
+                      not lint_graph(soft_i, "I")))
+        cases.append(("I is silent on a downstream path the criterion names only to rule out",
+                      not lint_graph(ruled_out_i, "I")))
+        a = lint_graph(absent_i, "I")
+        cases.append(("I warns, never flags, on a node the plan does not contain",
+                      has(a, "I2") and not has(a, "I1")))
+        cases.append(("I is silent about ordering when there is no plan above the handoff",
+                      not lint(down_i, "I")))
+
+        bad_i3 = "`tools/prober.py` is byte-identical to `work/prober.py.pre`, settled by `cmp`."
+        carve_i3 = ("`tools/prober.py` is byte-identical to `work/prober.py.pre` other than "
+                    "the gate clause this node adds, settled by `diff`.")
+        region_i3 = ("The header region of `tools/prober.py` is byte-identical to "
+                     "`work/prober.py.pre`, settled by `cmp`.")
+        cases.append(("I flags a sameness claim about an artifact the handoff tells this "
+                      "node to rewrite",
+                      has(lint(bad_i3, "I", SELFTEST_HANDOFF_EDIT), "I3")))
+        cases.append(("I is silent when the criterion names the change it expects",
+                      not lint(carve_i3, "I", SELFTEST_HANDOFF_EDIT)))
+        cases.append(("I is silent when the sameness is scoped to a region the node can leave alone",
+                      not lint(region_i3, "I", SELFTEST_HANDOFF_EDIT)))
+        cases.append(("I is silent when the handoff never tells this node to change the artifact",
+                      not lint(bad_i3, "I")))
+        cases.append(("I is silent when the handoff FORBIDS the edit, the one pairing "
+                      "that is always correct",
+                      not lint(bad_i3, "I", SELFTEST_HANDOFF_FORBID)))
+        cases.append(("I reads a predicative claim only - rule G's own known-bad calls a "
+                      "snapshot `unmodified` and must not trip it",
+                      not lint(bad_g, "I", SELFTEST_HANDOFF_EDIT)))
+        cases.append(("the graph parser declines a plan whose entries do not open with `id`",
+                      parse_graph("- kind: task\\n  id: N1\\n  needs: [N0]\\n") is None))
+        cases.append(("the graph parser reads both YAML spellings of `needs`",
+                      parse_graph(SELFTEST_GRAPH)["N1"] == set(["N0"])
+                      and parse_graph(SELFTEST_GRAPH)["N2"] == set(["N1"])))
+
         # --- no clock, no state -------------------------------------------------
         cases.append(("two runs over one unchanged fixture are byte-identical",
                       lint(bad_f, "F") == lint(bad_f, "F")))
@@ -1660,11 +2325,12 @@ def main(argv):
     root = repo_root(argv[1])
     tracked = Tracked(root)
     harness = Harness(root)
+    graph = Graph(root)
     out = []
     total_flags = 0
     bad_input = False
     for path in argv[1:]:
-        res = lint_file(path, tracked, harness, out)
+        res = lint_file(path, tracked, harness, graph, out)
         if res is None:
             bad_input = True
         else:
