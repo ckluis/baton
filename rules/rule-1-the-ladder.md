@@ -15,7 +15,7 @@ escalation. There is no other.
 | # | tier | for |
 |---|---|---|
 | 0 | `cheap` | Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename, check a link list, resolve a roster. The fastest model the harness offers. **Assignment only — escalation never lands here.** |
-| 1 | `frontier` | **The default.** Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at its highest effort. Nothing above it runs unattended. |
+| 1 | `frontier` | **The default.** Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at the effort its node assigns (§1.1). Nothing above it runs unattended. |
 | 2 | `human` | Not a spawn: a question in the inbox (§10) with the evidence beside it, batched at the gate (§8). Where frontier stops — a second failure, a contradiction no adjudicator can settle on the evidence, a criterion no execution can meet (§9.2) — and where authority was always going to be needed. |
 
 `rung` is the field's name in graphs, envelopes, persona cards and the ledger,

@@ -478,7 +478,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <thead><tr><th>#</th><th>Tier</th><th>For</th></tr></thead>
         <tbody>
           <tr class="dim"><td class="n">0</td><td class="r">cheap</td><td>Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename, check a link list. The fastest model the harness offers. <strong>Assignment only</strong> &mdash; escalation never lands here.</td></tr>
-          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at its highest effort. Nothing above it runs unattended.</td></tr>
+          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at the effort its node assigns: high to build, medium to verify (§1.1). Nothing above it runs unattended.</td></tr>
           <tr><td class="n">2</td><td class="r">human</td><td>Not a spawn. A question in the inbox with the evidence beside it, batched at the gate &mdash; where frontier stops, and where authority was always going to be needed.</td></tr>
         </tbody>
       </table>
@@ -1775,7 +1775,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
 | `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
 | `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
-| `FRONTIER` | the harness's most capable model, at its highest effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
+| `FRONTIER` | the harness's most capable model; effort per node (CONTRACT §1.1), `high` when a node names none | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
 | `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/&lt;id&gt;` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
 | `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |

@@ -86,7 +86,7 @@ over one.
 
 5. **Verify.** On `DONE`/`DONE-WITH-CAVEATS`, spawn a verifier
    (`{BATON}/prompt/roles/verifier.md`) at frontier, as a fresh spawn, whatever
-   tier did the work (§9). **Check the verdict's shape before you route it**
+   tier did the work (§9), at `medium` effort unless the node is building-class (§1.1). **Check the verdict's shape before you route it**
    (CONTRACT §9.1): its `criteria` rows must number exactly the handoff's
    done-criteria, and its node verdict must match what those rows compute to.
    A verdict that fails either check is malformed — read it as `PARTIAL` and

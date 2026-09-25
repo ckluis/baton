@@ -32,6 +32,8 @@ name it, not to fix it).
 **Assign frontier unless the work is a command** (CONTRACT §1.1). Default entry
 is frontier. A node enters at cheap only with a written reason that names the
 property of the work that makes it a command — never a feeling about its size.
+At frontier, set `effort:` by the kind of work (CONTRACT §1.1): `high` to build or design,
+`medium` to verify a specified claim or repair against a named criterion.
 
 **Every loop node declares its full exit condition before you write it**:
 `invariant`, `ledger` path, `dry_rounds`, `max_iterations` — all four, per
