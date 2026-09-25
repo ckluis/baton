@@ -282,7 +282,7 @@ Three tiers. This is the entire routing system.
 | # | tier | for |
 |---|---|---|
 | 0 | `cheap` | Mechanical, verifiable by command. The fastest model the harness offers. **Assignment only** — escalation never lands here. |
-| 1 | `frontier` | **The default.** Everything with judgment in it. The most capable model the harness offers, at its highest effort. Nothing above it runs unattended. |
+| 1 | `frontier` | **The default.** Everything with judgment in it. The most capable model the harness offers, at the effort its node assigns: high to build, medium to verify. Nothing above it runs unattended. |
 | 2 | `human` | Not a spawn: a question in the inbox with the evidence beside it, batched at the gate. Where frontier stops. |
 
 Escalation is two moves, then a person. Cheap fails → frontier, once. Frontier

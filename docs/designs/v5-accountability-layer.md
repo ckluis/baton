@@ -159,3 +159,10 @@ argument is unpriced, and it is the one v5 now rests on. The open measurement is
 whether effort buys the saving without the ladder: the same nodes with the frontier
 model at medium effort in both seats. If it matches frontier's yield at the ladder's
 price, v5 keeps one model and lowers its default effort.
+
+**Measured twice, and the answer split by kind of work.** On the replayed repair and verification
+nodes, medium matched high's yield for 31% less (`docs/experiments/frontier-at-medium-effort.md`). On a
+greenfield build, every effort met the contract, and a blind judge preferred high by 0.72, all of
+it in robustness and tests (`docs/experiments/effort-greenfield-go-blog.md`). So v5 keeps one model and
+sets effort per node (`rules/rule-1-1-entry-rung.md`): high to build or design, medium to verify or
+repair against a named criterion.
