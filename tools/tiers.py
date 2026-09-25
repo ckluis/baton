@@ -32,6 +32,25 @@ RUNG_RE = re.compile(r"^(\s*rung:\s*)(\d+)(\s*(?:#.*)?)$")
 EFFORT_RE = re.compile(r"^\s+effort:\s*[\"']?([^\s\"'#]*)[\"']?\s*(?:#.*)?$")
 NODE_RE = re.compile(r"^-\s+id:\s*(\S+)")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
+
+
+def unwrap_nodes(text):
+    """CONTRACT §4's graph is a flat `- id:` list. A graph written as a mapping -
+    `nodes:` over an indented list, which valid YAML allows and planners write -
+    is the same graph one level down: lift it back so every parser reads one
+    shape. Text with no top-level `nodes:` key is returned unchanged."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^nodes:\s*(#.*)?$", line):
+            body = []
+            for rest in lines[i + 1:]:
+                if rest.strip() and not rest.startswith((" ", "\t")):
+                    break
+                body.append(rest)
+            dashes = [len(b) - len(b.lstrip()) for b in body if b.lstrip().startswith("- ")]
+            cut = min(dashes) if dashes else 0
+            return "\n".join(b[cut:] if b.strip() else b for b in body)
+    return text
 LEDGER_NAMES = ("ledger.csv", "ledger")
 
 
@@ -83,9 +102,14 @@ def effort_problems(path):
     """(lineno, message) for every `effort:` a node may not carry (CONTRACT §1.1)."""
     try:
         with open(path, encoding="utf-8", errors="replace") as fh:
-            lines = fh.read().splitlines()
+            text = fh.read()
     except OSError:
         return []
+    # line numbers refer to the file; an unwrapped graph shifts them by the `nodes:` line
+    shift = 0
+    if text != unwrap_nodes(text):
+        shift = next(i for i, l in enumerate(text.split("\n"), 1) if re.match(r"^nodes:\s*(#.*)?$", l))
+    lines = unwrap_nodes(text).splitlines()
     out, node, rung, effort = [], None, None, None
 
     def close():
@@ -110,7 +134,7 @@ def effort_problems(path):
             continue
         e = EFFORT_RE.match(line)
         if e and line.startswith("  ") and not line.startswith("   "):
-            effort = (i, e.group(1))
+            effort = (i + shift, e.group(1))
     close()
     return out
 
@@ -201,6 +225,11 @@ def selftest():
                         len(probs) == 2 and any("hgih on B2" in q for q in probs) and any("C2 - a rung-0" in q for q in probs)))
         run("remap", files_state(st), tmp)
         results.append(("remap never touches an effort field", "effort: hgih" in open(g).read()))
+        with open(g, "w") as fh:
+            fh.write("# header\nnodes:\n  - id: B1\n    rung: 1\n    effort: high\n  - id: C2\n    rung: 0\n    effort: low\nedges: []\n")
+        probs = run("check", files_state(st), tmp)[2]
+        results.append(("a graph written as `nodes:` over a list is read the same, with the file's line numbers",
+                        len(probs) == 1 and ":8: effort: low on C2" in probs[0]))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("Each line below must PASS. A remap that touches a value it should not is a defect in the contract.\n")

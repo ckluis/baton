@@ -65,6 +65,14 @@ check "V1 and R1 raise no mismatch" "[ \$(grep -c 'effort-mismatch' '$s') -eq 1 
 check "the histogram counts rung/effort" "grep -q 'by rung/effort: 1/high: 1, 1/medium: 2' '$s'"
 check "tiers.py check accepts the graph" "python3 '$here/tiers.py' check --state-root '$tmp/_orch' >/dev/null"
 
+echo "== the same graph, written as a nodes: mapping"
+{ echo "nodes:"; sed 's/^/  /' "$tmp/_orch/plan/graph.yaml"; } > "$tmp/g" && mv "$tmp/g" "$tmp/_orch/plan/graph.yaml"
+rm -rf "$tmp/_orch/index"
+(cd "$tmp" && python3 "$here/index.py" --state-root _orch >/dev/null)
+check "index reads it: no graph-unparsed" "! grep -q 'graph-unparsed' '$s'"
+check "index still finds B1's mismatch" "grep -q 'effort-mismatch .*B1 attempt 1' '$s'"
+check "tiers.py check still accepts it" "python3 '$here/tiers.py' check --state-root '$tmp/_orch' >/dev/null"
+
 echo
 [ $fails -eq 0 ] && echo "all passed" || echo "$fails failed"
 [ $fails -eq 0 ]
