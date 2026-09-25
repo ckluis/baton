@@ -5,7 +5,7 @@ id: journey-honesty
 kind: expert
 domain: Probe Fidelity vs Fabricated Completion
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [ux-research, probing, evidence, fabrication, screenshots]
 links:
   - rel: contradicts

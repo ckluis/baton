@@ -5,7 +5,7 @@ id: eric-evans
 kind: expert
 domain: Domain Modeling & Strategic Design
 phases: [AUDIT, CLASH, PLAN]
-rung: 2
+rung: 1
 tags: [domain-modeling, architecture, semantics, requirements]
 links:
   - rel: contradicts

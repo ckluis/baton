@@ -21,6 +21,93 @@
   instruction, so "Do not edit `X`" beside a criterion asserting `X` unchanged is silent. Forty-seven
   selftest cases, up from twenty-one.
 
+## v5.0 — 2026-09-21
+
+The accountability layer. The question that started it: does baton make sense with Fable/Astra-level
+intelligence? Half of it did not — the six-rung ladder and every rule that scripted *how* to spend a
+big model priced a world where the big model was the expensive part of a run. The other half —
+evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that
+outlives the laptop — matters more as agents do more of the work. v5 subtracts the first half, keeps
+every field name so nothing downstream breaks, and records the change as a bet the ledger measures.
+Design record: `docs/designs/v5-accountability-layer.md`.
+
+### Breaking
+
+- **What a `rung` value means.** The field keeps its name in graphs, envelopes, persona cards and the
+  ledger; its values are now `0` (cheap), `1` (frontier) or `n/a` (an event row). v4 wrote 0–6; the
+  mapping is `0 → 0`, `1–6 → 1`. A v4 run resumes untouched — old rows are history, and any value
+  above 0 reads as frontier. A checkout of the framework (a fork, a `path:` roster) is one command:
+  `python3 tools/tiers.py remap --framework`; `check` refuses a value above 1. Here it moved 131
+  values across 94 files. `migrations/from-v4.md`.
+- **`CEILING` and `PRIME_TURNS` are gone.** `CHEAP` and `FRONTIER` name the models the two tiers
+  run on; there is no ceiling because frontier is the ceiling, and no prime turn budget because
+  §3's context discipline is what protects the prime. An invocation that still names either is
+  told so in the first message and otherwise ignored.
+- **Team mode's footprint on the repository is one pull request, one branch, one hidden ref.**
+  v4.0's team mode — a branch per run, a branch and draft pull request per node, an Issue per
+  question, three labels, a Pages folder per run, a release per disposal — is replaced whole;
+  nothing had run under it. The record now goes to `refs/baton/run/<id>`, a ref GitHub lists
+  nowhere; the pull request on `baton/<id>` is the thread (questions and answers are comments,
+  every gate posts one comment); every product node is one commit on that branch with its
+  verdict as the check `baton/verify`; briefs gain a markdown twin the gate posts. A v4 team run
+  in flight, if one existed, pushes its `baton/run/<id>` branch to the hidden ref and deletes the
+  branch — `migrations/from-v4.md` §2b.
+
+### Contract
+
+- **§0 — layers are a discipline of context and independence, not a hierarchy of spawns.** A
+  session that can run agents in parallel and wait for their envelopes dispatches a phase's nodes
+  itself, under the same handoff-and-envelope contract; the phase runner is the fallback (router §4).
+- **§1 — the tiers.** `0 cheap`: mechanical, verifiable by command, assignment only. `1 frontier`:
+  everything with judgment, the default, the most capable model at its highest effort. `2 human`:
+  a question in the inbox, never a spawn. The binding of tiers to models belongs to the harness.
+- **§1.1 — entry is frontier unless the work is a command.** The asymmetry reversed.
+- **§1.2 — two moves, then a person.** Cheap → frontier once; frontier → frontier once more with
+  the verdict's rows verbatim in the handoff; a second frontier failure is a question. Contradictions
+  go to an adjudicator at frontier; `SPLIT` to a decomposer at frontier; `UNSETTLEABLE` parks. A
+  verifier is always frontier and always a fresh spawn — never an escalation of the node.
+- **Deleted:** §1.3 de-escalation is mandatory (a planner's choice now, not a duty), §1.4 ceiling,
+  §1.4a who assigns the rung, §1.5 rung drift (fired once in eleven phases; lower branch never),
+  §1.6 effort is not free. **Cut from §9:** the refutation quota (never fired). 53 rules become 48;
+  `prompt/CONTRACT.md`'s index regenerated.
+- **Every mode's "Entry rungs" table is an "Entry tiers" table** with two rows — the cheap class,
+  and everything else — keeping each mode's own reasoning about what is judgment. Every persona
+  duty is frontier by definition (`rules/prule-2-1-kind-expert.md`, `rules/prule-2-2-kind-user.md`);
+  the card default is `rung: 1`.
+- **Roles.** Every header names a tier; the phase runner's routing table is §1.2's; the drift step
+  and the quota are gone; the node orchestrator's de-escalation duty became a choice; the
+  verifier's escalation paragraph says what a refutation now buys.
+
+### Tools
+
+- **`tools/tiers.py`** (new) — `remap` / `check` for a framework checkout (`--framework`) or a run
+  (`--state-root`); the ledger is never rewritten; `--selftest` 9 cases.
+- **`tools/publish-run.sh`** — `init` makes `_orch/` a worktree of a local branch that `publish`
+  pushes to the hidden ref, and creates the run branch `baton/<id>` from the base with one empty
+  commit so the pull request can open before any node lands; `dispose` deletes the hidden ref and
+  keeps the pull request; `pages` is gone.
+- **`tools/node-pr.sh`** — `branch` from the run branch's head; `land` commits the node's changes
+  as one commit on the run branch (trailers `Baton-Node`, `Baton-Run`), rebasing onto whatever
+  landed since, pushes, checks the commit out under `work/tree/`; `status` posts the check on that
+  commit; `pr` is gone.
+- **`tools/inbox-gh.py`** — `open-run` opens the draft pull request on the run branch (an Issue if
+  a pull request cannot be opened); `sync` posts questions as comments and reads `/answer Q-<n>`
+  replies back; `post-gate` posts the index summary and the gate's markdown deck as one comment;
+  `clock` bounds rows against pushes to the hidden ref. `--selftest` 13 cases; the fake `gh` proves
+  no Issue, label, close or page is ever created for a question.
+- **`tools/github-setup.sh`** — one ruleset on `refs/heads/baton/**`; Pages removed.
+- **`tools/test-team.sh`** — rewritten for the quiet surface: 37 checks, ending with the footprint
+  assertion — 1 branch, 1 thread, 0 issues, 0 labels, 0 pages, 0 releases.
+- `tools/index.py`, `tools/lists.py`, `tools/lint-criteria.py`: unchanged — the field they read
+  kept its name.
+
+### Page and docs
+
+- **"Agents do the work. baton keeps the record."** New hero, a v4 → v5 card, section 01 "The
+  tiers" (the drift card is gone), the layers diagram says who dispatches, a tier histogram, five
+  lineage cards with v4 archived as `baton-v4.html`, the share card re-rendered.
+- `migrations/from-v4.md`; `MIGRATING.md` and the older migration files point at the v5.0 hop.
+
 ## v4.0 — 2026-09-18
 
 baton for a team, without moving the run off the runner's disk. Split GitHub into its three

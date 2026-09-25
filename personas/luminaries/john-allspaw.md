@@ -5,7 +5,7 @@ id: john-allspaw
 kind: expert
 domain: Resilience & Safety Engineering
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [resilience, operations, robustness, risk, systems]
 links:
   - rel: contradicts

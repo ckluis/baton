@@ -5,7 +5,7 @@ id: coverage-truth
 kind: expert
 domain: Test Verification Depth
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [testing, coverage, quality, verification]
 links:
   - rel: contradicts

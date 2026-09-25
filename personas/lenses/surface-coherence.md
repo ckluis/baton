@@ -5,7 +5,7 @@ id: surface-coherence
 kind: expert
 domain: Whole-Product Experience Coherence
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [quality, product, trust, consistency]
 links:
   - rel: contradicts

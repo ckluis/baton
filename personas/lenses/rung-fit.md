@@ -5,7 +5,7 @@ id: rung-fit
 kind: expert
 domain: Entry Rung Justification
 phases: [PLAN, CLASH]
-rung: 2
+rung: 1
 tags: [planning, cost, escalation, routing, rungs]
 links:
   - rel: contradicts

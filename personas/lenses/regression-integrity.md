@@ -5,7 +5,7 @@ id: regression-integrity
 kind: expert
 domain: Regression Test Discipline
 phases: [AUDIT, VERIFY]
-rung: 2
+rung: 1
 tags: [testing, regression, bugs, reliability, ci]
 links:
   - rel: contradicts

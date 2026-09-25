@@ -5,7 +5,7 @@ id: access-barrier
 kind: expert
 domain: Accessibility & Inclusive Design
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [accessibility, inclusive-design, assistive-tech, a11y, coverage]
 links:
   - rel: contradicts

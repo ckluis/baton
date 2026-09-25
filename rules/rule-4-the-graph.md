@@ -41,10 +41,11 @@ worktree.
 
 **Under `TEAM` (router §1) the situation is different and so is the default.** A
 node whose `surface` is `code` or `ui` and whose outputs land inside the product
-tree is `isolation: worktree` by default, its worktree is the branch
-`baton/node/<run-id>/<id>` with a draft pull request, and the merge node the
-plan names is that pull request's merge (§6.2). The reason is not collision but
-review: a team reads baton's changes the way it reads anyone's, and the node's
-computed verdict (§9.1) rides on the branch as a commit status. The plan verifier
+tree is `isolation: worktree` by default, its worktree starts from the run
+branch `baton/<id>` and lands as one commit on it (§6.2), and the merge node the
+plan names is merging the run's one pull request. The reason is not collision but
+review: a team reads baton's changes the way it reads anyone's — one pull
+request, one commit per node — and the node's computed verdict (§9.1) rides on
+its commit as a check. The plan verifier
 refutes a team-mode plan that leaves such a node at `isolation: none`. The
 single-user rule above is unchanged.

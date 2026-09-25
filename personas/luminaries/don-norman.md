@@ -5,7 +5,7 @@ id: don-norman
 kind: expert
 domain: UX & Interaction Design
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [interaction-design, ux-research, quality, robustness]
 links:
   - rel: contradicts

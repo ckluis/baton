@@ -5,7 +5,7 @@ id: call-site-truth
 kind: expert
 domain: Discovery Completeness Across All Call Sites
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [discovery, refactoring, static-analysis, completeness, dynamic-dispatch]
 links:
   - rel: contradicts

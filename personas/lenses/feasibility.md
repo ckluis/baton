@@ -5,7 +5,7 @@ id: feasibility
 kind: expert
 domain: Plan Executability Against Real Resources
 phases: [PLAN, CLASH]
-rung: 2
+rung: 1
 tags: [planning, resourcing, execution, rungs]
 links:
   - rel: contradicts

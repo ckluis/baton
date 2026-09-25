@@ -40,23 +40,25 @@ the contract; messaging is only a faster doorbell.** A run with `INBOX: off`
 behaves identically, just with longer pauses.
 
 **Two doorbells, one contract.** `INBOX: on` is the second session above. `TEAM:
-github` (router §1) is a GitHub Issue: at each gate `tools/inbox-gh.py sync`
-opens one Issue per `Q-<n>.md` that has none — a sub-issue of the run's Issue,
-labelled `baton:blocked`, body verbatim — and reads each open one back. An
-answer is a comment that begins `/answer`, or the comment that closes the Issue.
-The tool copies it into `Q-<n>.answer.md` under a provenance block —
-`answered_by`, `answered_via: github-issue`, `issue`, `comment_url`,
-`answered_at` (the server's time), `synced_at` (measured, §7.1) — and closes the
-Issue. The run reads the file, never the comment; a person who edits the file by
-hand and a person who comments from a phone leave the same record.
-`_orch/inbox/github.json` records which Issue rang for which question.
+github` (router §1) is the run's **thread**: the draft pull request on the run's
+branch, or an Issue when no pull request can be opened. At each gate
+`tools/inbox-gh.py sync` posts one comment per `Q-<n>.md` that has none — the
+question verbatim — and reads the thread back. An answer is any comment that
+begins `/answer Q-<n>`. The tool copies it into `Q-<n>.answer.md` under a
+provenance block — `answered_by`, `answered_via: github-thread`, `thread`,
+`comment_url`, `answered_at` (the server's time), `synced_at` (measured, §7.1).
+The run reads the file, never the comment; a person who edits the file by hand
+and a person who replies from a phone leave the same record.
+`_orch/inbox/github.json` records the thread and which comment carries which
+question. Nothing else is created on the repository: no Issue per question, no
+label, no page.
 
-**Who may answer.** The Issue's assignee; anyone in `manifest.json`'s
+**Who may answer.** The thread's assignees; anyone in `manifest.json`'s
 `answerers:` list; if neither is set, any collaborator. An answer from anyone
-else is written to the file with `unauthorized: true`, is **not** applied, is
-not closed, and is surfaced in the next brief so the run neither ignores a
-person nor obeys one it was not told to. The login is recorded in the answer
-file and in the gate's ledger event row (§7.2) — better provenance than a
-hand-edited file ever carried.
+else is written to the file with `unauthorized: true`, is **not** applied, and
+is surfaced in the next brief so the run neither ignores a person nor obeys one
+it was not told to. The login is recorded in the answer file and in the gate's
+ledger event row (§7.2) — better provenance than a hand-edited file ever
+carried.
 
 ---

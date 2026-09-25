@@ -66,7 +66,7 @@ IMPROVE or BUILD run without further interpretation.
   kind: task
   phase: 2
   title: "PROBE — capture this surface as the assigned person encounters it"
-  rung: 3
+  rung: 1
   surface: ui
   needs: [C1]
   personas: [first-run]               # or assistive-tech, or mobile-commuter
@@ -87,7 +87,7 @@ IMPROVE or BUILD run without further interpretation.
   kind: task
   phase: 3
   title: "AUDIT — judge the captured surface from this lens alone"
-  rung: 2
+  rung: 1
   needs: [F1]
   adversarial: panel
   personas: [<seat>]
@@ -110,14 +110,14 @@ IMPROVE or BUILD run without further interpretation.
   kind: task
   phase: 4
   title: Convergence audit — pair the opposed, force a pairing if nothing opposes
-  rung: 3
+  rung: 1
   needs: [B2]
   done: "pairings.yaml lists every unrun pairing keyed seat-pair+claim, or states the ledger holds them all"
 - id: K1
   kind: fanout
   phase: 4
   title: Run each new pairing as one steelman exchange
-  rung: 3
+  rung: 1
   needs: [C2]
   adversarial: panel
   done: "one clash-<key>.md per unrun pairing, each with both steelmen, both rebuttals, and the ruling"
@@ -149,7 +149,7 @@ IMPROVE or BUILD run without further interpretation.
   kind: task
   phase: 5
   title: "VERIFY — re-score every claimed P0 and P1"
-  rung: 2
+  rung: 1
   needs: [V1]
   refutes: B3
   personas: [severity-inflation]
@@ -158,7 +158,7 @@ IMPROVE or BUILD run without further interpretation.
   kind: task
   phase: 6
   title: Synthesize the craft recommendation matrix
-  rung: 3
+  rung: 1
   needs: [V1, A-severity-inflation]
   personas: []            # SYNTH is neutral by construction
   done: "final/craft-report.md matrix — every row has priority, owner task, verification path, citation status"
@@ -181,17 +181,12 @@ the whole answer. A typography or motion expert cannot audit a surface it has ne
 seen, and the probe is how the seat gets its evidence: DOGFOOD drives journeys to find
 what breaks, while CRAFT's probe captures a surface so an expert can judge it.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| citation verification (`V1`) | 0 | Exact string and path match of a quote against its capture file. Verifiable by command; there is no judgment in it. |
-| classification, scope gate, fanouts, barriers, red-flag declaration | 1 | Bounded restatement against a clear spec — the default. |
-| audit seats (`A-*`), `A-severity-inflation` | 2 | Pinned by personas/CONTRACT.md §2.1, not chosen here: AUDIT and expert VERIFY are rung 2. |
-| capture (`S-*`) | 3 | Pinned by personas/CONTRACT.md §2.2, not chosen here: PROBE is rung 3 for `kind: user`. Reading a surface from pixels under the §3 perception contract is genuinely rung-3 work. |
-| convergence audit (`C2`) | 3 | Judgment — whether unanimity is evidence or a seating failure, and which positions are genuinely most opposed. |
-| clash (`K1` children) | 3 | Pinned by personas/CONTRACT.md §2.1: CLASH is rung 3. |
-| synthesis (`S1`) | 3 | Cross-panel resolution. Rung 5 needs operator approval (CONTRACT §1.4); CRAFT never asks. Nothing here enters above 3. |
+| citation verification (`V1`) | 0 `cheap` | Exact string and path match of a quote against its capture file. Verifiable by command; there is no judgment in it. |
+| everything else — classification, scope gate, fanouts, barriers, red-flag declaration, audit seats (`A-*`), captures (`S-*`), convergence audit (`C2`), clash (`K1` children), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Every persona duty is frontier by definition (personas/CONTRACT.md §2), and reading a surface from pixels under the §3 perception contract is judgment. CRAFT never asks a person mid-run; a second frontier failure reaches the gate as a question (§1.2). |
 
 ## Seats
 
@@ -247,7 +242,7 @@ and seat duties still govern the upgrade (personas/CONTRACT.md §4.2).
   runnable app — goes `BLOCKED` and batches its question. One unreachable surface does not
   block the panel; the report records it as uncaptured, and a seat whose evidence depended
   on it says so instead of guessing.
-- **Final gate.** Synthesis at rung 3. Passes when no P0 or P1 row rests on an UNVERIFIED
+- **Final gate.** Synthesis at frontier. Passes when no P0 or P1 row rests on an UNVERIFIED
   citation, every row names an owner and a verification path, and {TARGET} is unmodified.
 
 ## Done
@@ -268,7 +263,7 @@ and `git status` on {TARGET} is clean.
   failure that would make CRAFT indistinguishable from an opinion, so it is answered twice.
 - **The surface nobody captured.** A seat audits a screen it never saw, from the design
   file, the source, or a reasonable guess about what the empty state probably looks like.
-  Captures precede every audit, `V1` at rung 0 checks that each cited screenshot path
+  Captures precede every audit, `V1` at cheap checks that each cited screenshot path
   exists and each quoted string is in the capture, and a finding whose evidence is missing
   is UNVERIFIED on sight rather than merely unlucky.
 - **The probe that turns into a journey.** A capture node starts completing a signup to see

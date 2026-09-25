@@ -4,7 +4,7 @@ type: Persona
 id: first-run
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [onboarding, first-use, activation]
 ---
 

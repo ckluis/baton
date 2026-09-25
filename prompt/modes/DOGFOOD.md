@@ -35,7 +35,7 @@ backlog are on disk with nothing under {TARGET} modified.
   kind: task
   phase: 1
   title: Derive the persona matrix and journey list
-  rung: 3
+  rung: 1
   surface: ui
   personas: [first-run, returning-power, admin-operator]   # PLAN duty, §2.2
   handoff: _orch/nodes/M1/handoff.md
@@ -63,7 +63,7 @@ backlog are on disk with nothing under {TARGET} modified.
   kind: task
   phase: 3
   title: "PROBE — first-run user completes signup"
-  rung: 3
+  rung: 1
   surface: ui
   needs: [F1]
   personas: [first-run]
@@ -71,7 +71,7 @@ backlog are on disk with nothing under {TARGET} modified.
 - id: V-first-run-signup
   kind: task
   phase: 3
-  rung: 3
+  rung: 1
   needs: [P-first-run-signup]
   refutes: P-first-run-signup
   personas: [returning-power]          # a different user re-drives; never the author
@@ -80,7 +80,7 @@ backlog are on disk with nothing under {TARGET} modified.
   kind: task
   phase: 3
   title: Cross-tier probe — tenant isolation, privilege boundary, impersonation
-  rung: 3
+  rung: 1
   surface: ui
   needs: [E1]
   personas: [admin-operator, low-trust-evaluator]
@@ -106,14 +106,14 @@ backlog are on disk with nothing under {TARGET} modified.
   kind: task
   phase: 4
   title: Dedupe findings across personas and score frequency x severity
-  rung: 2
+  rung: 1
   needs: [B1]
   done: "findings.yaml — one row per distinct friction, listing every persona that hit it and its merged severity"
 - id: A-journey-honesty
   kind: task
   phase: 4
   title: "AUDIT — did the probes complete the flows or narrate plausible fiction"
-  rung: 2
+  rung: 1
   needs: [B1]
   refutes: B1
   adversarial: panel
@@ -123,7 +123,7 @@ backlog are on disk with nothing under {TARGET} modified.
   kind: task
   phase: 5
   title: Ship the UX report, the flow documents, and the fix backlog
-  rung: 3
+  rung: 1
   needs: [D1, A-journey-honesty]
   personas: []                        # SYNTH is neutral
   done: "final/ux-report.md, final/flows/<role>.md per role, and backlog.yaml where every row has an owner and a repro path"
@@ -137,16 +137,12 @@ writes to {TARGET}. `final/flows/` is a deliverable, not a byproduct: a clean jo
 flow document is one editing pass from real user documentation, so it is written for a
 human reader from the first draft.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| environment proof (`E1` children) | 0 | Sign in, screenshot, record. Verifiable by command. |
-| fanout, barrier, matrix gate | 1 | Bookkeeping against a closed list — the default rung. |
-| dedupe (`D1`), panel seats | 2 | Merging near-identical friction across roles needs judgment about sameness, and the audit seats are rung 2 per personas/CONTRACT.md §2.1. |
-| matrix derivation (`M1`) | 3 | Every downstream node inherits this node's mistakes, and a wrong matrix is unrecoverable after `G1`. |
-| probe, verify, cross-tier (`P-*`, `V-*`, `X1`) | 3 | Pinned by personas/CONTRACT.md §2.2, not chosen here: PROBE and VERIFY are rung 3 for `kind: user`. Driving a UI from pixels alone under a patience budget is the one duty in baton that is genuinely rung-3 work — this is the mode where the majority of nodes sit above rung 1, and the reason is in the contract, not in the plan. |
-| synthesis (`S1`) | 3 | Cross-persona resolution. |
+| environment proof (`E1` children) | 0 `cheap` | Sign in, screenshot, record. Verifiable by command. |
+| everything else — fanout, barrier, matrix gate, dedupe (`D1`), panel seats, matrix derivation (`M1`), probe, verify, cross-tier (`P-*`, `V-*`, `X1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Driving a UI from pixels alone under a patience budget is judgment, and every downstream node inherits `M1`'s mistakes — a wrong matrix is unrecoverable after `G1`, which is why `M1`'s second failure is a question (§1.2). |
 
 ## Seats
 

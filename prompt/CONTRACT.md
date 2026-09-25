@@ -31,9 +31,10 @@ files as well** — this file is an index, and an index is not a rulebook.
 
 ## The shape of a run, in six sentences
 
-Work is routed on one ordered list of **rungs** (model × effort), and one failure
-moves a node one rung rather than one model. Each layer passes **locators and a
-rung** downward and receives an **envelope** upward; a **digest** exists so no
+Work is routed on three **tiers** — cheap for what a command can settle, frontier
+for everything with judgment in it, and a person when frontier has failed twice —
+and a retry carries the verdict that failed it. Each layer passes **locators and a
+tier** downward and receives an **envelope** upward; a **digest** exists so no
 layer ever opens the layer below's work. The plan is a **graph** with typed edges,
 and convergence is a **loop node** with a declared exit rather than a paragraph of
 encouragement. Every claim carries a citation or is retracted, and every verdict is
@@ -48,14 +49,9 @@ session resumes and no context is load-bearing. The prime spends its turns on
 | § | rule | file |
 |---|---|---|
 | 0 | 0. Layers | [`rule-0-layers.md`](../rules/rule-0-layers.md) |
-| 1 | 1. The Ladder | [`rule-1-the-ladder.md`](../rules/rule-1-the-ladder.md) |
-| &nbsp;&nbsp;1.1 | 1.1. Entry rung | [`rule-1-1-entry-rung.md`](../rules/rule-1-1-entry-rung.md) |
+| 1 | 1. The Tiers | [`rule-1-the-ladder.md`](../rules/rule-1-the-ladder.md) |
+| &nbsp;&nbsp;1.1 | 1.1. Entry tier | [`rule-1-1-entry-rung.md`](../rules/rule-1-1-entry-rung.md) |
 | &nbsp;&nbsp;1.2 | 1.2. Escalation | [`rule-1-2-escalation.md`](../rules/rule-1-2-escalation.md) |
-| &nbsp;&nbsp;1.3 | 1.3. De-escalation is mandatory | [`rule-1-3-de-escalation-is-mandatory.md`](../rules/rule-1-3-de-escalation-is-mandatory.md) |
-| &nbsp;&nbsp;1.4 | 1.4. Ceiling | [`rule-1-4-ceiling.md`](../rules/rule-1-4-ceiling.md) |
-| &nbsp;&nbsp;1.4a | 1.4a. Who assigns the rung | [`rule-1-4a-who-assigns-the-rung.md`](../rules/rule-1-4a-who-assigns-the-rung.md) |
-| &nbsp;&nbsp;1.5 | 1.5. Rung drift | [`rule-1-5-rung-drift.md`](../rules/rule-1-5-rung-drift.md) |
-| &nbsp;&nbsp;1.6 | 1.6. Effort is not free, and it is not the same as capability | [`rule-1-6-effort-is-not-free-and-it-is-not-the-same-as.md`](../rules/rule-1-6-effort-is-not-free-and-it-is-not-the-same-as.md) |
 | 2 | 2. The Status Envelope | [`rule-2-the-status-envelope.md`](../rules/rule-2-the-status-envelope.md) |
 | &nbsp;&nbsp;2.1 | 2.1. Verdicts | [`rule-2-1-verdicts.md`](../rules/rule-2-1-verdicts.md) |
 | 3 | 3. The Digest | [`rule-3-the-digest.md`](../rules/rule-3-the-digest.md) |

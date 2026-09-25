@@ -5,7 +5,7 @@ id: requirement-gaps
 kind: expert
 domain: Verification Coverage of Requirements
 phases: [PLAN, AUDIT]
-rung: 2
+rung: 1
 tags: [requirements, traceability, verification, planning]
 links:
   - rel: contradicts

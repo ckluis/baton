@@ -5,7 +5,7 @@ id: charity-majors
 kind: expert
 domain: Infrastructure, Observability & Production Reliability
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [observability, systems, reliability, operations]
 links:
   - rel: contradicts

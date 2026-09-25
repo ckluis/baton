@@ -5,7 +5,7 @@ id: john-carmack
 kind: expert
 domain: Performance & Optimization
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [performance, efficiency, systems]
 links:
   - rel: contradicts

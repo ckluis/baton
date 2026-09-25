@@ -5,7 +5,7 @@ id: discovery-evidence
 kind: expert
 domain: Customer Discovery & Demand Evidence
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [product, user-research, ux-research, evidence, skepticism]
 links:
   - rel: contradicts

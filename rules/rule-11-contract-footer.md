@@ -11,14 +11,14 @@ status: active
 
 Appended verbatim to every spawn prompt:
 
-> CONTRACT: You are running at rung {rung} ({model}/{effort}). Work only inside
+> CONTRACT: You are running at tier {rung} ({model}/{effort}). Work only inside
 > `{work_dir}`. Read `{handoff_path}` for inputs, expected outputs, and
 > done-criteria; do not read outside what it names unless the work requires it.
 > The rules you are bound by live at `{contract_locator}` — a fully expanded
 > path or URL, already resolved for you. Read it if you need a rule you do not
 > already have; do not guess one, and do not go looking for the framework
 > yourself.
-> If you judge this above your rung, stop early and return `ESCALATE` with a
+> If you judge this above your tier, stop early and return `ESCALATE` with a
 > written escalation packet at `{escalation_path}` — a fast honest ESCALATE is
 > a deliverable. If it is not one node, return `SPLIT` with the seams.
 > As your final act write `{status_path}` matching the envelope schema exactly,

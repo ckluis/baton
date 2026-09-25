@@ -5,7 +5,7 @@ id: test-honesty
 kind: expert
 domain: Spec-Pinned vs Implementation-Pinned Tests
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [testing, specification, snapshot-testing, drift]
 links:
   - rel: contradicts

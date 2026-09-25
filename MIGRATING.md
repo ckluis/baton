@@ -1,19 +1,24 @@
 # Migrating between baton versions
 
 One file per version you might be coming from. Each says what breaks, what does
-not, and what to do with a run in flight. The current release is **v4.0**.
+not, and what to do with a run in flight. The current release is **v5.0**.
 
 | coming from | read | the short version |
 |---|---|---|
-| **v3.0 – v3.3** | [`migrations/from-v3.md`](migrations/from-v3.md) | change one URL; one command per run in flight (`lists.py split`) |
-| **v2.0** | [`migrations/from-v2.md`](migrations/from-v2.md) | five breaking changes at v3.0, then the one above |
+| **v4.0** | [`migrations/from-v4.md`](migrations/from-v4.md) | change one URL; a checkout needs one command (`tiers.py remap`); a run in flight needs nothing |
+| **v3.0 – v3.3** | [`migrations/from-v3.md`](migrations/from-v3.md) | the v4.0 hop (`lists.py split`, once per run in flight), then the v5.0 hop |
+| **v2.0** | [`migrations/from-v2.md`](migrations/from-v2.md) | five breaking changes at v3.0, then the two above |
 | **v1** | [`migrations/from-v1.md`](migrations/from-v1.md) | a different invocation, not a conversion; finish v1 runs under v1 |
 
-`TEAM: github` is opt-in in every case: with the line absent, a v4.0 run is a
-v3.3 run plus the one change in `from-v3.md` §2.
+`TEAM: github` is opt-in in every case. Every schema — envelopes, verdicts, the
+ledger, graphs, persona cards — has kept its fields and names through every hop
+since v2.0; what changed at v5.0 is the *meaning* of one field's values.
 
 ## Every hop, for the record
 
+- **v4.0 → v5.0** — one breaking change: a `rung` value now means a tier (`0`
+  cheap, `1` frontier, `n/a`); `CEILING` and `PRIME_TURNS` are gone. Five rules
+  deleted, four rewritten, one bullet cut; dispatch may belong to the harness.
 - **v3.3 → v4.0** — one breaking change (§6.3: the four append-only lists are
   directories of rows; `split` once per run in flight). Everything else is
   additive and behind `TEAM`.

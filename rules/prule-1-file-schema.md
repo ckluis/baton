@@ -17,7 +17,7 @@ id: james-bach                        # optional, OKF/AIX interop only — see 1
 kind: expert                          # expert | user        (default: expert)
 domain: Testing, QA & Automation      # required for expert
 phases: [PLAN, AUDIT, CLASH, VERIFY]  # default: [AUDIT, CLASH]
-rung: 2                               # default rung         (default: 2)
+rung: 1                               # tier: 0 cheap, 1 frontier (default: 1; CONTRACT §1)
 tags: [testing, quality, regression]  # for casting (§4)
 ---
 ```

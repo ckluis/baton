@@ -5,7 +5,7 @@ id: linus-torvalds
 kind: expert
 domain: Architecture & Maintainability
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [architecture, maintainability, systems, tech-debt]
 links:
   - rel: contradicts

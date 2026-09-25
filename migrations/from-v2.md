@@ -1,7 +1,8 @@
-# Migrating from baton v2.0 to v4.0
+# Migrating from baton v2.0 to v5.0
 
-Two hops: v2.0 → v3.0 carried five breaking changes; v3.x → v4.0 carries one. If
-none of the six touch you, the migration is changing one URL.
+Three hops: v2.0 → v3.0 carried five breaking changes; v3.x → v4.0 carries one;
+v4.0 → v5.0 carries one more — the meaning of a `rung` value (§7). If none of the
+seven touch you, the migration is changing one URL.
 
 ## 1. The move itself
 
@@ -99,5 +100,13 @@ directories (v4).
 every handoff about to be spawned — including a v2-authored one never written
 against §4.5's atomic-criteria rule. Whether this stalls, auto-corrects, or just
 logs against an old handoff is not settled by inspection; the only way to know
-is to resume an actual v2 run under v4 tooling and watch what the phase runner
+is to resume an actual v2 run under v5 tooling and watch what the phase runner
 does at its next dispatch. This document does not run one.
+
+## 7. The v5.0 hop
+
+7. **A `rung` value means a tier** (`prompt/CONTRACT.md` §1): `0` cheap, `1`
+   frontier, `n/a`. A v2 graph's `rung: 3` reads as frontier and needs no
+   conversion; a checkout of the framework runs `python3 tools/tiers.py remap
+   --framework` once. `CEILING` and `PRIME_TURNS` are gone from the invocation.
+   [`from-v4.md`](from-v4.md) has the table and what changed around it.

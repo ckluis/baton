@@ -5,7 +5,7 @@ id: launch-readiness
 kind: expert
 domain: Launch & Adoption Path
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [adoption, developer-relations, onboarding, trust]
 links:
   - rel: contradicts

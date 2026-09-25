@@ -5,7 +5,7 @@ id: leverage-vs-risk
 kind: expert
 domain: Value-vs-Effort Prioritization
 phases: [PLAN, AUDIT, CLASH]
-rung: 3
+rung: 1
 tags: [prioritization, risk, triage, roi, planning]
 links:
   - rel: contradicts

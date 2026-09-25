@@ -13,7 +13,7 @@ links:
     note: adds the missing half of `isolation: worktree`
   - rel: relates-to
     to: rule-9-evidence
-    note: a criterion whose artifact no longer exists cannot be re-verified at any rung
+    note: a criterion whose artifact no longer exists cannot be re-verified at any tier
   - rel: relates-to
     to: rule-2-the-status-envelope
     note: `outputs` paths must still resolve after the worktree is gone
@@ -48,20 +48,21 @@ main tree: a worktree node's edits reach `main` only by a merge or a cherry-pick
 names as its own node (§4), never by the retirement step. A run that retires a worktree without
 such a node has kept the evidence and shipped nothing, and the final report says so.
 
-**Under `TEAM`, the branch is the landing.** A worktree node's tree is the pushed branch
-`baton/node/<run-id>/<id>` (§4), so nothing can die with the worktree: the branch holds the tree
-at the node's commit, and a draft pull request holds the diff for a person. The layer that
-created the worktree still checks that commit out under `_orch/nodes/<id>/work/tree/` — so every
-`outputs` path stays a local path (§6.1) — and writes `landed.json` beside it: branch, sha, pull
-request. The copy above is what a single-user run does; the checkout is what a team run does;
+**Under `TEAM`, the commit is the landing.** A worktree node's changes land as **one commit on
+the run's branch** `baton/<id>` — the pull request's branch — carrying `Baton-Node` and
+`Baton-Run` trailers (§4), so nothing can die with the worktree: the commit holds the tree, and
+the pull request holds the diff for a person, one commit per node. The layer that created the
+worktree checks that commit out under `_orch/nodes/<id>/work/tree/` — so every `outputs` path
+stays a local path (§6.1) — and writes `landed.json` beside it: branch, sha, the commit's
+permalink. The copy above is what a single-user run does; the checkout is what a team run does;
 the invariant is the same — no `outputs` path may resolve only inside a tree about to be
 removed. The product still reaches `main` only through the merge node the plan names, which
-under `TEAM` is that pull request's merge.
+under `TEAM` is merging the run's one pull request. No branch and no pull request per node.
 
 An `outputs` path that no longer resolves makes the envelope false (§2: *a path that does not
 exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on that artifact
 permanently unverifiable — not `REFUTED`, not `UNSETTLEABLE`, but `UNTESTED` forever, because the
-thing being judged is gone. No rung can recover it and no resume can rebuild it.
+thing being judged is gone. No tier can recover it and no resume can rebuild it.
 
 **A digest is not a substitute.** §3 caps a digest at ten lines and forbids it from crossing
 layers as a document. It says what changed; it is not the artifact and cannot be verified against.
@@ -78,6 +79,6 @@ brief required. When the operator later adopted a rewrite of one criterion and a
 re-verification, ten criteria were re-read and **eight came back `UNTESTED`, permanently**: the
 only surviving product was `lens-build-log.md`, a log *about* the lenses. The verifier could settle
 the two criteria that read the log and none of the eight that read the lenses. The node's own
-verdict is now unimprovable at any rung, and no evidence of the fourteen files exists anywhere in
+verdict is now unimprovable at any tier, and no evidence of the fourteen files exists anywhere in
 the run. Nothing was done wrong — every rule was followed exactly, which is what makes it a defect
 in the rules rather than in the run.

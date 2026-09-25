@@ -48,7 +48,7 @@ IMPROVE run without further interpretation.
   kind: task
   phase: 2
   title: "AUDIT — does {TARGET} do what it claims"
-  rung: 2
+  rung: 1
   surface: code
   needs: [F1]
   adversarial: panel
@@ -72,14 +72,14 @@ IMPROVE run without further interpretation.
   kind: task
   phase: 4
   title: Convergence audit — pair the opposed, force a pairing if nothing opposes
-  rung: 3
+  rung: 1
   needs: [B1]
   done: "pairings.yaml lists every unrun pairing keyed seat-pair+claim, or states the ledger holds them all"
 - id: K1
   kind: fanout
   phase: 4
   title: Run each new pairing as one steelman exchange
-  rung: 3
+  rung: 1
   needs: [C1]
   adversarial: panel
   done: "one clash-<key>.md per unrun pairing, each with both steelmen, both rebuttals, and the ruling"
@@ -111,7 +111,7 @@ IMPROVE run without further interpretation.
   kind: task
   phase: 5
   title: "VERIFY — re-score every claimed P0 and P1"
-  rung: 2
+  rung: 1
   needs: [V1]
   refutes: B2
   personas: [severity-inflation]
@@ -120,7 +120,7 @@ IMPROVE run without further interpretation.
   kind: task
   phase: 6
   title: Synthesize the recommendation matrix
-  rung: 3
+  rung: 1
   needs: [V1, A-severity-inflation]
   personas: []            # SYNTH is neutral by construction
   done: "final/report.md matrix — every row has priority, owner task, verification path, citation status"
@@ -133,16 +133,12 @@ stage into the audit stage, run a pairing twice, place the citation pass after
 synthesis, or add a node that writes to {TARGET}. `A-blindspot` gets the seat list and
 never the findings — an `informs` edge into it destroys the only thing it is for.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| citation verification (`V1`) | 0 | Exact string match of a quote against a path. Verifiable by command; there is no judgment in it. |
-| classification, red-flag declaration, barriers | 1 | Bounded restatement against a clear spec — the default. |
-| audit seats (`A-*`) | 2 | Pinned by personas/CONTRACT.md §2.1, not chosen here: AUDIT is rung 2 for every expert. |
-| convergence audit (`C1`) | 3 | Judgment — whether unanimity is evidence or a seating failure, and which positions are genuinely most opposed. |
-| clash (`K1` children) | 3 | Pinned by personas/CONTRACT.md §2.1: CLASH is rung 3. |
-| synthesis (`S1`) | 3 | Cross-panel resolution. Rung 5 needs operator approval (CONTRACT §1.4); REVIEW never asks. Nothing here enters above 3 — a panel needing opus/high to read its own findings has produced findings nobody can use. |
+| citation verification (`V1`) | 0 `cheap` | Exact string match of a quote against a path. Verifiable by command; there is no judgment in it. |
+| everything else — classification, red-flag declaration, barriers, audit seats (`A-*`), convergence audit (`C1`), clash (`K1` children), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1); every persona duty is frontier by definition (personas/CONTRACT.md §2). REVIEW never asks a person mid-run — a panel that cannot read its own findings has produced findings nobody can use, and that reaches the gate as a question (§1.2). |
 
 ## Seats
 
@@ -177,7 +173,7 @@ what a panel of specialists structurally cannot see.
 - **Blocked batch.** A seat that cannot reach {TARGET} — no access, no build, no
   runnable surface — goes `BLOCKED` and batches its question. One blocked seat does
   not block the panel; the matrix records it as unseated.
-- **Final gate.** Synthesis at rung 3. Passes when no P0 or P1 row rests on an
+- **Final gate.** Synthesis at frontier. Passes when no P0 or P1 row rests on an
   UNVERIFIED citation and every row names an owner and a verification path.
 
 ## Done
@@ -195,7 +191,7 @@ steelmen present; and `git status` on {TARGET} is clean.
   pairing anyway; a panel that cannot produce two opposed positions from one target was
   cast wrong, and that goes in the report.
 - **The polite quote.** A seat paraphrases from memory; the quote reads as real but is
-  not at the cited path. `V1` runs at rung 0 with no judgment and no incentive to be
+  not at the cited path. `V1` runs at cheap with no judgment and no incentive to be
   agreeable, and it sits at the barrier rather than inside synthesis so the synthesizer
   never grades quotes it is simultaneously ranking.
 - **Severity as advocacy.** Every seat wants its finding acted on, so everything

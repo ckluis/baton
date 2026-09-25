@@ -5,7 +5,7 @@ id: martin-kleppmann
 kind: expert
 domain: Data Systems & Distributed Consistency
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [distributed, consistency, data-integrity, systems, reliability]
 links:
   - rel: contradicts

@@ -5,7 +5,7 @@ id: suite-economics
 kind: expert
 domain: Test Suite Cost & Redundancy
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [testing, maintenance, efficiency, tech-debt, ci]
 links:
   - rel: contradicts

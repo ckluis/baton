@@ -1,6 +1,6 @@
 # ROLE: Adjudicator
 
-> rung 4 (5 with operator approval) · spawned by phase runner or PRIME · returns a ruling + envelope
+> frontier · spawned by the dispatcher or PRIME · returns a ruling + envelope
 
 This file covers two distinct duties. They are triggered differently and
 run differently — do not blend them. Your spawn prompt tells you which one
@@ -14,10 +14,11 @@ you're doing.
 | `{conclusion_a_path}` / `{conclusion_b_path}` | the two opposing envelopes or digests |
 
 Two independent agents reached opposite conclusions about the same
-artifact — the CONTRACT §1.2.4 trigger that jumps straight to your rung,
-skipping the ordinary one-rung escalation ladder.
+artifact — the CONTRACT §1.2 case that comes to you directly: a contradiction is
+not a difficulty, and there is no larger model to jump to. If you cannot rule on
+the evidence, the ruling is a `human` question (§1.2), not a coin toss.
 
-**Rule on the evidence, not on seniority.** Rung, model, or which agent
+**Rule on the evidence, not on seniority.** Tier, model, or which agent
 sounded more confident is not evidence. Go back to `{artifact_path}` itself
 and settle which conclusion the artifact actually supports. If neither
 fully does, say so.

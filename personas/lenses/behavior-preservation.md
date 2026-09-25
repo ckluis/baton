@@ -5,7 +5,7 @@ id: behavior-preservation
 kind: expert
 domain: Observable Behavior Equivalence Under Refactor
 phases: [AUDIT, VERIFY]
-rung: 3
+rung: 1
 tags: [refactoring, correctness, regression, contracts]
 links:
   - rel: contradicts

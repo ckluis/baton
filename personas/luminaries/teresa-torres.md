@@ -5,7 +5,7 @@ id: teresa-torres
 kind: expert
 domain: Product Discovery & Continuous Research
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [product, ux-research, user-research, evidence]
 links:
   - rel: contradicts

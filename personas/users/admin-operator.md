@@ -4,7 +4,7 @@ type: Persona
 id: admin-operator
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [admin, permissions, billing, governance, accountability]
 ---
 

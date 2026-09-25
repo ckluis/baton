@@ -5,7 +5,7 @@ id: adversarial-input
 kind: expert
 domain: Boundary, Malformed & Adversarial Cases
 phases: [PLAN, AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [security, edge-cases, fuzzing, boundary, robustness]
 links:
   - rel: contradicts

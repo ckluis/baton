@@ -4,7 +4,7 @@ type: Persona
 id: mobile-commuter
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [mobile, small-screen, intermittent-connectivity, interruption]
 ---
 

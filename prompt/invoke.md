@@ -14,10 +14,10 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v4.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -45,28 +45,31 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
 
-`TEAM: github` changes where three things live and nothing about how the run
-thinks. The run's state is still `_orch/` on the machine running it — now as a
-worktree of a git ref, `baton/run/<id>`, pushed at every node close and gate, so
-the evidence outlives the laptop and any machine can resume it. Every blocked
-question becomes an Issue that anyone on the repository can answer by commenting
-`/answer …` — from a phone, in a meeting — and the answer lands in the run at
-its next gate. Every product-writing node becomes a branch with a draft pull
-request, its verdict a commit status a reviewer can click through to the row
-that decided it. Single-user mode is byte-identical with the line absent.
+`TEAM: github` leaves exactly what a person's own work leaves on a repository —
+**one pull request, one branch, commits** — and nothing about how the run
+thinks changes. The run's state is still `_orch/` on the machine running it,
+pushed at every node close and gate to a hidden ref, `refs/baton/run/<id>`, that
+GitHub lists nowhere and any machine can resume from. The pull request is the
+run's thread: every blocked question arrives there as a comment, anyone on the
+repository answers with `/answer Q-<n> …` — from a phone, in a meeting — and the
+answer lands in the run at its next gate; every gate posts the run's summary
+and its decisions there. Every product-writing node lands as one commit on the
+pull request's branch, its verdict the check `baton/verify` on that commit, a
+click from the rows that decided it. No branch per node, no Issue per question,
+no label, no page, no release. Single-user mode is byte-identical with the line
+absent.
 
 It needs three things on the machine that runs the prime: `gh` authenticated,
 the baton tools on disk (`git clone --depth 1 https://github.com/ckluis/baton`,
 then `BATON: ./baton`), and the target repository to be private — or a private
-`RUNS_REPO: owner/name` to hold the run's ref, Issues and pages when it is not.
-One-time repository setup, all of it configuration, is
-`tools/github-setup.sh --apply`: a ruleset that blocks force-pushes and
-deletions on `baton/**`, and Pages for the briefs.
+`RUNS_REPO: owner/name` to hold the run when it is not. One-time repository
+setup is `tools/github-setup.sh --apply`: one ruleset, blocking force-pushes
+and deletions on `baton/**`. That is all.
 
 ---
 
@@ -85,10 +88,10 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/v4.0
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v5.0
 PERSONAS:    builtin
-CEILING:     4
-PRIME_TURNS: 12
+CHEAP:       the harness's fastest model
+FRONTIER:    the harness's most capable model, highest effort
 INBOX:       off
 TEAM:        off
 
@@ -104,8 +107,8 @@ against that same base URL. Read it completely before you start any work.
 | `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `CRAFT` `POSITION` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
 | `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
-| `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. |
-| `PRIME_TURNS` | `12` | the conductor's own turn budget |
+| `CHEAP` | the harness's fastest model | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
+| `FRONTIER` | the harness's most capable model, highest effort | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
 | `TEAM` | `off` | `github`: the run's state on a git ref, every question an Issue, every product node a draft PR — see "For a team" above |
 | `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref, Issues and pages when the target is public or not yours |
@@ -118,7 +121,7 @@ inference, and says so in its first message and its final report.
 ### Pinning a version
 
 The base URL is the pin. The default above is already pinned to a tag —
-`v4.0`, the current release — rather than floating on `main`. Point at a
+`v5.0`, the current release — rather than floating on `main`. Point at a
 different tag instead (an older release, frozen forever) — or at `main` for
 the bleeding edge — and the whole framework — router, contracts, modes,
 roles, personas — comes from that base, because everything resolves relative

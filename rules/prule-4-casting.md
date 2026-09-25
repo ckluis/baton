@@ -9,7 +9,7 @@ status: active
 
 ## 4. Casting
 
-The prime never reads persona files. A **casting agent** at rung 1 resolves
+The prime never reads persona files. A **casting agent** at frontier resolves
 `PERSONAS:` from the run config, validates every file against §1, and writes
 `_orch/cast/roster.yaml` plus one bound card per selection.
 

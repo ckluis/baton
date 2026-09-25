@@ -5,7 +5,7 @@ id: ann-cavoukian
 kind: expert
 domain: Privacy, Compliance & Data Governance
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [privacy, governance, accountability, permissions]
 links:
   - rel: contradicts

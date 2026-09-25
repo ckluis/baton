@@ -5,7 +5,7 @@ id: blindspot
 kind: expert
 domain: Structural Coverage Gaps in the Audit Itself
 phases: [AUDIT]
-rung: 3
+rung: 1
 tags: [meta, coverage, red-team, systemic-risk, blindspot]
 links:
   - rel: contradicts

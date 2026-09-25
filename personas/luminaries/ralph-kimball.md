@@ -5,7 +5,7 @@ id: ralph-kimball
 kind: expert
 domain: Dimensional Modeling & Data Warehousing
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [data-integrity, consistency, architecture]
 links:
   - rel: contradicts

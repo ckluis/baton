@@ -5,7 +5,7 @@ id: ann-handley
 kind: expert
 domain: Content Marketing & Business Writing
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [content-marketing, trust, quality]
 links:
   - rel: contradicts

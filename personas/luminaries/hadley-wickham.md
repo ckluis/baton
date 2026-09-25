@@ -5,7 +5,7 @@ id: hadley-wickham
 kind: expert
 domain: Data Science & Analytics Pipelines
 phases: [AUDIT, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [testing, reliability, maintainability]
 links:
   - rel: contradicts

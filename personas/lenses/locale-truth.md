@@ -5,7 +5,7 @@ id: locale-truth
 kind: expert
 domain: Localization & Global Readiness
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [localization, correctness, edge-cases, quality]
 links:
   - rel: contradicts

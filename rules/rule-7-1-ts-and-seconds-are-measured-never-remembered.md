@@ -42,10 +42,10 @@ mid-phase recovers it from disk and the span survives the interruption. A node
 whose `started_at` is missing writes `seconds` as empty — **an empty cell, never
 an estimate.**
 
-The final report ends with a **rung histogram** — how much of the run landed at
-each rung, and which nodes crossed rung 3. That histogram is the input to the
-next run's entry-rung assignments. **A run that does not measure where it spent
-its rungs will spend them the same way next time** — and a run that writes down
+The final report ends with a **tier histogram** — how much of the run ran
+cheap, how much frontier, and how much needed a person. That histogram is the
+input to the next run's entry-tier assignments. **A run that does not measure
+where it spent its attempts will spend them the same way next time** — and a run that writes down
 numbers it did not measure has not measured them.
 
 ---

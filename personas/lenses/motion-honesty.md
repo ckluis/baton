@@ -5,7 +5,7 @@ id: motion-honesty
 kind: expert
 domain: Interface Motion & Perceived Performance
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [motion-design, performance, accessibility, quality]
 links:
   - rel: contradicts

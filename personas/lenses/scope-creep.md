@@ -5,7 +5,7 @@ id: scope-creep
 kind: expert
 domain: Directive Boundary Discipline
 phases: [PLAN, CLASH, VERIFY]
-rung: 2
+rung: 1
 tags: [scope, planning, discipline, directive-fidelity]
 links:
   - rel: contradicts

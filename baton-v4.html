@@ -3,24 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>baton v5 — agents do the work, baton keeps the record</title>
+<title>baton v4 (archived) — the cheapest agent that can succeed, for you or a team</title>
+<link rel="canonical" href="https://ckluis.github.io/baton/">
 <link rel="canonical" href="https://ckluis.github.io/baton/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ckluis / baton">
 <meta property="og:url" content="https://ckluis.github.io/baton/">
-<meta property="og:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta property="og:description" content="The accountability layer for agent runs. Evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop — for you, or a team. Three tiers instead of six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. Ten modes, 44 personas plus 40 named experts.">
+<meta property="og:title" content="baton v4 — the cheapest agent that can succeed, for you or a team">
+<meta property="og:description" content="An orchestrator of orchestrators, rebuilt around cost — and now built for a team. One line puts the run's state on a git ref any machine resumes, its questions in Issues anyone answers, its product changes in pull requests with the verdict as a check. Six rungs of model x effort, ten modes, 44 personas plus 40 named experts, verdicts computed per criterion.">
 <meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="baton v5 — three tiers, one default. Agents do the work; baton keeps the record.">
+<meta property="og:image:alt" content="baton v4 — six rungs, one default. The cheapest agent that can succeed, for you or a team.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@ckluis">
 <meta name="twitter:creator" content="@ckluis">
-<meta name="twitter:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta name="twitter:description" content="The accountability layer for agent runs: evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop. Three tiers, ten modes, 44 personas plus 40 named experts — for you, or a team.">
+<meta name="twitter:title" content="baton v4 — the cheapest agent that can succeed, for you or a team">
+<meta name="twitter:description" content="An orchestrator of orchestrators, rebuilt around cost — and now built for a team: the run on a git ref, questions as Issues, product changes as pull requests with the verdict as a check. Six rungs, ten modes, 44 personas plus 40 named experts.">
 <meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
-<meta name="description" content="baton v5 is the accountability layer for agent runs: a router prompt that turns a fresh session into a multi-agent run with a record — evidence that cites or retracts, verdicts computed per criterion, gates a person holds, state that outlives the laptop. Three tiers replace six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. With one more line the same run belongs to a team: its state on a git ref, its questions as GitHub Issues, its product changes as pull requests with the verdict as a check.">
+<meta name="description" content="baton v4 is a router prompt that turns a fresh session into a cost-disciplined multi-agent run — and, with one more line, a team's: the run's state on a git ref any machine resumes, its questions as GitHub Issues anyone answers, its product changes as pull requests with the computed verdict as a check. Six rungs of model x effort, sonnet as the default, ten modes, 44 built-in personas plus 40 named experts, verdicts computed per criterion rather than asserted.">
 <meta name="theme-color" content="#0a0a0a">
 <script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -232,14 +233,15 @@ html.js .reveal.in{opacity:1;transform:none}
 <body>
 
 <!-- ============ NAV ============ -->
+<a href="index.html" class="xa-back" aria-label="Back to baton v5"><span class="xa-arrow">←</span> baton v5</a>
 <nav style="position:sticky;top:0;z-index:900;background:rgba(10,10,10,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)">
   <div class="wrap" style="height:64px;display:flex;align-items:center;justify-content:space-between;gap:20px">
     <a href="#top" style="display:flex;align-items:baseline;gap:9px">
       <span style="font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-      <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v5</span>
+      <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v4</span>
     </a>
     <div style="display:flex;align-items:center;gap:26px">
-      <a href="#ladder" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">The tiers</a>
+      <a href="#ladder" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">The ladder</a>
       <a href="#topology" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Graphs &amp; loops</a>
       <a href="#modes" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Modes</a>
       <a href="#personas" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Personas</a>
@@ -248,6 +250,32 @@ html.js .reveal.in{opacity:1;transform:none}
     </div>
   </div>
 </nav>
+<div class="v2note">
+  <div class="wrap">
+    <b>v4 &middot; archived</b>
+    <span>This is baton as v4 shipped &mdash; team mode: the run on a git ref any machine resumes, questions as
+      Issues anyone answers, product changes as pull requests with the verdict as a check &mdash; kept as of
+      <code>v4.0</code>, whose tag still resolves and still runs. <a href="index.html">baton v5</a> replaces it:
+      three tiers instead of six rungs, rules cut to invariants, the harness dispatching when it can.
+      <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md">One breaking change: what a value means</a>.</span>
+    <a class="v2cta" href="index.html">Read v5 &rarr;</a>
+  </div>
+</div>
+<style>
+  .xa-back{position:fixed;left:18px;top:78px;z-index:960;display:inline-flex;align-items:center;gap:8px;
+    padding:9px 15px;border-radius:999px;border:1px solid var(--hair);background:var(--raised);
+    color:var(--ink);font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;
+    text-decoration:none;transition:transform .18s ease}
+  .xa-back:hover{transform:translateY(-2px)}
+  .v2note{background:rgba(94,234,212,.07);border-bottom:1px solid rgba(94,234,212,.26);
+    padding:13px 0;font-size:14px;line-height:1.5}
+  .v2note .wrap{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  .v2note b{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
+  .v2note span{color:var(--muted);max-width:80ch}
+  .v2note a{color:var(--cyan)}
+  .v2cta{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){.xa-back{transition:none}}
+</style>
 <style>
   .nl{transition:color .16s ease}.nl:hover{color:var(--ink)}
   @media(max-width:900px){nav .wrap > div:last-child a.nl{display:none}}
@@ -260,19 +288,18 @@ html.js .reveal.in{opacity:1;transform:none}
     <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
       <div>
         <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v5.0</span>
+          <span class="pill y">v4.0</span>
           <span class="pill c">router + 10 modes</span>
           <span class="pill c">40 named experts</span>
           <span class="pill c">for you, or a team</span>
         </div>
-        <h1 class="reveal d1">Agents do the work.<br><span class="reg" data-reg="baton keeps the record.">baton keeps the record.</span></h1>
+        <h1 class="reveal d1">The cheapest agent<br><span class="reg" data-reg="that can succeed.">that can succeed.</span></h1>
         <p class="lede reveal d2" style="margin-top:26px;max-width:58ch">
           baton is a router prompt that turns a fresh session into a multi-agent run with a
-          record: evidence that cites or retracts, verdicts computed per criterion, gates a person
-          holds, and state that outlives the laptop. Three tiers &mdash; <em>cheap</em> for what a
-          command can settle, <em>frontier</em> for everything with judgment, <em>a person</em> when
-          frontier has failed twice. One more line, <code>TEAM: github</code>, gives the same run
-          to a team.
+          budget. Six rungs of model &times; effort, <em>Sonnet by default</em>, escalation measured
+          in rungs. And now one more line &mdash; <code>TEAM: github</code> &mdash; gives the same run
+          to a team: its state on a git ref any machine can resume, its questions as Issues anyone
+          can answer, its product changes as pull requests with the verdict as a check.
         </p>
         <div class="btnrow reveal d3" style="margin-top:34px">
           <a href="#prompt" class="btn p">Copy the router &darr;</a>
@@ -280,22 +307,22 @@ html.js .reveal.in{opacity:1;transform:none}
         </div>
       </div>
 
-      <!-- v4 -> v5 card -->
+      <!-- v3 -> v4 card -->
       <div class="reveal d2">
         <div class="card" style="padding:0;overflow:hidden">
-          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v4 &rarr; v5</div></div>
+          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v3 &rarr; v4</div></div>
           <div style="padding:8px 0">
-            <div class="vs"><span class="vl">Six rungs of model &times; effort</span><span class="va">&rarr;</span><span class="vr">Three tiers: cheap, frontier, human &mdash; the field keeps its name; its values are 0, 1, n/a</span></div>
-            <div class="vs"><span class="vl">Assign low; escalate one rung</span><span class="va">&rarr;</span><span class="vr">Assign frontier unless the work is a command; a retry carries the verdict that failed it</span></div>
-            <div class="vs"><span class="vl">A ceiling, drift, de-escalation, effort-as-a-rung, a refutation quota</span><span class="va">&rarr;</span><span class="vr">Gone &mdash; five rules and a bullet the self-run never used. 53 rules become 48</span></div>
-            <div class="vs"><span class="vl">A phase runner spawned to dispatch</span><span class="va">&rarr;</span><span class="vr">The harness dispatches when it can; the phase runner is the fallback</span></div>
-            <div class="vs"><span class="vl">A verifier at the node's own rung</span><span class="va">&rarr;</span><span class="vr">Always frontier, always a fresh spawn &mdash; independence is the mechanism</span></div>
-            <div class="vs"><span class="vl"><code>CEILING</code> and <code>PRIME_TURNS</code></span><span class="va">&rarr;</span><span class="vr"><code>CHEAP</code> and <code>FRONTIER</code> &mdash; models the harness names, not limits</span></div>
-            <div class="vs"><span class="vl">An Issue per question, a branch and PR per node, Pages, releases</span><span class="va">&rarr;</span><span class="vr">One pull request, one branch, one hidden ref &mdash; what a colleague's work leaves</span></div>
-            <div class="vs"><span class="vl">A v4 run or checkout</span><span class="va">&rarr;</span><span class="vr">Resumes untouched; <code>tools/tiers.py</code> remaps a checkout in one command</span></div>
+            <div class="vs"><span class="vl">One laptop holds the run</span><span class="va">&rarr;</span><span class="vr">A git ref any machine resumes &mdash; every cited path a permalink</span></div>
+            <div class="vs"><span class="vl">One person answers, at one keyboard</span><span class="va">&rarr;</span><span class="vr">Anyone answers from an Issue &mdash; <code>/answer</code>, from a phone</span></div>
+            <div class="vs"><span class="vl">A worktree's products could die with it</span><span class="va">&rarr;</span><span class="vr">The branch is the landing: a draft PR, the verdict as a check</span></div>
+            <div class="vs"><span class="vl">Four files two layers wrote</span><span class="va">&rarr;</span><span class="vr">Directories of rows, one writer each &mdash; the one breaking change</span></div>
+            <div class="vs"><span class="vl">A gate wrote local files</span><span class="va">&rarr;</span><span class="vr">A gate publishes: sync, derive, push, summary, deck</span></div>
+            <div class="vs"><span class="vl">Evidence one <code>rm -rf</code> from gone</span><span class="va">&rarr;</span><span class="vr">A ruleset blocks force-push and delete; disposal is a release</span></div>
+            <div class="vs"><span class="vl">The prime read every rule first</span><span class="va">&rarr;</span><span class="vr">Reads the three it cites; fetches the rest on demand</span></div>
+            <div class="vs"><span class="vl">Nothing to prove it without a token</span><span class="va">&rarr;</span><span class="vr">30 end-to-end checks against fake repos and a fake <code>gh</code></span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-            <span style="font-size:13px;color:var(--muted)">v4 is still tagged, and still runs. One breaking change: what a value means.</span>
+            <span style="font-size:13px;color:var(--muted)">v3 is still tagged, and still runs. One breaking change, one command.</span>
             <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener"
                style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read MIGRATING &rarr;</a>
           </div>
@@ -304,9 +331,9 @@ html.js .reveal.in{opacity:1;transform:none}
     </div>
 
     <div class="stats reveal d4" style="margin-top:clamp(56px,7vw,88px)">
-      <div class="stat"><b>3</b><span>Tiers. Cheap for a command, frontier for judgment, a person for what no agent decides.</span></div>
+      <div class="stat"><b>1</b><span>The default rung. <code>sonnet/medium</code> until the work proves otherwise.</span></div>
       <div class="stat c"><b>+1</b><span>Line. <code>TEAM: github</code> is the whole difference between your run and your team's.</span></div>
-      <div class="stat"><b>48</b><span>Rules &mdash; every one an invariant a verifier or a tool can check. Five procedures cut.</span></div>
+      <div class="stat"><b>10</b><span>Modes. Each one a graph shape, not a paragraph of advice.</span></div>
       <div class="stat c"><b>~25</b><span>Moments a run needs a person, out of ~3,500 things it writes. Those go to Issues; the rest go to git.</span></div>
     </div>
   </div>
@@ -316,9 +343,6 @@ html.js .reveal.in{opacity:1;transform:none}
   .vs .vl{font-size:13px;color:var(--muted-2);text-decoration:line-through;text-decoration-color:var(--hair-2)}
   .vs .va{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center}
   .vs .vr{font-size:13px;color:var(--body-2);font-weight:500}
-  .g5{grid-template-columns:repeat(5,1fr)}
-  @media(max-width:1180px){.g5{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:760px){.g5{grid-template-columns:1fr}}
 
   /* lineage cards — v1 -> v2 -> v3 -> v4 */
   .lin{height:100%}
@@ -364,10 +388,10 @@ html.js .reveal.in{opacity:1;transform:none}
           leaves, escalation measured in rungs instead of models, and a layer whose entire job
           is to spend the turns the conductor used to spend.
         </p>
-        <p style="margin-top:16px;font-size:16px">That bill is why the phase runner exists, and why six rungs did: the most capable model was the expensive part of a run. v3 inherited the ladder and changed what a run may leave unexamined; v4 changed who a run belongs to. <strong>v5 changes the premise the ladder priced.</strong> When frontier is the sensible default for anything with judgment in it, two agent tiers and a person are the whole ladder &mdash; and what remains of baton is the part that was always about trust: evidence, verdicts, gates, the record.</p>
+        <p style="margin-top:16px;font-size:16px">That bill is still the reason the phase runner exists, and none of it was undone: v3 inherited the ladder whole and changed what a run may leave unexamined. <strong>v4 inherits both and changes who a run belongs to</strong> &mdash; not what it costs, not what it examines, but that it no longer needs one laptop and one person.</p>
       </div>
     </div>
-      <div class="grid g5 reveal d1" style="margin-top:40px;align-items:stretch">
+      <div class="grid g4 reveal d1" style="margin-top:40px;align-items:stretch">
 
         <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
           <div class="codebar"><div class="fn"><b>v1</b> &middot; the original</div><span class="pill d">archived</span></div>
@@ -420,8 +444,8 @@ html.js .reveal.in{opacity:1;transform:none}
           <a class="linf" href="baton-v3.html">Read baton v3 &rarr;</a>
         </div>
 
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v4</b> &middot; the team</div><span class="pill d">archived</span></div>
+        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v4</b> &middot; the team</div><span class="pill c">current</span></div>
           <div class="linb">
             <h4 class="lint">A team, and a run that outlives the laptop.</h4>
             <p class="lind">One setting puts the run's state on a git ref, its questions in Issues
@@ -433,24 +457,6 @@ html.js .reveal.in{opacity:1;transform:none}
               <div class="dl"><span class="dp">+</span><span>Issues are the doorbell; anyone answers</span></div>
               <div class="dl"><span class="dp">+</span><span>PRs carry the product, the verdict as a check</span></div>
               <div class="dl"><span class="dm">&minus;</span><span>Four files two layers wrote</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v4.html">Read baton v4 &rarr;</a>
-        </div>
-
-        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v5</b> &middot; the record</div><span class="pill c">current</span></div>
-          <div class="linb">
-            <h4 class="lint">Two tiers, a person, and the half that ages well.</h4>
-            <p class="lind">Asked whether any of it made sense with frontier intelligence as the
-              default, baton kept the contract and cut the ladder. The harness dispatches when it
-              can; baton keeps the record.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span>cheap &middot; frontier &middot; human</span></div>
-              <div class="dl"><span class="dp">+</span><span>A retry carries the verdict that failed it</span></div>
-              <div class="dl"><span class="dp">+</span><span>48 rules, every one an invariant</span></div>
-              <div class="dl"><span class="dp">+</span><span>The harness dispatches; the phase runner is the fallback</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Six rungs, a ceiling, drift, a quota</span></div>
             </div>
           </div>
           <a class="linf" href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener">You are here &middot; migrating &rarr;</a>
@@ -465,21 +471,25 @@ html.js .reveal.in{opacity:1;transform:none}
 <section id="ladder">
   <div class="wrap">
     <div class="sechead reveal">
-      <span class="kicker">01 &mdash; The tiers</span>
-      <h2>Two agent tiers.<br><em>Then a person.</em></h2>
-      <p>Six rungs priced one thing: the most capable model was the expensive part of a run. When
-        it is the sensible default for anything with judgment in it, the ladder has two agent tiers
-        and one human &mdash; and a retry is not a bigger model. It is the same model, carrying the
-        verdict that failed it.</p>
+      <span class="kicker">01 &mdash; The ladder</span>
+      <h2>One failure moves a node <em>one rung.</em><br>Never one model.</h2>
+      <p>Model and reasoning effort collapse into a single ordered list. That is the whole
+        routing system &mdash; there is no second mechanism, no override, no "use your judgment."
+        Escalating from <code>sonnet/medium</code> lands on <code>sonnet/high</code>, because most
+        work that failed did not need a bigger model. It needed more thinking.</p>
     </div>
 
     <div class="tw reveal d1">
       <table>
-        <thead><tr><th>#</th><th>Tier</th><th>For</th></tr></thead>
+        <thead><tr><th>#</th><th>Rung</th><th>For</th></tr></thead>
         <tbody>
-          <tr class="dim"><td class="n">0</td><td class="r">cheap</td><td>Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename, check a link list. The fastest model the harness offers. <strong>Assignment only</strong> &mdash; escalation never lands here.</td></tr>
-          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at its highest effort. Nothing above it runs unattended.</td></tr>
-          <tr><td class="n">2</td><td class="r">human</td><td>Not a spawn. A question in the inbox with the evidence beside it, batched at the gate &mdash; where frontier stops, and where authority was always going to be needed.</td></tr>
+          <tr class="dim"><td class="n">0</td><td class="r">haiku/low</td><td>Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename. <strong>Assignment only</strong> &mdash; escalation never lands here.</td></tr>
+          <tr class="hi"><td class="n">1</td><td class="r">sonnet/medium</td><td><strong>The default rung.</strong> Bounded implementation against a clear spec: tests from an approved plan, a diagnosed fix, named duplicates consolidated, a document from an outline.</td></tr>
+          <tr><td class="n">2</td><td class="r">sonnet/high</td><td>The same work when it needs more thinking &mdash; not a bigger model. Most rung-1 failures belong here, and stop here.</td></tr>
+          <tr><td class="n">3</td><td class="r">opus/medium</td><td>Diagnosis and judgment: root-cause an intermittent failure, decide necessary-vs-redundant, design around a race, resolve a contract ambiguity.</td></tr>
+          <tr><td class="n">4</td><td class="r">opus/high</td><td>The ceiling for ordinary work. Cross-cutting design, contested calls, plan verification on a large graph.</td></tr>
+          <tr><td class="n">5</td><td class="r">fable/low</td><td><strong>Requires operator approval.</strong> Adjudication between agents that disagree about the same artifact. Synthesis across a whole run.</td></tr>
+          <tr><td class="n">6</td><td class="r">fable/medium</td><td><strong>Requires operator approval.</strong> The last rung. Nothing above it.</td></tr>
         </tbody>
       </table>
     </div>
@@ -487,27 +497,41 @@ html.js .reveal.in{opacity:1;transform:none}
     <div class="grid g3 reveal d2" style="margin-top:16px">
       <div class="card">
         <span class="num">ENTRY</span>
-        <h4>Frontier, unless the work is a command.</h4>
-        <p>The asymmetry reversed. Assigning frontier to mechanical work wastes a little; assigning
-          cheap to judgment costs the attempt, the verification that refutes it, the escalation
-          &mdash; and the defect the cheap tier introduced that the verifier missed. A node enters
-          at cheap only with a reason that names <em>the property that makes it a command</em>.</p>
+        <h4>Assign low. Always.</h4>
+        <p>Assigning high wastes budget on work that would have succeeded low. Assigning low costs
+          one extra attempt. The asymmetry is the entire argument. A node enters above rung 1 only
+          with a written reason naming a <em>property of the work</em> &mdash; "this looks hard" is
+          not a reason.</p>
       </div>
       <div class="card">
-        <span class="num">ESCALATION</span>
-        <h4>Two moves, then a person.</h4>
-        <p>Cheap fails &rarr; frontier, once. Frontier fails &rarr; frontier once more, with the
-          verdict's refuted rows verbatim in its handoff &mdash; a different prompt, not a repeat.
-          A second frontier failure is a question. In the self-run every attempt-2 row succeeded,
-          and every one carried the previous verdict. That was the mechanism; the ladder was the
-          packaging.</p>
+        <span class="num">CEILING</span>
+        <h4>The top is asked for.</h4>
+        <p>A node that would escalate past <code>CEILING</code> goes <code>BLOCKED</code> with a
+          written question instead. Rungs 5 and 6 exist and are reached by asking. This is the
+          single line in the config that decides what the run costs.</p>
       </div>
       <div class="card">
-        <span class="num">VERIFICATION</span>
-        <h4>Always frontier. Always a fresh spawn.</h4>
-        <p>Whatever tier did the work. Independence is what catches defects, not model tier: a
-          fresh adversary broke three of three contract changes their author had drafted at the top
-          of the old ladder, and the refutation rate did not move with the rung.</p>
+        <span class="num">DE-ESCALATION</span>
+        <h4>Diagnosis and typing are different rungs.</h4>
+        <p>A rung-3 agent that finishes root-causing must hand the specified fix back down to rung 1
+          &mdash; or say in its digest why the change was inseparable from the diagnosis. Keeping the
+          fix because you already hold the context is how a ladder quietly becomes a ceiling.</p>
+      </div>
+    </div>
+
+    <div class="card y reveal d3 split2" style="margin-top:16px;gap:32px;align-items:center" id="drift">
+      <div class="dots" style="color:var(--on-yellow)"></div>
+      <div style="position:relative">
+        <span class="num">RUNG DRIFT</span>
+        <h3 style="letter-spacing:-.025em">The run tells you what the next plan should assume.</h3>
+      </div>
+      <div style="position:relative;font-size:15px;line-height:1.55">
+        <p style="margin-bottom:12px">Three nodes in a phase escalate past their entry rung &rarr; the
+          phase runner <strong>raises</strong> the default entry rung for what remains, and logs it.</p>
+        <p style="margin-bottom:12px">Five consecutive nodes succeed at rung 2+ without using the
+          headroom &rarr; it <strong>lowers</strong> it.</p>
+        <p>Drift resets at every gate. Every adjustment lands in the ledger, and the final report
+          ends with a rung histogram &mdash; where this run actually spent its money.</p>
       </div>
     </div>
   </div>
@@ -519,28 +543,30 @@ html.js .reveal.in{opacity:1;transform:none}
     <div class="sechead reveal">
       <span class="kicker c">02 &mdash; The layers</span>
       <h2>The conductor stopped walking<br><em>to every music stand.</em></h2>
-      <p>v1's prime dispatched each task itself. v2 inserted a phase runner that absorbs dispatch, retry and verification &mdash; or, in v5, lets the harness do that when it can &mdash; so the top of the stack spends its turns on gates and nothing else. Same architecture. An order of magnitude fewer expensive turns, and v3 changed none of it.</p>
+      <p>v1's prime dispatched each task itself. v2 inserted a phase runner that absorbs dispatch, retry, verification, and drift &mdash; so the top of the stack spends its turns on gates and nothing else. Same architecture. An order of magnitude fewer expensive turns, and v3 changed none of it.</p>
     </div>
 
     <div class="flow reveal d1">
       <div class="frow top">
-        <div class="fl"><b>Prime</b><span>frontier</span></div>
+        <div class="fl"><b>Prime</b><span>fable/low</span></div>
         <div class="fr">Never reads work. Never edits. Writes a phase brief, waits for one envelope,
           holds the gate. <em>~1 turn per phase</em> &mdash; four or five on a forty-node run, where v1
           spent forty.</div>
       </div>
       <div class="frow">
-        <div class="fl"><b>Dispatch</b><span>the harness, or a phase runner</span></div>
-        <div class="fr">A session that can run agents in parallel and wait for their envelopes dispatches the phase itself; one that cannot spawns a phase runner. Either way: every node dispatched, every escalation routed, every verifier spawned, every receipt a row &mdash; and never a work product read. <em>The contract is the layer; the spawning is whoever's.</em></div>
+        <div class="fl"><b>Phase runner</b><span>opus|sonnet</span></div>
+        <div class="fr">Owns one phase end to end. Dispatches every node, routes every escalation,
+          spawns every verifier, applies rung drift, parks what is blocked and keeps going. Reads
+          envelopes and digests &mdash; never work products. <em>This layer is the whole saving.</em></div>
       </div>
       <div class="frow">
-        <div class="fl"><b>Node orchestrator</b><span>assigned tier</span></div>
+        <div class="fl"><b>Node orchestrator</b><span>assigned rung</span></div>
         <div class="fr">Does the work, or spawns workers if it decomposes. Returns <code>ESCALATE</code>
-          early and honestly when the work is above its tier, or <code>SPLIT</code> with the seams when
+          early and honestly when the work is above its rung, or <code>SPLIT</code> with the seams when
           it was never one node.</div>
       </div>
       <div class="frow">
-        <div class="fl"><b>Worker</b><span>assigned tier</span></div>
+        <div class="fl"><b>Worker</b><span>assigned rung</span></div>
         <div class="fr">Leaf. Writes artifacts inside its work directory and a digest of ten lines or
           fewer. Nothing above it will ever open those artifacts &mdash; the digest is the interface.</div>
       </div>
@@ -549,7 +575,7 @@ html.js .reveal.in{opacity:1;transform:none}
     <div class="grid g3 reveal d2" style="margin-top:16px">
       <div class="card sm">
         <span class="num">DOWNWARD</span>
-        <h4>Paths and a tier.</h4>
+        <h4>Paths and a rung.</h4>
         <p>Never contents. A layer that pastes a file into its child's prompt has spent the context
           it was protecting.</p>
       </div>
@@ -568,13 +594,12 @@ html.js .reveal.in{opacity:1;transform:none}
     </div>
 
     <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
-      <span class="num">NO RULE NAMES A MODEL</span>
-      <h4 style="font-size:21px;letter-spacing:-.015em">The conductor is protected by what it reads, not by a budget.</h4>
-      <p style="margin-top:10px">v3 capped the prime&rsquo;s turns and handed the remainder to a deputy; the cap never
-        fired, and v5 cut it. What keeps the top of the stack cheap is the discipline above: listings,
-        digests and envelopes cross layers, contents never do. Which models the tiers run on is the
-        harness&rsquo;s to say &mdash; <code>CHEAP</code> and <code>FRONTIER</code> name them, the ledger records
-        what actually ran, and a rule that named a model would be wrong within a year.</p>
+      <span class="num">PRIME_TURNS</span>
+      <h4 style="font-size:21px;letter-spacing:-.015em">The conductor has a budget, and running out of it is a normal outcome.</h4>
+      <p style="margin-top:10px">One line of the run config caps how many turns the prime may spend.
+        The count lives in <code>manifest.json</code>. When it is exhausted the prime hands its
+        remaining gates to an opus deputy and records the handover in the final report &mdash;
+        it does not quietly keep spending, and it does not stop the run.</p>
     </div>
   </div>
 </section>
@@ -699,7 +724,7 @@ html.js .reveal.in{opacity:1;transform:none}
       <span class="kicker c">04 &mdash; Modes</span>
       <h2>You point.<br><em>The mode brings the topology.</em></h2>
       <p>A mode is a file, not a paragraph of advice. It carries the directive, the graph skeleton,
-        the loop definitions, the entry tiers, the seats, and the gates &mdash; and the session loads
+        the loop definitions, the entry rungs, the seats, and the gates &mdash; and the session loads
         only the one you named. Each drawing below <strong>is</strong> that mode's graph, not a
         decoration of it.</p>
         <p>v2 shipped eight of them, and every one examined the artifact <em>as built</em> &mdash; its code, its tests, its plan, its journeys. Nothing examined it <em>as encountered</em>, and nothing <em>as sold</em>. That is the gap <strong>CRAFT</strong> and <strong>POSITION</strong> close: one seats a panel against the experienced surface, the other against the commercial surface, and neither is allowed to ship a diff.</p>
@@ -1180,7 +1205,7 @@ html.js .reveal.in{opacity:1;transform:none}
       <div class="mb-txt">
         <div class="mb-head"><span class="mb-name">MIGRATE</span><span class="pill c">pipeline</span><span class="pill d">worktrees</span></div>
         <h3>Discovery <em>is the entire risk.</em></h3>
-        <p>The transform is the easy part &mdash; it is bounded, frontier, and verifiable per site.
+        <p>The transform is the easy part &mdash; it is mechanical, rung 1, and verifiable per site.
           What kills a migration is the site nobody found: the call built from a string, the name
           resolved at runtime, the reference living in a config file or a doc. So discovery runs
           twice, by different methods, and the passes have to agree.</p>
@@ -1234,7 +1259,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <h3>A plan that <em>survived the panel.</em></h3>
         <p>Plan and plan gate, then synthesis, then stop. The deliverable is the graph itself &mdash;
           options enumerated honestly including do-nothing, phases decomposed with objective
-          done-criteria, dependencies and entry tiers assigned and then attacked until they hold.</p>
+          done-criteria, dependencies and entry rungs assigned and then attacked until they hold.</p>
         <ul class="mb-facts">
           <li><b>Test</b>Could a different run, with no memory of this one and no access to your head, execute it cold? If not, it is notes rather than a roadmap.</li>
           <li><b>Refuses</b>Building any of it. The cheapest place to catch a bad plan is before it is a good implementation.</li>
@@ -1247,7 +1272,7 @@ html.js .reveal.in{opacity:1;transform:none}
     <!-- ===== GENERIC ===== -->
     <article class="modeband reveal" id="m-generic">
       <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="An empty dashed slot for the operator's own directive, surrounded by the full machinery: the tiers, the gates, the envelope, and the evidence rules.">
+        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="An empty dashed slot for the operator's own directive, surrounded by the full machinery: the rung ladder, the gates, the envelope, and the evidence rules.">
           <defs><g id="a-gen" fill="none" stroke="currentColor" stroke-width="1.8">
             <rect x="24" y="30" width="512" height="316" rx="12"/>
           </g></defs>
@@ -1260,7 +1285,7 @@ html.js .reveal.in{opacity:1;transform:none}
           <g class="hy"><rect x="44" y="76" width="20" height="12" rx="2"/><rect x="70" y="76" width="20" height="12" rx="2"/>
             <rect x="96" y="76" width="20" height="12" rx="2"/><rect x="122" y="76" width="20" height="12" rx="2"/></g>
           <g fill="none" stroke="#2f2f2f" stroke-width="1.3"><rect x="148" y="76" width="20" height="12" rx="2"/><rect x="174" y="76" width="20" height="12" rx="2"/></g>
-          <text x="204" y="86" class="td sm">the tiers</text>
+          <text x="204" y="86" class="td sm">the rung ladder</text>
           <g class="ty sm"><text x="44" y="254">plan gate</text><text x="140" y="254">phase gate</text>
             <text x="248" y="254">blocked batch</text><text x="376" y="254">final gate</text></g>
           <path d="M44 264 h468" stroke="#faff69" stroke-width="1.4" fill="none" opacity=".5"/>
@@ -1316,18 +1341,21 @@ html.js .reveal.in{opacity:1;transform:none}
 <span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer beside the question &mdash; or a teammate's, from an Issue</span></pre>
       </div>
       <div class="card" style="display:flex;flex-direction:column;justify-content:center">
-        <span class="num">TIER HISTOGRAM</span>
-        <h4 style="margin-bottom:20px">What ran cheap, what ran frontier, what needed a person.</h4>
+        <span class="num">RUNG HISTOGRAM</span>
+        <h4 style="margin-bottom:20px">Where the run actually spent its money.</h4>
         <div class="hist">
-          <div class="hrow"><span>0 cheap</span><i style="width:14%"></i><b>8</b></div>
-          <div class="hrow on"><span>1 frontier</span><i style="width:86%"></i><b>50</b></div>
-          <div class="hrow"><span>2 human</span><i style="width:7%"></i><b>4</b></div>
+          <div class="hrow"><span>0 haiku/low</span><i style="width:7%"></i><b>4</b></div>
+          <div class="hrow on"><span>1 sonnet/med</span><i style="width:66%"></i><b>38</b></div>
+          <div class="hrow"><span>2 sonnet/high</span><i style="width:16%"></i><b>9</b></div>
+          <div class="hrow"><span>3 opus/med</span><i style="width:9%"></i><b>5</b></div>
+          <div class="hrow"><span>4 opus/high</span><i style="width:3.5%"></i><b>2</b></div>
+          <div class="hrow z"><span>5 fable/low</span><i style="width:0"></i><b>0</b></div>
+          <div class="hrow z"><span>6 fable/med</span><i style="width:0"></i><b>0</b></div>
         </div>
         <p style="margin-top:20px;font-size:14px;color:var(--muted)">Illustrative, not a benchmark
-          &mdash; the point is that the number exists. Every spawn records its tier, model, effort and
-          seconds, so frontier-by-default is a bet the ledger measures rather than a belief: if the
-          cheap tier's work starts failing verification, or frontier costs more than the retries it
-          saves, the next plan's entry tiers are an argument instead of a habit.</p>
+          &mdash; the point is that the number exists. A run that never measures where its rungs went
+          will spend them the same way next time, and the histogram is what makes the next plan's
+          entry rungs an argument instead of a habit.</p>
       </div>
     </div>
     <div class="sechead reveal" style="margin-top:56px;margin-bottom:24px">
@@ -1369,7 +1397,7 @@ html.js .reveal.in{opacity:1;transform:none}
               <rect class="bx" x="325" y="94" width="150" height="32" rx="5"></rect><text x="400" y="114" text-anchor="middle">row REFUTED</text>
               <rect class="bx on" x="485" y="94" width="170" height="32" rx="5"></rect><text x="570" y="114" text-anchor="middle">row UNSETTLEABLE</text>
               <line class="ar" x1="400" y1="126" x2="400" y2="166" marker-end="url(#brief-ar)"></line><line class="ar" x1="570" y1="126" x2="570" y2="166" marker-end="url(#brief-ar)"></line>
-              <rect class="bx" x="325" y="170" width="150" height="38" rx="5"></rect><text x="400" y="193" text-anchor="middle">retry with the verdict</text>
+              <rect class="bx" x="325" y="170" width="150" height="38" rx="5"></rect><text x="400" y="193" text-anchor="middle">escalate one rung</text>
               <rect class="bx on" x="485" y="170" width="170" height="38" rx="5"></rect><text x="570" y="193" text-anchor="middle">question for you</text>
             </svg>
             <figcaption>Before: a failed checklist line always escalates the node to a costlier model. After: a line
@@ -1401,7 +1429,7 @@ html.js .reveal.in{opacity:1;transform:none}
           <div><h5>Record</h5><p><code>rules/rule-9-2-refutation-triage.md</code> &middot; <code>rules/rule-8-1-the-human-brief.md</code> &middot; <code>prompt/roles/briefer.md</code> &middot; github.com/ckluis/baton/pull/14</p></div>
         </aside>
       </div>
-      <p style="margin-top:14px;font-size:13px;color:var(--muted)">Written from the report by a briefer at frontier, never from the work. Decisions 2 and 3 &mdash; run the
+      <p style="margin-top:14px;font-size:13px;color:var(--muted)">Written from the report by a rung-2 briefer, never from the work. Decisions 2 and 3 &mdash; run the
         replay experiment, delete what the run never used &mdash; are the next two slides. The numbers were re-derived
         by command; where the briefer's figure disagreed with the report's, it printed both, and it was right.</p>
     </div>
@@ -1522,12 +1550,12 @@ html.js .reveal.in{opacity:1;transform:none}
           hand-edited file, or by you typing it into the run. <strong>The disk protocol is the
           contract. Messaging is only a faster doorbell.</strong> With
           <code>INBOX: off</code> a run behaves the same way, with longer pauses.</p>
-        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is the
-          run's pull request. Every blocked question is posted there as a comment, and anyone on the
-          repository answers by replying <code>/answer Q-&lt;n&gt; &hellip;</code>. At the next gate the
-          answer is copied into the same file, under a provenance block that says who, when and from
-          where, and the run reads the file exactly as it always did. Same contract; a doorbell anyone
-          can ring, on a thread the repository already has.</p>
+        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is an
+          Issue. Every blocked question opens as one &mdash; a sub-issue of the run's own &mdash; and
+          anyone on the repository answers by commenting <code>/answer &hellip;</code>. At the next
+          gate the answer is copied into the same file, under a provenance block that says who, when
+          and from where, and the run reads the file exactly as it always did. Same contract; a
+          doorbell anyone can ring.</p>
       </div>
     </div>
   </div>
@@ -1543,8 +1571,8 @@ html.js .reveal.in{opacity:1;transform:none}
     <div class="grid g4 reveal d1">
       <div class="card sm"><span class="num">01</span><h4>Cite or retract</h4><p>A claim without an artifact path is inadmissible. A citation is a direct quote of twenty words or fewer plus its location. A bare line number is not a citation.</p></div>
       <div class="card sm"><span class="num">02</span><h4>No silent pass</h4><p>A verifier returning <code>CONFIRMED</code> must name the strongest attack it tried and why the attack failed. "Looks good" is a refutation of the verifier.</p></div>
-      <div class="card sm"><span class="num">03</span><h4>A refutation is evidence</h4><p>A refuted node retries once at frontier with the verdict's rows verbatim in its handoff &mdash; a different prompt, not a repeat. A second refutation of the same criterion reaches a person, never a larger model.</p></div>
-      <div class="card sm"><span class="num">04</span><h4>Always frontier, always fresh</h4><p>Verification runs at frontier, as a fresh spawn, whatever tier did the work. A verifier that returns <code>PARTIAL</code> twice on the same node is replaced by another fresh spawn &mdash; independence is the mechanism.</p></div>
+      <div class="card sm"><span class="num">03</span><h4>Refutation quota</h4><p>Five confirmations running with nothing refuted and the verifier gets audited by an adversary one rung up. Either the work is genuinely clean &mdash; real information &mdash; or the confirmations reopen.</p></div>
+      <div class="card sm"><span class="num">04</span><h4>Same rung to verify</h4><p>Verification runs at the node's own rung, not one above. The verifier escalates only after returning <code>PARTIAL</code> twice on the same node.</p></div>
     </div>
     <div class="card reveal d2" style="margin-top:16px;border-color:var(--cyan-dim)">
       <span class="num">INSTRUMENTS</span>
@@ -1609,7 +1637,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
           every session paid for every mode it was not running. v2 split it: a router you paste, and
           files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
-          under <code>rules/</code> &mdash; 48 of them, the tiers, the envelope, the digest, the graph,
+          under <code>rules/</code> &mdash; 53 of them, the ladder, the envelope, the digest, the graph,
           the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
           to 85. There is nowhere to amend a stale copy of a rule because there are no copies, and the
           index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
@@ -1621,10 +1649,7 @@ html.js .reveal.in{opacity:1;transform:none}
           --sqlite</code> makes the run's own evidence queryable. v4.0 gave the same run to a team:
           one setting puts its state on a git ref, its questions in Issues and its product changes in
           draft pull requests &mdash; and every append-only list became a directory of rows, so none
-          of it needs a merge protocol. v5.0 asked whether any of it made sense with frontier
-          intelligence as the default, and kept the half that did: three tiers replaced six rungs,
-          five procedural rules went, the harness took the dispatching, and the contract &mdash;
-          evidence, verdicts, gates, the record &mdash; stayed whole.</p>
+          of it needs a merge protocol.</p>
         <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
           <strong>the contract wins and the role prompt is the bug.</strong></p>
         <p style="margin-top:16px;font-size:16px">v3 made the repository legible to something other than baton. Persona frontmatter may carry optional <code>type</code>, <code>id</code> and <code>links</code> keys &mdash; ignored entirely by baton's own loader, meaningful only to an outside consumer &mdash; and <code>tools/aix-validate.py</code> holds this bundle to <strong>AIX level 1</strong> on every acceptance run.</p>
@@ -1645,8 +1670,8 @@ html.js .reveal.in{opacity:1;transform:none}
   <span class="k">lenses/</span>             <span class="c">37 — expert seats, upgradeable</span>
   <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
   <span class="k">luminaries/</span>         <span class="c">40 — opt-in, builtin+luminaries</span>
-<span class="k">rules/</span>              <span class="c">48 — one file per rule, every one an invariant</span>
-<span class="k">tools/</span>              <span class="c">10 instrument records, the AIX validator, the team tools, tiers.py</span>
+<span class="k">rules/</span>              <span class="c">53 — one file per rule, the only place each is defined</span>
+<span class="k">tools/</span>              <span class="c">10 instrument records, the AIX validator, the team tools</span>
 <span class="k">migrations/</span>         <span class="c">from-v1, from-v2, from-v3 — one file per older version</span>
 <span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
       </div>
@@ -1676,10 +1701,10 @@ html.js .reveal.in{opacity:1;transform:none}
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md</pre>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v4.0/MIGRATING.md</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
@@ -1698,7 +1723,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.</pre>
       </div>
@@ -1745,13 +1770,13 @@ against that same base URL. Read it completely before you start any work.</pre>
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 306 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 297 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
           <button class="copybtn" id="rcopybtn" type="button">Copy the router</button>
         </div>
-        <pre id="rsrc"># BATON v5 — the router
+        <pre id="rsrc"># BATON v2 — the router
 
 You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
 because your invocation pointed you at it. **Read it to the end before you act.**
@@ -1774,10 +1799,10 @@ below, and you do not ask the operator about a default that is already correct.
 | `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
 | `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
-| `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
-| `FRONTIER` | the harness's most capable model, at its highest effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
+| `CEILING` | `4` | highest rung reachable without asking. `4` is `opus/high`. Rungs 5–6 are fable and cost real money — they are reached by asking, not by drifting. |
+| `PRIME_TURNS` | `12` | your own turn budget. Spend it on gates. When it runs out, hand your remaining gates to an opus deputy and say so. |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
-| `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/&lt;id&gt;` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
+| `TEAM` | `off` | `github` makes `_orch/` a worktree of the run ref `baton/run/&lt;id&gt;`, pushed at every node close and gate (CONTRACT §6.1); every blocked question an Issue anyone on the repo can answer (§10); every product-writing node a branch with a draft pull request and its verdict as a commit status (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
 | `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
@@ -1864,7 +1889,7 @@ prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules the
 rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
                             digest, the graph, the loop, gates, evidence. Read them.
 rules/prule-*.md            the persona rules, likewise
-prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry tiers, seats, gates
+prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry rungs, seats, gates
 prompt/roles/&lt;role&gt;.md      the prompt body for each agent you spawn
 personas/CONTRACT.md        persona schema and per-phase duties
 personas/lenses/&lt;slug&gt;.md   expert seats
@@ -1908,22 +1933,20 @@ file** — a half-remembered contract is worse than no run.
    Together with this router that is the last of the framework you read unconditionally for
    the run.
 2. **Create `_orch/`** per CONTRACT §6, and write:
-   - `manifest.json` — run id, mode, the models `cheap` and `frontier` were
-     bound to, phase pointer
+   - `manifest.json` — run id, mode, ceiling, `prime_turns_budget`,
+     `prime_turns_spent: 0`, phase pointer
    - `directive.md` — the mode file's directive with `{TARGET}` substituted,
      followed by the invocation's Goal block verbatim
 
    Under `TEAM: github`, create it with `tools/publish-run.sh init &lt;run-id&gt;`
-   instead of `mkdir` — it makes `_orch/` the worktree that `publish` pushes to
-   the hidden ref `refs/baton/run/&lt;run-id&gt;`, creates the run branch
-   `baton/&lt;run-id&gt;`, and refuses a public target without `RUNS_REPO` — write the
-   same two files, then `python3 tools/inbox-gh.py open-run` to open the run's
-   thread: a draft pull request on that branch. Both tools are
+   instead of `mkdir` — it makes `_orch/` a worktree of `baton/run/&lt;run-id&gt;`
+   and refuses a public target without `RUNS_REPO` — write the same two files,
+   then `python3 tools/inbox-gh.py open-run` for the run's Issue. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
-3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
+3. **Cast** (rung 1) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
    resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-4. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+4. **Plan** (rung 3) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
    directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
@@ -1950,7 +1973,7 @@ no digest, the node violated the contract and the fix is to ask for the digest,
 not to open the file.
 
 **You may never do object-level work.** No edits, no test runs, no browsing.
-Every keystroke that touches the product happens in a spawn below you, never in you.
+Every keystroke that touches the product happens at rung 4 or below.
 
 **You dispatch phases, not nodes.** This is the change that pays for v2. You
 write a phase brief and hand it to a phase runner; the phase runner spends the
@@ -1967,47 +1990,41 @@ final gate. Protect it the way you would protect a battery on a long flight.
 Repeat until the graph has no runnable nodes:
 
 1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
-   `_orch/phases/P&lt;n&gt;/brief.md`: the node ids in this phase, their entry tiers,
+   `_orch/phases/P&lt;n&gt;/brief.md`: the node ids in this phase, their entry rungs,
    the concurrency limit, the seats in play, and the phase's exit condition.
-   Then dispatch it, one of two ways (CONTRACT §0):
-   - **Your session can run agents in parallel and wait for their envelopes**
-     — an agent tool, a workflow, a job matrix. Dispatch each node through it
-     yourself: the handoff locator and a tier in, an envelope out, a row file
-     on every receipt (§7), and §1.2's two moves when one fails. You still
-     never read a work product; the facility does the waiting the phase runner
-     used to do.
-   - **It cannot** — a paste, a session with no such tool. Spawn one **phase
-     runner** (`{BATON}/prompt/roles/phase-runner.md`) at frontier and let it
-     own the phase.
-2. **Wait for the envelopes.** A phase runner returns one for the whole phase;
-   a harness returns one per node. Either way, every escalation has been
-   routed and every verifier has run before you read anything. You did not
-   watch.
+   Spawn one **phase runner** (`{BATON}/prompt/roles/phase-runner.md`) at rung 3 — rung
+   2 when the phase is fewer than five nodes and none exceed entry rung 1.
+2. **Wait for one envelope.** The phase runner returns a single envelope
+   summarizing the phase. It has already dispatched every node, routed every
+   escalation, run every verifier, and applied rung drift. You did not watch.
 3. **Phase gate.** Confirm every node is `DONE`+`CONFIRMED`, `BLOCKED`, or
    accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
-   unblock what the operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
+   unblock what the operator answered. Reset rung drift. Increment
+   `prime_turns_spent`. Under `TEAM`, run the gate's publish sequence (CONTRACT
    §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
-   `publish-run.sh publish`, `inbox-gh.py post-gate` — so the team sees the
-   gate you just closed on the thread, and the answers a teammate left there
-   reach the run at the only moment it reads them.
+   `publish-run.sh publish`, `inbox-gh.py post-summary` — so the team sees the
+   gate you just closed, and the answers a teammate left on an Issue reach the
+   run at the only moment it reads them.
 4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
    the operator together at the gate, never one at a time — a run that asks six
    questions across six pauses has cost the operator more than the answers were
-   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at frontier over
+   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at rung 2 over
    the batch; it writes `_orch/brief/blocked-&lt;n&gt;.html` (CONTRACT §8.1), and your
    message names that path first.
 
 **Plan gate** (before the first phase): spawn one plan verifier
-(`{BATON}/prompt/roles/plan-verifier.md`) at frontier, as a fresh spawn. It
+(`{BATON}/prompt/roles/plan-verifier.md`) at rung 3 — rung
+4 if the graph exceeds fifteen nodes, any node is flagged cross-cutting, the
+planner's envelope carries caveats, or the directive itself is ambiguous. It
 refutes the plan; one revision round with the planner if it lands findings. At
 `adversarial: panel` the mode's PLAN seats run instead.
 
-**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at
-frontier to write `final/report.md` from digests, verdicts, and the ledger. It
-ends with the **tier histogram**: how much of this run ran cheap, how much
-frontier, and how much needed a person — so the next plan can assume better.
-Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at frontier over the
-report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
+**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at rung 3
+— rung 5 only if the operator has approved fable for it — to write
+`final/report.md` from digests, verdicts, and the ledger. It ends with the
+**rung histogram**: where this run actually spent its money, so the next plan
+can assume better. Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at
+rung 2 over the report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
 page, for a person, that says what was done, what is open, three options and one
 recommendation.
 
@@ -2029,13 +2046,12 @@ Your closing message to the operator is small, and small is the whole point:
 - **the disposal line** — `_orch/`'s approximate size and the commands to
   archive it (`tar czf baton-run.tar.gz _orch &amp;&amp; rm -rf _orch`) or keep it to
   resume or re-verify
-- **under `TEAM`, two more lines and a different disposal line** — the pull
-  request's URL (the thread: the deck in its last gate comment, the product as
-  one commit per node, every question and answer), and the hidden ref with the
-  permalink base its last push printed (`/blob/&lt;sha&gt;/`). Disposal is
-  `tools/publish-run.sh dispose &lt;run-id&gt;`: the hidden ref is deleted and the
-  pull request stays as the record a person can read. Or keep the ref; it is
-  26 MB, and nobody sees it.
+- **under `TEAM`, three more lines and a different disposal line** — the run
+  Issue's URL, the run ref and the permalink base its last push printed
+  (`/blob/&lt;sha&gt;/_orch/`), and the deck's URL on Pages. Disposal is
+  `tools/publish-run.sh dispose &lt;run-id&gt;`: the archive becomes a release, the
+  ref is deleted, and every permalink keeps resolving because the release tag
+  pins the sha. Or keep the ref; it is 26 MB.
 
 Cleanup is the operator's act, never yours. The report, every envelope, and
 every verdict cite paths inside `_orch/` — an agent that deletes it has
@@ -2093,39 +2109,38 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
       <p>The instinct is to put a team's run in GitHub Issues. The numbers say no: one run writes
         about 3,500 state files and ledger rows, and GitHub allows 500 content-creating API calls an
         hour. Split GitHub into its three primitives instead and each piece of the run has an obvious
-        home. Git carries the record on a ref nobody sees; one pull request carries the product as a
-        commit per node, and the ~25 moments a run needs a person as comments. What a run leaves on
-        your repository is what a colleague's work leaves: one pull request, one branch, commits.</p>
+        home. Git carries the record, pull requests carry the product, Issues carry the ~25 moments a
+        run needs a person. The run itself still executes on one machine, from local disk, exactly as
+        before.</p>
     </div>
 
     <div class="grid g3 reveal d1" style="margin-top:32px">
       <div class="card sm">
         <span class="num">THE RECORD</span>
         <h4>Git holds the run.</h4>
-        <p><code>_orch/</code> is pushed at every node close and gate to
-          <code>refs/baton/run/&lt;id&gt;</code> &mdash; a ref GitHub lists nowhere, not a branch. Still
-          local disk, still every path a rule names &mdash; and every path a verdict cites gains
+        <p><code>_orch/</code> becomes a worktree of the run's own ref, <code>baton/run/&lt;id&gt;</code>,
+          committed by the layer that received each envelope and pushed at every node close and gate.
+          Still local disk, still every path a rule names &mdash; and every path a verdict cites gains
           <code>/blob/&lt;sha&gt;/&hellip;</code>, so the evidence outlives the laptop and any machine
-          resumes with a fetch. Invisible in the UI; one command to delete.</p>
+          resumes with a fetch. No rate limit applies to a push.</p>
       </div>
       <div class="card sm">
         <span class="num">THE DOORBELL</span>
         <h4>Issues hold the questions.</h4>
-        <p>Every blocked question is a comment on the run's pull request. Anyone on the repository
-          answers with <code>/answer Q-&lt;n&gt; &hellip;</code> &mdash; from a phone, in a meeting. At
-          the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a provenance
-          block, and the run reads the file exactly as it always did. Every gate posts its summary and
-          its decisions on the same thread. No Issue per question, no label.</p>
+        <p>Every blocked question becomes an Issue, a sub-issue of the run's own. Anyone on the
+          repository answers by commenting <code>/answer &hellip;</code> &mdash; from a phone, in a
+          meeting. At the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a
+          provenance block, and the run reads the file exactly as it always did. Who may answer is the
+          assignee, a list, or anyone; anyone else is recorded and not obeyed.</p>
       </div>
       <div class="card sm">
         <span class="num">THE DIFF</span>
         <h4>Pull requests hold the product.</h4>
-        <p>A node that writes code lands as one commit on the run's branch &mdash; the pull request
-          &mdash; with its node id in the trailer and its computed verdict as the check
-          <code>baton/verify</code> on that commit: green, red, or pending, linking to the rows that
-          decided it. The commit is the landing, so nothing can die with a worktree, and the merge node
-          the plan names is merging the one pull request. A reviewer reads N commits, the way they read
-          anyone's branch.</p>
+        <p>A node that writes code runs on a branch with a draft pull request, and its computed verdict
+          lands on the branch as the check <code>baton/verify</code> &mdash; green, red, or pending,
+          linking to the rows that decided it. The branch is the landing, so nothing can die with a
+          worktree any more, and the merge node the plan names is the pull request's merge. A team
+          reads baton's changes the way it reads anyone's.</p>
       </div>
     </div>
 
@@ -2144,15 +2159,15 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
         <h4>Configuration, not code.</h4>
         <p><code>gh</code> authenticated on the machine that runs the prime; the tools on disk
           (<code>git clone</code>, then <code>BATON: ./baton</code>); a private target repository, or
-          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: one ruleset
-          on <code>baton/**</code> that blocks force-pushes and deletions of run branches. That is all
-          &mdash; no labels, no Pages, no environments. A secret scan gates every push.</p>
+          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: a ruleset
+          on <code>baton/**</code> that blocks force-pushes and deletions &mdash; the two new ways to
+          destroy evidence &mdash; and Pages for the briefs. A secret scan gates every push.</p>
       </div>
       <div class="card sm">
         <span class="num">DOES NOT CHANGE</span>
         <h4>Everything the run thinks.</h4>
-        <p>The tiers, the envelope, the digest, the graph, the verifier, the gates &mdash; the same
-          48 rules, and all ten modes. With the line absent, a run is byte-identical to
+        <p>The ladder, the envelope, the digest, the graph, the verifier, the gates &mdash; 45 of 53
+          rules are untouched, and all ten modes. With the line absent, a v4.0 run is byte-identical to
           a single-user run. Every team tool is proven without touching GitHub:
           <code>tools/test-team.sh</code> runs the lot against throwaway repositories and a fake
           <code>gh</code>, thirty checks, no network.</p>
@@ -2162,10 +2177,11 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
     <div class="code reveal d2" style="margin-top:32px">
       <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what a gate does under TEAM</b> &middot; rule 8</div></div>
 <pre><span class="c"># before the prime reads the inbox</span>
-python3 tools/inbox-gh.py sync          <span class="c">questions out as comments, answers in to files</span>
+python3 tools/inbox-gh.py sync          <span class="c">questions out to Issues, answers in to files</span>
 python3 tools/lists.py derive           <span class="c">the four list files from their rows</span>
-tools/publish-run.sh publish            <span class="c">secret scan, commit, push the hidden ref</span>
-python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and the decisions, one comment</span></pre>
+tools/publish-run.sh publish            <span class="c">secret scan, commit, push the run ref</span>
+python3 tools/inbox-gh.py post-summary  <span class="c">the sixty-line index onto the run Issue</span>
+tools/publish-run.sh pages              <span class="c">the deck, at a URL, when the gate wrote one</span></pre>
     </div>
   </div>
 </section>
@@ -2179,12 +2195,12 @@ python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and
         <h2 style="letter-spacing:-.03em;max-width:22ch;margin:0 auto">Point it at the folder everyone is afraid of.</h2>
         <p style="max-width:60ch;margin:22px auto 0;font-size:17px;color:rgba(10,10,10,.78)">
           Your flakiest module. Your most ignored spec. The migration nobody wants to start. The worst
-          case is a written plan, a tier histogram, and a batch of good questions &mdash; with every
-          attempt, every verdict and every decision on the record.</p>
+          case is a written plan, a rung histogram, and a batch of good questions &mdash; for about the
+          price of an afternoon at rung 1.</p>
         <div class="btnrow" style="margin-top:32px;justify-content:center">
           <a href="#prompt" class="btn" style="background:var(--on-yellow);color:var(--yellow)">Copy the router &uarr;</a>
           <a href="#team" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">For a team &rarr;</a>
-          <a href="baton-v4.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v4 &rarr;</a>
+          <a href="baton-v3.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v3 &rarr;</a>
         </div>
       </div>
     </div>
@@ -2198,14 +2214,13 @@ python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and
       <div>
         <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
           <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v5.0</span>
+          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v4.0</span>
         </div>
         <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
           rebuilt around what it costs. The repository is the artifact.</p>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:10px 24px;font-size:14px;color:var(--muted)">
         <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="nl">Repo &nearr;</a>
-        <a href="baton-v4.html" class="nl">baton v4 &rarr;</a>
         <a href="baton-v3.html" class="nl">baton v3 &rarr;</a>
         <a href="baton-v1.html" class="nl">baton v1 &rarr;</a>
         <a href="https://ckluis.github.io/luminaryTeam/" target="_blank" rel="noopener" class="nl">luminaryTeam &nearr;</a>

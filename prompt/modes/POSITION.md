@@ -80,7 +80,7 @@ holds a matrix whose every row is executable by a later run without further inte
   kind: task
   phase: 2
   title: "PROBE — capture this commercial page as a sceptical buyer encounters it"
-  rung: 3
+  rung: 1
   surface: ui
   needs: [C1]
   personas: [low-trust-evaluator]
@@ -101,7 +101,7 @@ holds a matrix whose every row is executable by a later run without further inte
   kind: task
   phase: 3
   title: "AUDIT — judge the commercial surface from this lens alone"
-  rung: 2
+  rung: 1
   needs: [F1]
   adversarial: panel
   personas: [<seat>]
@@ -124,14 +124,14 @@ holds a matrix whose every row is executable by a later run without further inte
   kind: task
   phase: 4
   title: Convergence audit — pair the opposed, force a pairing if nothing opposes
-  rung: 3
+  rung: 1
   needs: [B2]
   done: "pairings.yaml lists every unrun pairing keyed seat-pair+claim, or states the ledger holds them all"
 - id: K1
   kind: fanout
   phase: 4
   title: Run each new pairing as one steelman exchange
-  rung: 3
+  rung: 1
   needs: [C2]
   adversarial: panel
   done: "one clash-<key>.md per unrun pairing, each with both steelmen, both rebuttals, and the ruling"
@@ -163,7 +163,7 @@ holds a matrix whose every row is executable by a later run without further inte
   kind: task
   phase: 5
   title: "VERIFY — re-score every claimed P0 and P1"
-  rung: 2
+  rung: 1
   needs: [V1]
   refutes: B3
   personas: [severity-inflation]
@@ -172,7 +172,7 @@ holds a matrix whose every row is executable by a later run without further inte
   kind: task
   phase: 6
   title: Synthesize the commercial recommendation matrix
-  rung: 3
+  rung: 1
   needs: [V1, A-severity-inflation]
   personas: []            # SYNTH is neutral by construction
   done: "final/position-report.md matrix — every row has priority, owner task, verification path, citation status"
@@ -203,19 +203,14 @@ governs what the **panel** does, not what verification is attached to a node. DO
 journeys to find what breaks; POSITION captures a pricing page so a commercial seat can
 judge what it claims.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| citation verification (`V1`) | 0 | Exact string and location match of a quote against the claim ledger. Verifiable by command; there is no judgment in it. |
-| inventory, claim ledger, scope gate, fanouts, barriers, red-flag declaration | 1 | Bounded restatement against a clear spec — the default. |
-| audit seats (`A-*`), `A-severity-inflation` | 2 | Pinned by personas/CONTRACT.md §2.1, not chosen here: AUDIT and expert VERIFY are rung 2. |
-| capture (`S-*`) | 3 | Pinned by personas/CONTRACT.md §2.2, not chosen here: PROBE is rung 3 for `kind: user`. |
-| convergence audit (`C2`) | 3 | Judgment — whether unanimity is evidence or a seating failure, and which positions are genuinely most opposed. |
-| clash (`K1` children) | 3 | Pinned by personas/CONTRACT.md §2.1: CLASH is rung 3. |
-| synthesis (`S1`) | 3 | Cross-panel resolution. Rung 5 needs operator approval (CONTRACT §1.4); POSITION never asks. Nothing here enters above 3. |
+| citation verification (`V1`) | 0 `cheap` | Exact string and location match of a quote against the claim ledger. Verifiable by command; there is no judgment in it. |
+| everything else — inventory, claim ledger, scope gate, fanouts, barriers, red-flag declaration, audit seats (`A-*`), captures (`S-*`), convergence audit (`C2`), clash (`K1` children), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1); every persona duty is frontier by definition (personas/CONTRACT.md §2). POSITION never asks a person mid-run; a second frontier failure reaches the gate as a question (§1.2). |
 
-The loop `L1` spans no rung of its own — its body nodes carry theirs — and its exit
+The loop `L1` spans no tier of its own — its body nodes carry theirs — and its exit
 condition is the `stop` block declared in the skeleton above; a loop reaching `on_stop: B3`
 without the invariant met exits DONE-WITH-CAVEATS with the unmet pairing named.
 
@@ -268,7 +263,7 @@ this table, and seat duties still govern the upgrade (personas/CONTRACT.md §4.2
   pricing sheet, a launch asset that exists only in someone's drafts — goes `BLOCKED` and
   batches its question. One unreachable surface does not block the panel; the report records
   it as uncaptured, and a seat whose evidence depended on it says so instead of guessing.
-- **Final gate.** Synthesis at rung 3. Passes when no P0 or P1 row rests on an UNVERIFIED
+- **Final gate.** Synthesis at frontier. Passes when no P0 or P1 row rests on an UNVERIFIED
   citation, every row names an owner and a verification path, and {TARGET} is unmodified —
   including every commercial asset in the inventory.
 
@@ -298,7 +293,7 @@ and `git status` on {TARGET} is clean.
 - **The claim nobody wrote down.** A seat argues against a promise it remembers reading
   rather than one the ledger holds, and the rebuttal cannot be checked because the original
   wording is gone. `T02` extracts every claim verbatim with its location before any seat is
-  cast, and `V1` at rung 0 marks a citation UNVERIFIED the moment the quoted text is not
+  cast, and `V1` at cheap marks a citation UNVERIFIED the moment the quoted text is not
   found where the ledger says it is.
 - **Confidence audited as evidence.** The panel reads a confident narrative, finds it
   coherent, and mistakes internal conviction for market knowledge. `discovery-evidence`

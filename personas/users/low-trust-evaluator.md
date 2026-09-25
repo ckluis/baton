@@ -4,7 +4,7 @@ type: Persona
 id: low-trust-evaluator
 kind: user
 phases: [PLAN, PROBE, VERIFY]
-rung: 3
+rung: 1
 tags: [evaluation, procurement, trust, adoption, skepticism]
 ---
 

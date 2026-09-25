@@ -48,7 +48,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: task
   phase: 1
   title: Freeze the change scenarios, then score the module against them
-  rung: 3
+  rung: 1
   surface: doc
   needs: [T01]
   done: "work/scenarios.yaml is frozen before work/scorecard-before.md is written, provable by file order; the scorecard scores every applicable principle 0-3 with its measured values, its evidence path and a confidence; a principle with insufficient evidence reads Unknown and one that does not apply reads N/A"
@@ -63,7 +63,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: fanout
   phase: 2
   title: Audit — one child node per lens, independent contexts
-  rung: 2
+  rung: 1
   needs: [T02]
   adversarial: standard
   personas: [behavior-preservation, leverage-vs-risk]
@@ -72,7 +72,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: task
   phase: 2
   title: Hunt what the lens list structurally cannot see
-  rung: 4
+  rung: 1
   needs: [T02]
   personas: [blindspot]
   done: "work/blindspot.yaml covers all three obligations — uncovered failure classes, the module as its callers and operators meet it, shared assumptions — and every class carries either a cited finding or 'probed X via Y, found nothing'; every row tagged blindspot: true"
@@ -80,7 +80,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: barrier
   phase: 3
   title: Rank every candidate by leverage against risk and effort; propose the cut line
-  rung: 3
+  rung: 1
   needs: [F1, T10]
   personas: [leverage-vs-risk, scope-creep]
   done: "plan/improvements.yaml ranks every candidate with leverage, risk, effort, the files it may touch, and above|below the proposed cut line"
@@ -114,7 +114,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: task
   phase: 4
   title: Re-audit the changed surface with a fresh blindspot agent
-  rung: 2
+  rung: 1
   needs: [T21]
   personas: [blindspot]
   done: "new candidates appended to plan/improvements.yaml with their ledger keys; a candidate already in seen.yaml is not re-proposed"
@@ -122,7 +122,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   kind: task
   phase: 5
   title: Re-score against the frozen scenarios and report the delta
-  rung: 3
+  rung: 1
   surface: doc
   needs: [L1]
   done: "work/scorecard-after.md uses work/scenarios.yaml unchanged and the same formulas as work/scorecard-before.md; every principle that moved cites the improvement that moved it; no score in either scorecard is used as a pass or fail gate"
@@ -145,19 +145,16 @@ findings hunts the same ground and returns a longer version of the audit. It may
 not merge `T20` and `T21`, may not let `B1` run before both sources have
 finished, and may not stop the loop on an empty candidate list.
 
-## Entry rungs
+## Entry tiers
 
-| node class | entry rung | why |
+| node class | entry tier | why |
 |---|---|---|
-| baseline capture, re-running the reference commands | 0 | one command, one file |
-| lens declaration, landing an accepted candidate, before/after verification | 1 | the default; the candidate row is the clear spec rung 1 is defined against |
-| audit lens (`F1`), re-audit (`T22`) | 2 | AUDIT duty is rung 2 by personas/CONTRACT §2.1 — set by the persona contract, not by this mode |
-| ranking (`B1`) | 3 | deciding leverage against risk across two independently produced candidate sets is contested judgment, and the cut line is the most expensive decision in the run |
-| blindspot (`T10`) | 4 | it reasons about the complement of a lens set across the module, its call sites, and its operational surface — the one cross-cutting node in this mode |
+| baseline capture, re-running the reference commands | 0 `cheap` | one command, one file |
+| everything else — lens declaration, landing an accepted candidate, before/after verification, audit lens (`F1`), re-audit (`T22`), ranking (`B1`), blindspot (`T10`) | 1 `frontier` | the default (CONTRACT §1.1). Deciding leverage against risk across two candidate sets is contested judgment and the cut line is the most expensive decision in the run; `T10` reasons about the complement of a lens set across the module, its call sites and its operational surface. |
 
-`T10` is the only node in IMPROVE that enters above rung 3, and §1.3 binds it
-hardest: it diagnoses, it never types. Every probe it wants run and every fix it
-implies leaves as a rung-1 handback.
+`T10` diagnoses; whether it also types is its call (CONTRACT §1.1) — a probe it
+wants run or a fix it implies may leave as a `cheap` handback when the change is
+separable, and stays with it when it is not.
 
 ## Seats
 
@@ -199,7 +196,7 @@ an approved flag; it is never executed on the argument that the old behavior was
 wrong.
 
 **Final gate.** Synthesis reports what changed, what it bought with before/after
-numbers, what was logged below the line, and the rung histogram. Below-line
+numbers, what was logged below the line, and the tier histogram. Below-line
 candidates ship as a backlog a later run can execute directly.
 
 ## Done

@@ -5,7 +5,7 @@ id: positioning-clarity
 kind: expert
 domain: Positioning & Competitive Alternative
 phases: [AUDIT, CLASH]
-rung: 2
+rung: 1
 tags: [positioning, strategy, product, trust]
 links:
   - rel: contradicts
