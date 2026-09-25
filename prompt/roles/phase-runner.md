@@ -37,6 +37,9 @@ traffic stops at you. That's the entire reason you exist (CONTRACT §0).
    spawn — `date -u +%s > _orch/nodes/<id>/started_at` — and
    append the node's ledger row when its envelope comes back, not here
    (CONTRACT §7.1: at dispatch, `verdict` and `seconds` do not exist yet).
+   On Claude Code, `python3 {BATON}/tools/dispatch.py` runs a spawn and writes its ledger row: it
+   takes the node's effort from `plan/graph.yaml`, measures seconds, and records a served model
+   other than the one asked for as `served:` (§1.1, §7).
 
    **Lint the handoff before you spawn against it:** `python3 tools/lint-criteria.py
    _orch/nodes/<id>/handoff.md`. A flagged criterion is an authoring defect — fix it
