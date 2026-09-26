@@ -1026,6 +1026,25 @@ class Graph(object):
         return seen
 
 
+def unwrap_nodes(text):
+    """CONTRACT §4's graph is a flat `- id:` list. A graph written as a mapping -
+    `nodes:` over an indented list, which valid YAML allows and planners write -
+    is the same graph one level down: lift it back so every parser reads one
+    shape. Text with no top-level `nodes:` key is returned unchanged."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^nodes:\s*(#.*)?$", line):
+            body = []
+            for rest in lines[i + 1:]:
+                if rest.strip() and not rest.startswith((" ", "\t")):
+                    break
+                body.append(rest)
+            dashes = [len(b) - len(b.lstrip()) for b in body if b.lstrip().startswith("- ")]
+            cut = min(dashes) if dashes else 0
+            return "\n".join(b[cut:] if b.strip() else b for b in body)
+    return text
+
+
 def parse_graph(text):
     """`- id: T07` opens a node, `needs:` carries its hard edges in either YAML
     spelling.  Returns None the moment a list item opens with a key other than
@@ -1034,7 +1053,7 @@ def parse_graph(text):
     this module is stdlib-only on 3.9, the same constraint `tools/index.py` works
     under."""
     nodes, cur, collecting = {}, None, False
-    for line in text.split("\n"):
+    for line in unwrap_nodes(text).split("\n"):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         m = GRAPH_ID_RE.match(line)
@@ -2294,6 +2313,9 @@ def selftest():
                       not lint(bad_g, "I", SELFTEST_HANDOFF_EDIT)))
         cases.append(("the graph parser declines a plan whose entries do not open with `id`",
                       parse_graph("- kind: task\\n  id: N1\\n  needs: [N0]\\n") is None))
+        cases.append(("the graph parser reads a `nodes:` mapping the same as the flat list",
+                      parse_graph("nodes:\n" + "\n".join("  " + l if l else l for l in SELFTEST_GRAPH.split("\n")))
+                      == parse_graph(SELFTEST_GRAPH)))
         cases.append(("the graph parser reads both YAML spellings of `needs`",
                       parse_graph(SELFTEST_GRAPH)["N1"] == set(["N0"])
                       and parse_graph(SELFTEST_GRAPH)["N2"] == set(["N1"])))

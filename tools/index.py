@@ -123,6 +123,25 @@ ANY_HEADING_RE = re.compile(r"^\s{0,3}#{1,4}\s")
 NUMBERED_ITEM_RE = re.compile(r"^\d+\.\s")
 GRAPH_ID_RE = re.compile(r"^-\s+id:\s*(\S+)\s*$")
 GRAPH_KEY_RE = re.compile(r"^\s+(phase|title|rung|kind|effort):\s*(.*?)\s*$")
+
+
+def unwrap_nodes(text):
+    """CONTRACT §4's graph is a flat `- id:` list. A graph written as a mapping -
+    `nodes:` over an indented list, which valid YAML allows and planners write -
+    is the same graph one level down: lift it back so every parser reads one
+    shape. Text with no top-level `nodes:` key is returned unchanged."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^nodes:\s*(#.*)?$", line):
+            body = []
+            for rest in lines[i + 1:]:
+                if rest.strip() and not rest.startswith((" ", "\t")):
+                    break
+                body.append(rest)
+            dashes = [len(b) - len(b.lstrip()) for b in body if b.lstrip().startswith("- ")]
+            cut = min(dashes) if dashes else 0
+            return "\n".join(b[cut:] if b.strip() else b for b in body)
+    return text
 FRONTMATTER_STATUS_RE = re.compile(r"^status:\s*(.*?)\s*$")
 
 MAX_LIST_IN_SUMMARY = 8
@@ -248,7 +267,7 @@ def load_graph(path, findings, root):
         )
         return nodes
     current = None
-    for line in text.split("\n"):
+    for line in unwrap_nodes(text).split("\n"):
         match = GRAPH_ID_RE.match(line)
         if match:
             current = match.group(1).strip().strip("\"'")

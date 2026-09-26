@@ -42,12 +42,31 @@ NODE_RE = re.compile(r"^-\s+id:\s*(\S+)")
 KEY_RE = re.compile(r"^  ([a-z_]+):\s*[\"']?([^\s\"'#]*)")
 
 
+def unwrap_nodes(text):
+    """CONTRACT §4's graph is a flat `- id:` list. A graph written as a mapping -
+    `nodes:` over an indented list, which valid YAML allows and planners write -
+    is the same graph one level down: lift it back so every parser reads one
+    shape. Text with no top-level `nodes:` key is returned unchanged."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if re.match(r"^nodes:\s*(#.*)?$", line):
+            body = []
+            for rest in lines[i + 1:]:
+                if rest.strip() and not rest.startswith((" ", "\t")):
+                    break
+                body.append(rest)
+            dashes = [len(b) - len(b.lstrip()) for b in body if b.lstrip().startswith("- ")]
+            cut = min(dashes) if dashes else 0
+            return "\n".join(b[cut:] if b.strip() else b for b in body)
+    return text
+
+
 def graph_node(state, node):
     """{'rung': int|None, 'effort': str|None} for one node of <state>/plan/graph.yaml."""
     path = os.path.join(state, "plan", "graph.yaml")
     out, current = {"rung": None, "effort": None}, None
     try:
-        lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+        lines = unwrap_nodes(open(path, encoding="utf-8", errors="replace").read()).splitlines()
     except OSError:
         return out
     for line in lines:
@@ -248,6 +267,11 @@ def selftest():
         results.append(("the spawn's transcript and result stay beside the row",
                         os.path.isfile(os.path.join(state, "spawns", "X1-a2", "transcript.jsonl"))
                         and os.path.isfile(os.path.join(state, "spawns", "X1-a2", "result.json"))))
+        open(os.path.join(state, "plan", "graph.yaml"), "w").write(
+            "nodes:\n  - id: N1\n    rung: 1\n    effort: medium\n  - id: N0\n    rung: 0\n")
+        results.append(("a `nodes:` mapping graph is read the same as a flat list",
+                        resolve(state, "N1", "graph", "graph") == (1, "medium")
+                        and resolve(state, "N0", "graph", "graph") == (0, "default")))
         try:
             parse(["--node", "B1", "--model", "m", "--prompt", prompt, "--effort", "hgih", "--state-root", state])
             resolve(state, "B1", "graph", "hgih")
