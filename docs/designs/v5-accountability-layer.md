@@ -166,3 +166,9 @@ greenfield build, every effort met the contract, and a blind judge preferred hig
 it in robustness and tests (`docs/experiments/effort-greenfield-go-blog.md`). So v5 keeps one model and
 sets effort per node (`rules/rule-1-1-entry-rung.md`): high to build or design, medium to verify or
 repair against a named criterion.
+
+**Then measured wider, and building moved too.** Three greenfield tasks at five builds per effort
+put high only 0.37 judge points above medium, every build passing every hidden test
+(`docs/experiments/effort-bench-three-tasks.md`); and a retry at high confirmed one node in nine more
+than at medium, for 44% more (`docs/experiments/retry-effort.md`). Rule 1.1 now runs building,
+design, verification and repair at medium, and keeps high for planning, synthesis and a retry.

@@ -32,16 +32,18 @@ and the defect the cheap tier introduced that the verifier did not catch.
 **Assign frontier unless the work is a command.**
 
 **At frontier, the planner also sets the node's `effort:`, and it follows the kind of work, not its
-size.** Effort is the one lever left inside a tier, and the two directions of it measured differently:
+size.** Effort is the one lever left inside a tier. Measured, it bought less than its price nearly
+everywhere it was tested:
 
 | the node's work | `effort` | evidence |
 |---|---|---|
-| building or designing something new: an implementation from a goal, a new tool, a page | `high` | a blind judge scored high 8.05 against medium's 7.33 on a greenfield build; every arm passed every hidden test, and the lead was robustness and tests (`docs/experiments/effort-greenfield-go-blog.md`) |
+| building or designing something new: an implementation from a goal, a new tool, a page | `medium` | three greenfield tasks, five builds per effort: all 45 builds passed every hidden test; a blind judge put high 0.37 above medium (90% interval 0.18–0.56), below the 0.5 pre-registered as material, at 1.4–2× the cost (`docs/experiments/effort-bench-three-tasks.md`) |
 | verifying a specified claim; repairing or re-deriving against a named criterion | `medium` | on the eighteen replayed nodes medium matched high's first-try yield, 6 against 6, for 31% less (`docs/experiments/frontier-at-medium-effort.md`) |
 | planning, adjudication, synthesis, a brief | `high` | not measured; judgment over a whole run, spent once |
-| a frontier retry (§1.2) | `high` | not measured; the retry is the node's last agent attempt |
+| a frontier retry (§1.2) | `high` | measured, inconclusive: 5 of 9 retries confirmed at high against 4 of 9 at medium, for 44% more, the whole gap one coin-flip node; the escalation packet did the work at either effort (`docs/experiments/retry-effort.md`) |
 
-A frontier node with no `effort:` runs at `high`. A verifier takes `medium` unless its node is
-building-class, because a verifier's work is a specified claim whatever the worker did. The cheap
+A frontier node with no `effort:` runs at `high`, so a graph written before this table spends as it
+always did. A verifier takes `medium`: its work is a specified claim whatever the worker did. Low
+effort was measured too and lost on every task by 1.3–1.7 judge points, so no row names it. The cheap
 tier's effort is the harness's default. The ledger's `effort` column records what ran (§7), so this
 table is re-checked by every run's histogram, not assumed.

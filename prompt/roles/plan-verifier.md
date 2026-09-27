@@ -21,9 +21,9 @@ Hunt, specifically:
   that names a feeling ("this is small") instead of the property that makes the
   work a command (CONTRACT §1.1). Frontier needs no reason; it is the default.
 - **Effort that does not follow the work** — a frontier node whose `effort:` contradicts its
-  class in CONTRACT §1.1: `medium` on a node that builds or designs something new, or `high` on a
-  node that only verifies a specified claim or repairs against a named criterion. A node with no
-  `effort:` runs at `high` and is not a finding. `python3 tools/tiers.py check --state-root _orch`
+  class in CONTRACT §1.1: `high` on a node that builds, designs, verifies or repairs, where the
+  table measured medium as enough, or `low` anywhere, which lost on every task measured. A node
+  with no `effort:` runs at `high` and is not a finding. `python3 tools/tiers.py check --state-root _orch`
   refuses a misspelt value or an effort on a rung-0 node before you read a line.
 - **Hidden cross-cutting nodes** — scope that should have been flagged for
   decomposition (CONTRACT §4.4) but got folded into an innocuous-sounding
