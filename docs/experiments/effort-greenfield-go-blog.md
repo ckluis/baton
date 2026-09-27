@@ -1,5 +1,8 @@
 # Effort bench: Opus 5.5 at low, medium and high on a greenfield Go build
 
+> **Superseded 2026-09-26** by `docs/experiments/effort-bench-three-tasks.md`: with five builds a side
+> and two more tasks, medium qualifies and rule 1.1 now says medium to build. This record stands as v1.
+
 The bench's harness, hidden suite, fixtures and all nine builds live outside this repository, in `/Users/clank/Desktop/projects/effort-blog-bench/` (pre-registered at its commit `c4f565e`, result `07fe575`). This file is the record.
 
 Drafted 2026-09-24 · Ran 2026-09-24 · Status: **RUN — high, by a fragile margin** · Total spend $12.88 (builds $7.49, judges $5.39 incl. one invalid round)
