@@ -1,6 +1,6 @@
 # Experiment: a frontier retry at medium or at high effort
 
-Drafted 2026-09-26 · Status: **PRE-REGISTERED, not yet run**
+Drafted 2026-09-26 · Ran 2026-09-26 to 2026-09-27 · Status: **RUN — inconclusive; retry at high kept, marked measured**
 
 ## The question
 
@@ -52,4 +52,46 @@ beside each other. Two of three replicates disagreeing on a node is itself a res
 
 ## Result
 
-Not yet run.
+| per arm, 9 retries | medium | high |
+|---|---|---|
+| retries CONFIRMED | **4 of 9** | **5 of 9** |
+| first attempt's failing rows now CONFIRMED | 142 of 150 | 143 of 150 |
+| cost, worker + verifier | $40.10 | $57.77 (+44%) |
+| seconds, worker + verifier | 6,221 | 8,998 (+45%) |
+
+| node, replicates 1 / 2 / 3 | medium | high |
+|---|---|---|
+| `P41` | C · C · C | C · C · C |
+| `P76` | C · R · P | P · C · C |
+| `P160` | P · P · P | P · P · P |
+
+(C = CONFIRMED, P = PARTIAL, R = REFUTED.)
+
+**The rule, applied.** High confirmed one more retry than medium, not the two the rule needs for
+"retry at high stands", and not few enough for "retry at the node's own effort". The outcome is
+**inconclusive**. Rule 1.1 keeps `high` for a frontier retry, and its table now marks that row
+*measured, inconclusive* instead of *not measured*.
+
+**What the nodes say.**
+- **`P41` retries reliably at either effort.** The escalation packet named the unregistered
+  deviation that refuted the first attempt, and all six retries closed it. The packet did the
+  work; effort did not.
+- **`P160` is fixed identically by both.** The first attempt's worker returned `BLOCKED` after 78 s
+  and left 44 rows refuted. Every retry, at either effort, did the work and resolved all 44. Each
+  is left `PARTIAL` on the same two replay-artefact rows, which no retry can settle.
+- **`P76` is a coin.** Its original criterion #1, *"every count statement"*, is unbounded, and
+  medium-effort verifiers split on it: settled, unsettleable, or false, across six retries. The
+  whole difference between the arms is this one node, 1 of 3 against 2 of 3.
+
+**Two findings beyond the rule.**
+- **Most first-attempt failures are not retries.** Nine of the medium arm's twelve failures were
+  `UNSETTLEABLE`-only and park under §9.2. A retry policy governs three nodes in eighteen here.
+- **With the evidence in the handoff, a retry mostly succeeds at either effort.** 142 or 143 of 150
+  failing rows came back CONFIRMED. §1.2's own observation holds here too: the mechanism is the
+  packet, and effort decides at most the coin-flip nodes.
+
+**Harness notes.** One account session limit killed both replicate-2 `P41` workers mid-run; both
+were set aside, logged as event rows, and re-run whole. All 36 live spawns were served by the model asked for; the two aborted ones show `<synthetic>`, the session-limit placeholder.
+
+**What this does not settle.** Three nodes. A different corpus with more capability-bound
+refutations could separate the arms; this one mostly measured the packet.
