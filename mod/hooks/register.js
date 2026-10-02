@@ -20,6 +20,7 @@ const run = {
   active: false, // the cached answer
   manifest: null, // the parsed manifest, when active
   startedHere: false, // /baton start ran in this module's lifetime
+  kickoff: null, // the prime's first prompt, submitted by the ticker after /baton start
 }
 
 // What the guard learned about agentId at run time.
@@ -430,7 +431,7 @@ const MODES = ['BUILD', 'CRAFT', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'PO
 function kickoff(m) {
   return (
     'baton v7 run ' + m.run_id + ' started — MODE ' + m.mode + ', TARGET ' + m.target + '. You are the PRIME orchestrator. ' +
-    'Load the baton skill (Skill "baton:baton") for your standing orders. In short: you never read, run or edit anything — the mod refuses it; ' +
+    'Load the baton prime skill (Skill "baton:prime") for your standing orders. In short: you never read, run or edit anything — the mod refuses it; ' +
     'you dispatch. First dispatch one baton:sub-orchestrator to bootstrap the run (directive from the mode file, cast, plan, plan verification) ' +
     'and return one line. Then dispatch one sub-orchestrator per phase. Note decisions with memory_note; after a rotation call memory_wake first.'
   )
@@ -480,9 +481,20 @@ async function batonStart($, args) {
   await registerMemoryTools($)
   await appendNote($, 'run', 'run ' + m.run_id + ' started: MODE ' + mode + ', TARGET ' + target, 'operator')
   $.ui.invalidate('ui.render')
-  // Start the prime's first turn once the command returns (not awaited: it resolves when the turn starts).
-  $.prompt.submit({ text: kickoff(m) }).catch(() => {})
-  return 'baton run ' + m.run_id + ' started (MODE ' + mode + ', TARGET ' + target + '). The prime guard is armed: the main session may only dispatch, ask and use memory.'
+  const started = 'baton run ' + m.run_id + ' started (MODE ' + mode + ', TARGET ' + target + '). The prime guard is armed: the main session may only dispatch, ask and use memory.'
+  // A command hook may not submit a prompt (it would wait on the turn the hook
+  // holds). Interactive: the session.start ticker submits the kickoff once this
+  // returns. Headless: the kickoff rides in this text, which Claude reads with
+  // the next prompt the driver sends.
+  let surfaces = []
+  try {
+    surfaces = await $.session.surfaces()
+  } catch {}
+  if (surfaces.length) {
+    run.kickoff = kickoff(m)
+    return started
+  }
+  return started + '\n\n' + kickoff(m)
 }
 
 async function batonStop($) {
@@ -694,11 +706,17 @@ export function register(on, options) {
         $.ui.log('baton: could not register the memory tools: ' + err.message)
       }
     }
-    // The rotation ticker: runs a compaction /baton rotate owes, from outside
-    // any command's frame (see the command). Cheap when idle: one flag check.
+    // The ticker: runs what a command hook may not — the compaction /baton
+    // rotate owes, the kickoff prompt /baton start owes — from outside any
+    // command's frame. Cheap when idle: two flag checks.
     if (!rotation.ticker) {
       try {
         rotation.ticker = $.clock.every(150, async () => {
+          if (run.kickoff) {
+            const text = run.kickoff
+            run.kickoff = null
+            $.prompt.submit({ text }).catch((err) => $.ui.log('baton: could not start the prime: ' + err.message))
+          }
           if (!rotation.owed || rotation.compacting) return
           const r = await compactOnce($)
           rotation.owedTicks++
