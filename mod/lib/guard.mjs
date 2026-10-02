@@ -26,7 +26,7 @@ export function isPrimeCall(e) {
 
 /** baton's own skill is instructions, not a file of the target: the prime may load it. */
 export function isBatonSkill(e) {
-  return e != null && e.tool === 'Skill' && /^baton(:baton)?$/.test(String(e.skill ?? '').trim())
+  return e != null && e.tool === 'Skill' && /^(baton:)?(prime|baton)$/.test(String(e.skill ?? '').trim())
 }
 
 export function primeMayUse(tool, e) {

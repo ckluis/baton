@@ -125,3 +125,42 @@ test('the spinner carries the phase and the node the prime dispatched', async ($
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'Spinner', props: { word: 'Thinking', message: null, suffix: '…', mode: 'thinking' } as any })
   expect((await ui.find({ type: 'Text', text: /^engine/ }))?.text).toBe('engine " · baton · P2 · P2 phase…"')
 })
+
+test('/baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
+  const written: Record<string, string> = {}
+  on('fs.read', (_$: any, e: any) => {
+    const k = Object.keys(written).find((p) => e.path.endsWith(p))
+    return k ? { value: written[k] } : { deny: 'ENOENT' }
+  })
+  on('fs.write', (_$: any, e: any) => {
+    written[e.path] = e.text
+    return { value: undefined }
+  })
+  on('fs.exists', () => ({ value: true }))
+  on('ui.log', () => ({ value: undefined }))
+  on('session.cwd', () => ({ value: '/work' }))
+  on('session.root', () => ({ value: '/work' }))
+  on('session.surfaces', () => ({ value: [] }))
+  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: '', truncated: false, merges: [] }), stderr: '' } }))
+  on('command.run', () => ({ text: 'core' }))
+  on('tool.call', () => ({ result: 'ran' }))
+  const bad: any = await $.command.run({ command: 'baton', args: 'start NOPE x' } as any)
+  expect(bad.text).toContain('usage: /baton start <MODE> <TARGET>')
+  const r: any = await $.command.run({ command: 'baton', args: 'start BUILD ./app the parser' } as any)
+  expect(r.text).toContain('started (MODE BUILD, TARGET ./app the parser)')
+  expect(r.text).toContain('You are the PRIME orchestrator') // headless: the kickoff rides in the text
+  const mf = () => written[Object.keys(written).find((p) => p.endsWith('_orch/manifest.json'))!]
+  const m = JSON.parse(mf())
+  expect(m).toMatchObject({ mode: 'BUILD', target: './app the parser', prime: true, models: { frontier: 'claude-opus-5-5', cheap: 'claude-sonnet-5-5' } })
+  expect(m.run_id).toMatch(/^build-\d{8}T\d{6}Z$/)
+  expect(m.baton_base).toBeDefined()
+  const denied: any = await $.tool.call({ tool: 'Bash', command: 'ls' } as any)
+  expect(denied.deny).toContain('is not a prime tool')
+  const again: any = await $.command.run({ command: 'baton', args: 'start TEST ./b' } as any)
+  expect(again.text).toContain('already active')
+  const stop: any = await $.command.run({ command: 'baton', args: 'stop' } as any)
+  expect(stop.text).toContain('closed')
+  expect(JSON.parse(mf()).closed).toBe(true)
+  expect(((await $.tool.call({ tool: 'Bash', command: 'ls' } as any)) as any).result).toBe('ran')
+})

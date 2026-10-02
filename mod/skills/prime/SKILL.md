@@ -1,5 +1,5 @@
 ---
-name: baton
+name: prime
 description: Run baton v7 — a prime orchestrator that never reads. Use when the user wants a baton run (/baton start <MODE> <TARGET>), when this session is the prime of a baton run (the baton plugin refuses Read/Bash/Edit and says "is not a prime tool"), or after a rotation tells you to call memory_wake.
 ---
 

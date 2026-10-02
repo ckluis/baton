@@ -26,6 +26,12 @@ test('agentId absent, null or empty all count as the prime (fail closed)', () =>
   assert.ok(!primeMayUse('Bash'))
 })
 
+test("baton's own prime skill is the one skill the prime may load", () => {
+  assert.equal(guardDecision({ tool: 'Skill', skill: 'baton:prime' }, true), null)
+  assert.equal(guardDecision({ tool: 'Skill', skill: 'prime' }, true), null)
+  assert.ok(guardDecision({ tool: 'Skill', skill: 'review' }, true).deny)
+})
+
 test('manifest arming', () => {
   assert.equal(manifestIsPrime('{"prime":true}'), true)
   assert.equal(manifestIsPrime('{"prime":"yes"}'), false)
