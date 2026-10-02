@@ -73,6 +73,17 @@ the seeds scores the action right or wrong. No judge is involved.
 `S(C) ≥ S(A) − 0.05`. **Memory loses** if `S(C) < S(B)`. Anything else is inconclusive. The late half
 (checkpoints 13–24) is reported separately, because rot shows late.
 
+**Amendment, 2026-10-02, before any E1 run.** The harness builder found two flaws in the design above, and both
+are fixed before the first model call:
+- **Scale.** At one paragraph per envelope, arm A would end near 20K tokens of a 1M window, where nothing
+  rots, so the test could not separate the arms. Each envelope now carries 60 routing-irrelevant detail lines
+  (`gen.py --pad 60`), and arm A ends at about 252K tokens. The checkpoints and rotation points are unchanged.
+- **Controls.** Every scored checkpoint was a trap where the obvious action is wrong, so a prime that learned
+  "the obvious answer is never right" could score without remembering anything. Twelve **control**
+  checkpoints are added, 6 per half, where the obvious action is correct. The prime sees all 36 numbered
+  alike. `S` remains dependency accuracy over the 24 seeded checkpoints. **A run whose control accuracy is
+  below 0.75 is flagged contrarian, reported, and excluded from its arm's mean.**
+
 ## E2 — do memory-bearing luminaries earn their place? (pre-registered)
 
 **The setup.** **Eight review tasks** on one evolving codebase. Each carries 6 seeded defects:

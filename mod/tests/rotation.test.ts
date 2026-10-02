@@ -102,19 +102,29 @@ test('if no SessionStart carried the wake, the prime\'s next tool call does', as
   expect(r2.context ?? []).toHaveLength(0)
 })
 
-test('/baton rotate forces one, and the count is visible in /baton status', async ($, on) => {
-  const clock = mock.clock(on)
+test('/baton rotate: handoff note, then the engine\'s own /compact queued; its compaction counts and arms the wake', async ($, on) => {
   const w = world(on)
+  const submits: any[] = []
+  on('prompt.submit', (_$: any, e: any) => {
+    submits.push(e)
+    return { text: e.text }
+  })
   on('command.run', () => ({ text: 'core' }))
+  on('classic.SessionStart', () => ({}))
   const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
-  expect(r.text).toContain('rotation requested')
-  await clock.advance(10)
-  await clock.settle()
-  expect(w.compacts).toHaveLength(1)
+  expect(r.text).toContain('/compact queued (rotation #1)')
   expect(w.notes.at(-1)!.tag).toBe('handoff')
-  expect(w.compacts[0].instructions).toContain('baton prime rotation')
+  expect(submits).toHaveLength(1)
+  expect(submits[0].text).toStartWith('/compact This is a baton prime rotation.')
+  // the engine runs the queued /compact: a manual compaction
+  const notesBefore = w.notes.length
+  await $.session.compact({ trigger: 'manual', instructions: 'x', messages: [MSG] } as any)
+  expect(w.notes.length).toBe(notesBefore) // no second note: the handoff was written
   const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
-  expect(s.text).toContain('rotations 1')
+  expect(s.text).toContain('rotations 1 (last')
+  expect(s.text).toContain('baton rotate')
+  const wake: any = await $.classic.SessionStart({ source: 'compact' } as any)
+  expect(wake.additionalContext.join(' ')).toContain('mcp__baton__memory_wake')
 })
 
 test('/baton rotate outside a run says so', async ($, on) => {
@@ -141,8 +151,7 @@ test('BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does'
   expect(w.compacts).toHaveLength(0)
   const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
   expect(s.text).toContain('auto-rotation off')
-  await $.command.run({ command: 'baton', args: 'rotate' } as any)
-  await clock.advance(10)
-  await clock.settle()
-  expect(w.compacts).toHaveLength(1)
+  on('prompt.submit', (_$: any, e: any) => ({ text: e.text }))
+  const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
+  expect(r.text).toContain('/compact queued')
 })

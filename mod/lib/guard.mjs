@@ -35,11 +35,12 @@ export function primeMayUse(tool, e) {
 
 export function denyReason(tool) {
   return (
-    `baton: the prime never runs ${tool} during a run — ${ROUTE}. ` +
-    `Call Agent with subagent_type "baton:sub-orchestrator" (or "baton:worker" / "baton:verifier") ` +
-    `and a prompt naming the phase or node, its handoff path and what to return; it reads, runs and edits, ` +
-    `and returns one line. Your own tools: Agent, AskUserQuestion, SendMessage, ToolSearch and ` +
-    `mcp__baton__memory_* / project_* (memory_wake shows the run so far).`
+    `baton: ${tool} is not a prime tool. This session is the prime orchestrator of a baton run (the operator ` +
+    `started it with /baton start), and in that role it delegates every read, command and edit to a subagent ` +
+    `by design — ${ROUTE}: Agent with subagent_type "baton:sub-orchestrator" (or "baton:worker" / "baton:verifier") ` +
+    `and a prompt naming the phase or node, its handoff path and what to return; it does the work and returns one line. ` +
+    `The prime's own tools: Agent, AskUserQuestion, SendMessage, ToolSearch and mcp__baton__memory_* / project_* ` +
+    `(memory_wake shows the run so far). /baton stop ends the run and this routing.`
   )
 }
 

@@ -45,6 +45,8 @@ const FRONTIER_MODEL = FRONTIER
 // Subagents the prime spawned directly: agentId -> { type, description, name }.
 // Their returns become run-memory notes.
 const spawnedByPrime = new Map()
+// Returns already noted from a SubagentHandback call, so turn.complete does not note them twice.
+const handedBack = new Set()
 
 const memory = {
   toolsRegistered: false,
@@ -66,6 +68,8 @@ const rotation = {
   lastAt: null, // ISO time of the last rotation
   lastTrigger: null, // plugin | auto | manual
   lastError: null, // why the last compaction attempt was refused
+  compacting: null, // the attempt in progress, so two callers share one
+  viaCommand: false, // /baton rotate queued the engine's /compact
 }
 
 const WAKE_CONTEXT =
@@ -273,6 +277,24 @@ async function mergePass($) {
   }
 }
 
+/** Note the one-line return of a subagent the prime dispatched. True when a note was written. */
+async function noteReturn($, agentId, text) {
+  if (!(await runActive($))) return false
+  const who = spawnedByPrime.get(agentId)
+  const line = firstLine(text)
+  if (!who || !line) return false
+  const role = String(who.type ?? 'agent').replace(/^baton:/, '')
+  const tag = role === 'sub-orchestrator' ? 'sub' : role.slice(0, 16)
+  const label = who.name || who.description
+  try {
+    await appendNote($, 'run', (label ? label + ': ' : '') + line, tag)
+    return true
+  } catch (err) {
+    $.ui.log('baton: could not note a return: ' + err.message)
+    return false
+  }
+}
+
 function firstLine(text) {
   for (const l of String(text ?? '').split('\n')) {
     const t = l.replace(/^[#>*\-\s`]+/, '').trim()
@@ -301,36 +323,69 @@ async function handoffLine($, percent) {
  * prime turn) memory_wake. Compaction is refused while a turn runs, so it is
  * retried on the clock until the session is idle (up to ~60 s).
  */
-async function rotate($, why) {
-  if (rotation.inFlight) return 'a rotation is already in flight'
-  rotation.inFlight = true
+async function writeHandoff($, why) {
   try {
     const line = await handoffLine($, rotation.lastPercent)
     await appendNote($, 'run', 'handoff (' + why + '): ' + line, 'handoff')
   } catch (err) {
     $.ui.log('baton: handoff note failed: ' + err.message)
   }
-  for (let attempt = 0; attempt < 30; attempt++) {
-    try {
-      const before = rotation.count
-      const r = await $.session.compact({ instructions: COMPACT_INSTRUCTIONS })
-      rotation.inFlight = false
-      if (r && r.skip) {
-        $.ui.log('baton: rotation skipped: ' + r.skip)
-        return 'skipped: ' + r.skip
-      }
-      // The session.compact hook counts it; a plugin's own call may skip this
-      // module's hooks (the engine's recursion guard), so count it here then.
-      if (rotation.count === before) await countRotation($, 'plugin')
-      return 'rotated (#' + rotation.count + ')'
-    } catch (err) {
-      rotation.lastError = err && err.message ? err.message : String(err)
-      await $.clock.sleep(2000)
+}
+
+/** One compaction attempt (joined, if one is already running). Resolves { ok, text }; never throws. */
+async function compactOnce($) {
+  if (rotation.compacting) return rotation.compacting
+  rotation.compacting = compactAttempt($)
+  try {
+    return await rotation.compacting
+  } finally {
+    rotation.compacting = null
+  }
+}
+
+async function compactAttempt($) {
+  try {
+    const before = rotation.count
+    const r = await $.session.compact({ instructions: COMPACT_INSTRUCTIONS })
+    if (r && r.skip) {
+      $.ui.log('baton: rotation skipped: ' + r.skip)
+      return { ok: true, text: 'skipped: ' + r.skip }
     }
+    // The session.compact hook counts it; a plugin's own call may skip this
+    // module's hooks (the engine's recursion guard), so count it here then.
+    if (rotation.count === before) await countRotation($, 'plugin')
+    return { ok: true, text: 'rotated (#' + rotation.count + ')' }
+  } catch (err) {
+    rotation.lastError = err && err.message ? err.message : String(err)
+    return { ok: false, text: rotation.lastError }
+  }
+}
+
+/**
+ * Retry a compaction on the clock until the session is idle (~60 s): the
+ * threshold's rotation is scheduled right after a turn, which may still be
+ * closing when the clock fires.
+ */
+async function compactWhenIdle($) {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const r = await compactOnce($)
+    if (r.ok) {
+      rotation.inFlight = false
+      return r.text
+    }
+    await $.clock.sleep(2000)
   }
   rotation.inFlight = false
   $.ui.log('baton: rotation gave up — compaction kept refusing: ' + rotation.lastError)
   return 'gave up: compaction kept refusing (' + rotation.lastError + ')'
+}
+
+/** The threshold's rotation, off the clock: handoff note, then compaction when idle. */
+async function rotate($, why) {
+  if (rotation.inFlight) return 'a rotation is already in flight'
+  rotation.inFlight = true
+  await writeHandoff($, why)
+  return compactWhenIdle($)
 }
 
 /** Record one rotation: count it, arm the wake, persist the count per run. */
@@ -616,7 +671,7 @@ export function register(on, options) {
         probe.notice =
           `baton: the prime guard tells the prime from a subagent by tool.call's agentId, verified on Claude Code ` +
           `${VERIFIED_AGENTID_VERSION}; this is ${probe.version}. The guard fails closed: a call without agentId ` +
-          `is treated as the prime's. If subagents report "the prime never runs", agentId has changed — /baton stop.`
+          `is treated as the prime's. If subagents report "is not a prime tool", agentId has changed — /baton stop.`
         $.ui.log(probe.notice)
       }
     } catch {
@@ -652,6 +707,12 @@ export function register(on, options) {
       if (!probe.seen.has(e.agentId)) {
         probe.seen.add(e.agentId)
         if (probe.spawned.has(e.agentId) && !probe.verified) probe.verified = true
+      }
+      // Where subagents report through a SubagentHandback tool, that call carries the return.
+      if (e.tool === 'SubagentHandback' && spawnedByPrime.has(e.agentId)) {
+        const r = await next(e)
+        if (!r.deny && (await noteReturn($, e.agentId, e.message))) handedBack.add(e.agentId)
+        return r
       }
       return next(e)
     }
@@ -706,13 +767,16 @@ export function register(on, options) {
   // count it, and arm the wake for the prime's next turn.
   on('session.compact', async ($, e, next) => {
     if (e.agentId || e.trigger === 'precompute' || !(await runActive($))) return next(e)
-    if (e.trigger !== 'plugin') {
+    if (e.trigger !== 'plugin' && !rotation.viaCommand) {
       try {
         await appendNote($, 'run', 'compaction (' + e.trigger + ') at ' + (rotation.lastPercent ?? '?') + '% — memory_wake for the state', 'handoff')
       } catch {}
     }
     const r = await next(e)
-    if (r && !r.skip) await countRotation($, e.trigger)
+    const ours = rotation.viaCommand
+    rotation.viaCommand = false
+    if (ours) rotation.inFlight = false
+    if (r && !r.skip) await countRotation($, ours ? 'baton rotate' : e.trigger)
     return r
   })
 
@@ -725,7 +789,7 @@ export function register(on, options) {
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), wake] }
   })
 
-  // Belt and braces: if no SessionStart carried it, the next prompt does.
+  // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
   on('prompt.submit', async ($, e, next) => {
     const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
     if (!wake) return next(e)
@@ -744,10 +808,26 @@ export function register(on, options) {
       case 'rotate': {
         if (!(await runActive($))) return { text: 'no baton run is active here; nothing to rotate' }
         if (rotation.inFlight) return { text: 'baton: a rotation is already in flight' }
-        // The engine refuses a compaction from inside a command.run hook (it
-        // would compact under the turn the hook holds), so run it off the clock.
-        $.clock.after(0, () => rotate($, 'forced by /baton rotate'))
-        return { text: 'baton: rotation requested (rotations so far: ' + rotation.count + ') — handoff note, then compaction, then memory_wake on the next prime turn' }
+        rotation.inFlight = true
+        await writeHandoff($, 'forced by /baton rotate')
+        // Compact here if the engine allows it. Claude Code 2.1.287 refuses a
+        // compaction from inside a command.run (or prompt.submit) hook — "it
+        // would compact under the turn this hook is holding" — so the rotation
+        // queues the engine's own /compact instead: it runs before any prompt
+        // sent after this command, emits the same compact_boundary a sent
+        // /compact does, and the session.compact hook counts it and arms the wake.
+        const r = await compactOnce($)
+        if (r.ok) {
+          rotation.inFlight = false
+          return { text: 'baton: ' + r.text + ' — rotations this session: ' + rotation.count + '; the prime calls memory_wake first' }
+        }
+        rotation.viaCommand = true
+        $.prompt.submit({ text: '/compact ' + COMPACT_INSTRUCTIONS, asUser: true }).catch((err) => {
+          rotation.viaCommand = false
+          rotation.inFlight = false
+          $.ui.log('baton: could not queue /compact: ' + err.message)
+        })
+        return { text: 'baton: handoff noted; /compact queued (rotation #' + (rotation.count + 1) + ') — it runs before the next prompt, then the prime calls memory_wake first' }
       }
       case 'status':
         return { text: await statusText($) }
@@ -840,20 +920,11 @@ export function register(on, options) {
   on('turn.complete', async ($, e, next) => {
     if (e.agentId && live.delete(e.agentId)) $.ui.invalidate('ui.render')
     if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
-    // A subagent the prime dispatched returned: its one line becomes a note.
-    if (e.agentId && spawnedByPrime.has(e.agentId) && !e.isAborted && (await runActive($))) {
-      const who = spawnedByPrime.get(e.agentId)
-      const line = firstLine(e.answer)
-      if (line) {
-        const role = String(who.type).replace(/^baton:/, '')
-        const tag = role === 'sub-orchestrator' ? 'sub' : role.slice(0, 16)
-        try {
-          const label = who.name || who.description
-          await appendNote($, 'run', (label ? label + ': ' : '') + line, tag)
-        } catch (err) {
-          $.ui.log('baton: could not note a return: ' + err.message)
-        }
-      }
+    // A subagent the prime dispatched returned: its one line becomes a note
+    // (unless its SubagentHandback call already carried it).
+    if (e.agentId && spawnedByPrime.has(e.agentId) && !e.isAborted) {
+      if (handedBack.has(e.agentId)) handedBack.delete(e.agentId)
+      else await noteReturn($, e.agentId, e.answer)
     }
     if (e.agentId && probe.spawned.has(e.agentId) && !probe.seen.has(e.agentId) && probe.deniedWhileLive > 0 && !probe.verified) {
       probe.notice =
