@@ -21,13 +21,10 @@ links:
 - **`refutes`** — verification. The node exists to attack a specific claim.
   Its author may never be the author of the target.
 
-**That separation binds `personas:`, not just authorship.** A persona slug
-seated on a node may not also be seated on a node that `refutes` it, nor on the
-verification of a node it was seated on to author. The duty already exists —
-`{BATON}/personas/CONTRACT.md` §2.1, the `EXECUTE` row — but a duty with no
-enforcement point is still constructible in a graph, so this is where the graph
-enforces it. The plan verifier hunts the collision and refutes the graph
-carrying it, before any of it runs.
+**That separation binds `personas:` too.** An archetype seated on a node may
+not also be seated on a node that `refutes` it, nor on the verification of a node
+it was seated on to author. The plan verifier refutes a graph carrying the
+collision, before any of it runs.
 
 `surface: ui` is not decoration. A node carrying it gets a **journey probe**
 (`{BATON}/prompt/roles/journey-probe.md`) added to its verification alongside the

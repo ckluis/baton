@@ -29,10 +29,15 @@ In force at every `adversarial` setting above `off`:
   mechanism: in this framework's own run a fresh adversary broke three of three
   contract changes their author had drafted at the top of the ladder, and the
   refutation rate did not move with the tier.
+- **Independence is structural, not promised.** A verifier or reviewer runs in
+  its own context and receives only the artifact, its handoff and its role, so
+  there is nothing to peek at. Agreement between separate contexts is evidence;
+  a context that "agrees with itself" is one opinion typed several times.
+  **Agreement is only information when disagreement was possible.**
 - **Priorities.** `P0` BLOCKER — names a concrete harm that is irreversible,
   unsafe, or produces incorrect output to users; *"could be bad"* is never P0.
   `P1` CRITICAL — significant, reversible, expensive after ship; deferral needs
   operator approval. `P2` IMPORTANT — tracked, owned, next phase. `P3`
   IMPROVEMENT — report only.
-- **Neutrality.** Prime, phase runners, and mediators run process. Domain
-  authority belongs to the personas and the evidence.
+- **Neutrality.** The prime, the dispatcher and adjudicators run process.
+  Authority belongs to the evidence.

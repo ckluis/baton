@@ -36,8 +36,8 @@ So, as a duty on the layer that created the worktree:
 > while any `outputs` path resolves only inside it.
 
 **Where the copy lands.** A product path keeps its path relative to the worktree root:
-`<worktree>/personas/lenses/type-system.md` lands at
-`_orch/nodes/<id>/work/tree/personas/lenses/type-system.md`, under a `tree/` prefix so it cannot
+`<worktree>/src/billing/retry.py` lands at
+`_orch/nodes/<id>/work/tree/src/billing/retry.py`, under a `tree/` prefix so it cannot
 collide with the node's own `work/` files. An output already under `_orch/nodes/<id>/work/` is
 already landed and is not copied again. The phase runner rewrites the envelope's `outputs` to the
 landed paths and keeps the original path beside each as `worktree_path`, so a verifier can still

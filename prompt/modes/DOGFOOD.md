@@ -1,6 +1,6 @@
 # MODE: DOGFOOD
 
-> DOGFOOD casts a matrix of `kind: user` personas, drives the running product at
+> DOGFOOD derives a matrix of `kind: user` archetypes, drives the running product at
 > {TARGET} through their real journeys, and ships flow documents plus a ranked UX
 > report grounded in screenshots. It fixes nothing — every finding leaves as a backlog
 > row for a later IMPROVE or BUILD run.
@@ -37,9 +37,9 @@ backlog are on disk with nothing under {TARGET} modified.
   title: Derive the persona matrix and journey list
   rung: 1
   surface: ui
-  personas: [first-run, returning-power, admin-operator]   # PLAN duty, §2.2
+  personas: [first-run, returning-power, admin-operator]   # PLAN duty, personas §2
   handoff: _orch/nodes/M1/handoff.md
-  done: "matrix.yaml holds every tier x role x journey cell, each with a success condition in the user's words"
+  done: "matrix.yaml holds every tier x role x journey cell, each with a success condition in the user's words; every role no built-in archetype covers has a card at _orch/cast/<slug>.card.md (personas §1)"
 - id: G1
   kind: gate
   phase: 1
@@ -109,29 +109,26 @@ backlog are on disk with nothing under {TARGET} modified.
   rung: 1
   needs: [B1]
   done: "findings.yaml — one row per distinct friction, listing every persona that hit it and its merged severity"
-- id: A-journey-honesty
+- id: A1
   kind: task
   phase: 4
-  title: "AUDIT — did the probes complete the flows or narrate plausible fiction"
+  title: "AUDIT — a fresh reviewer: completed flows or plausible fiction, and cards honored or drifted"
   rung: 1
   needs: [B1]
   refutes: B1
-  adversarial: panel
-  personas: [journey-honesty]
-  done: "every claimed completion is matched to its screenshot, or the step is marked fabricated"
+  adversarial: standard
+  done: "every claimed completion is matched to its screenshot, or the step is marked fabricated; every action is matched to an element in a prior screenshot, or the probe is marked off-card"
 - id: S1
   kind: task
   phase: 5
   title: Ship the UX report, the flow documents, and the fix backlog
   rung: 1
-  needs: [D1, A-journey-honesty]
-  personas: []                        # SYNTH is neutral
+  needs: [D1, A1]
   done: "final/ux-report.md, final/flows/<role>.md per role, and backlog.yaml where every row has an owner and a repro path"
 ```
 
-The planner may resize the matrix (personas/CONTRACT.md §4.1 binds the panel to three
-to seven), add cross-tier probes, and split a journey that spans more than one role. It
-may **not** run any journey before `G1` closes, let a failed credential cell block a
+The planner may resize the matrix, add cross-tier probes, and split a journey that
+spans more than one role. It may **not** run any journey before `G1` closes, let a failed credential cell block a
 different cell's journeys, let a probe verify its own flow document, or add a node that
 writes to {TARGET}. `final/flows/` is a deliverable, not a byproduct: a clean journey's
 flow document is one editing pass from real user documentation, so it is written for a
@@ -142,28 +139,20 @@ human reader from the first draft.
 | node class | entry tier | why |
 |---|---|---|
 | environment proof (`E1` children) | 0 `cheap` | Sign in, screenshot, record. Verifiable by command. |
-| everything else — fanout, barrier, matrix gate, dedupe (`D1`), panel seats, matrix derivation (`M1`), probe, verify, cross-tier (`P-*`, `V-*`, `X1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Driving a UI from pixels alone under a patience budget is judgment, and every downstream node inherits `M1`'s mistakes — a wrong matrix is unrecoverable after `G1`, which is why `M1`'s second failure is a question (§1.2). |
+| everything else — fanout, barrier, matrix gate, dedupe (`D1`), audit (`A1`), matrix derivation (`M1`), probe, verify, cross-tier (`P-*`, `V-*`, `X1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Driving a UI from pixels alone under a patience budget is judgment, and every downstream node inherits `M1`'s mistakes — a wrong matrix is unrecoverable after `G1`, which is why `M1`'s second failure is a question (§1.2). |
 
-## Seats
+## User archetypes
 
-| seat slug | kind | phases | what it examines |
+| archetype | kind | phases | what it examines |
 |---|---|---|---|
-| `journey-honesty` | expert | AUDIT, CLASH | Whether probes completed the flows or narrated plausible fiction — every claim against its screenshot. |
-| `persona-fidelity` | expert | AUDIT, CLASH | Whether each probe behaved as its card or drifted into an expert developer who knows the URL scheme. |
-| `matrix-coverage` | expert | AUDIT | Which approved persona x journey cells went unprobed, and whether the gaps are the interesting ones. |
-| `severity-inflation` | expert | VERIFY | Every claimed P0/P1 against CONTRACT §9 — a slow page is not a blocker. |
 | `first-run` | user | PLAN, PROBE, VERIFY | Signup, onboarding, first value. Knows nothing; abandons early. |
 | `admin-operator` | user | PLAN, PROBE, VERIFY | Provisioning, roles, billing, support paths. Owns the tier boundary probes. |
 | `returning-power` | user | PLAN, PROBE, VERIFY | Speed, keyboard paths, bulk work, the flow that got slower. |
 | `mobile-commuter` | user | PROBE | The same journeys on a narrow viewport with one thumb and a bad connection. |
 | `low-trust-evaluator` | user | PROBE | Whether the product earns data: permissions, pricing clarity, export, delete-my-account. |
 
-Casting prefers named experts tagged `qa`/`exploratory-testing` for `journey-honesty`,
-`ux-research`/`ethnography`/`user-research` for `persona-fidelity`,
-`test-design`/`combinatorics` for `matrix-coverage`, and `risk`/`triage`/
-`statistical-rigor` for `severity-inflation`. Add `assistive-tech`/`accessibility`
-or `delegate` when {TARGET} has a compliance surface or a shared-account workflow;
-personas/CONTRACT.md §4.1's ceiling of seven binds.
+Add `assistive-tech` or `delegate` when {TARGET} has a compliance surface or a
+shared-account workflow.
 
 ## Gates
 
@@ -173,7 +162,7 @@ personas/CONTRACT.md §4.1's ceiling of seven binds.
 - **Matrix gate** (`G1`, a blocked batch). The matrix and every bound card go to the
   operator as one batch. Passes when each cell is approved, cut, or amended in writing.
   This is the only gate in the mode that halts everything — nothing downstream is worth
-  running against the wrong roster.
+  running against the wrong cards.
 - **Phase gate.** Phase 2 passes when every role has a post-login screenshot or a named
   credential failure. Phase 3 passes when the loop is dry or stopped and every P0/P1 has
   a `V-` verdict. Phase 4 passes when dedupe covers every finding.
@@ -195,20 +184,20 @@ rows all carry an owner and a repro path; `git status` on {TARGET} is clean.
 
 - **The fluent narration.** A probe describes a signup it never completed, in convincing
   detail, because the flow is easy to imagine. The `V-` node re-drives it as a different
-  persona and a step with no screenshot is fabricated on sight; `journey-honesty` then
-  matches every claimed completion to a file at the barrier. Two mechanisms, because
+  persona and a step with no screenshot is fabricated on sight; `A1` then matches every
+  claimed completion to a file at the barrier. Two mechanisms, because
   this is the failure that makes the whole mode worthless.
 - **The persona that reads the source.** A probe gets stuck, quietly consults the code
-  or the docs, and completes a flow no real user could. `persona-fidelity` audits
-  behavior against the card, and the tell is always the same: an action taken on an
+  or the docs, and completes a flow no real user could. `A1` audits behavior against
+  the card, and the tell is always the same: an action taken on an
   element that appears in no prior screenshot.
 - **The matrix that is really one user five times.** Five cards, one point of view, and
   the run reports the same friction five times as if it were corroboration.
-  personas/CONTRACT.md §4.3 forces cards that could not be swapped unnoticed, and
-  `matrix-coverage` audits the cells for whether the gaps are the interesting ones.
+  personas/CONTRACT.md §1 forces cards that could not be swapped unnoticed, and the
+  matrix gate puts the cards in front of a person before any journey runs.
 - **Severity by empathy.** A frustrated persona rates everything P1 because the
-  experience felt bad. `severity-inflation` re-scores against CONTRACT §9, and the merged
-  row in `D1` earns its severity from how many roles hit it, not from how it read.
+  experience felt bad. `D1` scores against CONTRACT §9 and earns each merged row's
+  severity from how many roles hit it, not from how it read.
 - **Dogfood that starts fixing.** A one-line copy change is obvious and someone makes
   it, so the report now describes a product that no longer exists and the backlog has a
   hole in it. Every node here reads and drives only; the final gate checks the target is

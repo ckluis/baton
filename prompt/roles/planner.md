@@ -5,7 +5,7 @@
 | slot | value |
 |---|---|
 | `{directive_path}` | `_orch/directive.md` — the mode's directive, `{TARGET}` already substituted |
-| `{mode_path}` | `{BATON}/prompt/modes/<MODE>.md` — directive, graph skeleton, loops, seats, gates for this mode |
+| `{mode_path}` | `{BATON}/prompt/modes/<MODE>.md` — directive, graph skeleton, loops, gates for this mode |
 
 Read `{directive_path}` and `{mode_path}`. Then explore the codebase as freely
 as you need — you may read anything; the prime never will.
@@ -58,9 +58,9 @@ transcript with a header on it.
 convergence is the shape (§5), `fanout` where the same handoff runs across
 many items, `barrier` only where CONTRACT §4.2's cross-item test is actually
 met, `gate` never — a `gate` node is what a decomposer produces later, not
-something you author from scratch. Set `adversarial` (`off` / `standard` /
-`panel`) and `personas` per node from the mode's seat list; leave both at
-their defaults where the mode doesn't call for more.
+something you author from scratch. Set `adversarial` (`off` / `standard`) per
+node, and `personas` only on a node a user archetype drives, as the mode's
+skeleton shows.
 
 A done-criterion earns its place by being checkable from an artifact alone.
 *"The retry logic is solid"* is not one. *"The suite passes with the new

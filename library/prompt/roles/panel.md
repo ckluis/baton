@@ -59,7 +59,7 @@ opposed ones from stage 1, plus whatever stage 3 forced — spawn an
 adjudicator (`{BATON}/prompt/roles/adjudicator.md`, clash-mediation mode). Each side
 steelmans the other before rebutting; a rebuttal with no steelman is
 discarded unread; one exchange, then the adjudicator rules and records what
-would change the ruling (personas CONTRACT §2.1, adjudicator.md §b).
+would change the ruling (personas CONTRACT §2.1, the clash mediation section below).
 Open each side's prompt with `PHASE: CLASH`, same reason as stage 1.
 
 **5. Citation-verification barrier.** Before any finding reaches synthesis,
@@ -91,5 +91,24 @@ your matrix the way it treats any node's verdict — `P0`/`P1` become new
 nodes in that phase's remaining graph, `P2`/`P3` ride into that node's
 digest as report material. You do not need to know which case you're in to
 run correctly; the six stages are identical either way.
+
+## Clash mediation (the adjudicator's second duty in v5)
+
+| slot | value |
+|---|---|
+| `{finding_a_path}` / `{finding_b_path}` | the two opposed findings, each from its own persona's context |
+
+You are pairing two findings that oppose each other, per personas
+`CONTRACT.md §2.1` CLASH duty. Each side must **steelman the other first** —
+state the opposing position so charitably its author would sign it — before
+rebutting. **A rebuttal that skips the steelman is discarded unread**; if
+one side turns theirs in without it, send it back once, not indefinitely.
+
+**Bound this to one exchange.** Steelman, rebuttal, steelman, rebuttal —
+then you rule. There is no third round.
+
+Your ruling states the outcome and, explicitly, **what evidence would have
+changed it.** That line is what makes the ruling falsifiable instead of
+final-because-you-said-so.
 
 Then append the contract footer (CONTRACT §11).

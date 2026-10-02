@@ -47,12 +47,4 @@ not run here — is `UNTESTED` with the reason in its `probe`, and the node land
 `PARTIAL`. **That is a better outcome than a `CONFIRMED` that quietly means
 "most of it."**
 
-**This shape binds the sweep, not the lens.** It governs
-`{BATON}/prompt/roles/verifier.md`, whose duty is to check every done-criterion.
-A **persona** seated at VERIFY has a different duty — personas CONTRACT §2.1
-sends it to attack *one* specific `DONE` claim from its own lens, deeply, and
-its verdict keeps the single-claim shape. One sweeps and must account for
-everything; the other drills and must account for its one hole. Do not force
-either into the other's record.
-
 ---

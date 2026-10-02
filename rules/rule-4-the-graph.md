@@ -21,8 +21,8 @@ The plan is a directed graph, not a list. `plan/graph.yaml` holds it.
   needs: [T05]            # hard edge — must be DONE and CONFIRMED
   informs: [T06]          # soft edge — if done, its digest path rides in the handoff
   refutes: null           # verification edge — this node's job is to attack that node
-  adversarial: standard   # off | standard | panel
-  personas: []            # persona slugs bound to this node (§ personas/CONTRACT.md)
+  adversarial: standard   # off | standard
+  personas: []            # user archetype slugs bound to this node (personas/CONTRACT.md)
   isolation: none         # none | worktree
   handoff: _orch/nodes/T07/handoff.md
   done: "one line, objectively checkable without judgment"

@@ -19,10 +19,9 @@ node enters at `cheap` only when its handoff names work with no judgment in it
 size. *"This is small"* is not a reason. *"This is `pytest -q` and its exit
 code"* is.
 
-A node carrying `personas:` is frontier work by definition — a persona's phase
-duty is judgment from a lens (personas §2) — and the seat runs there whatever
-the node says; the planner may still assign `cheap` for the node's non-persona
-work.
+A node carrying `personas:` — a user archetype driving the product — runs that
+archetype at frontier whatever the node says; the planner may still assign
+`cheap` for the node's other work.
 
 The asymmetry reversed. It once read: assigning high wastes the budget on work
 that would have succeeded low, and assigning low costs one extra attempt.

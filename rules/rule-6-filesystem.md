@@ -23,8 +23,7 @@ _orch/
     decisions/           §6.3 — one documented default per file
     decisions.md         derived from decisions/ — never written by a layer
   cast/
-    roster.yaml          selected personas, source, phases served
-    <slug>.card.md       one bound persona card per selection
+    <slug>.card.md       a user archetype card the plan wrote (personas §1)
   nodes/
     T07/
       handoff.md         inputs, expected outputs, done-criteria

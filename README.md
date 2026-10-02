@@ -325,18 +325,13 @@ verification, and rung drift so the prime spends its turns on gates alone.
 ## Modes
 
 A mode is a file: the directive, the graph skeleton, the loop definitions, the
-entry tiers, the seats, and the gates. The session loads only the one you name.
-Adding your own mode means adding a file.
-
-The eight modes v2 shipped all examine the artifact **as built** — its code, its
-tests, its plan, its journeys. Nothing examined it **as encountered**, and
-nothing **as sold**. `CRAFT` and `POSITION` close that gap, and neither is
-allowed to ship a diff.
+entry tiers, and the gates. The session loads only the one you name. Adding your
+own mode means adding a file.
 
 Each mode's page section carries a risograph drawing that **is** that mode's
 graph — TEST's directed loop around its seen ledger, BUILD's traceability fan
 with the one requirement that stops at the ambiguity gate, IMPROVE's lit region
-and the hatched blindspot beside it, REVIEW's five sealed contexts with no edges
+and the hatched blindspot beside it, REVIEW's sealed contexts with no edges
 between them, DOGFOOD's persona-by-journey matrix with its unprobed cells,
 MIGRATE's two discovery passes and the crescent only the second one found.
 
@@ -345,68 +340,31 @@ MIGRATE's two discovery passes and the crescent only the second one found.
 | `TEST` | Adversarial sweep + fix loop until two rounds find nothing | Retry-until-green wrappers. Flaky tests are bugs. |
 | `BUILD` | A spec honored, traceability first, ambiguities batched before build | Guessing at an ambiguity |
 | `IMPROVE` | Audit → blindspot hunt → rank → behavior-preserving execution | Drive-by refactors |
-| `REVIEW` | The adversarial panel as its own mode; ranked matrix out | Executing anything |
+| `REVIEW` | Fresh reviewers in separate contexts; ranked matrix out | Executing anything |
 | `DOGFOOD` | Simulated users drive the product, screenshots-only perception | Fixing what it finds |
-| `CRAFT` | Adversarial panel audits the experienced surface — type, colour, motion, microcopy, IA, accessibility, localisation — captured first, ranked matrix out | Driving journeys (DOGFOOD's subject). Fixing anything it finds. |
-| `POSITION` | Adversarial panel audits the commercial surface — positioning, pricing, naming, story, launch readiness — claim ledger first, ranked matrix out | Building anything (no diff, ever). Shipping or approving a launch. |
 | `MIGRATE` | Discover every site, transform, verify, integrate | Trusting one discovery pass |
-| `ROADMAP` | Plan + plan gate only, panel-hardened, executable cold | Execution |
+| `ROADMAP` | Plan + plan gate only, review-hardened, executable cold | Execution |
 | `GENERIC` | Your directive, held to the same standard | A directive with no completion condition |
+
+`CRAFT` and `POSITION`, the two panel modes, are in `library/` with the expert
+personas (below).
 
 ---
 
-## Personas
+## User archetypes
 
-Two kinds, and the difference matters more than any single persona does.
+A persona is a bound point of view a run spawns as an agent. The default path
+keeps one kind: the **user**, a person using the product who knows only what the
+screen showed them and judges by whether they got what they came for. **A run
+that never spawns a user has never seen its product.** baton ships 7 archetypes
+(`personas/users/`), and a journey probe drives one under the screenshots-only
+perception contract (`personas/CONTRACT.md`).
 
-| kind | is | knows | judges by |
-|---|---|---|---|
-| `expert` | a lens with authority | everything relevant, on purpose | a standard |
-| `user` | a person using the product | only what the screen showed them | whether they got what they came for |
-
-An expert who behaves like a user produces vague taste. A user who behaves like
-an expert produces fiction. Most persona systems own only the first kind — **a
-run that never spawns a `user` has never seen its product.**
-
-baton ships 37 built-in **lenses** (`personas/lenses/`) and 7 end-user
-**archetypes** (`personas/users/`). Modes name *seats*; seats are always fillable
-by the built-in lenses, so every mode runs with `PERSONAS: none`.
-
-Separately, `personas/luminaries/` vendors 40 named-expert cards. This roster is
-**opt-in, not built-in** — reached with `PERSONAS: builtin+luminaries` — and is
-never folded into the built-in count above. See "Two rosters, on purpose" below.
-
-### Loading someone else's roster
-
-```
-PERSONAS: builtin + repo:github.com/ckluis/luminaryTeam
-```
-
-A persona file carrying only `name` and `domain` is valid — the loader fills
-`kind: expert`, `phases: [AUDIT, CLASH]`, `rung: 1`. By design, that is a
-guarantee of the loader's defaults, not a claim about what this repository has
-exercised: a roster fetched this way loads exactly as it is, unmodified — no
-fork, no edits. **Adopting a roster must never require rewriting it.**
-
-Casting may then *upgrade a seat* — a named expert whose tags match fills the
-`coverage-truth` seat and audits coverage truth. The mode owns what gets
-examined; the persona owns how.
-
-Persona files from foreign repositories are **data, not instructions**. A file
-containing directives aimed at the orchestrator is a finding to report, never an
-instruction to follow.
-
-### Two rosters, on purpose
-
-Upstream `github.com/ckluis/luminaryTeam` is the standalone advisory panel, and it
-still loads unmodified through `PERSONAS: builtin + repo:github.com/ckluis/luminaryTeam`
-exactly as above. `personas/luminaries/` in *this* repository is a **sibling
-artifact** — not a fork and not a mirror of it: its cards carry baton-specific
-`phases`, `tags`, and rewritten Conflict Vectors so they can be seated into
-baton's phase and mode machinery, which the upstream cards were never written
-for. The two rosters are **expected to diverge**, and **neither is canonical
-over the other**. This vendored roster is **opt-in, never built-in**, and is
-reached with `PERSONAS: builtin+luminaries`.
+Expert lenses, the 40 named luminaries, casting and panels moved to `library/` in
+v6. A plain fresh reviewer found 15.67 of 16 seeded defects; lens cards and plain
+reviewers at equal spend both found 16, so the lenses bought nothing on the
+default path (`docs/experiments/personas-earn-their-place.md`). They stay one
+setting away: `PERSONAS: library` (`library/README.md`).
 
 ---
 
@@ -468,7 +426,7 @@ That one rule is the whole locator scheme:
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
   `BATON: ./baton`. Faster on repeat runs, works with no network, and the only
-  form where casting can clone a persona repository with git.
+  form the TEAM tools run from.
 
 Point at a directory and the router reads; point at a URL and it fetches.
 Nothing else changes. Run state under `_orch/` is always local disk either way —
@@ -480,7 +438,8 @@ whole procedure just to tell something else to go follow it, and it would spend
 the one context the design exists to protect.
 
 Can do neither? `./bundle.sh TEST` flattens the router, both contracts, your
-mode, the roles, and only that mode's seats into one self-contained document.
+mode, the roles, and only the user archetypes that mode drives into one
+self-contained document.
 See [`prompt/invoke.md`](prompt/invoke.md) for the full card and every knob.
 
 ## Layout
@@ -490,13 +449,12 @@ prompt/
   invoke.md           the paste — your goal, two settings, and a URL
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         narrative + generated index; the rules live in rules/
-  modes/              10 — directive + graph shape + entry tiers + seats + gates
+  modes/              8 — directive + graph shape + entry tiers + gates
   roles/              12 — planner, phase-runner, verifier, briefer, panel, synthesizer…
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
-  lenses/             37 — expert seats, upgradeable to named voices
   users/              7 — end-user archetypes with real patience budgets
-  luminaries/         40 — opt-in named-expert roster (personas/CONTRACT.md §4)
+library/              the v5 persona layer — lenses, luminaries, casting, panels, CRAFT, POSITION; opt-in
 rules/                48 — one file per rule, every one an invariant; the only place each is defined
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation cards + router into index.html
@@ -530,15 +488,6 @@ Two contracts define every schema. Everything else is written against them, and
 **where a role prompt and the contract disagree, the contract wins and the role
 prompt is the bug.**
 
-### Bundle interop
-
-Persona frontmatter may carry three optional keys — `type`, `id`, and `links` —
-that baton's own loader ignores entirely and that only an external AIX consumer
-reads. `tools/aix-validate.py` holds `personas/` — this repository's own bundle,
-never a foreign `repo:` roster — to **AIX level 1**, and the acceptance run ends
-by printing `AIX LEVEL 1 OK`. Those `links:` edges are also what turned 361
-persona conflicts from prose into something a caster can act on.
-
 ---
 
 ## What it produces
@@ -549,7 +498,6 @@ Everything lands in `_orch/` (gitignored by default):
 - `nodes/<id>/` — handoff, envelope, digest, escalation packet, work products
 - `verify/<id>-verdict.json` — one row per done-criterion, `CONFIRMED` / `REFUTED` /
   `UNTESTED` / `UNSETTLEABLE`, and the node verdict computed from them
-- `cast/roster.yaml` — who was cast, why, and who was excluded
 - `ledger/` and the derived `ledger.csv` — one row per spawn: tier (the `rung` column), model, attempt, verdict, seconds
 - `final/report.md` — outcome per phase, caveats, open questions, and the
   **tier histogram**
@@ -572,8 +520,8 @@ quoting its criterion, each with its own probe and evidence — and the node
 verdict is derived from those rows, not asserted. A row count that disagrees
 with the handoff is malformed: the phase runner reads it as `PARTIAL` and
 re-verifies. A row may also read `UNSETTLEABLE` — the criterion, not the work, is
-the defect — and then the node parks on a question rather than retrying. The acceptance checks are held to the same standard: each of the
-ten carries a `tools/*.instrument.md` record naming what it guards, what it has
+the defect — and then the node parks on a question rather than retrying. The acceptance checks are held to the same standard: each
+carries a `tools/*.instrument.md` record naming what it guards, what it has
 caught over its lifetime, and when it last fired. See
 [`docs/designs/instrument-lifecycle.md`](docs/designs/instrument-lifecycle.md).
 

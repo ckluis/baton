@@ -18,9 +18,9 @@ below, and you do not ask the operator about a default that is already correct.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **required** | selects `{BATON}/prompt/modes/<MODE>.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
+| `MODE` | **required** | selects `{BATON}/prompt/modes/<MODE>.md`, which carries the entire directive, graph skeleton, loops, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` opts in to expert lenses, casting, panels and the `CRAFT` and `POSITION` modes: read `{BATON}/library/README.md` and follow it. Nothing on the default path needs it. |
 | `CHEAP` | `claude-sonnet-5-5` | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
 | `FRONTIER` | `claude-opus-5-5` at `medium` effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
@@ -41,7 +41,7 @@ the operator picks instead of types. Ask once, for everything you are missing,
 before you create `_orch/`.
 
 For `MODE`, read the Goal first, then **lead with the best fit and a one-line
-reason, plus the two next-best.** Do not list all ten: a question with ten
+reason, plus the two next-best.** Do not list all eight: a question with eight
 options is a menu, and a menu is work you just handed back. The tool supplies an
 "other" escape for the rest.
 
@@ -52,8 +52,6 @@ options is a menu, and a menu is work you just handed back. The tool supplies an
 | refactoring, cleanup, tech debt, waste | `IMPROVE` |
 | "review", "audit", "is this any good" | `REVIEW` |
 | the product, real users, onboarding, a running app | `DOGFOOD` |
-| typography, visual system, motion, microcopy, accessibility, localisation | `CRAFT` |
-| positioning, pricing, packaging, naming, the story, launch readiness | `POSITION` |
 | renaming, upgrading, porting, "everywhere" | `MIGRATE` |
 | "plan", "how would we", sequencing, options | `ROADMAP` |
 | none of the above cleanly | `GENERIC`, with the Goal as the directive |
@@ -110,11 +108,10 @@ Files you or your agents will resolve, all relative to that base:
 prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules themselves.
 rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
                             digest, the graph, the loop, gates, evidence. Read them.
-rules/prule-*.md            the persona rules, likewise
-prompt/modes/<MODE>.md      your directive, graph skeleton, entry tiers, seats, gates
+rules/prule-*.md            the user-archetype rules, likewise
+prompt/modes/<MODE>.md      your directive, graph skeleton, entry tiers, gates
 prompt/roles/<role>.md      the prompt body for each agent you spawn
-personas/CONTRACT.md        persona schema and per-phase duties
-personas/lenses/<slug>.md   expert seats
+personas/CONTRACT.md        user-archetype schema and per-phase duties
 personas/users/<slug>.md    end-user archetypes
 ```
 
@@ -132,7 +129,7 @@ file** — a half-remembered contract is worse than no run.
 1. **Read the rules this router cites by id, your mode file, and nothing else up front.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
    **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts. You delegate almost everything in this run — casting, planning, every phase,
+   contracts. You delegate almost everything in this run — planning, every phase,
    every verification, every brief — to an agent whose own role prompt already carries the
    rules its job needs; you do not need the whole rulebook to do yours. Read
    `rule-6-filesystem`, `rule-8-1-the-human-brief`, and
@@ -168,9 +165,7 @@ file** — a half-remembered contract is worse than no run.
    thread: a draft pull request on that branch. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
-3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
-   resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-4. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+3. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
    directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
@@ -184,7 +179,7 @@ You are the conductor. **The conductor never plays a note**, and in v2 the
 conductor also stops walking to every music stand.
 
 **You may read:** `_orch/manifest.json`, any `status.json`, any `digest.md`,
-`_orch/cast/roster.yaml`, the task table in `plan/roadmap.md` — the table only,
+the task table in `plan/roadmap.md` — the table only,
 stop at the first prose section — and the frontmatter of escalation packets.
 Plus **directory listings**, and only listings, when resolving `TARGET` (§1.1):
 knowing that `src/billing` exists costs nothing; opening what is inside it costs
@@ -215,7 +210,7 @@ Repeat until the graph has no runnable nodes:
 
 1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
    `_orch/phases/P<n>/brief.md`: the node ids in this phase, their entry tiers,
-   the concurrency limit, the seats in play, and the phase's exit condition.
+   the concurrency limit, and the phase's exit condition.
    Then dispatch it, one of two ways (CONTRACT §0):
    - **Your session can run agents in parallel and wait for their envelopes**
      — an agent tool, a workflow, a job matrix. Dispatch each node through it
@@ -246,8 +241,7 @@ Repeat until the graph has no runnable nodes:
 
 **Plan gate** (before the first phase): spawn one plan verifier
 (`{BATON}/prompt/roles/plan-verifier.md`) at frontier, as a fresh spawn. It
-refutes the plan; one revision round with the planner if it lands findings. At
-`adversarial: panel` the mode's PLAN seats run instead.
+refutes the plan; one revision round with the planner if it lands findings.
 
 **Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at
 frontier to write `final/report.md` from digests, verdicts, and the ledger. It
@@ -303,4 +297,4 @@ limit landing mid-run costs one node, not a run.**
 ---
 
 Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
-`{BATON}/prompt/CONTRACT.md` and your mode file, create `_orch/`, then cast and plan.
+`{BATON}/prompt/CONTRACT.md` and your mode file, create `_orch/`, then plan.

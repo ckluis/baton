@@ -4,7 +4,7 @@
 
 | slot | value |
 |---|---|
-| `{brief_path}` | `_orch/phases/P<n>/brief.md` — node ids in this phase, entry tiers, concurrency limit, seats in play, exit condition |
+| `{brief_path}` | `_orch/phases/P<n>/brief.md` — node ids in this phase, entry tiers, concurrency limit, exit condition |
 
 You own this phase end to end so the prime never has to. The prime reads
 one envelope from you and nothing else about what happened inside. You read
@@ -113,14 +113,6 @@ over one.
      spawn a fresh verifier.
    - `PARTIAL` with only `UNTESTED` rows → re-verify with a fresh verifier;
      after a second such `PARTIAL` on the same node, replace the *verifier* (§9).
-   - If the node carries `personas:` or `adversarial: standard`/`panel`,
-     route to the bound persona cards or to `{BATON}/prompt/roles/panel.md` instead
-     of the generic verifier, per the graph's own fields — the graph
-     already told you which nodes want that treatment. When you spawn a
-     bound card directly, open its prompt with `PHASE: VERIFY` — the card
-     is bound once and carries every phase this persona serves, and each
-     phase gives it a different duty, output and tier (personas CONTRACT
-     §4.3/§2), so the spawn must name which phase is in force.
 
    Under `TEAM`, once a verdict has a shape you accept, post it where the
    team looks: `tools/node-pr.sh status <id> <CONFIRMED|REFUTED|PARTIAL>` puts

@@ -1,6 +1,6 @@
 # MODE: ROADMAP
 
-> ROADMAP produces a panel-hardened plan for {TARGET} — `plan/graph.yaml` plus
+> ROADMAP produces a review-hardened plan for {TARGET} — `plan/graph.yaml` plus
 > `plan/roadmap.md` — shaped so a later baton run in BUILD or GENERIC mode executes it
 > cold. It builds nothing: no code, no scaffolding, no proof-of-concept.
 
@@ -14,7 +14,7 @@ what it costs to reverse. Choose a direction and say what would have changed the
 Decompose it into a graph conforming to CONTRACT §4 — phases, edges, entry tiers assigned
 by a property of the work, objective done-criteria, named risks — and hand every open
 question to the operator as a batch rather than resolving it by assumption. Subject the
-graph to an adversarial panel and revise until the panel admits nothing new. Done when
+graph to a fresh adversarial reviewer and revise until review admits nothing new. Done when
 `plan/graph.yaml` validates against CONTRACT §4 and §5, every node's `done` is checkable
 without judgment, every option including do-nothing is priced in `plan/roadmap.md`, and a
 run with no memory of this one can execute the graph from the files alone.
@@ -35,37 +35,24 @@ run with no memory of this one can execute the graph from the files alone.
   rung: 1
   needs: [T01]
   done: "options.md prices every option in the same units; plan/graph.yaml validates against CONTRACT §4"
-- id: F1
-  kind: fanout                        # one child per PLAN seat
+- id: R1
+  kind: task                          # a fresh reviewer refutes the graph; it did not write it
   phase: 0
   rung: 1
   needs: [T02]
-  done: "one A-<seat> node per roster seat serving PLAN; no A-node's handoff names another"
-- id: A-feasibility
-  kind: task                          # PLAN — refute the graph from this lens alone
-  phase: 0
-  rung: 1
-  needs: [F1]
   refutes: T02
-  adversarial: panel
-  personas: [feasibility]
-  done: "≤5 findings, each cited to a graph.yaml id or a roadmap.md line"
-- id: B1
-  kind: barrier                       # revision needs every seat's findings at once
-  phase: 0
-  rung: 1
-  needs: [A-feasibility, A-dependency-order, A-rung-fit, A-scope-creep]
-  done: "every seat returned findings or an explicit nothing-found"
+  adversarial: standard
+  done: "findings.md — each finding cited to a graph.yaml id or a roadmap.md line, covering feasibility, dependency order, tiers assigned by vibe, scope that arrived because it was nearby, and do-nothing priced"
 - id: P1
   kind: task                          # revise the graph against the findings
   phase: 0
   rung: 1
-  needs: [B1]
+  needs: [R1]
   done: "every finding is applied to graph.yaml or refused in writing with a reason"
 - id: L1
   kind: loop
   phase: 0
-  body: [F1, A-feasibility, B1, P1]
+  body: [R1, P1]
   invariant: "plan/graph.yaml validates against CONTRACT §4 and §5 at the end of every iteration"
   ledger: _orch/loops/L1/seen.yaml     # key: node id + finding shape
   stop:
@@ -78,12 +65,11 @@ run with no memory of this one can execute the graph from the files alone.
   phase: 1
   rung: 1
   needs: [L1]
-  personas: []                        # SYNTH is neutral
   done: "plan/roadmap.md — table first: node id, phase, tier, done-criterion, risk; prose after"
 ```
 
-The planner may add seats, split `T01` per surface, and phase the graph as the work
-demands. It may **not** add an execution node, let a seat revise the plan it audited, or
+The planner may add reviewers, split `T01` per surface, and phase the graph as the work
+demands. It may **not** add an execution node, let a reviewer revise the plan it audited, or
 close `L1` while a finding is neither applied nor refused in writing. Two things make the
 output executable cold: the graph names inputs by path, never by "the thing we discussed"
 — a node whose handoff assumes a conversation cannot be resumed — and every rejected
@@ -95,25 +81,12 @@ re-derives it within an hour of starting.
 | node class | entry tier | why |
 |---|---|---|
 | — | 0 `cheap` | ROADMAP has no mechanical node: nothing here is a command with an exit code. |
-| everything — fanout, barrier, state map (`T01`), seats, options and graph (`T02`), revision (`P1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Judgment across contested alternatives, and the graph itself — the artifact every later run inherits. ROADMAP is small on purpose: a mistake here propagates into every run that follows. |
-
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `feasibility` | expert | PLAN, CLASH | Whether each phase can actually be done with what exists — skills, access, dependencies, time — or is a wish with a done-criterion. |
-| `dependency-order` | expert | PLAN, CLASH | Whether `needs` edges match reality: work scheduled before its prerequisite, cycles, false ordering that serializes independent work. |
-| `rung-fit` | expert | PLAN | Whether entry tiers name a property of the work (CONTRACT §1.1) — cheap only for a command — or were assigned by vibe. |
-| `scope-creep` | expert | PLAN | Which nodes serve {TARGET} and which arrived because they were nearby. |
-
-Casting prefers experts tagged `delivery`/`estimation` for `feasibility`,
-`systems`/`scheduling` for `dependency-order`, `orchestration`/`cost` for `rung-fit`,
-`product`/`prioritization` for `scope-creep`.
+| everything — state map (`T01`), options and graph (`T02`), review (`R1`), revision (`P1`), synthesis (`S1`) | 1 `frontier` | the default (CONTRACT §1.1). Judgment across contested alternatives, and the graph itself — the artifact every later run inherits. ROADMAP is small on purpose: a mistake here propagates into every run that follows. |
 
 ## Gates
 
 - **Plan gate.** The mode's center — it refutes the plan the run itself produced. Passes
-  when every seat has attacked the graph and `L1` is dry.
+  when a fresh reviewer has attacked the graph and `L1` is dry.
 - **Phase gate.** One phase. Passes when every finding is applied or refused in writing.
 - **Blocked batch.** Unresolved questions go to the operator as one batch; a question
   answered by assumption becomes a `roadmap.md` risk row, never a silent choice.
@@ -133,12 +106,12 @@ do-nothing; no node in the graph was executed.
   the executing run re-derives them wrong. `S1` writes the table first: a node that cannot
   be stated as a table row is one nobody else can pick up.
 - **Do-nothing omitted.** The option that most often wins is the one nobody wrote down, and
-  a roadmap that never priced it cannot defend what it chose. `scope-creep` audits for it.
+  a roadmap that never priced it cannot defend what it chose. `R1` audits for it.
 - **Tiers assigned by vibe.** Judgment drafted at cheap to look frugal, so the run
-  executing this plan fails its first verification before it starts. `rung-fit` checks the
+  executing this plan fails its first verification before it starts. `R1` checks the
   one direction that costs: the cheap node that will be refuted and retried at frontier
   anyway (§1.2).
-- **Panel theater.** Seats return findings, `P1` applies the cosmetic ones, and `L1` goes
+- **Review theater.** The reviewer returns findings, `P1` applies the cosmetic ones, and `L1` goes
   dry because the plan stopped changing rather than stopped being wrong. Every finding is
   applied or refused **in writing**, and the ledger keys findings by shape — a refused
   finding that returns is recognized, not re-litigated.

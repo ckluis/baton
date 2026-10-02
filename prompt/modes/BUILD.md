@@ -40,7 +40,6 @@ statement absent from the matrix.
   title: Hunt ambiguities, contradictions, and unstated assumptions
   rung: 1
   needs: [T01]
-  personas: [requirement-gaps, spec-fidelity]
   done: "plan/spec-questions.md classifies every question material | cosmetic, cites the requirement ids it affects, and states the default it would take unanswered"
 - id: G1                        # the AMBIGUITY GATE
   kind: gate
@@ -55,7 +54,6 @@ statement absent from the matrix.
   title: Author the acceptance tests from the spec text, one child per requirement cluster
   rung: 1
   needs: [G1]
-  personas: [test-honesty]
   done: "every matrix row with a test-based verification method has a test citing its requirement id and quoting the spec line it pins; every test fails against the unbuilt tree"
 - id: F1                        # phase 2 — implementation
   kind: fanout
@@ -71,7 +69,6 @@ statement absent from the matrix.
   title: Integrate — wire the clusters, resolve cross-cluster contracts once
   rung: 1
   needs: [T10, F1]
-  personas: [integration-risk]
   done: "the acceptance tests from T10 run against the integrated tree with a recorded result per requirement id"
 - id: V1
   kind: fanout
@@ -87,7 +84,7 @@ statement absent from the matrix.
   title: Coverage-of-spec — walk the matrix end to end
   rung: 1
   needs: [V1]
-  personas: [spec-fidelity, requirement-gaps]
+  adversarial: standard
   done: "work/coverage-of-spec.md lists every row with no CONFIRMED path and assigns each a P0 or P1; deviations listed with their approval trail"
 - id: L1                        # phase 4 — close the gaps
   kind: loop
@@ -135,27 +132,11 @@ resolved by an inbox answer, not by an edit.
 A spec that genuinely cannot be read at frontier is a spec that needs an
 operator question first.
 
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `spec-fidelity` | expert | PLAN, AUDIT, VERIFY | whether the build does what is written rather than what seemed sensible; every silent reinterpretation |
-| `requirement-gaps` | expert | PLAN, AUDIT | normative statements absent from the matrix; rows that quietly merged two requirements |
-| `test-honesty` | expert | AUDIT, VERIFY | whether a test pins spec behavior or implementation behavior; expected values with no spec origin |
-| `integration-risk` | expert | AUDIT, CLASH | the seams between clusters — contracts each side satisfied differently and nobody owns |
-
-Casting upgrades (personas/CONTRACT §4.2) prefer tags `requirements`/`architecture`/
-`api-design`/`domain-modeling` for `spec-fidelity`, `product`/`analysis`/
-`discovery` for `requirement-gaps`, `testing`/`quality` for `test-honesty`,
-`systems`/`distributed`/`api`/`observability`/`resilience` for
-`integration-risk`.
-
 ## Gates
 
 **Plan gate.** Checks that `plan/traceability.yaml` exists before any build node,
 that every row cites a spec location, that no build node precedes `G1`, and that
-no test node has an edge from its implementation node. `spec-fidelity` and
-`requirement-gaps` run their PLAN duties here. Passes when every normative spec
+no test node has an edge from its implementation node. Passes when every normative spec
 statement appears in exactly one row.
 
 **Phase gate.** Phase 1 closes only through `G1`. Phase 3 closes when every
@@ -186,12 +167,12 @@ requirement.
 - **The matrix becomes a task list.** Three requirements collapse into one row
   because one node covers them, and the row goes green while two behaviors were
   never built. `T01`'s done-criterion forbids a row spanning two normative
-  statements, and `requirement-gaps` at PLAN refutes any row whose quote contains
-  more than one obligation.
+  statements, and the plan verifier refutes any row whose quote contains more
+  than one obligation.
 - **Tests describe the code.** The fastest way to make an acceptance test pass is
   to write it after the implementation and copy its constants. The graph forbids
-  the edge, `T10` must fail against the unbuilt tree, and `test-honesty` at
-  VERIFY refutes any expected value with no spec origin.
+  the edge, `T10` must fail against the unbuilt tree, and its verifier refutes
+  any expected value with no spec origin.
 - **The run answers its own ambiguity gate.** A material question has an obvious
   answer, so the planner records a default and moves on — the spec has now been
   rewritten by the implementer. `G1` closes only on an answer file for every
@@ -203,6 +184,5 @@ requirement.
   not `needs` alone.
 - **Everything is built and nothing composes.** Each cluster satisfied the shared
   contract its own way. `B1` is the one justified barrier in the mode (§4.2 —
-  the next stage genuinely references the other results), and
-  `integration-risk` is seated at CLASH because those disputes are between two
-  defensible readings, not between right and wrong.
+  the next stage genuinely references the other results). Two defensible
+  readings of one contract go to an adjudicator (§1.2), not to a vote.

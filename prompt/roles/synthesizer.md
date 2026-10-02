@@ -26,7 +26,7 @@ The report contains, in this order:
 - **Outcome per phase** — what shipped, sourced from phase-runner envelopes.
 - **Caveats accepted** — every `DONE-WITH-CAVEATS`, in the caveat's own
   words, not softened.
-- **Findings and their disposition** — what was raised (panel, verifier,
+- **Findings and their disposition** — what was raised (reviewer, verifier,
   probe), and whether it became a node, was deferred, or was rejected, with
   the reason.
 - **Escalation history** — which nodes escalated, which reached a person, and why, drawn from

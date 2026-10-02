@@ -22,7 +22,7 @@ Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.
 
 Say what you want, paste, answer one question. The router reads your goal, works
 out which mode fits, and **asks you to confirm it** — leading with its best
-guess and the two next-best rather than making you choose from ten. Picking
+guess and the two next-best rather than making you choose from eight. Picking
 beats typing, and a question you answer in one click is cheaper than a setting
 you had to look up.
 
@@ -104,9 +104,9 @@ against that same base URL. Read it completely before you start any work.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **asked for** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `CRAFT` `POSITION` `MIGRATE` `ROADMAP` `GENERIC` |
+| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
-| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes journey probes drive. `library` opts in to expert lenses, casting and panels (`library/README.md`) |
 | `CHEAP` | `claude-sonnet-5-5` | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
 | `FRONTIER` | `claude-opus-5-5` at `medium` effort | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
@@ -135,8 +135,7 @@ BATON: https://raw.githubusercontent.com/ckluis/baton/v2.0
 
 ## If you would rather have it locally
 
-Faster on repeat runs, works with no network, and the only form that lets
-casting clone a persona repository with git:
+Faster on repeat runs, and works with no network:
 
 ```sh
 git clone --depth 1 https://github.com/ckluis/baton
@@ -148,8 +147,8 @@ URL and it fetches.** Nothing else changes.
 ## If you can do neither
 
 `./bundle.sh <MODE>` produces one self-contained document under `dist/` with the
-router, both contracts, your mode, the roles, and only that mode's seats
-inlined. Paste that instead, put `TARGET` at the top, and the run needs no
+router, both contracts, your mode, the roles, and only the user archetypes
+that mode drives inlined. Paste that instead, put `TARGET` at the top, and the run needs no
 network and no filesystem beyond its own work.
 
 ---

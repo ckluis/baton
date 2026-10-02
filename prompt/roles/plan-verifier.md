@@ -41,11 +41,9 @@ Hunt, specifically:
   wants the upstream digest, not a completed, verified upstream (CONTRACT
   §4.1). Every unnecessary `needs` edge is wall-clock the pipeline didn't
   have to spend.
-- **A persona seated on both sides of its own work** — the same slug in
+- **An archetype seated on both sides of its own work** — the same slug in
   `personas:` on an authoring node *and* on that node's `refutes` node or on
-  the node that verifies it (CONTRACT §4.1; the duty itself is
-  `personas/CONTRACT.md` §2.1, `EXECUTE` row). Refute the graph. Independence
-  a slug can be seated out of was never independence.
+  the node that verifies it (CONTRACT §4.1). Refute the graph.
 
 **Cite or retract** (CONTRACT §9): every finding names a `graph.yaml` id or
 a `roadmap.md` line. A finding with nothing to point at is not a finding.
