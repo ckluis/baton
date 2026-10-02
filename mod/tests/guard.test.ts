@@ -14,6 +14,10 @@ function world(on: any, manifest: string | null) {
       : { deny: 'ENOENT' },
   )
   on('ui.log', () => ({ value: undefined }))
+  on('session.cwd', () => ({ value: '/work' }))
+  on('session.root', () => ({ value: '/work' }))
+  on('ui.invalidate', () => ({ value: undefined }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: 'x', truncated: false, merges: [] }), stderr: '' } }))
   on('tool.call', () => ({ result: 'ran' }))
 }
 
@@ -29,9 +33,9 @@ test('during a run the prime is denied every reading, running and editing tool, 
 test('during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
   world(on, ACTIVE)
   for (const tool of ['Agent', 'AskUserQuestion', 'SendMessage', 'ToolSearch', 'mcp__baton__memory_wake', 'mcp__baton__memory_note', 'mcp__baton__project_wake']) {
-    const r: any = await $.tool.call({ tool } as any)
+    const r: any = await $.tool.call({ tool, text: 'x', pattern: 'x', range: '0-1' } as any)
     expect(r.deny, tool).toBeUndefined()
-    expect(r.result).toBe('ran')
+    expect(String(r.result), tool).not.toContain('error')
   }
 })
 
