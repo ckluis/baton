@@ -24,8 +24,13 @@ export function isPrimeCall(e) {
   return e == null || e.agentId === undefined || e.agentId === null || e.agentId === ''
 }
 
-export function primeMayUse(tool) {
-  return PRIME_TOOLS.includes(tool) || String(tool).startsWith(MOD_TOOL_PREFIX)
+/** baton's own skill is instructions, not a file of the target: the prime may load it. */
+export function isBatonSkill(e) {
+  return e != null && e.tool === 'Skill' && /^baton(:baton)?$/.test(String(e.skill ?? '').trim())
+}
+
+export function primeMayUse(tool, e) {
+  return PRIME_TOOLS.includes(tool) || String(tool).startsWith(MOD_TOOL_PREFIX) || isBatonSkill(e ?? { tool })
 }
 
 export function denyReason(tool) {
@@ -47,7 +52,7 @@ export function denyReason(tool) {
 export function guardDecision(e, active) {
   if (!active) return null
   if (!isPrimeCall(e)) return null // a subagent's call: sub-orchestrators and workers read and edit
-  if (primeMayUse(e.tool)) return null
+  if (primeMayUse(e.tool, e)) return null
   return { deny: denyReason(e.tool) }
 }
 
