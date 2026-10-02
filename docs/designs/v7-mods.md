@@ -84,6 +84,14 @@ are fixed before the first model call:
   alike. `S` remains dependency accuracy over the 24 seeded checkpoints. **A run whose control accuracy is
   below 0.75 is flagged contrarian, reported, and excluded from its arm's mean.**
 
+**E1b — the same test near the window (exploratory; pre-registered 2026-10-02, after E1 seed 1 came back 24/24
+in every arm and before seeds 2–3 were scored).** If Opus 5.5 does not rot at 252K, the question that matters
+for a long run is whether it rots near its 1M window. One seed per arm (`--seed 4`) with the padding raised so
+arm A ends near 850K tokens. Arm A then sets `DISABLE_AUTO_COMPACT=1` and is allowed to fail at the window;
+reaching the window is a result. B and C rotate at the same five points as E1. The rule is E1's, applied to
+n = 1 and labelled exploratory: one seed cannot carry a verdict, only a direction. Cost and wall-clock per arm
+are reported, because at this size they may decide the question even when accuracy does not.
+
 ## E2 — do memory-bearing luminaries earn their place? (pre-registered)
 
 **The setup.** **Eight review tasks** on one evolving codebase. Each carries 6 seeded defects:
