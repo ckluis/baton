@@ -29,7 +29,6 @@ _orch/
       handoff.md         inputs, expected outputs, done-criteria
       started_at         §7.1 — dispatch epoch seconds, for measured `seconds`
       status.json        the envelope — single source of truth
-      digest.md          §3
       escalation.md      written on ESCALATE / FAILED
       work/              ALL artifacts. No layer above the node enters here.
                          A worktree-isolated node writes into its worktree first; §6.2

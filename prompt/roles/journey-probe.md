@@ -38,7 +38,7 @@ A step with no screenshot did not happen — do not write it.
 **Friction that violates no done-criterion is not a defect in this node.**
 Append it to `_orch/ux-debt.yaml` instead and move on; it never bounces the
 node back to `FAILED`. Friction that does violate a done-criterion is a
-finding against the node itself, cited in your digest like any other.
+finding against the node itself, cited in your envelope's `evidence` like any other.
 
 An honest abandonment — you hit the edge of your patience budget and
 stopped — is not a failed probe. It is usually the most valuable thing you

@@ -16,7 +16,7 @@ links:
   `DONE` **and** `CONFIRMED`. `DONE` alone is not enough; unverified work is a
   guess with a filename.
 - **`informs`** — soft. Does not gate. When the source has finished, its
-  **digest path** is added to this node's handoff. This is how context travels
+  **envelope path** is added to this node's handoff. This is how context travels
   without contaminating: a path, not a paste.
 - **`refutes`** — verification. The node exists to attack a specific claim.
   Its author may never be the author of the target.

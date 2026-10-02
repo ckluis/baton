@@ -53,7 +53,6 @@ A person decides at **gates**, from a brief.
 | &nbsp;&nbsp;1.2 | 1.2. Escalation | [`rule-1-2-escalation.md`](../rules/rule-1-2-escalation.md) |
 | 2 | 2. The Status Envelope | [`rule-2-the-status-envelope.md`](../rules/rule-2-the-status-envelope.md) |
 | &nbsp;&nbsp;2.1 | 2.1. Verdicts | [`rule-2-1-verdicts.md`](../rules/rule-2-1-verdicts.md) |
-| 3 | 3. The Digest | [`rule-3-the-digest.md`](../rules/rule-3-the-digest.md) |
 | 4 | 4. The Graph | [`rule-4-the-graph.md`](../rules/rule-4-the-graph.md) |
 | &nbsp;&nbsp;4.1 | 4.1. Edge types | [`rule-4-1-edge-types.md`](../rules/rule-4-1-edge-types.md) |
 | &nbsp;&nbsp;4.2 | 4.2. Fan-out and barriers | [`rule-4-2-fan-out-and-barriers.md`](../rules/rule-4-2-fan-out-and-barriers.md) |

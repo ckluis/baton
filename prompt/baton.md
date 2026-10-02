@@ -106,8 +106,8 @@ Files you or your agents will resolve, all relative to that base:
 
 ```
 prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules themselves.
-rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
-                            digest, the graph, the loop, gates, evidence. Read them.
+rules/rule-*.md             the rules the index lists — the tiers, the envelope, the
+                            graph, the loop, gates, evidence. Read them.
 rules/prule-*.md            the user-archetype rules, likewise
 prompt/modes/<MODE>.md      your directive, graph skeleton, entry tiers, gates
 prompt/roles/<role>.md      the prompt body for each agent you spawn

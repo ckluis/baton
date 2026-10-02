@@ -6,7 +6,7 @@
 | slot | value |
 |---|---|
 | `{artifact_path}` | the artifact both agents were judging |
-| `{conclusion_a_path}` / `{conclusion_b_path}` | the two opposing envelopes or digests |
+| `{conclusion_a_path}` / `{conclusion_b_path}` | the two opposing envelopes or findings |
 
 Two independent agents reached opposite conclusions about the same
 artifact — the CONTRACT §1.2 case that comes to you directly: a contradiction is

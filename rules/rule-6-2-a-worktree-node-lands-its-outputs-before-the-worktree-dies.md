@@ -64,10 +64,9 @@ exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on tha
 permanently unverifiable — not `REFUTED`, not `UNSETTLEABLE`, but `UNTESTED` forever, because the
 thing being judged is gone. No tier can recover it and no resume can rebuild it.
 
-**A digest is not a substitute.** §3 caps a digest at ten lines and forbids it from crossing
-layers as a document. It says what changed; it is not the artifact and cannot be verified against.
-A node whose products are gone but whose digest survives has left a claim with no evidence, which
-§9 calls inadmissible.
+**An envelope is not a substitute.** Its `evidence` names the artifact; it is not the artifact
+and cannot be verified against. A node whose products are gone but whose envelope survives has
+left a claim with no evidence, which §9 calls inadmissible.
 
 **Where this bites hardest is the node you would most want to re-check.** A node isolated in a
 worktree is isolated because it writes a lot, or writes where others write. Those are the nodes

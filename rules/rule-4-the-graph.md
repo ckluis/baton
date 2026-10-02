@@ -19,7 +19,7 @@ The plan is a directed graph, not a list. `plan/graph.yaml` holds it.
   rung: 1
   surface: code           # code | ui | doc | data
   needs: [T05]            # hard edge — must be DONE and CONFIRMED
-  informs: [T06]          # soft edge — if done, its digest path rides in the handoff
+  informs: [T06]          # soft edge — if done, its envelope path rides in the handoff
   refutes: null           # verification edge — this node's job is to attack that node
   adversarial: standard   # off | standard
   personas: []            # user archetype slugs bound to this node (personas/CONTRACT.md)

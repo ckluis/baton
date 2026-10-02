@@ -97,7 +97,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   phase: 4
   title: Land one accepted improvement atomically, with its tests
   rung: 1
-  done: "the diff touches only the candidate's declared files; the suite is green; no observable behavior changed without an approved flag cited in the digest"
+  done: "the diff touches only the candidate's declared files; the suite is green; no observable behavior changed without an approved flag cited in the envelope's evidence"
 - id: T21
   kind: task
   phase: 4
@@ -181,7 +181,7 @@ in the report and absent from the tree.
 
 ## Failure modes of this mode
 
-- **Blindspot contamination.** Someone helpfully passes the audit digests to the
+- **Blindspot contamination.** Someone helpfully passes the audit findings to the
   blindspot agent "for context" and it returns the audit with better prose. The
   missing edge is the mechanism, the plan gate rejects any path from `F1` into
   `T10`, and `work/lenses.yaml` is deliberately a list of lens names with no
@@ -191,7 +191,7 @@ in the report and absent from the tree.
   a citation or the sentence *probed X via Y, found nothing* — the second is a
   real deliverable and the run's evidence rules make it inadmissible without the
   probe named.
-- **Improvement by assertion.** The digest says the function is now faster and
+- **Improvement by assertion.** The envelope says the function is now faster and
   cites the diff. `T21` refutes on that alone: preservation is a reproduced
   baseline file and a gain is a before/after artifact, and `T21` is a separate
   node so the agent that made the improvement is not the one grading it.

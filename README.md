@@ -491,7 +491,7 @@ prompt is the bug.**
 Everything lands in `_orch/` (gitignored by default):
 
 - `plan/graph.yaml` — the machine-readable plan
-- `nodes/<id>/` — handoff, envelope, digest, escalation packet, work products
+- `nodes/<id>/` — handoff, envelope (with its evidence and residual risk), escalation packet, work products
 - `verify/<id>-verdict.json` — one row per done-criterion, `CONFIRMED` / `REFUTED` /
   `UNTESTED` / `UNSETTLEABLE`, and the node verdict computed from them
 - `ledger/` and the derived `ledger.csv` — one row per spawn: tier (the `rung` column), model, attempt, verdict, seconds

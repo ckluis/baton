@@ -103,7 +103,7 @@ the baseline recorded in phase 1.
   title: Land the regression test for each fix
   rung: 1
   needs: [T11]
-  done: "each new test fails against the pre-fix revision and passes after; both runs cited in the digest"
+  done: "each new test fails against the pre-fix revision and passes after; both runs cited in the envelope's evidence"
 - id: T20                       # phase 4 — earns its place
   kind: gate
   phase: 4
@@ -149,7 +149,7 @@ is undecidable from the contract — the test may be wrong or the code may be, a
 nobody inside the run can tell. Those park and batch while the loop keeps
 running. An unavoidable coverage regression blocks; it never passes as a caveat.
 
-**Final gate.** Synthesis over digests, verdicts, ledger, tier histogram. `T20`
+**Final gate.** Synthesis over envelopes, verdicts, ledger, tier histogram. `T20`
 is its evidence.
 
 ## Done

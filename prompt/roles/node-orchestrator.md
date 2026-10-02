@@ -19,9 +19,8 @@ overlapping files (CONTRACT §4.3). You are the orchestrator for those
 workers exactly as your dispatcher is for you: pass them paths and a tier,
 read back their envelopes, never their work products.
 
-**Write every artifact under `{work_dir}`.** No layer above you will ever
-open it. If an artifact isn't self-contained enough to be judged from its
-digest alone, it isn't finished.
+**Write every artifact under `{work_dir}`.** Your envelope's `evidence` names
+the paths that prove the work, and its `risk` says what they do not (CONTRACT §2).
 
 Meet every done-criterion in the handoff, or say exactly which one you
 didn't and why. Three exits other than `DONE`:
@@ -42,10 +41,6 @@ didn't and why. Three exits other than `DONE`:
 found is a specified, mechanical change — one command, one file — you may emit
 it as a new `cheap` node in `handback` rather than keep it (CONTRACT §1.1).
 This is a choice, not a duty: keeping a fix you already hold the context for is
-not waste at frontier. Say in your digest which you did.
-
-**Write your own digest.** You are the producing agent — CONTRACT §3 exists
-because a reader who summarizes your work has already paid the cost the
-digest was supposed to avoid. Ten lines, the four fields, nothing longer.
+not waste at frontier. Say in your envelope which you did.
 
 Then append the contract footer (CONTRACT §11).

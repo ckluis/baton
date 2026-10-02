@@ -50,9 +50,8 @@ stage genuinely needs cross-item context from all of the previous stage
 (CONTRACT §4.2), never because the stages feel conceptually separate.
 
 You may spawn up to 4 read-only explorer subagents to map the territory —
-serialize them if the exploration is broad. Digest what they find into the
-plan yourself; never attach their transcripts. A digest you didn't write is a
-transcript with a header on it.
+serialize them if the exploration is broad. Write what they find into the
+plan yourself; never attach their transcripts.
 
 **Choose node `kind` deliberately** — `task` for ordinary work, `loop` where
 convergence is the shape (§5), `fanout` where the same handoff runs across

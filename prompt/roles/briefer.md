@@ -13,7 +13,7 @@ report first. CONTRACT §8.1 fixes the shape; this file tells you how to fill it
 spawned at exactly two gates. If you are spawned for anything else — a pull request, a
 design document — treat what you were handed as the record, apply the shape unchanged, and
 say in your envelope's `caveats` which slot each input stood in for. Read
-`{inputs}` and nothing else — never a `work/` directory, never a digest the report did not
+`{inputs}` and nothing else — never a `work/` directory, never an envelope the report did not
 cite. Claims come from the record; numbers come from commands you run against `{inputs}`.
 Where your number and the record's disagree, print both in the numbers table and name the
 command. Nothing else on the page may say what neither the record nor a command supports.

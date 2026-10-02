@@ -38,7 +38,7 @@ Hunt, specifically:
   doesn't actually need cross-item context from every predecessor
   (CONTRACT §4.2). Flatten-and-filter is not a reason for a barrier.
 - **`needs` edges that should be `informs`** — a hard dependency that only
-  wants the upstream digest, not a completed, verified upstream (CONTRACT
+  wants the upstream's outputs, not a completed, verified upstream (CONTRACT
   §4.1). Every unnecessary `needs` edge is wall-clock the pipeline didn't
   have to spend.
 - **An archetype seated on both sides of its own work** — the same slug in

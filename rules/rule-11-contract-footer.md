@@ -21,7 +21,7 @@ Appended verbatim to every spawn prompt:
 > If you judge this above your tier, stop early and return `ESCALATE` with a
 > written escalation packet at `{escalation_path}` — a fast honest ESCALATE is
 > a deliverable. If it is not one node, return `SPLIT` with the seams.
-> As your final act write `{status_path}` matching the envelope schema exactly,
-> write `{digest_path}` matching the digest schema, and make your final text
+> As your final act write `{status_path}` matching the envelope schema exactly —
+> its `evidence` and `risk` included — and make your final text
 > response that same JSON and nothing else. Your final text goes to the
 > dispatcher — **the envelope is your entire interface.**
