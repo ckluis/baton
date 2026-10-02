@@ -52,6 +52,29 @@ const memory = {
   lastStats: null, // { run, project } from memo stats, for the pane
 }
 
+// Rotation: the prime compacts into its memory instead of carrying its context.
+const rotation = {
+  count: 0, // rotations (any compaction during a run) this session
+  inFlight: false, // a plugin compaction is being attempted
+  pendingWake: false, // the next prime turn must start with memory_wake
+  lastPercent: null, // the last measured context percent
+  window: null, // the context window, tokens
+  tokens: null, // the last measured context tokens
+  armed: true, // re-armed when the percent falls back under the threshold
+  lastAt: null, // ISO time of the last rotation
+  lastTrigger: null, // plugin | auto | manual
+  lastError: null, // why the last compaction attempt was refused
+}
+
+const WAKE_CONTEXT =
+  'baton: this session was just rotated — the conversation was compacted and your context now holds only the summary. ' +
+  'Before anything else, call mcp__baton__memory_wake and continue the run from what it shows (memory_zoom / memory_recall open older stretches). ' +
+  'You still never read files or run commands: dispatch a sub-orchestrator for anything that needs reading.'
+
+const COMPACT_INSTRUCTIONS =
+  'This is a baton prime rotation. The run memory (mcp__baton__memory_wake) holds the run; keep only the run id, mode, target, ' +
+  'the current phase, what the prime is waiting on, and the instruction to call memory_wake first. Drop file contents, tool output and narration.'
+
 const MEMORY_TOOLS = [
   {
     name: 'memory_wake',
@@ -235,6 +258,180 @@ function firstLine(text) {
   return ''
 }
 
+// ------------------------------------------------------------------ rotation
+
+/** One ≤280-byte line the prime would hand itself, from a fork of its own conversation. */
+async function handoffLine($, percent) {
+  try {
+    const r = await $.model.fork({
+      prompt:
+        'baton rotation: your context is about to be compacted. Reply with ONE line of at most 280 bytes for your future self: ' +
+        'current phase, what you are waiting on, and your next step. The line only.',
+    })
+    if (r.isAnswered && r.text.trim()) return firstLine(r.text)
+  } catch {}
+  return 'rotation at ' + (percent ?? '?') + '% — no handoff line; memory_wake for the state'
+}
+
+/**
+ * Rotate the prime: a handoff note, then a compaction, then (on the next
+ * prime turn) memory_wake. Compaction is refused while a turn runs, so it is
+ * retried on the clock until the session is idle (up to ~60 s).
+ */
+async function rotate($, why) {
+  if (rotation.inFlight) return 'a rotation is already in flight'
+  rotation.inFlight = true
+  try {
+    const line = await handoffLine($, rotation.lastPercent)
+    await appendNote($, 'run', 'handoff (' + why + '): ' + line, 'handoff')
+  } catch (err) {
+    $.ui.log('baton: handoff note failed: ' + err.message)
+  }
+  for (let attempt = 0; attempt < 30; attempt++) {
+    try {
+      const before = rotation.count
+      const r = await $.session.compact({ instructions: COMPACT_INSTRUCTIONS })
+      rotation.inFlight = false
+      if (r && r.skip) {
+        $.ui.log('baton: rotation skipped: ' + r.skip)
+        return 'skipped: ' + r.skip
+      }
+      // The session.compact hook counts it; a plugin's own call may skip this
+      // module's hooks (the engine's recursion guard), so count it here then.
+      if (rotation.count === before) await countRotation($, 'plugin')
+      return 'rotated (#' + rotation.count + ')'
+    } catch (err) {
+      rotation.lastError = err && err.message ? err.message : String(err)
+      await $.clock.sleep(2000)
+    }
+  }
+  rotation.inFlight = false
+  $.ui.log('baton: rotation gave up — compaction kept refusing: ' + rotation.lastError)
+  return 'gave up: compaction kept refusing (' + rotation.lastError + ')'
+}
+
+/** Record one rotation: count it, arm the wake, persist the count per run. */
+async function countRotation($, trigger) {
+  rotation.count++
+  rotation.pendingWake = true
+  rotation.lastAt = new Date(Date.now()).toISOString()
+  rotation.lastTrigger = trigger
+  rotation.lastPercent = null
+  $.ui.log('baton: rotation #' + rotation.count + ' (' + trigger + ') — the prime wakes from memory next turn')
+  $.ui.invalidate('ui.render')
+  try {
+    const key = 'rotations:' + ((run.manifest && run.manifest.run_id) || 'session')
+    const prev = Number((await $.store.get(key)) ?? 0)
+    await $.store.set(key, prev + 1)
+  } catch {}
+}
+
+/** Text that tells the prime to wake, once. */
+function takeWake() {
+  if (!rotation.pendingWake) return null
+  rotation.pendingWake = false
+  return WAKE_CONTEXT + ' (rotation #' + rotation.count + ')'
+}
+
+// ------------------------------------------------------------------ /baton
+
+function makeRunId(mode, iso) {
+  return String(mode).toLowerCase() + '-' + iso.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+}
+
+const MODES = ['BUILD', 'CRAFT', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'POSITION', 'REVIEW', 'ROADMAP', 'TEST']
+
+function kickoff(m) {
+  return (
+    'baton v7 run ' + m.run_id + ' started — MODE ' + m.mode + ', TARGET ' + m.target + '. You are the PRIME orchestrator. ' +
+    'Load the baton skill (Skill "baton:baton") for your standing orders. In short: you never read, run or edit anything — the mod refuses it; ' +
+    'you dispatch. First dispatch one baton:sub-orchestrator to bootstrap the run (directive from the mode file, cast, plan, plan verification) ' +
+    'and return one line. Then dispatch one sub-orchestrator per phase. Note decisions with memory_note; after a rotation call memory_wake first.'
+  )
+}
+
+async function batonStart($, args) {
+  const [modeRaw, ...rest] = String(args ?? '').trim().split(/\s+/).filter(Boolean)
+  const mode = String(modeRaw ?? '').toUpperCase()
+  const target = rest.join(' ')
+  if (!MODES.includes(mode) || !target) {
+    return 'usage: /baton start <MODE> <TARGET>  — MODE is one of ' + MODES.join(', ') + '; TARGET a path, spec, URL or one-line goal'
+  }
+  let existing = null
+  try {
+    existing = JSON.parse(await $.fs.read('_orch/manifest.json'))
+  } catch {}
+  if (existing && existing.prime === true && existing.closed !== true) {
+    return 'a baton run is already active here: ' + existing.run_id + ' (/baton stop closes it)'
+  }
+  if (existing && !existing.prime) {
+    return '_orch/ here holds another run (' + (existing.run_id ?? 'unknown') + '); archive it first (tar czf baton-run.tar.gz _orch && rm -rf _orch)'
+  }
+  const now = new Date(Date.now()).toISOString()
+  const m = {
+    run_id: makeRunId(mode, now),
+    mode,
+    target,
+    prime: true,
+    baton: '7.0.0-dev',
+    started_at: now,
+    models: { frontier: FRONTIER_MODEL, cheap: CHEAP_MODEL },
+    memory: { run: '_orch/memory', project: config.memoryDir },
+    rotate_at_percent: config.rotateAtPercent,
+    wake_budget_lines: config.wakeBudgetLines,
+    phase: 'bootstrap',
+  }
+  await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
+  run.startedHere = true
+  forgetRunCache()
+  await registerMemoryTools($)
+  await appendNote($, 'run', 'run ' + m.run_id + ' started: MODE ' + mode + ', TARGET ' + target, 'operator')
+  $.ui.invalidate('ui.render')
+  // Start the prime's first turn once the command returns (not awaited: it resolves when the turn starts).
+  $.prompt.submit({ text: kickoff(m) }).catch(() => {})
+  return 'baton run ' + m.run_id + ' started (MODE ' + mode + ', TARGET ' + target + '). The prime guard is armed: the main session may only dispatch, ask and use memory.'
+}
+
+async function batonStop($) {
+  let m = null
+  try {
+    m = JSON.parse(await $.fs.read('_orch/manifest.json'))
+  } catch {}
+  run.startedHere = false
+  forgetRunCache()
+  if (!m || m.prime !== true) return 'no baton v7 run is active here'
+  m.closed = true
+  m.closed_at = new Date(Date.now()).toISOString()
+  await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
+  try {
+    await appendNote($, 'run', 'run closed by the operator (/baton stop)', 'operator')
+  } catch {}
+  $.ui.invalidate('ui.render')
+  return 'baton run ' + m.run_id + ' closed; the prime guard is off. _orch/ stays as the record.'
+}
+
+/** The text form of the run's state: `/baton status`, and the pane where nothing draws. */
+async function statusText($) {
+  const active = await runActive($)
+  const m = run.manifest
+  const lines = []
+  lines.push(active && m ? 'baton run ' + m.run_id + ' — MODE ' + m.mode + ', TARGET ' + m.target + ', phase ' + (m.phase ?? '?') : 'no baton v7 run is active here')
+  lines.push(
+    'context ' + (rotation.lastPercent ?? '?') + '% (rotate at ' + config.rotateAtPercent + '%) · rotations ' + rotation.count +
+      (rotation.lastAt ? ' (last ' + rotation.lastAt + ', ' + rotation.lastTrigger + ')' : ''),
+  )
+  lines.push('guard ' + (active ? 'armed' : 'off') + ' · prime denials ' + probe.denied + ' · agentId ' + (probe.verified ? 'verified' : 'unverified') + (probe.notice ? ' — ' + probe.notice : ''))
+  if (active) {
+    try {
+      const s = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'stats']))
+      lines.push('run memory: ' + s.notes + ' notes, ' + s.summaries + '/' + s.treeCapacity + ' summaries, ' + s.pending + ' merges pending')
+    } catch (err) {
+      lines.push('run memory: unreadable (' + err.message + ')')
+    }
+  }
+  return lines.join('\n')
+}
+
 /** Serve one memory tool call. */
 async function serveMemoryTool($, e) {
   const name = String(e.tool).slice('mcp__baton__'.length)
@@ -295,6 +492,17 @@ export function register(on, options) {
         $.ui.log('baton: could not register the memory tools: ' + err.message)
       }
     }
+    // Registered last: a refused name throws, and nothing after it would run.
+    try {
+      await $.command.register({
+        name: 'baton',
+        description: 'baton v7: start | stop | rotate | status — or no argument for the run pane',
+        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status]',
+        immediate: true,
+      })
+    } catch (err) {
+      $.ui.log('baton: /baton not registered: ' + err.message)
+    }
     return next(e)
   })
 
@@ -310,7 +518,14 @@ export function register(on, options) {
     }
     const active = await runActive($)
     const verdict = guardDecision(e, active)
-    if (!verdict) return next(e)
+    if (!verdict) {
+      // Third path for the wake: if neither SessionStart nor a prompt carried
+      // it, the prime's first tool call after a rotation does.
+      const wake = active && rotation.pendingWake ? takeWake() : null
+      if (!wake) return next(e)
+      const r = await next(e)
+      return r && !r.deny ? { ...r, context: [...(r.context ?? []), wake] } : r
+    }
     probe.denied++
     const live = [...probe.spawned].some((id) => !probe.seen.has(id))
     if (live) probe.deniedWhileLive++
@@ -327,6 +542,78 @@ export function register(on, options) {
   // ---------------------------------------------------------------- memory tools
 
   on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e))
+
+  // ---------------------------------------------------------------- rotation
+
+  on('session.measure', async ($, e, next) => {
+    const ctx = e.context || {}
+    if (typeof ctx.percent === 'number') {
+      rotation.lastPercent = ctx.percent
+      rotation.tokens = ctx.tokens ?? null
+      rotation.window = ctx.window ?? null
+      $.ui.invalidate('ui.render')
+    }
+    const pct = rotation.lastPercent
+    if (typeof pct === 'number' && pct < config.rotateAtPercent) rotation.armed = true
+    if (typeof pct === 'number' && pct >= config.rotateAtPercent && rotation.armed && !rotation.inFlight && (await runActive($))) {
+      rotation.armed = false
+      $.ui.log('baton: context at ' + pct + '% (≥ ' + config.rotateAtPercent + '%) — rotating the prime into memory')
+      $.clock.after(250, () => rotate($, pct + '%'))
+    }
+    return next(e)
+  })
+
+  // Every compaction of the main conversation during a run is a rotation:
+  // count it, and arm the wake for the prime's next turn.
+  on('session.compact', async ($, e, next) => {
+    if (e.agentId || e.trigger === 'precompute' || !(await runActive($))) return next(e)
+    if (e.trigger !== 'plugin') {
+      try {
+        await appendNote($, 'run', 'compaction (' + e.trigger + ') at ' + (rotation.lastPercent ?? '?') + '% — memory_wake for the state', 'handoff')
+      } catch {}
+    }
+    const r = await next(e)
+    if (r && !r.skip) await countRotation($, e.trigger)
+    return r
+  })
+
+  // After a compaction the engine raises SessionStart with source "compact":
+  // hand the prime the wake instruction there.
+  on('classic.SessionStart', { source: 'compact' }, async ($, e, next) => {
+    const r = await next(e)
+    const wake = (await runActive($)) ? takeWake() : null
+    if (!wake) return r
+    return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), wake] }
+  })
+
+  // Belt and braces: if no SessionStart carried it, the next prompt does.
+  on('prompt.submit', async ($, e, next) => {
+    const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
+    if (!wake) return next(e)
+    return next({ ...e, context: [...(e.context ?? []), wake] })
+  })
+
+  // ---------------------------------------------------------------- /baton
+
+  on('command.run', { command: 'baton' }, async ($, e) => {
+    const [sub, ...rest] = String(e.args ?? '').trim().split(/\s+/)
+    switch ((sub || '').toLowerCase()) {
+      case 'start':
+        return { text: await batonStart($, rest.join(' ')) }
+      case 'stop':
+        return { text: await batonStop($) }
+      case 'rotate': {
+        if (!(await runActive($))) return { text: 'no baton run is active here; nothing to rotate' }
+        if (rotation.inFlight) return { text: 'baton: a rotation is already in flight' }
+        // The engine refuses a compaction from inside a command.run hook (it
+        // would compact under the turn the hook holds), so run it off the clock.
+        $.clock.after(0, () => rotate($, 'forced by /baton rotate'))
+        return { text: 'baton: rotation requested (rotations so far: ' + rotation.count + ') — handoff note, then compaction, then memory_wake on the next prime turn' }
+      }
+      default:
+        return { text: await statusText($) }
+    }
+  })
 
   // A subagent that finishes without one tool call carrying its id, while
   // prime-classified calls were being refused, is the signature of agentId
