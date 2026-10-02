@@ -11,6 +11,7 @@
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { bindModel, CHEAP, FRONTIER } from '../lib/binding.mjs'
+import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
 
@@ -35,7 +36,7 @@ const probe = {
 const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
-const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory' }
+const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -75,6 +76,26 @@ const WAKE_CONTEXT =
 const COMPACT_INSTRUCTIONS =
   'This is a baton prime rotation. The run memory (mcp__baton__memory_wake) holds the run; keep only the run id, mode, target, ' +
   'the current phase, what the prime is waiting on, and the instruction to call memory_wake first. Drop file contents, tool output and narration.'
+
+// The pane: which tab, and what the last refresh read (render hooks do no I/O).
+const PANE = 'baton'
+const TABS = [
+  { id: 'run', label: 'Run', hotkey: '1' },
+  { id: 'memory', label: 'Memory', hotkey: '2' },
+  { id: 'ledger', label: 'Ledger', hotkey: '3' },
+  { id: 'luminaries', label: 'Luminaries', hotkey: '4' },
+]
+const pane = {
+  open: false,
+  tab: 'run',
+  timer: null,
+  refreshedAt: null,
+  data: { run: ['(not read yet)'], memory: ['(not read yet)'], ledger: ['(not read yet)'], luminaries: ['(not read yet)'] },
+  memoryNotes: null, // run-memory note count, for the band
+}
+
+// What the prime is doing now, for the spinner: its live dispatches.
+const live = new Map() // agentId -> label
 
 const MEMORY_TOOLS = [
   {
@@ -186,6 +207,7 @@ async function appendNote($, which, text, tag, namespace) {
   const out = await memoRun($, [...args, '--json', 'note', '--tag', tag, '-'], text)
   const r = JSON.parse(out)
   memory.notes++
+  if (which === 'run' && !namespace) pane.memoryNotes = r.index + 1
   if (r.merges && r.merges.length) scheduleMerge($, which, namespace)
   $.ui.invalidate('ui.render')
   return 'noted #' + r.index + (r.truncated ? ' (cut to 280 bytes: ' + r.text.length + ' chars kept)' : '')
@@ -425,7 +447,7 @@ async function statusText($) {
   const lines = []
   lines.push(active && m ? 'baton run ' + m.run_id + ' — MODE ' + m.mode + ', TARGET ' + m.target + ', phase ' + (m.phase ?? '?') : 'no baton v7 run is active here')
   lines.push(
-    'context ' + (rotation.lastPercent ?? '?') + '% (rotate at ' + config.rotateAtPercent + '%) · rotations ' + rotation.count +
+    'context ' + (rotation.lastPercent ?? '?') + '% (' + (config.autoRotate ? 'rotate at ' + config.rotateAtPercent + '%' : 'auto-rotation off: BATON_AUTOROTATE=0') + ') · rotations ' + rotation.count +
       (rotation.lastAt ? ' (last ' + rotation.lastAt + ', ' + rotation.lastTrigger + ')' : ''),
   )
   lines.push('guard ' + (active ? 'armed' : 'off') + ' · prime denials ' + probe.denied + ' · agentId ' + (probe.verified ? 'verified' : 'unverified') + (probe.notice ? ' — ' + probe.notice : ''))
@@ -438,6 +460,109 @@ async function statusText($) {
     }
   }
   return lines.join('\n')
+}
+
+// ------------------------------------------------------------------ the pane
+
+async function readJson($, path) {
+  try {
+    return JSON.parse(await $.fs.read(path))
+  } catch {
+    return null
+  }
+}
+
+async function listDir($, path) {
+  try {
+    return await $.fs.list(path)
+  } catch {
+    return null
+  }
+}
+
+/** Read _orch and the memories once, into pane.data. Every read is allowed to fail. */
+async function refreshPane($, paneRows) {
+  const budget = Math.max(8, Math.min(200, (paneRows ?? 30) - 4))
+  const d = {}
+  // Run
+  const m = await readJson($, '_orch/manifest.json')
+  if (!m) {
+    d.run = ['no _orch/ here — /baton start <MODE> <TARGET> begins a run']
+  } else {
+    const lines = [
+      (m.prime ? (m.closed ? 'closed' : 'active') : 'v5 run (no prime guard)') + ' · ' + (m.run_id ?? '?') + ' · ' + (m.mode ?? '?') + ' · ' + (m.target ?? ''),
+      'phase ' + (m.phase ?? '?') + ' · rotations ' + rotation.count + ' · context ' + (rotation.lastPercent ?? '—') + '%' + ' · guard ' + (run.active || run.startedHere ? 'armed' : 'off'),
+    ]
+    if (live.size) lines.push('dispatched now: ' + [...live.values()].join(', '))
+    const phases = (await listDir($, '_orch/phases')) ?? []
+    const phaseRows = []
+    for (const p of phases.filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(-12)) {
+      const env = await readJson($, '_orch/phases/' + p + '/envelope.json')
+      phaseRows.push(p + ' ' + (env ? env.verdict ?? '?' : 'open') + (env && env.summary ? ' — ' + env.summary : ''))
+    }
+    if (phaseRows.length) lines.push('', 'phases:', ...phaseRows.map((x) => '  ' + x))
+    const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(0, 300)
+    const nodes = []
+    for (const id of nodeDirs) {
+      const st = await readJson($, '_orch/nodes/' + id + '/status.json')
+      nodes.push({ id, verdict: st ? st.verdict ?? '?' : 'pending' })
+    }
+    const sum = summarizeNodes(nodes)
+    lines.push('', sum.line)
+    for (const n of sum.open.slice(0, 20)) lines.push('  ' + n.id + ' ' + n.verdict)
+    d.run = lines
+  }
+  // Memory
+  try {
+    const w = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'wake', '--budget', String(budget)]))
+    const s = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'stats']))
+    pane.memoryNotes = s.notes
+    d.memory = [
+      'tree: ' + s.notes + ' notes · ' + s.summaries + '/' + s.treeCapacity + ' summaries · ' + s.levels + ' levels · ' + s.pending + ' merges pending',
+      'wake view (' + w.tiles.length + ' blocks, budget ' + budget + '):',
+      ...w.lines,
+    ]
+  } catch (err) {
+    d.memory = ['run memory unreadable: ' + err.message]
+  }
+  // Ledger: row files (rule 6.3), then the v4/v5 single file
+  const rows = []
+  const files = ((await listDir($, '_orch/ledger')) ?? []).filter((x) => x.kind === 'file' && x.name.endsWith('.csv')).map((x) => x.name).sort().slice(-15)
+  for (const f of files) {
+    try {
+      rows.push(...parseLedger(await $.fs.read('_orch/ledger/' + f)))
+    } catch {}
+  }
+  try {
+    rows.push(...parseLedger(await $.fs.read('_orch/ledger.csv')).slice(-15))
+  } catch {}
+  rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)))
+  d.ledger = rows.length ? rows.slice(-15).map(ledgerLine) : ['no ledger rows yet']
+  // Luminaries: namespaces luminary-* of the project memory
+  try {
+    const args = await memoryArgs($, 'project')
+    const nsDir = args[1] + '/ns'
+    const lum = ((await listDir($, nsDir)) ?? []).filter((x) => x.kind === 'directory' && x.name.startsWith('luminary-')).map((x) => x.name).sort().slice(0, 12)
+    const out = []
+    for (const ns of lum) {
+      try {
+        const st = JSON.parse(await memoRun($, [...args, '--ns', ns, '--json', 'stats']))
+        const last = JSON.parse(await memoRun($, [...args, '--ns', ns, '--json', 'wake', '--budget', '1']))
+        out.push(ns.slice('luminary-'.length) + ' · ' + st.notes + ' notes', '  ' + (last.lines.at(-1) ?? ''))
+      } catch {}
+    }
+    d.luminaries = out.length ? out : ['no luminary has a memory yet (project memory ' + args[1] + ')']
+  } catch (err) {
+    d.luminaries = ['project memory unreadable: ' + err.message]
+  }
+  pane.data = d
+  pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
+  $.ui.invalidate('ui.render')
+}
+
+/** Every tab as text, for `claude -p` and any surface that draws nothing. */
+function paneText() {
+  return TABS.map((t) => '## ' + t.label + '\n' + pane.data[t.id].join('\n')).join('\n\n')
 }
 
 /** Serve one memory tool call. */
@@ -478,6 +603,12 @@ export function register(on, options) {
   // ---------------------------------------------------------------- load
 
   on('session.start', async ($, e, next) => {
+    // BATON_AUTOROTATE=0: never rotate on the measured threshold; only /baton rotate does
+    // (experiment E1 drives rotation at fixed indices to match its compaction arm).
+    try {
+      const auto = await $.env.get('BATON_AUTOROTATE')
+      config.autoRotate = !(auto !== undefined && auto !== null && /^(0|false|off|no)$/i.test(String(auto).trim()))
+    } catch {}
     try {
       const v = await $.session.version()
       probe.version = v.base ?? v.version
@@ -563,7 +694,7 @@ export function register(on, options) {
     }
     const pct = rotation.lastPercent
     if (typeof pct === 'number' && pct < config.rotateAtPercent) rotation.armed = true
-    if (typeof pct === 'number' && pct >= config.rotateAtPercent && rotation.armed && !rotation.inFlight && (await runActive($))) {
+    if (config.autoRotate && typeof pct === 'number' && pct >= config.rotateAtPercent && rotation.armed && !rotation.inFlight && (await runActive($))) {
       rotation.armed = false
       $.ui.log('baton: context at ' + pct + '% (≥ ' + config.rotateAtPercent + '%) — rotating the prime into memory')
       $.clock.after(250, () => rotate($, pct + '%'))
@@ -618,15 +749,97 @@ export function register(on, options) {
         $.clock.after(0, () => rotate($, 'forced by /baton rotate'))
         return { text: 'baton: rotation requested (rotations so far: ' + rotation.count + ') — handoff note, then compaction, then memory_wake on the next prime turn' }
       }
-      default:
+      case 'status':
         return { text: await statusText($) }
+      default: {
+        // No argument: the pane where something draws, its text where nothing does.
+        let surfaces = []
+        try {
+          surfaces = await $.session.surfaces()
+        } catch {}
+        await refreshPane($, 30)
+        if (!surfaces.length) return { text: (await statusText($)) + '\n\n' + paneText() }
+        pane.open = true
+        await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
+        try {
+          if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
+        } catch {}
+        return {}
+      }
     }
+  })
+
+  on('ui.close', async ($, e, next) => {
+    if (e.id === PANE) {
+      pane.open = false
+      if (pane.timer) {
+        pane.timer.cancel()
+        pane.timer = null
+      }
+    }
+    return next(e)
+  })
+
+  on('ui.render', { component: 'Pane' }, async ($, e, next) => {
+    if (e.requestId !== PANE) return next(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const cols = e.props.bodyColumns ?? 80
+    const tabs = TABS.map((t) =>
+      Button({
+        key: 'tab-' + t.id,
+        label: t.label,
+        hotkey: t.hotkey,
+        plain: true,
+        ...(pane.tab === t.id ? {} : { dimColor: true }),
+        onPress: () => {
+          pane.tab = t.id
+          $.ui.invalidate('ui.render')
+        },
+      }),
+    )
+    tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, (e.props.scroll && e.props.scroll.bodyRows) || 30) }))
+    const body = (pane.data[pane.tab] ?? []).map((line, i) => Text({ key: 'l' + i, wrap: 'truncate-end', children: [String(line).slice(0, Math.max(20, cols * 2)) || ' '] }))
+    return Box({
+      flexDirection: 'column',
+      children: [
+        Box({ flexDirection: 'row', columnGap: 3, children: tabs }),
+        Text({ dimColor: true, children: ['read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes'] }),
+        ...body,
+      ],
+    })
+  })
+
+  // The band above the prompt: the prime's context gauge and rotation count.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!(run.active || run.startedHere)) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
+    const theirs = await next(e)
+    const line = gaugeLine({
+      percent: rotation.lastPercent,
+      threshold: config.rotateAtPercent,
+      rotations: rotation.count,
+      notes: pane.memoryNotes,
+      phase: run.manifest && run.manifest.phase,
+      width: e.props.bodyColumns,
+    })
+    const color = gaugeColor(rotation.lastPercent, config.rotateAtPercent)
+    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...(theirs ? [theirs] : [])] })
+  })
+
+  // The spinner: which phase and node the prime is waiting on.
+  on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    if (!(run.active || run.startedHere)) return next(e)
+    const labels = [...live.values()]
+    const node = labels.length > 1 ? labels.length + ' dispatched' : labels[0]
+    return next({ ...e, props: { ...e.props, suffix: spinnerSuffix(e.props.suffix, run.manifest && run.manifest.phase, node) } })
   })
 
   // A subagent that finishes without one tool call carrying its id, while
   // prime-classified calls were being refused, is the signature of agentId
   // having gone missing: say so loudly (the guard stays closed).
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId && live.delete(e.agentId)) $.ui.invalidate('ui.render')
+    if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
     // A subagent the prime dispatched returned: its one line becomes a note.
     if (e.agentId && spawnedByPrime.has(e.agentId) && !e.isAborted && (await runActive($))) {
       const who = spawnedByPrime.get(e.agentId)
@@ -665,7 +878,11 @@ export function register(on, options) {
     const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
-      if (!e.parentAgentId) spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })
+      if (!e.parentAgentId) {
+        spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })
+        live.set(r.agentId, String(e.name || e.description || e.subagentType || 'agent').slice(0, 32))
+        $.ui.invalidate('ui.render')
+      }
     }
     return r
   })
