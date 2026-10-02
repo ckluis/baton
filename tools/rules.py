@@ -13,7 +13,9 @@ What this checks, all of it by existence rather than by inference:
     3  every `links.to` target resolves to a rule that exists
     4  no rule text survives in either contract - a numbered heading outside the
        generated index means a rule has two homes again
-    5  every rule id cited anywhere in the repo resolves to a file
+    5  every rule id cited anywhere in the repo resolves to a file - except in the
+       record of the past and the opt-in library (HISTORY below), which cite rules
+       as they were when written
     6  the index on disk equals the index regenerated from the files
 
 Any failure exits 1.  This one is a gate: unlike an index, a broken rule set is
@@ -42,6 +44,17 @@ ID_CITE_RE = re.compile(r"\b((?:p?rule)-\d+(?:-\d+[a-z]?)*-[a-z0-9-]+)\b")
 # it. That happened - a withdrawn section left `stakes (§9.2)` behind in §9.1,
 # referring to a section that no longer existed, and it reached main.
 SEC_CITE_RE = re.compile(r"§\s?(\d+(?:\.\d+[a-z]?)*)")
+# Check 5 does not hold these to today's rule set. Experiment and design records,
+# the changelog and the migration notes describe the rules a version had; the
+# library carries the v5 persona layer and its own v5 rule files. Everything else
+# - router, contracts, rules, roles, modes, personas, tools, README, the page - is
+# held strictly.
+HISTORY = ("docs/experiments/", "docs/designs/", "CHANGELOG.md", "migrations/", "library/")
+
+
+def is_history(rel):
+    rel = rel.replace(os.sep, "/")
+    return any(rel == h or rel.startswith(h) for h in HISTORY)
 
 
 def load_rules(directory=RULES):
@@ -144,6 +157,8 @@ def check(rules, errs, write, warnings=None):
             except OSError:
                 continue
             rel = os.path.relpath(fp, ROOT)
+            if is_history(rel):
+                continue
             for cite in set(ID_CITE_RE.findall(body)):
                 if cite not in ids:
                     problems.append("%s: cites `%s`, which is not a rule" % (rel, cite))
@@ -208,6 +223,10 @@ def selftest():
     # must not plant citations in it. #9's predecessor indexed its own assertions.
     ghost = "9" * 2 + "." + "9"
     cases.append(("dangling section reference (%s)" % ghost, ghost not in secs))
+    # the history exemption must not reach a live file
+    cases.append(("a live file claimed as history", not any(is_history(r) for r in (
+        "prompt/baton.md", "rules/rule-9-evidence.md", "README.md", "docs/README.md",
+        "personas/CONTRACT.md", "librarything.md"))))
 
     print("Each mutation below must be REJECTED. A check that passes them is not a check.\n")
     bad = 0
