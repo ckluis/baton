@@ -10,6 +10,7 @@
 
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
+import { bindModel, CHEAP, FRONTIER } from '../lib/binding.mjs'
 
 // ------------------------------------------------------------------ state
 
@@ -37,8 +38,8 @@ const MANIFEST_TTL_MS = 1500
 const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory' }
 
 // The cheap tier: merges are compressed here, never by a subagent.
-const CHEAP_MODEL = 'claude-sonnet-5-5'
-const FRONTIER_MODEL = 'claude-opus-5-5'
+const CHEAP_MODEL = CHEAP
+const FRONTIER_MODEL = FRONTIER
 
 // Subagents the prime spawned directly: agentId -> { type, description, name }.
 // Their returns become run-memory notes.
@@ -368,12 +369,19 @@ async function batonStart($, args) {
     return '_orch/ here holds another run (' + (existing.run_id ?? 'unknown') + '); archive it first (tar czf baton-run.tar.gz _orch && rm -rf _orch)'
   }
   const now = new Date(Date.now()).toISOString()
+  // Where baton's prompts and rules live: the checkout this plugin sits in, else the published main.
+  const local = $.plugin.root.replace(/\/mod\/?$/, '')
+  let batonBase = 'https://raw.githubusercontent.com/ckluis/baton/main'
+  try {
+    if (local !== $.plugin.root && (await $.fs.exists(local + '/prompt/baton.md'))) batonBase = local
+  } catch {}
   const m = {
     run_id: makeRunId(mode, now),
     mode,
     target,
     prime: true,
     baton: '7.0.0-dev',
+    baton_base: batonBase,
     started_at: now,
     models: { frontier: FRONTIER_MODEL, cheap: CHEAP_MODEL },
     memory: { run: '_orch/memory', project: config.memoryDir },
@@ -643,8 +651,18 @@ export function register(on, options) {
     return next(e)
   })
 
+  // The binding: during a run every spawn runs on the model its role names,
+  // whatever the caller asked for (opus for prime-side roles, sonnet for -cheap).
   on('agent.spawn', async ($, e, next) => {
-    const r = await next(e)
+    let input = e
+    if (await runActive($)) {
+      const model = bindModel(e)
+      if (model && e.model !== model) {
+        input = { ...e, model }
+        if (e.model) $.ui.log('baton: ' + (e.subagentType || 'agent') + ' bound to ' + model + ' (asked for ' + e.model + ')')
+      }
+    }
+    const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
       if (!e.parentAgentId) spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })
