@@ -74,9 +74,16 @@ is where both models are strongest.
 | cost, worker + verifier pairs | $49.30 | **$23.58** (workers $8.27) |
 
 Sonnet lost `P10` (REFUTED) and `P90c`. It also gave up early on four nodes that the Opus worker
-attempted. `P00` blocks by design: its handoff's STOP clause fires on this tree. On `P41`,
-`P90b`, `P160` and `P121`, Sonnet read the stale-tree clauses in the original handoffs as a reason
-to stop. Opus read them as a premise to work around and did the work in a staging copy. Every one
+attempted. `P00` blocks by design: its handoff's STOP clause fires on this tree. Reasons for the
+other four stops, from the envelopes:
+- `P90b` and `P160`: the tree is v5, not the state the handoff plans against.
+- `P121`: the same, plus inputs that come from the withheld verify tree.
+- `P41`: its inputs are withheld. **This worker also breached the input rule.** By its own envelope,
+  it opened withheld `verify/` files while orienting, reported the breach, and stopped. The attempt
+  is contaminated. No Opus worker in any arm reported a breach.
+
+The Opus workers met the same premises and staged around them, doing the work in a copy instead
+of stopping. Every one
 of the 36 spawns was served by the model asked for.
 
 ### The rule, applied
