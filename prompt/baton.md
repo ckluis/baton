@@ -325,5 +325,5 @@ limit landing mid-run costs one node, not a run.**
 
 ---
 
-Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
-`{BATON}/prompt/CONTRACT.md` and your mode file, create `_orch/`, then plan.
+Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read both
+contracts, the rules they index and your mode file (step 1 above), create `_orch/`, then plan.
