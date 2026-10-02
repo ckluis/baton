@@ -13,7 +13,7 @@ test('a prime call is refused unless allowlisted, and only during a run', () => 
   assert.equal(guardDecision({ tool: 'Read' }, false), null)
   assert.equal(guardDecision({ tool: 'Agent' }, true), null)
   assert.equal(guardDecision({ tool: 'mcp__baton__memory_recall' }, true), null)
-  assert.match(guardDecision({ tool: 'mcp__batonx__evil' }, true).deny, /never runs/)
+  assert.match(guardDecision({ tool: 'mcp__batonx__evil' }, true).deny, /is not a prime tool/)
   assert.deepEqual([...PRIME_TOOLS].sort(), ['Agent', 'AskUserQuestion', 'SendMessage', 'Task', 'ToolSearch'])
 })
 
