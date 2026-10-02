@@ -14,15 +14,15 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
 out which mode fits, and **asks you to confirm it** — leading with its best
-guess and the two next-best rather than making you choose from ten. Picking
+guess and the two next-best rather than making you choose from eight. Picking
 beats typing, and a question you answer in one click is cheaper than a setting
 you had to look up.
 
@@ -45,7 +45,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
@@ -88,10 +88,10 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/v5.0
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v6.0
 PERSONAS:    builtin
-CHEAP:       the harness's fastest model
-FRONTIER:    the harness's most capable model, effort per node
+CHEAP:       claude-sonnet-5-5
+FRONTIER:    claude-opus-5-5 at medium
 INBOX:       off
 TEAM:        off
 
@@ -104,14 +104,14 @@ against that same base URL. Read it completely before you start any work.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **asked for** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `CRAFT` `POSITION` `MIGRATE` `ROADMAP` `GENERIC` |
+| `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
-| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
-| `CHEAP` | the harness's fastest model | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
-| `FRONTIER` | the harness's most capable model, effort per node (`high` unless the node says otherwise) | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes journey probes drive. `library` opts in to expert lenses, casting and panels (`library/README.md`) |
+| `CHEAP` | `claude-sonnet-5-5` | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
+| `FRONTIER` | `claude-opus-5-5` at `medium` effort | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
-| `TEAM` | `off` | `github`: the run's state on a git ref, every question an Issue, every product node a draft PR — see "For a team" above |
-| `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref, Issues and pages when the target is public or not yours |
+| `TEAM` | `off` | `github`: the run's state on a hidden git ref, one pull request as the thread, every question a comment on it, every product node one commit — see "For a team" above |
+| `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref and pull request when the target is public or not yours |
 
 `TARGET` and `MODE` are the only two a run may not silently guess — which is why
 they are the two it asks about instead. In a session that cannot ask (a cron
@@ -121,7 +121,7 @@ inference, and says so in its first message and its final report.
 ### Pinning a version
 
 The base URL is the pin. The default above is already pinned to a tag —
-`v5.0`, the current release — rather than floating on `main`. Point at a
+`v6.0`, the current release — rather than floating on `main`. Point at a
 different tag instead (an older release, frozen forever) — or at `main` for
 the bleeding edge — and the whole framework — router, contracts, modes,
 roles, personas — comes from that base, because everything resolves relative
@@ -135,8 +135,7 @@ BATON: https://raw.githubusercontent.com/ckluis/baton/v2.0
 
 ## If you would rather have it locally
 
-Faster on repeat runs, works with no network, and the only form that lets
-casting clone a persona repository with git:
+Faster on repeat runs, and works with no network:
 
 ```sh
 git clone --depth 1 https://github.com/ckluis/baton
@@ -148,18 +147,16 @@ URL and it fetches.** Nothing else changes.
 ## If you can do neither
 
 `./bundle.sh <MODE>` produces one self-contained document under `dist/` with the
-router, both contracts, your mode, the roles, and only that mode's seats
-inlined. Paste that instead, put `TARGET` at the top, and the run needs no
+router, both contracts, your mode, the roles, and only the user archetypes
+that mode drives inlined. Paste that instead, put `TARGET` at the top, and the run needs no
 network and no filesystem beyond its own work.
 
 ---
 
 ## Why it is shaped this way
 
-The router tells the prime to read two files and then delegate everything else.
 Pasting the router itself would mean carrying the process by hand in order to
-tell an agent to go read the process — and it would put two hundred lines of
-standing orders in the one context the whole design exists to protect.
+tell an agent to go read the process.
 
 So the paste carries what only you know: what you want. The router asks about
 the one thing it cannot infer safely, defaults everything it can, and the rest

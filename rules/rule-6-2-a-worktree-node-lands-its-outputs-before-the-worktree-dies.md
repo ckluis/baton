@@ -36,10 +36,10 @@ So, as a duty on the layer that created the worktree:
 > while any `outputs` path resolves only inside it.
 
 **Where the copy lands.** A product path keeps its path relative to the worktree root:
-`<worktree>/personas/lenses/type-system.md` lands at
-`_orch/nodes/<id>/work/tree/personas/lenses/type-system.md`, under a `tree/` prefix so it cannot
+`<worktree>/src/billing/retry.py` lands at
+`_orch/nodes/<id>/work/tree/src/billing/retry.py`, under a `tree/` prefix so it cannot
 collide with the node's own `work/` files. An output already under `_orch/nodes/<id>/work/` is
-already landed and is not copied again. The phase runner rewrites the envelope's `outputs` to the
+already landed and is not copied again. The dispatcher rewrites the envelope's `outputs` to the
 landed paths and keeps the original path beside each as `worktree_path`, so a verifier can still
 tell which tree the artifact was written in.
 
@@ -64,10 +64,9 @@ exist is a `FAILED`, not a `DONE`*), and it makes every criterion resting on tha
 permanently unverifiable — not `REFUTED`, not `UNSETTLEABLE`, but `UNTESTED` forever, because the
 thing being judged is gone. No tier can recover it and no resume can rebuild it.
 
-**A digest is not a substitute.** §3 caps a digest at ten lines and forbids it from crossing
-layers as a document. It says what changed; it is not the artifact and cannot be verified against.
-A node whose products are gone but whose digest survives has left a claim with no evidence, which
-§9 calls inadmissible.
+**An envelope is not a substitute.** Its `evidence` names the artifact; it is not the artifact
+and cannot be verified against. A node whose products are gone but whose envelope survives has
+left a claim with no evidence, which §9 calls inadmissible.
 
 **Where this bites hardest is the node you would most want to re-check.** A node isolated in a
 worktree is isolated because it writes a lot, or writes where others write. Those are the nodes

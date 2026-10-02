@@ -16,7 +16,7 @@ links:
 - **`DONE-WITH-CAVEATS`** — done, and `caveats` lists the accepted residual
   risk in the operator's language, not the agent's.
 - **`BLOCKED`** — needs an operator decision or an unmet external dependency.
-  The phase runner parks the node, continues the rest of the phase, and batches
+  The dispatcher parks the node, continues the rest of the phase, and batches
   the question.
 - **`ESCALATE`** — above this tier. **A fast honest ESCALATE beats a slow fake
   DONE, and costs less than both.** No penalty attaches to escalating early.

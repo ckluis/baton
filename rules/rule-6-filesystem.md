@@ -23,14 +23,12 @@ _orch/
     decisions/           §6.3 — one documented default per file
     decisions.md         derived from decisions/ — never written by a layer
   cast/
-    roster.yaml          selected personas, source, phases served
-    <slug>.card.md       one bound persona card per selection
+    <slug>.card.md       a user archetype card the plan wrote (personas §1)
   nodes/
     T07/
       handoff.md         inputs, expected outputs, done-criteria
       started_at         §7.1 — dispatch epoch seconds, for measured `seconds`
       status.json        the envelope — single source of truth
-      digest.md          §3
       escalation.md      written on ESCALATE / FAILED
       work/              ALL artifacts. No layer above the node enters here.
                          A worktree-isolated node writes into its worktree first; §6.2
@@ -40,7 +38,7 @@ _orch/
   wt/
     T07/                 a worktree-isolated node's checkout (§4); under TEAM, its branch (§6.2)
   loops/
-    L1/seen.yaml         §5.1
+    L1/seen.yaml         §5
   inbox/                 §10 — Q-<n>.md and Q-<n>.answer.md; github.json under TEAM
   brief/                 §8.1 — blocked-<phase>.html, final.html; for a person. Under TEAM each has a .md twin
   ledger/                §7 — one row per file (§6.3)

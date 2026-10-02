@@ -28,17 +28,17 @@ the run, not its spending.
 
 **Exactly one layer writes any given row.** The layer that received the envelope writes the
 spawn row. An event row is written by the layer that *held* the event — but if two layers each
-have something to record about the same event, that is two events, not one: the phase runner's
-close and the prime's gate are different facts and each gets its own row, distinguished in the
+have something to record about the same event, that is two events, not one: a phase's
+close and a gate are different facts and each gets its own row, distinguished in the
 `note`. What is forbidden is two layers writing the *same* fact twice.
 
 This is the file's only concurrency assumption, so state it plainly: the ledger is append-only
-and single-writer **per row**, not per file. Concurrent phase runners appending their own rows
+and single-writer **per row**, not per file. Concurrent dispatchers appending their own rows
 is fine — and under §6.3 a row is its own file, so the assumption is true by construction rather
 than by discipline.
 
 Observed in this framework's own run, and the reason both halves of this section exist. Three
-gate events were written twice, by the phase runner and the prime, with **different content each
+gate events were written twice, by the layer that dispatched the phase and by the prime, with **different content each
 time** — one carried drift and streak counts, the other the phase's outcome. Neither was wrong;
 the schema had nowhere to put two perspectives on one event, so one row clobbered another.
 

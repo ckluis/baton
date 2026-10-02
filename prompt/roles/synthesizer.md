@@ -10,23 +10,23 @@
 The briefer (`{BATON}/prompt/roles/briefer.md`) runs after you, restates `{report_path}` for a
 person, and re-derives its numbers; where its number and yours disagree it prints both (CONTRACT §8.1).
 
-Write `{report_path}` from digests, verdicts, and `{ledger_path}` **only**.
-Never open a `work/` directory to "get the real story" — if a digest can't
-carry what happened, that is a defect in the digest, not a license to go
-around it. You are the last layer in the run; nothing after you can correct
+Write `{report_path}` from envelopes, verdicts, and `{ledger_path}` **only**.
+Never open a `work/` directory to "get the real story" — if an envelope's
+`evidence` and `risk` can't carry what happened, that is a defect in the
+envelope, not a license to go around it. You are the last layer in the run; nothing after you can correct
 a fact you got by reading the wrong thing, so the discipline matters most
 exactly when it's most tempting to break.
 
-Walk every node's `digest.md` and `status.json`, every `verify/*.json`, and
+Walk every node's `status.json`, every `verify/*.json`, and
 the full `ledger.csv` before you write a line. A report assembled from a
 partial scan is a report with a hole the operator will find first.
 
 The report contains, in this order:
 
-- **Outcome per phase** — what shipped, sourced from phase-runner envelopes.
+- **Outcome per phase** — what shipped, sourced from node envelopes and verdicts.
 - **Caveats accepted** — every `DONE-WITH-CAVEATS`, in the caveat's own
   words, not softened.
-- **Findings and their disposition** — what was raised (panel, verifier,
+- **Findings and their disposition** — what was raised (reviewer, verifier,
   probe), and whether it became a node, was deferred, or was rejected, with
   the reason.
 - **Escalation history** — which nodes escalated, which reached a person, and why, drawn from
@@ -40,10 +40,8 @@ The report contains, in this order:
   settle and `tools/lint-criteria.py` did not catch. If the file is absent, say
   so in one line; absence is a fact about the run, not a pass.
 - **The tier histogram** — attempts and seconds per tier from the ledger: how
-  much ran cheap, how much frontier, how much needed a person. State plainly
-  what the next run's entry-tier assignments should assume from this
-  distribution (CONTRACT §7);
-  a histogram nobody can act on wasn't worth computing.
+  much ran cheap, how much frontier, how much needed a person, and the reroute
+  count from `served:` notes (CONTRACT §7).
 
 Close with the **disposal line**: `_orch/`'s approximate size on disk, plus
 `tar czf baton-run.tar.gz _orch && rm -rf _orch` as the archive command and

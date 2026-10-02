@@ -64,7 +64,7 @@ for it; make the artifacts that prove it the final gate's `done:`; record a
 cheap-tier baseline of whatever the directive changes, because preservation is
 undecidable without one; split at the directive's own conjunctions — each *and*
 is usually a node, each *until* a loop; fix the surface (`code` | `ui` | `doc` |
-`data`), which selects the seats; rewrite any `done:` needing judgment; add one
+`data`), since `ui` adds a journey probe (CONTRACT §4.1); rewrite any `done:` needing judgment; add one
 `refutes` node per producer, never authored by the producer; give the loop a
 content-derived ledger key. A directive with nothing to converge on gets no loop
 node — a one-pass graph is a legitimate GENERIC plan.
@@ -79,31 +79,11 @@ node — a one-pass graph is a legitimate GENERIC plan.
 Notes that already carry a completion condition, named artifacts and a surface
 make `T00` a small node; they do not make it a cheap one.
 
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `feasibility` | expert | PLAN | whether this graph is executable at these tiers at all |
-| `dependency-order` | expert | PLAN | edges that should be `needs` and are not; work ordered by narrative |
-| `rung-fit` | expert | PLAN | entry tiers assigned by vibe — cheap for judgment, or a reason that names a feeling (CONTRACT §1.1) |
-| `scope-creep` | expert | PLAN, VERIFY | nodes doing work the directive does not ask for |
-
-Those four seat on every GENERIC run: they judge the plan rather than the domain,
-and a plan that never had a shape is this mode's characteristic failure. Add two
-or three by surface and no more (personas/CONTRACT §4.1) — code →
-`coverage-truth`, `behavior-preservation`, `call-site-truth`; a written source →
-`spec-fidelity`, `requirement-gaps`; a running interface → `journey-honesty` plus
-at least one `kind: user`, since a UI directive seated only with experts has
-described the product instead of using it; a document or plan → `equivalence`,
-`severity-inflation`. An unclear surface means `T00` is unfinished — ask rather
-than seat everything. Casting upgrades prefer tags matching the surface, never
-tags matching the directive's vocabulary.
-
 ## Gates
 
 All four of CONTRACT §8 fire unchanged. The **plan gate** carries the extra
 weight: it refuses a graph whose final `done:` is not the `COMPLETION:` line, any
-`done:` needing judgment, and any loop missing a §5.3 field. The **blocked
+`done:` needing judgment, and any loop missing a §5 exit field. The **blocked
 batch** opens with the completion question when one was needed. The **final
 gate** demonstrates the completion condition against `T00`'s artifacts and names
 every directive clause no node claimed.
@@ -122,10 +102,10 @@ one node id in `plan/graph.yaml`, and every node maps back to a clause.
   behind it.
 - **The graph is the directive's sentences in order.** Prose ordering becomes
   `needs` edges, serializing independent work and parallelizing dependent work.
-  `dependency-order` at PLAN exists for exactly this.
+  The plan verifier's missing-dependency hunt exists for exactly this.
 - **Everything enters at cheap because the directive looks small.** Small to the
   planner is not mechanical; §1.1's test is whether the work is a command, and a
-  novel directive rarely is. `rung-fit` refutes at PLAN, and a cheap node's first
+  novel directive rarely is. The plan verifier refutes it, and a cheap node's first
   failure costs exactly one frontier retry (§1.2).
 - **A clause quietly goes unbuilt.** With no traceability matrix there is no
   structural memory of what was asked. The substitute is the two-way mapping

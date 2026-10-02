@@ -34,7 +34,7 @@ The HTML is for a person opening the file; the markdown is for a person reading
 the thread; both derive from the same record.
 
 The brief is written by the **briefer** (`{BATON}/prompt/roles/briefer.md`) at frontier, spawned
-by the prime inside the same gate turn, after the report or the batch exists. The prime's
+by the prime inside the same gate, after the report or the batch exists. The prime's
 closing message names the brief's path before the report's, because the brief is the page a
 person opens first.
 
@@ -46,53 +46,12 @@ tripwire that caught a stale count in this framework's own run. A brief that ass
 neither the record nor a command supports is a defect in the brief. It is temporary by
 construction: it lives under `_orch/`, gitignored with it (§6), and is disposed of with the run.
 
-**The look is not the briefer's to invent.** Every brief inlines
-`{BATON}/prompt/brief-tokens.css` verbatim at the top of its `<style>` block and defines no
-palette of its own. One token set, one source of truth, for the same reason the rules live
-one-per-file: there is nowhere to amend a stale copy because there are no copies. A briefer that
-declares its own `--accent` has forked the house style, and the next brief will not match the
-last one or the project's own pages. Cyan marks the recommendation; yellow outlines the path a
-reader must not miss; never both on one element.
-
-**The shape is fixed: one slide per decision.** The page is a deck. A final brief has one slide
-for the result and one for each open question; a blocked brief has one per question. Every slide
-is split at the golden ratio. The **wide side** carries only what a person needs to choose:
-
-1. **A title** naming the decision, and a description of two to four sentences: what was asked,
-   what happened, what is being decided.
-2. **A visual**, only when it carries information a table cannot — the plan graph, a
-   before-and-after, a timeline. Inline SVG, no external resources, no decoration. Most slides
-   have none.
-3. **Three options, A, B and C.** Exactly three. Each is a name and one sentence. The
-   recommended one is marked. Fewer than three means the run has not looked; more is a menu,
-   and a menu is work handed back. When only one option is real, B is *do nothing* — the default
-   the run will assume per §10 — and C is *defer*, with the trigger that would reopen it.
-
-**The rail has two layers, and only the first is on screen by default.** Visible: the reason for
-the recommendation and what happens if the reader does nothing, then each option's cost, risk and
-what it settles. Behind a `see more` disclosure: the numbers table and the record paths. The
-disclosure is a `<details>` element rendered as a dashed rule — `———— see more ————` — and it
-carries no script, because the brief has none.
-
-This is not decoration. A numbers table shows one command per row (below), commands are long, and
-a rail that renders them all is taller than the slide beside it. The rail then sets the slide's
-height, and a slide tall enough to hold every command has stopped being a slide and become a
-page — which is the document the deck exists to replace. The split also follows the reader: what
-a person needs in order to choose is one layer, and what they need in order to check the choice
-is the next one down.
-
-The **rail** beside it carries what backs the choice: the reason for the recommendation and what
-happens if the reader does nothing, stated as a consequence; each option's cost, risk and what it
-settles; a **numbers table** whose every row shows the command that produced it, which is the
-only place a number may appear; and the paths the slide rests on. The report's **needs-a-human**
-list maps onto the deck one to one, as a slide or as a record row.
-
-**The voice is not the contract's.** This contract is written for agents and argues as it
-goes. The brief is written for a person and does not. Its standard: declarative sentences of at
-most twenty-five words; active voice; a term defined the first time it appears; numbers in
-tables, never in prose; no metaphor, idiom, irony, rhetorical question, or aside; no hedge
-without the reason for it. A reader of fifteen with the terms defined should follow every
-sentence.
+**One slide per decision.** The brief is a deck: a final brief has one slide for the
+result and one per open question, a blocked brief one per question, and every slide
+carries exactly three options with one recommended. The report's **needs-a-human**
+list maps onto the deck one to one. Every path a person is to open is fully
+qualified (§8.2). The briefer's role file fixes the shape, the look and the voice;
+this rule fixes what the brief is for and what it may claim.
 
 **Why a rule.** This framework's own final report is forty kilobytes and correct; its
 operator asked, after reading it, what had been done and what to do next. A record that is

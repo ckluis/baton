@@ -20,16 +20,13 @@ Hunt, specifically:
 - **Cheap assigned by vibe** — a `cheap` entry with no written reason, or a reason
   that names a feeling ("this is small") instead of the property that makes the
   work a command (CONTRACT §1.1). Frontier needs no reason; it is the default.
-- **Effort that does not follow the work** — a frontier node whose `effort:` contradicts its
-  class in CONTRACT §1.1: `medium` on a node that builds or designs something new, or `high` on a
-  node that only verifies a specified claim or repairs against a named criterion. A node with no
-  `effort:` runs at `high` and is not a finding. `python3 tools/tiers.py check --state-root _orch`
-  refuses a misspelt value or an effort on a rung-0 node before you read a line.
-- **Hidden cross-cutting nodes** — scope that should have been flagged for
-  decomposition (CONTRACT §4.4) but got folded into an innocuous-sounding
+  `python3 tools/tiers.py check --state-root _orch` refuses a rung above 1, a
+  misspelt `effort:` or an effort on a rung-0 node before you read a line.
+- **Hidden cross-cutting nodes** — scope that should have been split
+  (CONTRACT §4) but got folded into an innocuous-sounding
   done statement instead.
 - **Loops with no exit condition** — any `kind: loop` node missing
-  `invariant`, `ledger`, `dry_rounds`, or `max_iterations` (CONTRACT §5.3);
+  `invariant`, `ledger`, `dry_rounds`, or `max_iterations` (CONTRACT §5);
   the plan gate rejects these outright.
 - **Bundled done-criteria** — a criterion that reads as one sentence but
   carries several independent checks joined by `and`, `;`, or a comma series
@@ -39,16 +36,14 @@ Hunt, specifically:
   the number is greater than one, the handoff needs that many criteria.
 - **Barriers that should be pipelines** — a `barrier` node whose next stage
   doesn't actually need cross-item context from every predecessor
-  (CONTRACT §4.2). Flatten-and-filter is not a reason for a barrier.
+  (CONTRACT §4). Flatten-and-filter is not a reason for a barrier.
 - **`needs` edges that should be `informs`** — a hard dependency that only
-  wants the upstream digest, not a completed, verified upstream (CONTRACT
+  wants the upstream's outputs, not a completed, verified upstream (CONTRACT
   §4.1). Every unnecessary `needs` edge is wall-clock the pipeline didn't
   have to spend.
-- **A persona seated on both sides of its own work** — the same slug in
+- **An archetype seated on both sides of its own work** — the same slug in
   `personas:` on an authoring node *and* on that node's `refutes` node or on
-  the node that verifies it (CONTRACT §4.1; the duty itself is
-  `personas/CONTRACT.md` §2.1, `EXECUTE` row). Refute the graph. Independence
-  a slug can be seated out of was never independence.
+  the node that verifies it (CONTRACT §4.1). Refute the graph.
 
 **Cite or retract** (CONTRACT §9): every finding names a `graph.yaml` id or
 a `roadmap.md` line. A finding with nothing to point at is not a finding.

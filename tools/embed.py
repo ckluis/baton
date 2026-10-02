@@ -5,8 +5,11 @@ The page shows two things: the small invocation you actually paste (extracted
 from the first fenced block of prompt/invoke.md) and, behind a disclosure, the
 router that invocation points at. Run this after editing either file or the
 page ships a stale prompt.
+
+    python3 tools/embed.py           re-embed, writing index.html
+    python3 tools/embed.py --check   write nothing; exit 1 if index.html is stale
 """
-import re, pathlib
+import re, pathlib, sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
 esc = lambda s: s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -38,7 +41,11 @@ if team is not None:
 html = re.sub(r'(<code>prompt/baton\.md</code>, )(?:__ROUTERLINES__|\d+)( lines)',
               r"\g<1>%d\g<2>" % nlines(router), html)
 
-(root / "index.html").write_text(html)
+if "--check" in sys.argv[1:]:
+    if html != (root / "index.html").read_text():
+        raise SystemExit("index.html is stale: run python3 tools/embed.py")
+else:
+    (root / "index.html").write_text(html)
 print(f"embedded: invocation {nlines(card)} lines"
       + (f", team card {nlines(team)} lines" if team is not None else "")
       + f", router {nlines(router)} lines")

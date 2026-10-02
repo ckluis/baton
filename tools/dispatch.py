@@ -10,10 +10,11 @@
 One call is one spawn and one §7 ledger row, written at envelope receipt:
 
 - **effort and rung come from the graph by default** (CONTRACT §1.1). `--effort graph`
-  reads the node's `effort:` from <state>/plan/graph.yaml; a frontier node that
-  names none runs at `high`, and a rung-0 node at the harness default. An explicit
-  `--effort` overrides, and the row records what actually ran, so `tools/index.py`
-  can report a spawn that ran at an effort its node did not declare.
+  reads the node's optional `effort:` override from <state>/plan/graph.yaml; a
+  frontier node that names none runs at `medium`, the binding's effort, and a rung-0
+  node at the harness default. An explicit `--effort` overrides, and the row records
+  what actually ran, so `tools/index.py` can report a spawn that ran at an effort its
+  node did not declare.
 - **seconds are measured** by this process's clock (§7.1): `started_at` is written
   before the spawn and subtracted after it.
 - **the served model is read from the stream** (§7): every assistant message's
@@ -94,7 +95,7 @@ def resolve(state, node, rung, effort):
         rung = g["rung"] if g["rung"] is not None else 1
     rung = int(rung)
     if effort == "graph":
-        effort = g["effort"] or ("default" if rung == 0 else "high")
+        effort = g["effort"] or ("default" if rung == 0 else "medium")
     if effort not in EFFORTS + ("default",):
         raise SystemExit("dispatch: effort %r is not one of %s or default" % (effort, ", ".join(EFFORTS)))
     return rung, effort
@@ -253,7 +254,7 @@ def selftest():
         _, r, argv = run("V1")
         results.append(("a medium node runs at medium", argv[argv.index("--effort") + 1] == "medium" and r["effort"] == "medium"))
         _, r, argv = run("X1")
-        results.append(("a frontier node with no effort runs at high", r["effort"] == "high" and r["rung"] == "1"))
+        results.append(("a frontier node with no effort runs at medium", r["effort"] == "medium" and r["rung"] == "1"))
         _, r, argv = run("C1")
         results.append(("a rung-0 node passes no --effort and records `default`", "--effort" not in argv and r["effort"] == "default" and r["rung"] == "0"))
         _, r, argv = run("B1", effort="medium", attempt="2")

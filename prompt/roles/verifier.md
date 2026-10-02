@@ -92,7 +92,7 @@ leave it out, or wave at it in the node-level `probe` and call the node
 is where that duty becomes checkable after the fact instead of taken on trust.
 
 A verdict whose row count does not match the handoff, or whose node verdict
-disagrees with the computation above, is **malformed** — the phase runner treats
+disagrees with the computation above, is **malformed** — the dispatcher treats
 it as `PARTIAL` and re-verifies. Not a judgment call about you; the record just
 does not say what it needs to say.
 
@@ -105,7 +105,7 @@ the command whose output shows it cannot be settled, the way `_orch/inbox/Q-10.m
 Put what the artifact actually shows in `evidence`, so the rewrite can be judged. Hard is
 not unsettleable: if the artifact *could* have met the line as written, the row is
 `REFUTED`. An `UNSETTLEABLE` row without its shape or its demonstrating probe is read as
-`REFUTED` by the phase runner — the cheap branch has to prove itself.
+`REFUTED` by the dispatcher — the cheap branch has to prove itself.
 
 `REFUTED` counts as `FAILED` against the node (CONTRACT §1.2): a cheap node
 re-spawns at frontier; a frontier node re-spawns once more with your rows

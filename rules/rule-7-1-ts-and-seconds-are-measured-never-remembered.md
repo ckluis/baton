@@ -37,15 +37,13 @@ this breaks: `date -u -j -f` is BSD, `date -u -d` is GNU, and the run does not
 know which box it is on. `date +%s` and integer subtraction are the same
 everywhere.
 
-`started_at` is run state like any other (§6), so a phase runner respawned
+`started_at` is run state like any other (§6), so a dispatcher resumed
 mid-phase recovers it from disk and the span survives the interruption. A node
 whose `started_at` is missing writes `seconds` as empty — **an empty cell, never
 an estimate.**
 
 The final report ends with a **tier histogram** — how much of the run ran
-cheap, how much frontier, and how much needed a person. That histogram is the
-input to the next run's entry-tier assignments. **A run that does not measure
-where it spent its attempts will spend them the same way next time** — and a run that writes down
-numbers it did not measure has not measured them.
+cheap, how much frontier, and how much needed a person, with the reroute count
+(§7). A run that writes down numbers it did not measure has not measured them.
 
 ---
