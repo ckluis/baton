@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-# test-dispatch.sh — per-node effort, end to end, without a model or a network.
+# test-dispatch.sh — effort overrides, end to end, without a model or a network.
 #
 #   tools/test-dispatch.sh
 #
 # Runs the selftests of dispatch.py and tiers.py, then dispatches three spawns
 # through dispatch.py against a fake `claude` (BATON_CLAUDE), derives the ledger,
-# and indexes the run. What it proves: a node's declared `effort:` reaches the
-# spawn, a spawn that ran at another effort is an `effort-mismatch` finding, a
+# and indexes the run. What it proves: a node's declared `effort:` override reaches
+# the spawn, a node with none runs at medium, a spawn that ran at another effort is an `effort-mismatch` finding, a
 # reroute is recorded as `served:`, and the histogram counts rung/effort.
 # Exit 1 on any failure.
 
@@ -53,7 +53,7 @@ d --node B1 --effort medium            # ran below what the graph declares
 d --node V1                            # effort from the graph
 FAKE_REROUTE=1 d --node R1             # no effort declared, and served by another model
 check "V1 was spawned at its declared medium" "grep -q -- '--effort medium' '$tmp/argv.log'"
-check "R1 with no effort: ran at high" "grep -q ',R1,1,claude-opus-5-5,high,' $tmp/_orch/ledger/*-R1-1.csv"
+check "R1 with no effort: ran at medium" "grep -q ',R1,1,claude-opus-5-5,medium,' $tmp/_orch/ledger/*-R1-1.csv"
 check "R1's reroute is in its note, its model column unchanged" "grep -q 'served: claude-opus-4-8' $tmp/_orch/ledger/*-R1-1.csv"
 
 echo "== derive and index"
@@ -62,7 +62,7 @@ echo "== derive and index"
 s="$tmp/_orch/index/summary.md"
 check "B1's mismatch is a finding" "grep -q 'effort-mismatch .*B1 attempt 1' '$s'"
 check "V1 and R1 raise no mismatch" "[ \$(grep -c 'effort-mismatch' '$s') -eq 1 ]"
-check "the histogram counts rung/effort" "grep -q 'by rung/effort: 1/high: 1, 1/medium: 2' '$s'"
+check "the histogram counts rung/effort" "grep -q 'by rung/effort: 1/medium: 3' '$s'"
 check "tiers.py check accepts the graph" "python3 '$here/tiers.py' check --state-root '$tmp/_orch' >/dev/null"
 
 echo "== the same graph, written as a nodes: mapping"

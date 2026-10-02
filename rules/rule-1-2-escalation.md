@@ -28,7 +28,9 @@ Two moves, and then a person.
    or `REFUTED` at frontier is information, not a difficulty: the re-spawn
    carries the refuted rows — criterion, probe, evidence — verbatim in its
    handoff, and its verifier is a fresh spawn. The retry is a different prompt,
-   not a repeat. A criterion refuted twice is not tried a third time.
+   not a repeat, at the same effort: the packet is the mechanism, and a retry
+   at `high` bought one coin-flip node for 44% more (`docs/experiments/retry-effort.md`).
+   A criterion refuted twice is not tried a third time.
 3. **The second frontier failure → `human`.** The node goes `BLOCKED` with a
    question (§10): what was tried, what the verifier found each time, and the
    three options the layer holding the context can see (§8.2). Batched at the

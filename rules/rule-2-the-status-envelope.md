@@ -16,8 +16,8 @@ Written by every spawned agent as its **last act**, to its assigned
 {
   "node": "T03",
   "rung": 1,
-  "model": "sonnet",
-  "effort": "high",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
   "attempt": 2,
   "verdict": "DONE",
   "outputs": ["_orch/nodes/T03/work/patch-notes.md"],

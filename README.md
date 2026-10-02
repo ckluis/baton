@@ -506,7 +506,7 @@ tools/index.py        the five resume questions off disk; --sqlite for a queryab
 tools/lists.py        the four append-only lists as directories of rows (§6.3): derive, check, split
 tools/tiers.py        v4 rungs → v5 tiers (§1): remap a checkout or a run; check rungs and effort (§1.1)
 tools/dispatch.py     one spawn on Claude Code: effort from the graph, measured seconds, served model, its ledger row
-tools/test-dispatch.sh per-node effort end to end: dispatch → derive → index, against a fake claude
+tools/test-dispatch.sh effort overrides end to end: dispatch → derive → index, against a fake claude
 tools/inbox-gh.py     TEAM — the run's thread: open-run, sync (questions out, answers in), post-gate, clock
 tools/publish-run.sh  TEAM — the record on a hidden ref and the run branch: init, publish, dispose
 tools/node-pr.sh      TEAM — a product node as one commit on the run branch, its verdict as a check
