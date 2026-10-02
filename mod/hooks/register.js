@@ -69,7 +69,10 @@ const rotation = {
   lastTrigger: null, // plugin | auto | manual
   lastError: null, // why the last compaction attempt was refused
   compacting: null, // the attempt in progress, so two callers share one
-  viaCommand: false, // /baton rotate queued the engine's /compact
+  owed: false, // interactive /baton rotate: the ticker compacts once the command returns
+  owedTicks: 0,
+  ticker: null, // the session.start timer that runs owed compactions
+  awaitingCompact: false, // headless /baton rotate: the next /compact is this rotation
 }
 
 const WAKE_CONTEXT =
@@ -372,6 +375,11 @@ async function compactWhenIdle($) {
     if (r.ok) {
       rotation.inFlight = false
       return r.text
+    }
+    if (/headless/.test(r.text)) {
+      rotation.inFlight = false
+      $.ui.log('baton: automatic rotation needs an interactive session on this build (' + r.text + '); the handoff note is written — a /compact now completes the rotation')
+      return 'headless: ' + r.text
     }
     await $.clock.sleep(2000)
   }
@@ -686,6 +694,22 @@ export function register(on, options) {
         $.ui.log('baton: could not register the memory tools: ' + err.message)
       }
     }
+    // The rotation ticker: runs a compaction /baton rotate owes, from outside
+    // any command's frame (see the command). Cheap when idle: one flag check.
+    if (!rotation.ticker) {
+      try {
+        rotation.ticker = $.clock.every(150, async () => {
+          if (!rotation.owed || rotation.compacting) return
+          const r = await compactOnce($)
+          rotation.owedTicks++
+          if (r.ok || /headless/.test(r.text) || rotation.owedTicks > 400) {
+            rotation.owed = false
+            rotation.inFlight = false
+            if (!r.ok) $.ui.log('baton: /baton rotate could not compact: ' + r.text)
+          }
+        })
+      } catch {}
+    }
     // Registered last: a refused name throws, and nothing after it would run.
     try {
       await $.command.register({
@@ -767,16 +791,15 @@ export function register(on, options) {
   // count it, and arm the wake for the prime's next turn.
   on('session.compact', async ($, e, next) => {
     if (e.agentId || e.trigger === 'precompute' || !(await runActive($))) return next(e)
-    if (e.trigger !== 'plugin' && !rotation.viaCommand) {
+    if (e.trigger !== 'plugin' && !rotation.awaitingCompact) {
       try {
         await appendNote($, 'run', 'compaction (' + e.trigger + ') at ' + (rotation.lastPercent ?? '?') + '% — memory_wake for the state', 'handoff')
       } catch {}
     }
     const r = await next(e)
-    const ours = rotation.viaCommand
-    rotation.viaCommand = false
-    if (ours) rotation.inFlight = false
-    if (r && !r.skip) await countRotation($, ours ? 'baton rotate' : e.trigger)
+    const asked = rotation.awaitingCompact
+    rotation.awaitingCompact = false
+    if (r && !r.skip) await countRotation($, asked ? 'baton rotate + /compact' : e.trigger)
     return r
   })
 
@@ -807,27 +830,32 @@ export function register(on, options) {
         return { text: await batonStop($) }
       case 'rotate': {
         if (!(await runActive($))) return { text: 'no baton run is active here; nothing to rotate' }
-        if (rotation.inFlight) return { text: 'baton: a rotation is already in flight' }
-        rotation.inFlight = true
+        if (rotation.inFlight || rotation.owed) return { text: 'baton: a rotation is already in flight' }
         await writeHandoff($, 'forced by /baton rotate')
-        // Compact here if the engine allows it. Claude Code 2.1.287 refuses a
-        // compaction from inside a command.run (or prompt.submit) hook — "it
-        // would compact under the turn this hook is holding" — so the rotation
-        // queues the engine's own /compact instead: it runs before any prompt
-        // sent after this command, emits the same compact_boundary a sent
-        // /compact does, and the session.compact hook counts it and arms the wake.
-        const r = await compactOnce($)
-        if (r.ok) {
-          rotation.inFlight = false
-          return { text: 'baton: ' + r.text + ' — rotations this session: ' + rotation.count + '; the prime calls memory_wake first' }
+        let surfaces = []
+        try {
+          surfaces = await $.session.surfaces()
+        } catch {}
+        if (!surfaces.length) {
+          // Headless (-p / SDK): Claude Code 2.1.287 has no mod compaction here —
+          // $.session.compact answers "not available in a headless session yet:
+          // compaction here runs inside a turn (a /compact prompt)", and a command
+          // hook may neither compact nor submit a prompt. The driver sends /compact;
+          // the session.compact hook counts it as this rotation and arms the wake.
+          rotation.awaitingCompact = true
+          return {
+            text:
+              'baton: handoff noted; rotation #' + (rotation.count + 1) + ' armed. Headless session: a mod cannot compact here on this build, ' +
+              'so send /compact next — baton counts that compaction as the rotation, and the prime calls memory_wake first.',
+          }
         }
-        rotation.viaCommand = true
-        $.prompt.submit({ text: '/compact ' + COMPACT_INSTRUCTIONS, asUser: true }).catch((err) => {
-          rotation.viaCommand = false
-          rotation.inFlight = false
-          $.ui.log('baton: could not queue /compact: ' + err.message)
-        })
-        return { text: 'baton: handoff noted; /compact queued (rotation #' + (rotation.count + 1) + ') — it runs before the next prompt, then the prime calls memory_wake first' }
+        // Interactive: a compaction started anywhere inside this hook is refused
+        // ("it would compact under the turn this hook is holding"), so the
+        // rotation ticker (started at session.start) runs it once this returns.
+        rotation.owed = true
+        rotation.owedTicks = 0
+        rotation.inFlight = true
+        return { text: 'baton: handoff noted; compacting as soon as this command returns (rotation #' + (rotation.count + 1) + ') — then the prime calls memory_wake first' }
       }
       case 'status':
         return { text: await statusText($) }

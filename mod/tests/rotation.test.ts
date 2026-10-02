@@ -102,27 +102,47 @@ test('if no SessionStart carried the wake, the prime\'s next tool call does', as
   expect(r2.context ?? []).toHaveLength(0)
 })
 
-test('/baton rotate: handoff note, then the engine\'s own /compact queued; its compaction counts and arms the wake', async ($, on) => {
-  const w = world(on)
-  const submits: any[] = []
-  on('prompt.submit', (_$: any, e: any) => {
-    submits.push(e)
-    return { text: e.text }
-  })
+function startable(on: any, surfaces: string[]) {
+  on('session.version', () => ({ value: { version: '2.1.287', base: '2.1.287' } }))
+  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
+  on('command.register', () => ({ value: undefined }))
+  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
+  on('session.surfaces', () => ({ value: surfaces }))
   on('command.run', () => ({ text: 'core' }))
   on('classic.SessionStart', () => ({}))
+}
+
+test('/baton rotate, interactive: handoff note, then the session.start ticker compacts once the command returns', async ($, on) => {
+  const clock = mock.clock(on)
+  const w = world(on)
+  startable(on, ['terminal'])
+  await $.session.start({ cwd: '/work', surface: 'terminal' } as any)
   const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
-  expect(r.text).toContain('/compact queued (rotation #1)')
+  expect(r.text).toContain('compacting as soon as this command returns (rotation #1)')
   expect(w.notes.at(-1)!.tag).toBe('handoff')
-  expect(submits).toHaveLength(1)
-  expect(submits[0].text).toStartWith('/compact This is a baton prime rotation.')
-  // the engine runs the queued /compact: a manual compaction
-  const notesBefore = w.notes.length
-  await $.session.compact({ trigger: 'manual', instructions: 'x', messages: [MSG] } as any)
-  expect(w.notes.length).toBe(notesBefore) // no second note: the handoff was written
+  await clock.advance(400)
+  await clock.settle()
+  expect(w.compacts).toHaveLength(1)
+  expect(w.compacts[0].instructions).toContain('baton prime rotation')
   const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
-  expect(s.text).toContain('rotations 1 (last')
-  expect(s.text).toContain('baton rotate')
+  expect(s.text).toContain('rotations 1')
+  const wake: any = await $.classic.SessionStart({ source: 'compact' } as any)
+  expect(wake.additionalContext.join(' ')).toContain('mcp__baton__memory_wake')
+})
+
+test('/baton rotate, headless: handoff note and the wake armed; the /compact the driver sends is the rotation', async ($, on) => {
+  const w = world(on)
+  startable(on, [])
+  await $.session.start({ cwd: '/work', surface: null } as any)
+  const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
+  expect(r.text).toContain('send /compact next')
+  expect(w.notes.at(-1)!.tag).toBe('handoff')
+  const notes = w.notes.length
+  await $.session.compact({ trigger: 'manual', instructions: '', messages: [MSG] } as any)
+  expect(w.notes.length).toBe(notes) // the handoff is the note; no second one
+  const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
+  expect(s.text).toContain('rotations 1')
+  expect(s.text).toContain('baton rotate + /compact')
   const wake: any = await $.classic.SessionStart({ source: 'compact' } as any)
   expect(wake.additionalContext.join(' ')).toContain('mcp__baton__memory_wake')
 })
@@ -138,12 +158,8 @@ test('BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does'
   const clock = mock.clock(on)
   mock.env(on, { BATON_AUTOROTATE: '0' })
   const w = world(on)
-  on('session.version', () => ({ value: { version: '2.1.287', base: '2.1.287' } }))
-  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
-  on('command.register', () => ({ value: undefined }))
-  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
+  startable(on, ['terminal'])
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
-  on('command.run', () => ({ text: 'core' }))
   await $.session.start({ cwd: '/work', surface: null } as any)
   await $.session.measure(measure(20) as any)
   await $.session.measure(measure(95) as any)
@@ -151,7 +167,9 @@ test('BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does'
   expect(w.compacts).toHaveLength(0)
   const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
   expect(s.text).toContain('auto-rotation off')
-  on('prompt.submit', (_$: any, e: any) => ({ text: e.text }))
   const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
-  expect(r.text).toContain('/compact queued')
+  expect(r.text).toContain('rotation #1')
+  await clock.advance(400)
+  await clock.settle()
+  expect(w.compacts).toHaveLength(1)
 })
