@@ -14,10 +14,10 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -45,7 +45,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
@@ -88,7 +88,7 @@ that was probably already right.
 # Settings
 TARGET:      src/billing
 MODE:        TEST
-BATON:       https://raw.githubusercontent.com/ckluis/baton/v5.0
+BATON:       https://raw.githubusercontent.com/ckluis/baton/v6.0
 PERSONAS:    builtin
 CHEAP:       claude-sonnet-5-5
 FRONTIER:    claude-opus-5-5 at medium
@@ -121,7 +121,7 @@ inference, and says so in its first message and its final report.
 ### Pinning a version
 
 The base URL is the pin. The default above is already pinned to a tag —
-`v5.0`, the current release — rather than floating on `main`. Point at a
+`v6.0`, the current release — rather than floating on `main`. Point at a
 different tag instead (an older release, frozen forever) — or at `main` for
 the bleeding edge — and the whole framework — router, contracts, modes,
 roles, personas — comes from that base, because everything resolves relative

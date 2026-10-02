@@ -1,6 +1,35 @@
 # Changelog
 
-## Unreleased
+## v6.0 — 2026-10-02
+
+The shrink. Six experiments on Opus 5.5 and Sonnet 5.5 found that tier, effort, ladder and persona
+choices moved results by fractions of a judge point, while what failed was criteria nothing could
+settle, the environment, and claims nobody checked. v6 cuts what rationed the model and keeps what
+does accountability work. Design record: `docs/designs/v6-shrink.md`; upgrade notes:
+`migrations/from-v5.md`.
+
+- **Default binding.** `FRONTIER` = `claude-opus-5-5` at `medium`, `CHEAP` = `claude-sonnet-5-5`.
+  The rules still name properties of the work, never a model.
+- **One effort.** Rule 1.1's per-node effort table is cut; frontier runs at the binding's effort,
+  and `effort:` survives as an optional override that `tiers.py` checks and the ledger records.
+  `dispatch.py` runs a frontier node with no `effort:` at `medium`. A retry keeps its effort and
+  carries the packet.
+- **Personas off the default path.** The 37 lenses, the 41 luminaries, casting, the panel role,
+  the persona-casting prules, `CRAFT`, `POSITION`, the AIX validator and check 4 move to
+  `library/`, opt-in with `PERSONAS: library`. Every default mode loses its Seats; `REVIEW` and
+  `ROADMAP` use fresh plain reviewers. User archetypes, the journey probe and the perception
+  contract stay; `personas/CONTRACT.md` is now the user-archetype contract.
+- **No phase runner.** The router's dispatcher duties (§4.1) carry the verdict shape check, §9.2
+  parking and lint-feedback rows, §6.2 landing, ledger rows at receipt and the TEAM publish steps.
+  Prime-turn budgets and context rationing are gone.
+- **No digest.** The envelope carries `evidence` and `risk` instead.
+- **No decomposer.** `SPLIT` returns seams and the planner re-plans.
+- **Rules merged.** Rule 0 into 2 and 9; 4.2 and 4.4 into 4; 5.1–5.3 into 5; the brief's shape and
+  voice from 8.1 into `briefer.md`; prule 1.2 cut. `tools/rules.py` check 5 exempts history and
+  `library/`.
+
+Also in this release:
+
 
 - **`tools/lint-criteria.py` — two more rules, from the ADR-048 coverage register.** Rule H flags
   an arithmetic contradiction across two criteria: one mutation required to refute both arms of a

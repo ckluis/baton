@@ -1,6 +1,6 @@
 # baton
 
-**v5.0** · Agents do the work. baton keeps the record.
+**v6.0** · Agents do the work. baton keeps the record.
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a record: a plan on disk,
@@ -9,14 +9,40 @@ asserted, gates a person holds, and a report that ends by telling you what ran
 cheap, what ran frontier, and what needed a human.
 
 Add one line — `TEAM: github` — and the same run belongs to a team: its state on a
-git ref any machine can resume, its questions as Issues anyone can answer from a
-phone, its product changes as draft pull requests with the verdict as a check.
+hidden git ref any machine can resume, its questions as comments on one pull
+request anyone can answer from a phone, its product changes as one commit per
+node with the verdict as a check.
 
 **→ [Read the page](https://ckluis.github.io/baton/)** ·
 [Changelog](CHANGELOG.md) ·
-[Migrating from v1 – v4](MIGRATING.md) ·
+[Migrating from v1 – v5](MIGRATING.md) ·
 [baton v1](https://ckluis.github.io/baton/baton-v1.html) ·
 [luminaryTeam](https://ckluis.github.io/luminaryTeam/)
+
+---
+
+## v6.0 — since v5.0
+
+Six experiments on Opus 5.5 and Sonnet 5.5 measured the half of baton that rations the model.
+Tier, effort, ladder and persona choices moved results by fractions of a judge point, or not at
+all. What failed was criteria no execution could settle, the environment, and claims nobody
+checked; what fixed them was a fresh verifier, the criteria linter, the escalation packet and the
+measured record. v6 keeps those and cuts the rest. Design record: `docs/designs/v6-shrink.md`.
+
+- **The binding is named.** `FRONTIER` is `claude-opus-5-5` at `medium`, `CHEAP` is
+  `claude-sonnet-5-5`. Sonnet held the ceiling on two conformance suites at a third of the cost
+  (`docs/experiments/opus-vs-sonnet-5-5.md`).
+- **One effort.** High beat medium by 0.37 judge points over 45 builds that all passed every hidden
+  test, at up to twice the cost (`docs/experiments/effort-bench-three-tasks.md`). `effort:` stays an
+  optional override; a retry keeps its effort and carries the packet.
+- **Personas off the default path.** A plain fresh reviewer found 15.67 of 16 seeded defects; lens
+  cards and plain reviewers at equal spend both found 16. Lenses, luminaries, casting, panels,
+  `CRAFT` and `POSITION` moved to `library/` (`PERSONAS: library`). User archetypes stay.
+- **No dispatching layer, summary file or splitting role.** The prime dispatches every node itself under
+  explicit dispatcher duties; the envelope carries `evidence` and `risk`; the planner re-plans a
+  `SPLIT`. Seven rules folded into the ones they served.
+
+Upgrade notes: `migrations/from-v5.md`.
 
 ---
 
@@ -373,10 +399,10 @@ setting away: `PERSONAS: library` (`library/README.md`).
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -400,7 +426,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
@@ -417,7 +443,7 @@ Every path in every baton file is relative to wherever the router came from.
 That one rule is the whole locator scheme:
 
 - **A URL** — the framework fetches itself, file by file, as agents need them.
-  The base URL is also the version pin: point at `/v5.0` instead of `/main` and
+  The base URL is also the version pin: point at `/v6.0` instead of `/main` and
   the router, contracts, modes, roles, and personas all come from that tag. There
   is no second version to keep in sync.
 - **A directory** — `git clone --depth 1 https://github.com/ckluis/baton` and set
@@ -466,7 +492,7 @@ tools/publish-run.sh  TEAM — the record on a hidden ref and the run branch: in
 tools/node-pr.sh      TEAM — a product node as one commit on the run branch, its verdict as a check
 tools/github-setup.sh TEAM — one ruleset, as configuration
 tools/test-team.sh    every TEAM tool, end to end, against throwaway repos and a fake gh
-migrations/           from-v1 … from-v4 — one file per older version; MIGRATING.md indexes them
+migrations/           from-v1 … from-v5 — one file per older version; MIGRATING.md indexes them
 docs/designs/         design records, including v4.0's github-native-team-mode.md
 docs/experiments/     paste-ready directives that test the framework's own claims
 index.html            the page
@@ -476,7 +502,7 @@ baton-v1.html         v1, kept as it shipped
 Every framework reference inside the prompt files is written `{BATON}/prompt/...`
 or `{BATON}/personas/...`, and `{BATON}` has exactly two forms: a local directory
 (`./baton`) or a base URL
-(`https://raw.githubusercontent.com/ckluis/baton/v5.0`). Agents expand the token
+(`https://raw.githubusercontent.com/ckluis/baton/v6.0`). Agents expand the token
 before using it or passing it on — a sub-agent always receives a fully qualified
 path or URL and never has to guess a base.
 
