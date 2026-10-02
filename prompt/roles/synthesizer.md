@@ -23,7 +23,7 @@ partial scan is a report with a hole the operator will find first.
 
 The report contains, in this order:
 
-- **Outcome per phase** — what shipped, sourced from phase-runner envelopes.
+- **Outcome per phase** — what shipped, sourced from node envelopes and verdicts.
 - **Caveats accepted** — every `DONE-WITH-CAVEATS`, in the caveat's own
   words, not softened.
 - **Findings and their disposition** — what was raised (reviewer, verifier,
@@ -40,10 +40,8 @@ The report contains, in this order:
   settle and `tools/lint-criteria.py` did not catch. If the file is absent, say
   so in one line; absence is a fact about the run, not a pass.
 - **The tier histogram** — attempts and seconds per tier from the ledger: how
-  much ran cheap, how much frontier, how much needed a person. State plainly
-  what the next run's entry-tier assignments should assume from this
-  distribution (CONTRACT §7);
-  a histogram nobody can act on wasn't worth computing.
+  much ran cheap, how much frontier, how much needed a person, and the reroute
+  count from `served:` notes (CONTRACT §7).
 
 Close with the **disposal line**: `_orch/`'s approximate size on disk, plus
 `tar czf baton-run.tar.gz _orch && rm -rf _orch` as the archive command and

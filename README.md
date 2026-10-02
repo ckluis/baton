@@ -87,7 +87,7 @@ name, so nothing downstream breaks. Design record: `docs/designs/v5-accountabili
   is always frontier and always a fresh spawn (`rules/rule-9-evidence.md`).
 - **Dispatch belongs to the harness** (`rules/rule-0-layers.md`, router §4). A session that can
   run agents in parallel and wait for their envelopes dispatches a phase's nodes itself, under the
-  same handoff-and-envelope contract; the phase runner is the fallback. Layers are a discipline of
+  same handoff-and-envelope contract; a per-phase dispatching agent is the fallback. Layers are a discipline of
   context and independence, not a hierarchy of spawns.
 - **Team mode leaves what a colleague's work leaves: one pull request, one branch, commits.**
   v4 put a new object on GitHub for every baton concept — a branch per run, a branch and draft
@@ -264,8 +264,8 @@ v2 kept the architecture and rebuilt the routing, and v3 changed none of it.
 | **Routing** | 4 model tiers | 6 rungs of model × effort |
 | **Default** | "assign the lowest tier that can succeed" | `sonnet/medium`, and a written reason to start higher |
 | **Escalation** | one model tier per failure | **one rung** per failure — more thinking before a bigger model |
-| **Dispatch** | prime dispatches every task | prime dispatches **phases**; a phase runner dispatches nodes |
-| **Top tier** | used for planner, synthesizer, mediator, decomposer | **gated behind `CEILING`** — reached by asking, not by drifting |
+| **Dispatch** | prime dispatches every task | prime dispatches **phases**; a per-phase agent dispatches nodes |
+| **Top tier** | used for planner, synthesizer, mediator, node splitting | **gated behind `CEILING`** — reached by asking, not by drifting |
 | **Convergence** | described in prose | a `kind: loop` node with a seen ledger and a declared exit |
 | **Plan** | a task list with `blocked_by` | a graph with `needs` / `informs` / `refutes` edges |
 | **Panel lenses** | hardcoded strings per mode | persona files, loadable from any repository |
@@ -304,21 +304,17 @@ command.** The field is still called `rung` in every file; its values are `0`,
 ## The layers
 
 ```
-PRIME              frontier          never reads work.  spends its turns on gates
-DISPATCH           the harness, or   owns one phase.    reads envelopes only
-                   a phase runner
+PRIME              frontier          dispatches every node; holds the gates; never authors or verifies
 NODE ORCHESTRATOR  assigned tier     does the work, or spawns workers
-WORKER             assigned tier     leaf. writes artifacts + a 10-line digest
+WORKER             assigned tier     leaf. writes artifacts
 ```
 
-A session that can run agents in parallel and wait for their envelopes dispatches
-a phase's nodes itself; one that cannot spawns a phase runner. The contract is
-the same either way. Paths and a tier go down. An envelope comes up. Nothing else crosses a layer —
-which is what the digest is for, and why the prime's context survives to the
-final gate.
-
-The phase runner is the change that pays for v2. It absorbs dispatch, retry,
-verification, and rung drift so the prime spends its turns on gates alone.
+The prime is the dispatcher: every current harness can spawn agents and wait for
+their envelopes, so it spawns each node, writes the ledger row at receipt, checks
+the verdict's shape, parks what cannot be settled, and lands worktrees (router
+§4.1). Paths and a tier go down. An envelope comes up, carrying its evidence and
+what remains unproven. Every node is checked by a fresh verifier that did not
+write it.
 
 ---
 
@@ -450,7 +446,7 @@ prompt/
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         narrative + generated index; the rules live in rules/
   modes/              8 — directive + graph shape + entry tiers + gates
-  roles/              12 — planner, phase-runner, verifier, briefer, panel, synthesizer…
+  roles/              9 — planner, plan-verifier, node-orchestrator, verifier, briefer, synthesizer…
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
   users/              7 — end-user archetypes with real patience budgets
@@ -518,7 +514,7 @@ run — which is also why serial execution is affordable.
 A verdict file carries **one row per done-criterion** in the handoff — each
 quoting its criterion, each with its own probe and evidence — and the node
 verdict is derived from those rows, not asserted. A row count that disagrees
-with the handoff is malformed: the phase runner reads it as `PARTIAL` and
+with the handoff is malformed: the dispatcher reads it as `PARTIAL` and
 re-verifies. A row may also read `UNSETTLEABLE` — the criterion, not the work, is
 the defect — and then the node parks on a question rather than retrying. The acceptance checks are held to the same standard: each
 carries a `tools/*.instrument.md` record naming what it guards, what it has

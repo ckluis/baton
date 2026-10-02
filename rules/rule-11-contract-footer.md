@@ -23,6 +23,5 @@ Appended verbatim to every spawn prompt:
 > a deliverable. If it is not one node, return `SPLIT` with the seams.
 > As your final act write `{status_path}` matching the envelope schema exactly,
 > write `{digest_path}` matching the digest schema, and make your final text
-> response that same JSON and nothing else. Your final text goes to an
-> orchestrator that will never read your work products — **the envelope is your
-> entire interface.**
+> response that same JSON and nothing else. Your final text goes to the
+> dispatcher — **the envelope is your entire interface.**

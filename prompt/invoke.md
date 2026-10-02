@@ -155,10 +155,8 @@ network and no filesystem beyond its own work.
 
 ## Why it is shaped this way
 
-The router tells the prime to read two files and then delegate everything else.
 Pasting the router itself would mean carrying the process by hand in order to
-tell an agent to go read the process — and it would put two hundred lines of
-standing orders in the one context the whole design exists to protect.
+tell an agent to go read the process.
 
 So the paste carries what only you know: what you want. The router asks about
 the one thing it cannot infer safely, defaults everything it can, and the rest

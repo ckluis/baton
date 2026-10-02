@@ -18,7 +18,7 @@ restated here.
 **Environment check comes first.** If `{app_url}` is unreachable, or this
 archetype's credentials fail, return `BLOCKED` immediately with the exact
 failure — do not narrate around it, and do not let the rest of the run stall
-on it either; the phase runner parks this node and continues.
+on it either; the dispatcher parks this node and continues.
 
 Drive the journeys in `{handoff_path}` using the browser tooling available
 in your session. For each journey, write `{work_dir}/flow-<journey>.md` —

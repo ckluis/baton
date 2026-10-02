@@ -141,7 +141,7 @@ The transform nodes are frontier and shaped for wide parallelism, and CONTRACT Â
 concurrency at 2. That tension is real and the cap wins. The answer is pipeline
 discipline, not a wider fan: batch 01 verifies while batch 02 transforms, so wall-clock
 is the slowest single chain rather than the sum of the stages, and a session limit
-landing mid-run strands one batch instead of thirty. The phase runner spawns each
+landing mid-run strands one batch instead of thirty. The dispatcher spawns each
 transform with `isolation: worktree` whenever two batches could touch the same file â€”
 worktrees are what make two concurrent transforms safe, and the batching rule that no
 two batches name the same file is what keeps the number of worktrees at two.

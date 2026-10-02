@@ -31,7 +31,7 @@ The node-level verdict is then **derived, not asserted**:
 | any row `UNTESTED` or `UNSETTLEABLE`, none `REFUTED` | `PARTIAL` |
 
 A verdict whose row count does not match the handoff's criterion count, or whose
-node verdict disagrees with that table, is **malformed**: the phase runner reads
+node verdict disagrees with that table, is **malformed**: the dispatcher reads
 it as `PARTIAL` and re-verifies. It does not get to be a `CONFIRMED`.
 
 **Why this is a schema rule and not advice.** A single free-text `probe` field

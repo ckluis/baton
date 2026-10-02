@@ -36,20 +36,17 @@ So the trigger is not the gate. The trigger is the consequence:
 
 That is the whole rule. A `BLOCKED` node mid-phase, a node whose second frontier failure
 reaches a person (§1.2), a `SPLIT` the decomposer cannot resolve alone, a node parked on an
-`UNSETTLEABLE` criterion (§9.2), a confound a phase runner discovers in its own
+`UNSETTLEABLE` criterion (§9.2), a confound the dispatcher discovers in its own
 protocol — each stalls work, so each earns a slide. A retry, an accepted
 caveat, an index refresh that failed: none of them stall anything, so none of them
 gets a page.
 
-**The split is the point, and it is what makes this affordable.** Deciding *what* the
-decision is, *why* it is a decision, and what the three real options are needs the
-run's whole context and belongs to the layer holding it — the prime at a gate, the
-phase runner inside a phase. Rendering it needs none of that context. So the
-expensive layer writes the question, the shape and the three options into
+**The split is the point.** Deciding *what* the decision is, *why* it is a decision,
+and what the three real options are belongs to the layer holding the run's context —
+the prime. It writes the question, the shape and the three options into
 `_orch/inbox/Q-<n>.md`, and a **briefer at frontier** turns that into the page. A layer
-that writes its own HTML has spent the context it was protecting on typing, and a layer that
-skips the page because writing one felt like ceremony has handed the decision back as
-prose.
+that skips the page because writing one felt like ceremony has handed the decision back
+as prose.
 
 **A slide that schedules a decision has not made one.** The options on a slide are what to
 *do*. Options about **who decides** — *a human labels them / defer to a fresh agent* — or about

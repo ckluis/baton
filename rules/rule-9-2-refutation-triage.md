@@ -16,7 +16,7 @@ links:
     note: trigger 3 is unchanged; an UNSETTLEABLE row is not a REFUTED row
   - rel: relates-to
     to: rule-10-the-operator-lane
-    note: the phase runner writes the question on the node's behalf
+    note: the dispatcher writes the question on the node's behalf
   - rel: relates-to
     to: rule-4-5-done-criteria-are-atomic
     note: the linter catches these shapes at authoring time; this rule catches the ones it missed
@@ -55,21 +55,21 @@ read such a row as a §9.3 candidate that was never retried, not as a settled fi
 
 Hard is not unsettleable. A criterion the artifact *could* have met as written is `REFUTED`
 however much work meeting it would take. An `UNSETTLEABLE` row missing its shape or its
-demonstrating probe is **read as `REFUTED`** by the phase runner: the cheap branch is the one
+demonstrating probe is **read as `REFUTED`** by the dispatcher: the cheap branch is the one
 that has to prove itself.
 
-**Routing, held by the phase runner.** §9.1's computation is unchanged in spirit: any `REFUTED`
+**Routing, held by the dispatcher.** §9.1's computation is unchanged in spirit: any `REFUTED`
 row makes the node `REFUTED`; otherwise any `UNTESTED` or `UNSETTLEABLE` row makes it `PARTIAL`.
 
 - A `PARTIAL` with any `UNSETTLEABLE` row is **not re-verified** (§9's re-verify-then-escalate
-  rule does not apply). The phase runner writes `_orch/inbox/Q-<n>.md` **on the node's behalf**
+  rule does not apply). The dispatcher writes `_orch/inbox/Q-<n>.md` **on the node's behalf**
   (§10.1): the criterion verbatim, the shape and probe, a proposed rewrite that a command can
   settle, and the default — the node reported `DONE-WITH-CAVEATS` naming the criterion. If
   `_orch/lint-feedback.yaml` already carries this node and criterion, the existing question is
   cited instead of a second one written.
-- The node's envelope is not rewritten; the agent that wrote it is gone (§2). The phase runner
-  tracks the node as **`BLOCKED`-and-batched** in its own envelope, and that is the node's state
-  at every gate (§8, phase-runner terminal states). Its `needs` edges stay closed like any
+- The node's envelope is not rewritten; the agent that wrote it is gone (§2). The dispatcher
+  tracks the node as **`BLOCKED`-and-batched**, and that is the node's state at every gate (§8,
+  router §4). Its `needs` edges stay closed like any
   blocked node's (§4.1). Resume reads the state off disk: a verdict with an `UNSETTLEABLE` row
   and no matching `_orch/inbox/Q-<n>.answer.md` is parked.
 - The answer authorises the rewrite. The criteria not named stay byte-identical; a fresh verifier
@@ -88,11 +88,11 @@ row makes the node `REFUTED`; otherwise any `UNTESTED` or `UNSETTLEABLE` row mak
   amendment section came back `REFUTED` on the heading and on a command the worker never saw
   (`_orch-replay/final/report-errata.md`, E6).
 - A verdict with both `REFUTED` and `UNSETTLEABLE` rows escalates on the `REFUTED` rows now. The
-  phase runner files the question at the same time, so the re-spawn's verifier — which will find
+  dispatcher files the question at the same time, so the re-spawn's verifier — which will find
   the same criterion and mark it `UNSETTLEABLE` again — lands `PARTIAL` and parks rather than
   looping.
 
-**Every `UNSETTLEABLE` row is a linter fixture the run did not have.** The phase runner appends
+**Every `UNSETTLEABLE` row is a linter fixture the run did not have.** The dispatcher appends
 it to `_orch/lint-feedback.yaml` — node, criterion verbatim, shape, verifier, question id — at
 the moment it files the question, and the final report lists that file's entries as candidates
 for `tools/lint-criteria.py`. A shape the linter already flags but that was dispatched anyway is
@@ -103,7 +103,7 @@ refutation as if the work were wrong. In this framework's own run, `_orch/instru
 examined twenty-one refutations and could trace fourteen to their follow-up: six changed the
 criterion, eight changed the product. `P76`'s criterion 1 was refuted by four verifiers on four
 different gaps and settled only when `Q-11` rewrote it as six derivation commands, fifteen spawns
-later. The phase runner at `ACCEPT-P90c` improvised this rule because the contract lacked it. A
+later. The dispatching agent at `ACCEPT-P90c` improvised this rule because the contract lacked it. A
 materiality scheme that priced criteria was drafted for the same problem and withdrawn
 (`docs/designs/proportionality-and-detection.md` §1); it failed because an accepted node had no
 verdict token and blocked every hard edge into it. This rule adds the token at the row, where

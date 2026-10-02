@@ -3,7 +3,7 @@ type: Contract
 id: prompt-contract
 ---
 
-# BATON CONTRACT — v3
+# BATON CONTRACT — v6
 
 Every agent in a baton run obeys this contract. Role prompts add duties on top of
 it; nothing in it is optional. Where a role prompt and a rule disagree, **the rule
@@ -33,14 +33,13 @@ files as well** — this file is an index, and an index is not a rulebook.
 
 Work is routed on three **tiers** — cheap for what a command can settle, frontier
 for everything with judgment in it, and a person when frontier has failed twice —
-and a retry carries the verdict that failed it. Each layer passes **locators and a
-tier** downward and receives an **envelope** upward; a **digest** exists so no
-layer ever opens the layer below's work. The plan is a **graph** with typed edges,
-and convergence is a **loop node** with a declared exit rather than a paragraph of
-encouragement. Every claim carries a citation or is retracted, and every verdict is
-computed per criterion rather than asserted. State lives on disk so any fresh
-session resumes and no context is load-bearing. The prime spends its turns on
-**gates** and nothing else.
+and a retry carries the verdict that failed it. The prime dispatches every node,
+passing **locators and a tier** downward and receiving an **envelope** upward. The
+plan is a **graph** with typed edges, and convergence is a **loop node** with a
+declared exit rather than a paragraph of encouragement. Every claim carries a
+citation or is retracted, and every verdict is computed per criterion by a fresh
+verifier rather than asserted. State lives on disk so any fresh session resumes.
+A person decides at **gates**, from a brief.
 
 ## The rules
 
