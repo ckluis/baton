@@ -106,6 +106,18 @@ everything". It is default compaction (B) against memory rotation (C). E1c tests
   fewer; and the count of `PARK`-instead-of-`DISPATCH` errors per arm. That error is the over-caution seen in
   E1's compacting arms (B seed 3, C seed 2), seen before this design was written.
 
+**Defect found in E1's answer key, 2026-10-02, after E1 ran and before any E1c or E1b run.** Some DISPATCH-expected
+checkpoints (controls, and some kind-b triggers) rested on one envelope claiming a node's needs were "DONE and
+CONFIRMED", while the record did not show it: a need was BLOCKED, REFUTED, IDLE or never mentioned. By CONTRACT
+§4.1, PARK was defensible on every one of them. The compacting arms parked on exactly those checkpoints, which is
+how the defect surfaced; the uncorrected scores read as an over-caution bias, and that reading is withdrawn.
+- **The audit:** `e1/audit_key.py` flags 4–6 such checkpoints per seed in seeds 1–3. The rule is the audit's,
+  applied to every arm alike.
+- **E1, rescored on the valid checkpoints** (`e1/rescore_audited.py`): **A = B = C = 1.000** on dependencies and
+  controls, in all nine runs. **The verdict is inconclusive, a tie at the ceiling.**
+- **The generator is fixed:** every DISPATCH checkpoint's needs are CONFIRMED in the record before it, enforced by
+  a self-check. Seeds 4 and 11–13 were regenerated and audit clean, and E1c and E1b run on them unchanged otherwise.
+
 ## E2 — do memory-bearing luminaries earn their place? (pre-registered)
 
 **The setup.** **Eight review tasks** on one evolving codebase. Each carries 6 seeded defects:
