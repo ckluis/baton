@@ -49,7 +49,6 @@ follow. That principle governs everything below it.
 | &nbsp;&nbsp;1.1 | 1.1. Foreign personas load unmodified | [`prule-1-1-foreign-personas-load-unmodified.md`](../rules/prule-1-1-foreign-personas-load-unmodified.md) |
 | &nbsp;&nbsp;1.1a | 1.1a. What the default phases cost you | [`prule-1-1a-what-the-default-phases-cost-you.md`](../rules/prule-1-1a-what-the-default-phases-cost-you.md) |
 | &nbsp;&nbsp;1.1b | 1.1b. The same is true of `tags`, and it bites harder | [`prule-1-1b-the-same-is-true-of-tags-and-it-bites-harder.md`](../rules/prule-1-1b-the-same-is-true-of-tags-and-it-bites-harder.md) |
-| &nbsp;&nbsp;1.2 | 1.2. Phase overrides — a convention, not a mechanism baton uses | [`prule-1-2-phase-overrides-a-convention-not-a-mechanism.md`](../rules/prule-1-2-phase-overrides-a-convention-not-a-mechanism.md) |
 | 2 | 2. What each kind does in each phase | [`prule-2-what-each-kind-does-in-each-phase.md`](../rules/prule-2-what-each-kind-does-in-each-phase.md) |
 | &nbsp;&nbsp;2.1 | 2.1. `kind: expert` | [`prule-2-1-kind-expert.md`](../rules/prule-2-1-kind-expert.md) |
 | &nbsp;&nbsp;2.2 | 2.2. `kind: user` | [`prule-2-2-kind-user.md`](../rules/prule-2-2-kind-user.md) |

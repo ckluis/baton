@@ -183,6 +183,6 @@ requirement.
   matrix row rather than the handoff, which is why it carries `refutes: F1` and
   not `needs` alone.
 - **Everything is built and nothing composes.** Each cluster satisfied the shared
-  contract its own way. `B1` is the one justified barrier in the mode (§4.2 —
+  contract its own way. `B1` is the one justified barrier in the mode (§4 —
   the next stage genuinely references the other results). Two defensible
   readings of one contract go to an adjudicator (§1.2), not to a vote.

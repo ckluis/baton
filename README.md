@@ -85,7 +85,7 @@ name, so nothing downstream breaks. Design record: `docs/designs/v5-accountabili
   frontier failure is a question. In the self-run every attempt-2 row succeeded and every one
   carried the previous verdict — that was the mechanism; the ladder was the packaging. A verifier
   is always frontier and always a fresh spawn (`rules/rule-9-evidence.md`).
-- **Dispatch belongs to the harness** (`rules/rule-0-layers.md`, router §4). A session that can
+- **Dispatch belongs to the harness** (router §4). A session that can
   run agents in parallel and wait for their envelopes dispatches a phase's nodes itself, under the
   same handoff-and-envelope contract; a per-phase dispatching agent is the fallback. Layers are a discipline of
   context and independence, not a hierarchy of spawns.

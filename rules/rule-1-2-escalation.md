@@ -46,7 +46,7 @@ What does not escalate:
   contradiction is not a difficulty, and there is no larger model to jump to;
   an adjudicator that cannot rule on the evidence returns a `human` question.
 - `SPLIT` — the node is not one node; the planner re-plans it into a subgraph
-  (§4.4).
+  (§4).
 - Verification — a verifier is always frontier and always a fresh spawn (§9).
   It is never an escalation of the node it checks.
 

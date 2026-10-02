@@ -157,7 +157,7 @@ shared-account workflow.
 ## Gates
 
 - **Plan gate.** Passes when every approved cell has exactly one probe node, no probe
-  node verifies itself, `L1` carries all four fields CONTRACT §5.3 requires, and the
+  node verifies itself, `L1` carries all four fields CONTRACT §5 requires, and the
   matrix gate precedes every probe.
 - **Matrix gate** (`G1`, a blocked batch). The matrix and every bound card go to the
   operator as one batch. Passes when each cell is approved, cut, or amended in writing.

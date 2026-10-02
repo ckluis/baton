@@ -83,7 +83,7 @@ make `T00` a small node; they do not make it a cheap one.
 
 All four of CONTRACT §8 fire unchanged. The **plan gate** carries the extra
 weight: it refuses a graph whose final `done:` is not the `COMPLETION:` line, any
-`done:` needing judgment, and any loop missing a §5.3 field. The **blocked
+`done:` needing judgment, and any loop missing a §5 exit field. The **blocked
 batch** opens with the completion question when one was needed. The **final
 gate** demonstrates the completion condition against `T00`'s artifacts and names
 every directive clause no node claimed.

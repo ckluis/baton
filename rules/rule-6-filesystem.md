@@ -38,7 +38,7 @@ _orch/
   wt/
     T07/                 a worktree-isolated node's checkout (§4); under TEAM, its branch (§6.2)
   loops/
-    L1/seen.yaml         §5.1
+    L1/seen.yaml         §5
   inbox/                 §10 — Q-<n>.md and Q-<n>.answer.md; github.json under TEAM
   brief/                 §8.1 — blocked-<phase>.html, final.html; for a person. Under TEAM each has a .md twin
   ledger/                §7 — one row per file (§6.3)

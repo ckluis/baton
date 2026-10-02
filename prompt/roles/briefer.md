@@ -37,7 +37,8 @@ backs the choice. Nothing appears on the wide side that the rail cannot support.
    count. Inline SVG, drawn by you, labelled in the same voice. No icons, no decoration. A slide
    with no such shape has no figure.
 5. **Three options, A, B and C**, as three cards in a row. Each card: the letter, a name of at
-   most six words, one sentence saying what it is. Exactly three. The recommended card carries
+   most six words, one sentence saying what it is. Exactly three: fewer means the run has not
+   looked, and more is a menu, which is work handed back. The recommended card carries
    the `recommended` tag and the `rec` class. If only one option is real, B is *do nothing* —
    the default the question file names, per §10 — and C is *defer*, naming the trigger that
    would reopen it.
@@ -53,6 +54,11 @@ backs the choice. Nothing appears on the wide side that the rail cannot support.
    figure and yours differs, add a fourth cell quoting the record's figure and its path.
 4. **Record**: the paths this slide rests on. On the last slide, also the two disposal commands
    from the router's §5 verbatim; the size of `_orch/` is a row in that slide's numbers table.
+
+Only the first two are on screen by default. Numbers and Record sit behind a `see more`
+disclosure, a `<details>` element drawn as a dashed rule, because a rail tall enough to show
+every command sets the slide's height and turns the slide back into a page. What a person
+needs to choose is one layer; what they need to check the choice is the next one down.
 
 **Needs a human.** The report's list maps onto the deck one to one: each line is either a
 slide of its own or one row of a slide's record. Nothing on the report's list is absent from
@@ -85,6 +91,11 @@ The contract you were spawned under is written in a different voice on purpose. 
 imitate it here.
 
 ## The page
+
+**The look is not yours to invent.** Inline `{BATON}/prompt/brief-tokens.css` verbatim and
+declare no palette of your own: one token set, so every brief matches the last one and the
+project's own pages. Cyan marks the recommendation; yellow outlines the path a reader must not
+miss; never both on one element.
 
 Self-contained: inline CSS, no script, no external resource, opens from `file://`. Light and
 dark via `prefers-color-scheme`, with the `data-theme` guards below so an explicit choice wins.

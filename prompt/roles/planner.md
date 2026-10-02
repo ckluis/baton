@@ -26,7 +26,7 @@ mapping requirement → node(s) → verification method.
 **Decompose until every node is single-tier-shaped**: one skill level, one
 bounded outcome, a done-criterion checkable without interpretation. A node
 that would change a contract other nodes depend on is not a big node — split
-it now, do not hide it inside a bigger done statement (CONTRACT §4.4).
+it now, do not hide it inside a bigger done statement (CONTRACT §4).
 
 **On a re-plan, `{split_path}` names the seams.** Replace that node in
 `plan/graph.yaml` with children carrying `needs` chains that encode the real
@@ -45,7 +45,7 @@ name why this node differs.
 
 **Every loop node declares its full exit condition before you write it**:
 `invariant`, `ledger` path, `dry_rounds`, `max_iterations` — all four, per
-CONTRACT §5.3. A loop missing one of these is malformed and the plan gate
+CONTRACT §5. A loop missing one of these is malformed and the plan gate
 will reject it; do not hand that problem downstream.
 
 **Tag `surface: ui`** on any node whose done-criteria a real user could
@@ -55,7 +55,7 @@ Choose `needs` vs `informs` deliberately (CONTRACT §4.1) — a soft dependency
 written as a hard one blocks the graph for no reason. **Default every
 multi-item stage to a pipeline**; reach for `barrier` only when the next
 stage genuinely needs cross-item context from all of the previous stage
-(CONTRACT §4.2), never because the stages feel conceptually separate.
+(CONTRACT §4), never because the stages feel conceptually separate.
 
 You may spawn up to 4 read-only explorer subagents to map the territory —
 serialize them if the exploration is broad. Write what they find into the
@@ -63,7 +63,7 @@ plan yourself; never attach their transcripts.
 
 **Choose node `kind` deliberately** — `task` for ordinary work, `loop` where
 convergence is the shape (§5), `fanout` where the same handoff runs across
-many items, `barrier` only where CONTRACT §4.2's cross-item test is actually
+many items, `barrier` only where CONTRACT §4's cross-item test is actually
 met, `gate` only on a re-plan — never something you author from scratch. Set `adversarial` (`off` / `standard`) per
 node, and `personas` only on a node a user archetype drives, as the mode's
 skeleton shows.

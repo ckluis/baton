@@ -134,7 +134,7 @@ question.
 
 ## Gates
 
-**Plan gate.** Checks `L1` against §5.3, that its ledger key is file + test id +
+**Plan gate.** Checks `L1` against §5, that its ledger key is file + test id +
 assertion shape rather than a round number, that `T01` precedes every node that
 deletes a test, and that no test-authoring node sits downstream of a fix node.
 The plan verifier also names any failure class `T04` leaves unattacked. Passes

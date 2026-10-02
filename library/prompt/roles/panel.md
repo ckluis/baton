@@ -35,8 +35,7 @@ seat's lens alone.
 `PHASE: AUDIT` — the card is bound once and carries every phase this
 persona serves (personas CONTRACT §4.3), and each phase gives it a
 different duty, output and tier (personas CONTRACT §2), so the spawn must
-name which phase is in force. A seat whose card has no `## In AUDIT`
-runs §2.1's generic duty; that is the default, not a fault.
+name which phase is in force.
 
 **2. Red flag.** From the same audit output, each seat has already
 surfaced **at most one** blocking concern (personas CONTRACT §2.1 caps this

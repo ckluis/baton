@@ -9,8 +9,10 @@ status: active
 
 ## 2. The Status Envelope
 
-Written by every spawned agent as its **last act**, to its assigned
-`status.json` path, and repeated as its **entire final text response**.
+Every spawn receives **locators and a tier** (§6.1), never contents, and returns
+an **envelope** upward, never prose; every receipt writes its ledger row (§7).
+The envelope is written by every spawned agent as its **last act**, to its
+assigned `status.json` path, and repeated as its **entire final text response**.
 
 ```json
 {

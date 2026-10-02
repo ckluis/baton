@@ -178,7 +178,7 @@ pass.
 
 - **Plan gate.** Passes when discovery runs twice by named different methods, no
   transform node precedes `G1`, no transform authors its own verification, `L1` carries
-  all four fields CONTRACT §5.3 requires, and batches do not share files.
+  all four fields CONTRACT §5 requires, and batches do not share files.
 - **Register freeze** (`G1`). Passes when every delta between the two registers is
   resolved in writing and the frozen entry count is in `manifest.json`. An unresolved
   delta is `BLOCKED`, not a default.
