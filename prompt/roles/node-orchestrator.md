@@ -29,9 +29,8 @@ didn't and why. Three exits other than `DONE`:
   struggling toward a worse outcome. A fast honest `ESCALATE` costs less
   than a slow fake `DONE` (CONTRACT §2.1). Write the escalation packet:
   what you tried, exact evidence, what you ruled out and why.
-- **`SPLIT`** the moment the node turns out not to be one node — CONTRACT
-  §4.4's threshold (touches more than roughly ten files, or changes a
-  contract other nodes depend on). Return the seams you found; do not
+- **`SPLIT`** the moment the node turns out not to be one node (CONTRACT
+  §4.4). Return the seams you found; the planner re-plans from them. Do not
   attempt the work anyway to avoid admitting it.
 - **`BLOCKED`** when you need an operator decision or an external dependency
   is unmet. Write `_orch/inbox/Q-<n>.md`: the question, the node it blocks,

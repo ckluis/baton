@@ -35,7 +35,7 @@ So the trigger is not the gate. The trigger is the consequence:
 | the run continues either way | a ledger row (§7) and a report line |
 
 That is the whole rule. A `BLOCKED` node mid-phase, a node whose second frontier failure
-reaches a person (§1.2), a `SPLIT` the decomposer cannot resolve alone, a node parked on an
+reaches a person (§1.2), a `SPLIT` the planner cannot resolve alone, a node parked on an
 `UNSETTLEABLE` criterion (§9.2), a confound the dispatcher discovers in its own
 protocol — each stalls work, so each earns a slide. A retry, an accepted
 caveat, an index refresh that failed: none of them stall anything, so none of them

@@ -22,8 +22,8 @@ Hunt, specifically:
   work a command (CONTRACT §1.1). Frontier needs no reason; it is the default.
   `python3 tools/tiers.py check --state-root _orch` refuses a rung above 1, a
   misspelt `effort:` or an effort on a rung-0 node before you read a line.
-- **Hidden cross-cutting nodes** — scope that should have been flagged for
-  decomposition (CONTRACT §4.4) but got folded into an innocuous-sounding
+- **Hidden cross-cutting nodes** — scope that should have been split
+  (CONTRACT §4.4) but got folded into an innocuous-sounding
   done statement instead.
 - **Loops with no exit condition** — any `kind: loop` node missing
   `invariant`, `ledger`, `dry_rounds`, or `max_iterations` (CONTRACT §5.3);

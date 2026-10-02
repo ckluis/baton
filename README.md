@@ -446,7 +446,7 @@ prompt/
   baton.md            the router — the agent reads this, not you
   CONTRACT.md         narrative + generated index; the rules live in rules/
   modes/              8 — directive + graph shape + entry tiers + gates
-  roles/              9 — planner, plan-verifier, node-orchestrator, verifier, briefer, synthesizer…
+  roles/              8 — planner, plan-verifier, node-orchestrator, verifier, briefer, synthesizer…
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
   users/              7 — end-user archetypes with real patience budgets

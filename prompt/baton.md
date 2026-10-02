@@ -235,8 +235,9 @@ whose envelope already reads `DONE` with a `CONFIRMED` verdict:
    loses nothing received.
 3. **Route the envelope:**
    - `DONE` / `DONE-WITH-CAVEATS` → verify (step 4).
-   - `SPLIT` → spawn a decomposer (`{BATON}/prompt/roles/decomposer.md`) at frontier;
-     its children are runnable at their tiers next pass.
+   - `SPLIT` → re-spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+     node's envelope as `{split_path}`; the children it writes are runnable at
+     their tiers next pass.
    - `ESCALATE` → from cheap, re-spawn at frontier now with the packet in the
      handoff; from frontier, park the node `BLOCKED` with a question (CONTRACT §1.2).
    - `FAILED`, or a `REFUTED` verdict → CONTRACT §1.2's next move: from cheap,

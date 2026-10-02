@@ -12,8 +12,8 @@ links:
 
 ### 4.4 Decomposition
 
-A node whose scope turns out to touch more than roughly ten files, or to change
-a contract other nodes depend on, is not a big node — it is a missing subgraph.
-It returns `SPLIT`. A decomposer at frontier replaces it in `graph.yaml` with
-children carrying `needs` chains, and the parent becomes a `gate` node that
-closes when its children do. **Never let a node grow into a phase.**
+A node that turns out not to be one node — its seams are separable pieces of work,
+or it changes a contract other nodes depend on — returns `SPLIT` with the seams it
+found. The planner re-plans: it replaces the node in `graph.yaml` with children
+carrying `needs` chains, and the parent becomes a `gate` node that closes when its
+children do. **Never let a node grow into a phase.**
