@@ -1,0 +1,28 @@
+{
+  "name": "baton",
+  "version": "7.0.0-dev",
+  "description": "baton v7: a prime orchestrator that never reads, with a run memory and a project memory instead of a growing context",
+  "author": { "name": "Chris Kluis" },
+  "license": "MIT",
+  "homepage": "https://github.com/ckluis/baton",
+  "userConfig": {
+    "rotateAtPercent": {
+      "type": "number",
+      "title": "Rotate at percent",
+      "description": "During an active run, compact the prime and wake it from memory once its context reaches this percent of the window",
+      "default": 35
+    },
+    "wakeBudgetLines": {
+      "type": "number",
+      "title": "Wake budget (lines)",
+      "description": "The most blocks memory_wake prints: recent notes verbatim, older ones collapsed into summaries",
+      "default": 96
+    },
+    "memoryDir": {
+      "type": "string",
+      "title": "Project memory directory",
+      "description": "Where the project memory (spanning runs) lives, relative to the session's project root",
+      "default": ".baton/memory"
+    }
+  }
+}
