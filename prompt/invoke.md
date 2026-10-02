@@ -90,8 +90,8 @@ TARGET:      src/billing
 MODE:        TEST
 BATON:       https://raw.githubusercontent.com/ckluis/baton/v5.0
 PERSONAS:    builtin
-CHEAP:       the harness's fastest model
-FRONTIER:    the harness's most capable model, effort per node
+CHEAP:       claude-sonnet-5-5
+FRONTIER:    claude-opus-5-5 at medium
 INBOX:       off
 TEAM:        off
 
@@ -107,11 +107,11 @@ against that same base URL. Read it completely before you start any work.
 | `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `CRAFT` `POSITION` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
 | `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:<dir>` · `repo:<host/owner/name>`, combined with `+` |
-| `CHEAP` | the harness's fastest model | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
-| `FRONTIER` | the harness's most capable model, effort per node (`high` unless the node says otherwise) | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
+| `CHEAP` | `claude-sonnet-5-5` | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
+| `FRONTIER` | `claude-opus-5-5` at `medium` effort | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |
-| `TEAM` | `off` | `github`: the run's state on a git ref, every question an Issue, every product node a draft PR — see "For a team" above |
-| `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref, Issues and pages when the target is public or not yours |
+| `TEAM` | `off` | `github`: the run's state on a hidden git ref, one pull request as the thread, every question a comment on it, every product node one commit — see "For a team" above |
+| `RUNS_REPO` | the target's repo | a private `owner/name` for the run's ref and pull request when the target is public or not yours |
 
 `TARGET` and `MODE` are the only two a run may not silently guess — which is why
 they are the two it asks about instead. In a session that cannot ask (a cron

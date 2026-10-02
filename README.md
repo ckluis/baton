@@ -282,8 +282,11 @@ Three tiers. This is the entire routing system.
 | # | tier | for |
 |---|---|---|
 | 0 | `cheap` | Mechanical, verifiable by command. The fastest model the harness offers. **Assignment only** — escalation never lands here. |
-| 1 | `frontier` | **The default.** Everything with judgment in it. The most capable model the harness offers, at the effort its node assigns: high to build, medium to verify. Nothing above it runs unattended. |
+| 1 | `frontier` | **The default.** Everything with judgment in it. The most capable model the harness offers. Nothing above it runs unattended. |
 | 2 | `human` | Not a spawn: a question in the inbox with the evidence beside it, batched at the gate. Where frontier stops. |
+
+The defaults bind `FRONTIER` to `claude-opus-5-5` at `medium` effort and `CHEAP` to
+`claude-sonnet-5-5` (router §1). The rules name properties of the work, never a model.
 
 Escalation is two moves, then a person. Cheap fails → frontier, once. Frontier
 fails → frontier once more, with the verdict's refuted rows verbatim in its
