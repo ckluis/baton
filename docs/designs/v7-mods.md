@@ -92,6 +92,20 @@ reaching the window is a result. B and C rotate at the same five points as E1. T
 n = 1 and labelled exploratory: one seed cannot carry a verdict, only a direction. Cost and wall-clock per arm
 are reported, because at this size they may decide the question even when accuracy does not.
 
+**E1c — compaction depth, not context size (pre-registered 2026-10-02, before any E1c run).** E1 compacted 5
+times per run, too few for summary-of-summary decay to show. The operator's work sessions, which run near a
+billion tokens with subagents, compact dozens to hundreds of times, and there the choice is never "carry
+everything". It is default compaction (B) against memory rotation (C). E1c tests that choice at depth, cheaply.
+- **Shape:** fresh seeds 11, 12 and 13, `--pad 0 --rotate-every 4`. That gives **29 compactions per run**.
+  Each dependency is planted so that it crosses 7–21 of them (mean 11.9, 16 of 24 crossing at least 10), and
+  the context stays small.
+- **Arms:** B and C only, 3 runs each, the prime `claude-opus-5-5` at medium. Rotation is mechanised as in E1.
+- **Rule:** E1's, between B and C. **Memory wins** if `S(C) ≥ S(B) + 0.10`. **Memory loses** if
+  `S(C) < S(B)`. Anything else is inconclusive. The contrarian exclusion applies.
+- **Also reported:** accuracy on dependencies that cross at least 10 compactions, against those that cross
+  fewer; and the count of `PARK`-instead-of-`DISPATCH` errors per arm. That error is the over-caution seen in
+  E1's compacting arms (B seed 3, C seed 2), seen before this design was written.
+
 ## E2 — do memory-bearing luminaries earn their place? (pre-registered)
 
 **The setup.** **Eight review tasks** on one evolving codebase. Each carries 6 seeded defects:
