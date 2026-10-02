@@ -1,6 +1,6 @@
 # Experiment: do persona lenses still earn their place?
 
-Drafted 2026-10-01 · Status: **PRE-REGISTERED, not yet run** · Issue #37
+Drafted 2026-10-01 · Ran 2026-10-01 · Status: **RUN — cut from the default path** (a plain reviewer is at the ceiling) · Issue #37
 
 ## The question
 
@@ -49,4 +49,26 @@ the result says nothing about them.
 
 ## Result
 
-Not yet run.
+| condition, 3 replicates | seeded found (of 16) | unmatched findings | cost per replicate |
+|---|---|---|---|
+| A — one plain reviewer | **15.67** (16 · 16 · 15) | 3 · 1 · 2 | $0.45 |
+| B — panel of four lens cards | **16** (16 · 16 · 16) | 9 · 10 · 7 | $1.88 |
+| C — one reviewer, four cards | **16** (16 · 16 · 16) | 3 · 3 · 3 | $0.51 |
+| D — four plain reviewers | **16** (16 · 16 · 16) | 7 · 10 · 11 | $1.84 |
+
+**The rule, applied.** `R(B) = R(D) = 16`, and `R(C) = 16` against `R(A) = 15.67`. Both conditions
+for cutting hold, and neither for earning. **Persona cards come off the default path.** Per lens, no
+card found more of its own category than the plain ensemble: both found every one in every replicate.
+
+**What actually happened is a ceiling.** One plain Opus 5.5 reviewer at medium found 47 of the 48
+seeded defects across its three runs, in about a minute and for $0.45 each. That includes all four
+defects hidden behind weakened, green tests. Its single miss was the missing server timeouts, once.
+Every pooled condition found all 16 every time. What the extra spawns bought was more findings that
+match nothing seeded: 7–11 per pooled set, against 1–3 for a single reviewer. Some are real issues
+in the base build and some are noise; this run does not separate them.
+
+**What this does not settle.** The seeded defects were findable by a careful reader, and a reviewer
+this strong found all of them, so the test cannot show a lens helping on subtler defects than these.
+The reviewers were all Opus 5.5; a weaker reviewer might still use a lens as a checklist. And
+`kind: user` archetypes were not tested. Their duty (perceive only what the screen shows) is a
+constraint on a probe, not a review lens, and the screenshots-only rule is kept.
