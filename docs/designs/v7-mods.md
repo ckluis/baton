@@ -142,3 +142,30 @@ generic and convention defects are reported separately.
 ## What v7 does not do
 
 It does not reintroduce lens cards, panels, tier ladders or per-node effort. v6's evidence on those stands.
+
+## Results (2026-10-02 to 2026-10-03)
+
+Every run below was served by the model asked for. Every E1-family run was scored by the scripted oracle on an
+answer key audited clean (`e1/audit_key.py`); E1's first three seeds are scored on their valid checkpoints only
+(`e1/rescore_audited.py`, the defect recorded above). Harness: `effort-blog-bench` `e1/` and `e2/`.
+
+| experiment | what it stressed | A: carry | B: default compaction | C: v7 memory | verdict |
+|---|---|---|---|---|---|
+| **E1**, 3 seeds | ~250K tokens, 5 compactions | 1.000 | 1.000 | 1.000 | **inconclusive** — tie at the ceiling |
+| **E1c**, 3 seeds | 29 compactions; dependencies crossing 7–21 of them | — | 1.000 (24/24 ×3) | 1.000 (24/24 ×3) | **inconclusive** — tie at the ceiling |
+| **E1b**, 1 seed, exploratory | arm A to **831K** tokens, near the 1M window | 24/24, **$20.40** | 24/24, $13.24 | 24/24, $14.78 | no rot; carrying costs ~50% more |
+
+**E2**, 3 replicates × 8 tasks, blind-scored: on tasks 5–8 the luminary with memory, the plain reviewer and the
+memory-wiped luminary each found **6.00 of 6** seeded defects per task, generic and project-convention alike.
+`R(L) − R(P) = 0.00` against a 0.5 cut line: **luminaries are cut.** A plain Opus 5.5 reviewer inferred each
+unstated convention from the code's own patterns (checked by hand: its findings name `clock.stamp()`, the
+transaction rule and the missing `audit()` call).
+
+**What this says.** On Claude Opus 5.5 the problems v7 was built to fix did not appear. A prime carrying 831K
+tokens lost no long-range fact; Claude Code's own compaction lost none across 29 rounds; a reviewer needed no
+memory to learn a codebase's conventions. Memory rotation tied the default everywhere; it never beat it.
+
+**What survives, by evidence.** Cost: a prime that never accumulates context is ~35–50% cheaper per run at
+long context (E1, E1b). Runs longer than the window, and continuity across sessions and days, were not measured
+and remain the only accuracy case for memory. The prime guard, the interface and the dispatch structure are
+operational choices, not accuracy ones.
