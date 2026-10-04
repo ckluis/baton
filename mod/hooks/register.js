@@ -10,6 +10,7 @@
 
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
+import { fallbackRuling, isOperatorPrompt, parseRuling, RULING_SYSTEM, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { bindModel, CHEAP, FRONTIER } from '../lib/binding.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
@@ -21,6 +22,7 @@ const run = {
   manifest: null, // the parsed manifest, when active
   startedHere: false, // /baton start ran in this module's lifetime
   kickoff: null, // the prime's first prompt, submitted by the ticker after /baton start
+  lastKickoff: null, // that prompt's text, so prompt.submit does not note it as the operator's
 }
 
 // What the guard learned about agentId at run time.
@@ -115,7 +117,7 @@ const MEMORY_TOOLS = [
   {
     name: 'memory_note',
     description:
-      "baton run memory: append ONE line (≤280 bytes; longer is cut) — a decision, a parked node, an operator answer, what you are waiting on, a route you chose. Sub-orchestrator returns are noted automatically; do not repeat them.",
+      "baton run memory: append ONE line (≤280 bytes; longer is cut) — a decision, a parked node, what you are waiting on, a route you chose. The operator's prompts, sub-orchestrator returns and the first line of each of your replies are noted automatically; do not repeat them.",
     inputSchema: { type: 'object', properties: { text: { type: 'string', description: 'one line, at most 280 bytes' } }, required: ['text'] },
   },
   {
@@ -490,11 +492,14 @@ async function batonStart($, args) {
   try {
     surfaces = await $.session.surfaces()
   } catch {}
+  const rulings = await rulingsBlock($)
+  const first = kickoff(m) + (rulings ? '\n\n' + rulings.trim() : '')
   if (surfaces.length) {
-    run.kickoff = kickoff(m)
+    run.kickoff = first
+    run.lastKickoff = first
     return started
   }
-  return started + '\n\n' + kickoff(m)
+  return started + '\n\n' + first
 }
 
 async function batonStop($) {
@@ -647,7 +652,7 @@ async function serveMemoryTool($, e) {
   try {
     switch (name) {
       case 'memory_wake':
-        return { result: await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)]) }
+        return { result: (await rulingsBlock($)) + (await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)])) }
       case 'memory_note':
         return { result: await appendNote($, 'run', String(e.text ?? ''), e.agentId ? 'agent' : 'prime') }
       case 'memory_zoom':
@@ -666,6 +671,54 @@ async function serveMemoryTool($, e) {
   } catch (err) {
     return { result: 'baton memory error: ' + (err && err.message ? err.message : String(err)) }
   }
+}
+
+// ------------------------------------------------------------------ rulings
+//
+// The operator's standing instructions, kept so the newest one sticks: every
+// operator prompt during a run is a run note (tag `operator`), and the cheap
+// model lifts any standing rule out of it into the project memory's `rulings`
+// namespace. memory_wake and the kickoff lead with the newest rulings, so a
+// change of mind is one message, not an edit to CLAUDE.md. `/baton rule`
+// records one by hand.
+
+const RULINGS_NS = 'rulings'
+const RULINGS_SHOWN = 12
+
+/** Pull a standing rule out of an operator message: the rule's line, or null. */
+async function extractRuling($, text) {
+  try {
+    const r = await $.model.complete({
+      model: CHEAP_MODEL,
+      system: RULING_SYSTEM,
+      prompt: rulingPrompt(text),
+      maxTokens: 160,
+      effort: 'low',
+      timeoutMs: 45000,
+    })
+    if (r.isAnswered) return parseRuling(r.text)
+  } catch {}
+  return fallbackRuling(text)
+}
+
+async function recordRuling($, text, tag = 'ruling') {
+  return appendNote($, 'project', text, tag, RULINGS_NS)
+}
+
+/** The newest rulings, newest first, as lines; [] when there are none or the memory is unreadable. */
+async function rulingLines($, max = RULINGS_SHOWN) {
+  try {
+    const args = await memoryArgs($, 'project', RULINGS_NS)
+    const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', String(max), '--', '.']))
+    return (r.notes ?? []).slice().reverse().map((n) => '#' + n.index + ' ' + String(n.ts ?? '').slice(0, 10) + ' ' + n.text)
+  } catch {
+    return []
+  }
+}
+
+async function rulingsBlock($) {
+  const lines = await rulingLines($)
+  return lines.length ? RULINGS_HEAD + '\n' + lines.join('\n') + '\n\n' : ''
 }
 
 export function register(on, options) {
@@ -732,8 +785,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | rotate | status — or no argument for the run pane',
-        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status]',
+        description: 'baton v7: start | stop | rotate | status | rule | rulings — or no argument for the run pane',
+        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status | rule <text> | rulings]',
         immediate: true,
       })
     } catch (err) {
@@ -830,6 +883,30 @@ export function register(on, options) {
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), wake] }
   })
 
+  // The operator's words become run notes, and any standing rule in them a
+  // ruling (in the background: the turn does not wait on the cheap model).
+  on('prompt.submit', async ($, e, next) => {
+    if (!e.agentId && isOperatorPrompt(e.text, run.lastKickoff) && (await runActive($))) {
+      const text = String(e.text)
+      try {
+        await appendNote($, 'run', text, 'operator')
+      } catch (err) {
+        $.ui.log('baton: could not note the operator prompt: ' + err.message)
+      }
+      $.clock.after(0, async () => {
+        const rule = await extractRuling($, text)
+        if (!rule) return
+        try {
+          await recordRuling($, rule)
+          $.ui.log('baton: ruling recorded — ' + rule)
+        } catch (err) {
+          $.ui.log('baton: could not record a ruling: ' + err.message)
+        }
+      })
+    }
+    return next(e)
+  })
+
   // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
   on('prompt.submit', async ($, e, next) => {
     const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
@@ -877,6 +954,15 @@ export function register(on, options) {
       }
       case 'status':
         return { text: await statusText($) }
+      case 'rule': {
+        const text = rest.join(' ').trim()
+        if (!text) return { text: 'usage: /baton rule <a standing instruction> — recorded in the project memory; the newest ruling wins' }
+        return { text: 'baton: ruling ' + (await recordRuling($, text, 'ruling-hand')) }
+      }
+      case 'rulings': {
+        const lines = await rulingLines($, 50)
+        return { text: lines.length ? RULINGS_HEAD + '\n' + lines.join('\n') : 'no rulings yet (/baton rule <text>, or say it in a run)' }
+      }
       default: {
         // No argument: the pane where something draws, its text where nothing does.
         let surfaces = []
@@ -968,6 +1054,17 @@ export function register(on, options) {
     if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
     // A subagent the prime dispatched returned: its one line becomes a note
     // (unless its SubagentHandback call already carried it).
+    // The prime's own reply: its first line is the decision it just made.
+    if (!e.agentId && !e.isAborted && (await runActive($))) {
+      const line = firstLine(e.answer)
+      if (line) {
+        try {
+          await appendNote($, 'run', line, 'prime-reply')
+        } catch (err) {
+          $.ui.log('baton: could not note the prime reply: ' + err.message)
+        }
+      }
+    }
     if (e.agentId && spawnedByPrime.has(e.agentId) && !e.isAborted) {
       if (handedBack.has(e.agentId)) handedBack.delete(e.agentId)
       else await noteReturn($, e.agentId, e.answer)

@@ -68,18 +68,19 @@ test('memory_note appends to the run memory under _orch/memory, tagged prime, te
 
 test('memory_wake uses the configured budget; zoom and recall pass their argument after --', async ($, on) => {
   const w = world(on)
+  // no rulings recorded (the stub's recall is not JSON): the wake is the run memory alone
   expect(((await $.tool.call({ tool: 'mcp__baton__memory_wake' } as any)) as any).result).toBe('wake output')
-  expect(w.calls[0].argv.slice(2)).toEqual(['--dir', '/work/_orch/memory', 'wake', '--budget', '96'])
+  expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(2)).toEqual(['--dir', '/work/_orch/memory', 'wake', '--budget', '96'])
   await $.tool.call({ tool: 'mcp__baton__memory_zoom', range: '10-20' } as any)
-  expect(w.calls[1].argv.slice(-2)).toEqual(['--', '10-20'])
+  expect(w.calls.at(-1)!.argv.slice(-2)).toEqual(['--', '10-20'])
   await $.tool.call({ tool: 'mcp__baton__memory_recall', pattern: '--evil' } as any)
-  expect(w.calls[2].argv.slice(-2)).toEqual(['--', '--evil'])
+  expect(w.calls.at(-1)!.argv.slice(-2)).toEqual(['--', '--evil'])
 })
 
 test('wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBudgetLines: 40 } }, async ($, on) => {
   const w = world(on)
   await $.tool.call({ tool: 'mcp__baton__memory_wake' } as any)
-  expect(w.calls[0].argv.slice(-1)).toEqual(['40'])
+  expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(-1)).toEqual(['40'])
 })
 
 test('project memory: memoryDir from config, a luminary namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
