@@ -10,7 +10,9 @@
 
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
-import { fallbackRuling, isOperatorPrompt, parseRuling, RULING_SYSTEM, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
+import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
+import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { alwaysLabel, APPROVE, claimsDone, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER } from '../lib/binding.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
@@ -39,7 +41,7 @@ const probe = {
 const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
-const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true }
+const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -91,21 +93,42 @@ const COMPACT_INSTRUCTIONS =
 const PANE = 'baton'
 const TABS = [
   { id: 'run', label: 'Run', hotkey: '1' },
-  { id: 'memory', label: 'Memory', hotkey: '2' },
-  { id: 'ledger', label: 'Ledger', hotkey: '3' },
-  { id: 'luminaries', label: 'Luminaries', hotkey: '4' },
+  { id: 'agents', label: 'Agents', hotkey: '2' },
+  { id: 'memory', label: 'Memory', hotkey: '3' },
+  { id: 'rulings', label: 'Rulings', hotkey: '4' },
+  { id: 'ledger', label: 'Ledger', hotkey: '5' },
+  { id: 'luminaries', label: 'Luminaries', hotkey: '6' },
 ]
 const pane = {
   open: false,
   tab: 'run',
   timer: null,
   refreshedAt: null,
-  data: { run: ['(not read yet)'], memory: ['(not read yet)'], ledger: ['(not read yet)'], luminaries: ['(not read yet)'] },
+  data: { run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'], luminaries: ['(not read yet)'] },
   memoryNotes: null, // run-memory note count, for the band
+  memTiles: [], // the memory tab's blocks, parallel to its view lines
+  memLines: [],
+  rulings: [], // the standing rulings, for the Rulings tab
+  target: null, // the agent the Agents tab's message field writes to
 }
 
 // What the prime is doing now, for the spinner: its live dispatches.
 const live = new Map() // agentId -> label
+
+// The whole tree under the prime, for the Agents tab and the approval questions.
+let tree = newTree()
+
+// Approvals: command gates remembered for this run, and phases waiting on the operator.
+const approvals = {
+  always: new Set(), // gate ids the operator approved for the rest of the run
+  asked: 0,
+  approved: 0,
+  refused: 0,
+  queue: [], // sub-orchestrator returns that claim DONE: { agentId, label, line, at }
+}
+
+// The memory browser: a stack of opened ranges ("lo-hi"), or a search.
+const browse = { stack: [], search: null }
 
 const MEMORY_TOOLS = [
   {
@@ -283,6 +306,15 @@ async function mergePass($) {
   }
 }
 
+/** A run note that never throws (the caller has already decided). */
+async function noteQuietly($, text, tag) {
+  try {
+    await appendNote($, 'run', text, tag)
+  } catch (err) {
+    $.ui.log('baton: could not note (' + tag + '): ' + err.message)
+  }
+}
+
 /** Note the one-line return of a subagent the prime dispatched. True when a note was written. */
 async function noteReturn($, agentId, text) {
   if (!(await runActive($))) return false
@@ -297,6 +329,15 @@ async function noteReturn($, agentId, text) {
     return true
   } catch (err) {
     $.ui.log('baton: could not note a return: ' + err.message)
+    return false
+  }
+}
+
+/** Is there a surface to draw on and ask in (not claude -p)? */
+async function interactive($) {
+  try {
+    return (await $.session.surfaces()).length > 0
+  } catch {
     return false
   }
 }
@@ -480,6 +521,9 @@ async function batonStart($, args) {
   await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
   run.startedHere = true
   forgetRunCache()
+  tree = newTree()
+  approvals.always.clear()
+  approvals.queue = []
   await registerMemoryTools($)
   await appendNote($, 'run', 'run ' + m.run_id + ' started: MODE ' + mode + ', TARGET ' + target, 'operator')
   $.ui.invalidate('ui.render')
@@ -531,6 +575,10 @@ async function statusText($) {
       (rotation.lastAt ? ' (last ' + rotation.lastAt + ', ' + rotation.lastTrigger + ')' : ''),
   )
   lines.push('guard ' + (active ? 'armed' : 'off') + ' · prime denials ' + probe.denied + ' · agentId ' + (probe.verified ? 'verified' : 'unverified') + (probe.notice ? ' — ' + probe.notice : ''))
+  lines.push(
+    'approvals ' + (config.approvals ? 'on' : 'off (BATON_APPROVALS=0)') + ' · asked ' + approvals.asked + ' · approved ' + approvals.approved + ' · refused ' + approvals.refused +
+      (approvals.always.size ? ' · approved for the run: ' + [...approvals.always].join(', ') : '') + (approvals.queue.length ? ' · ' + approvals.queue.length + ' phase(s) waiting for your check' : ''),
+  )
   if (active) {
     try {
       const s = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'stats']))
@@ -592,19 +640,32 @@ async function refreshPane($, paneRows) {
     for (const n of sum.open.slice(0, 20)) lines.push('  ' + n.id + ' ' + n.verdict)
     d.run = lines
   }
-  // Memory
+  // Memory: the wake view, a zoomed range from the browse stack, or a search
   try {
-    const w = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'wake', '--budget', String(budget)]))
-    const s = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'stats']))
+    const args = await memoryArgs($, 'run')
+    const s = JSON.parse(await memoRun($, [...args, '--json', 'stats']))
     pane.memoryNotes = s.notes
-    d.memory = [
-      'tree: ' + s.notes + ' notes · ' + s.summaries + '/' + s.treeCapacity + ' summaries · ' + s.levels + ' levels · ' + s.pending + ' merges pending',
-      'wake view (' + w.tiles.length + ' blocks, budget ' + budget + '):',
-      ...w.lines,
-    ]
+    const head = 'tree: ' + s.notes + ' notes · ' + s.summaries + '/' + s.treeCapacity + ' summaries · ' + s.levels + ' levels · ' + s.pending + ' merges pending'
+    if (browse.search) {
+      const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', String(budget), '--', browse.search]))
+      d.memory = [head, 'search /' + browse.search + '/i: ' + r.total + ' note(s), ' + r.blocks.length + ' summary block(s)']
+      pane.memTiles = [...r.blocks.map((b) => ({ level: b.level, lo: b.lo, hi: b.hi + 1 })), ...r.notes.map((x) => ({ level: 0, lo: x.index, hi: x.index + 1 }))]
+      pane.memLines = [...r.blocks.map((b) => '#' + b.lo + '-' + b.hi + ' (L' + b.level + ') ' + b.text), ...r.notes.map((x) => '#' + x.index + ' ' + x.ts + ' [' + x.tag + '] ' + x.text)]
+    } else {
+      const range = browse.stack.at(-1)
+      const w = JSON.parse(await memoRun($, [...args, '--json', ...(range ? ['zoom', '--budget', String(budget), '--', range] : ['wake', '--budget', String(budget)])]))
+      d.memory = [head, (range ? 'notes #' + range + ' (' + w.tiles.length + ' blocks)' : 'wake view (' + w.tiles.length + ' blocks, budget ' + budget + ')') + ':']
+      pane.memTiles = w.tiles
+      pane.memLines = w.lines
+    }
   } catch (err) {
     d.memory = ['run memory unreadable: ' + err.message]
+    pane.memTiles = []
+    pane.memLines = []
   }
+  // Rulings
+  pane.rulings = await loadRulings($, true)
+  d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
   // Ledger: row files (rule 6.3), then the v4/v5 single file
   const rows = []
   const files = ((await listDir($, '_orch/ledger')) ?? []).filter((x) => x.kind === 'file' && x.name.endsWith('.csv')).map((x) => x.name).sort().slice(-15)
@@ -640,9 +701,204 @@ async function refreshPane($, paneRows) {
   $.ui.invalidate('ui.render')
 }
 
+// ------------------------------------------------------------------ pane tabs
+
+/** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
+function agentsBody($, { Box, Text, Button, Input, line }) {
+  const out = []
+  approvals.queue.forEach((q, i) => {
+    out.push(
+      Box({
+        key: 'q' + i,
+        flexDirection: 'row',
+        columnGap: 1,
+        children: [
+          Button({ key: 'approve-' + i, label: 'approve', plain: true, onPress: () => resolveQueued($, i, 'approve') }),
+          line('qt' + i, '⚑ ' + q.label + ': ' + q.line, { color: 'yellow' }),
+        ],
+      }),
+    )
+  })
+  if (approvals.queue.length) {
+    out.push(
+      Input({
+        key: 'send-back',
+        label: 'Send back ' + approvals.queue[0].label,
+        placeholder: 'what is wrong (Enter sends it to the prime)',
+        value: '',
+        submitLabel: 'send back',
+        onSubmit: (v) => (String(v).trim() ? resolveQueued($, 0, { sendBack: String(v).trim() }) : null),
+      }),
+    )
+  }
+  const rows = treeRows(tree)
+  rows.forEach((r, i) => {
+    const children = []
+    if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: '✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
+    children.push(line('a' + i, r.text, r.color ? { color: r.color } : {}))
+    out.push(Box({ key: 'ar' + i, flexDirection: 'row', columnGap: 1, children }))
+  })
+  const t = pane.target && tree.nodes.get(pane.target)
+  if (t && t.endedAt == null) {
+    out.push(
+      Input({
+        key: 'agent-msg',
+        label: 'Message ' + t.label,
+        placeholder: 'steer this agent (it reads it at its next step)',
+        value: '',
+        submitLabel: 'send',
+        autoFocus: true,
+        onSubmit: async (v) => {
+          const text = String(v).trim()
+          if (!text) return
+          let r = null
+          try {
+            r = await $.session.send({ to: { agentId: t.id }, text })
+          } catch (err) {
+            r = { isDelivered: false, reason: err.message }
+          }
+          $.ui.toast(r && r.isDelivered ? 'sent to ' + t.label : 'not delivered: ' + ((r && r.reason) || 'unknown'))
+          if (r && r.isDelivered) await noteQuietly($, 'operator → ' + t.label + ': ' + text, 'operator')
+        },
+      }),
+    )
+  } else {
+    out.push(Text({ key: 'agents-hint', dimColor: true, children: ['✉ on a running agent opens a message field for it'] }))
+  }
+  return out
+}
+
+/** Settle a queued phase from the pane (the dialog's twin). */
+async function resolveQueued($, i, how) {
+  const item = approvals.queue[i]
+  if (!item) return
+  approvals.queue.splice(i, 1)
+  $.ui.invalidate('ui.render')
+  if (how === 'approve') {
+    approvals.approved++
+    await noteQuietly($, 'operator approved ' + item.label + ': ' + item.line, 'approval')
+    return
+  }
+  approvals.refused++
+  await noteQuietly($, 'operator sent back ' + item.label + ': ' + how.sendBack, 'approval')
+  $.prompt
+    .submit({ text: 'The operator sent back ' + item.label + ': "' + how.sendBack + '". Re-dispatch that phase with this as its directive before anything else.' })
+    .catch((err) => $.ui.log('baton: could not hand the send-back to the prime: ' + err.message))
+}
+
+/** Memory: open a block (+), go back (b), or search; notes and summaries as lines. */
+function memoryBody($, { Box, Button, Input, line, rows }) {
+  const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
+  const reload = () => refreshPane($, rows)
+  const nav = [
+    Input({
+      key: 'mem-search',
+      label: 'Search',
+      placeholder: browse.search ? '/' + browse.search + '/ — Enter on empty clears' : 'a node id, a word, a regex',
+      value: '',
+      submitLabel: 'search',
+      onSubmit: (v) => {
+        browse.search = String(v).trim() || null
+        return reload()
+      },
+    }),
+  ]
+  if (browse.stack.length || browse.search) {
+    nav.unshift(
+      Button({
+        key: 'mem-back',
+        label: 'back',
+        hotkey: 'b',
+        plain: true,
+        onPress: () => {
+          if (browse.search) browse.search = null
+          else browse.stack.pop()
+          return reload()
+        },
+      }),
+    )
+  }
+  out.push(Box({ key: 'mem-nav', flexDirection: 'row', columnGap: 2, children: nav }))
+  pane.memLines.forEach((l, j) => {
+    const t = pane.memTiles[j]
+    const children = []
+    if (t && t.level > 0)
+      children.push(
+        Button({
+          key: 'mem-open-' + j,
+          label: '+',
+          plain: true,
+          onPress: () => {
+            browse.search = null
+            browse.stack.push(t.lo + '-' + (t.hi - 1))
+            return reload()
+          },
+        }),
+      )
+    children.push(line('m' + j, l))
+    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children }))
+  })
+  return out
+}
+
+/** Rulings: add one, retract one (x); enforcement shows on the line. */
+function rulingsBody($, { Box, Button, Input, line, rows }) {
+  const out = [
+    Input({
+      key: 'ruling-add',
+      label: 'New ruling',
+      placeholder: 'a standing instruction; the newest wins',
+      value: '',
+      submitLabel: 'add',
+      onSubmit: async (v) => {
+        const text = String(v).trim()
+        if (!text) return
+        await recordRuling($, text, 'ruling-hand')
+        await refreshPane($, rows)
+      },
+    }),
+  ]
+  if (!pane.rulings.length) out.push(line('r-none', pane.data.rulings[0] ?? 'no rulings yet', { dimColor: true }))
+  pane.rulings.forEach((r) => {
+    out.push(
+      Box({
+        key: 'rr' + r.n,
+        flexDirection: 'row',
+        columnGap: 1,
+        children: [
+          Button({
+            key: 'retract-' + r.n,
+            label: 'x',
+            plain: true,
+            onPress: async () => {
+              await recordRuling($, 'retract #' + r.n + ': ' + r.text, 'retract')
+              await refreshPane($, rows)
+            },
+          }),
+          line('r' + r.n, rulingLine(r), r.enforce ? { color: 'magenta' } : {}),
+        ],
+      }),
+    )
+  })
+  out.push(line('r-hint', 'x retracts · /baton enforce <#> <regex> makes a ruling refuse matching shell commands', { dimColor: true }))
+  return out
+}
+
 /** Every tab as text, for `claude -p` and any surface that draws nothing. */
 function paneText() {
-  return TABS.map((t) => '## ' + t.label + '\n' + pane.data[t.id].join('\n')).join('\n\n')
+  return TABS.map((t) => '## ' + t.label + '\n' + tabLines(t.id).join('\n')).join('\n\n')
+}
+
+/** A tab's text, for -p and for the tabs drawn as plain lines. */
+function tabLines(id) {
+  if (id === 'agents') return [...queueLines(), ...treeRows(tree).map((r) => r.text)]
+  if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
+  return pane.data[id] ?? []
+}
+
+function queueLines() {
+  if (!approvals.queue.length) return []
+  return ['waiting for your check (' + approvals.queue.length + '):', ...approvals.queue.map((q) => '  ⚑ ' + q.label + ': ' + q.line), '']
 }
 
 /** Serve one memory tool call. */
@@ -702,18 +958,35 @@ async function extractRuling($, text) {
 }
 
 async function recordRuling($, text, tag = 'ruling') {
-  return appendNote($, 'project', text, tag, RULINGS_NS)
+  const r = await appendNote($, 'project', text, tag, RULINGS_NS)
+  forgetRulings()
+  return r
+}
+
+const rulingsCache = { at: -1e12, list: [] }
+const RULINGS_TTL_MS = 3000
+
+/** The standing rulings, newest first (retracted ones dropped, enforcement attached). Cached briefly. */
+async function loadRulings($, fresh = false) {
+  if (!fresh && Date.now() - rulingsCache.at < RULINGS_TTL_MS) return rulingsCache.list
+  try {
+    const args = await memoryArgs($, 'project', RULINGS_NS)
+    const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', '2000', '--', '.']))
+    rulingsCache.list = activeRulings(r.notes ?? [])
+  } catch {
+    rulingsCache.list = []
+  }
+  rulingsCache.at = Date.now()
+  return rulingsCache.list
+}
+
+function forgetRulings() {
+  rulingsCache.at = -1e12
 }
 
 /** The newest rulings, newest first, as lines; [] when there are none or the memory is unreadable. */
 async function rulingLines($, max = RULINGS_SHOWN) {
-  try {
-    const args = await memoryArgs($, 'project', RULINGS_NS)
-    const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', String(max), '--', '.']))
-    return (r.notes ?? []).slice().reverse().map((n) => '#' + n.index + ' ' + String(n.ts ?? '').slice(0, 10) + ' ' + n.text)
-  } catch {
-    return []
-  }
+  return (await loadRulings($)).slice(0, max).map(rulingLine)
 }
 
 async function rulingsBlock($) {
@@ -726,6 +999,8 @@ export function register(on, options) {
     if (Number.isFinite(Number(options.rotateAtPercent))) config.rotateAtPercent = Number(options.rotateAtPercent)
     if (Number.isFinite(Number(options.wakeBudgetLines))) config.wakeBudgetLines = Math.max(4, Math.floor(Number(options.wakeBudgetLines)))
     if (options.memoryDir) config.memoryDir = String(options.memoryDir)
+    if (options.approvals === false || options.approvals === 'false') config.approvals = false
+    if (options.phaseGate === false || options.phaseGate === 'false') config.phaseGate = false
   }
 
   // ---------------------------------------------------------------- load
@@ -736,6 +1011,14 @@ export function register(on, options) {
     try {
       const auto = await $.env.get('BATON_AUTOROTATE')
       config.autoRotate = !(auto !== undefined && auto !== null && /^(0|false|off|no)$/i.test(String(auto).trim()))
+    } catch {}
+    // BATON_APPROVALS=0: no command gate and no phase gate (unattended runs that may push).
+    try {
+      const ap = await $.env.get('BATON_APPROVALS')
+      if (ap !== undefined && ap !== null && /^(0|false|off|no)$/i.test(String(ap).trim())) {
+        config.approvals = false
+        config.phaseGate = false
+      }
     } catch {}
     try {
       const v = await $.session.version()
@@ -785,8 +1068,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | rotate | status | rule | rulings — or no argument for the run pane',
-        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status | rule <text> | rulings]',
+        description: 'baton v7: start | stop | rotate | status | rule | rulings | retract | enforce — or no argument for the run pane',
+        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status | rule <text> | rulings | retract <#> | enforce <#> <regex>]',
         immediate: true,
       })
     } catch (err) {
@@ -798,6 +1081,8 @@ export function register(on, options) {
   // ---------------------------------------------------------------- the prime guard
 
   on('tool.call', async ($, e, next) => {
+    addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool)
+    if (pane.open && pane.tab === 'agents') $.ui.invalidate('ui.render')
     if (!isPrimeCall(e)) {
       if (!probe.seen.has(e.agentId)) {
         probe.seen.add(e.agentId)
@@ -837,6 +1122,80 @@ export function register(on, options) {
   // ---------------------------------------------------------------- memory tools
 
   on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e))
+
+  // ---------------------------------------------------------------- approvals
+
+  // The command gate: an irreversible shell command from any agent, at any
+  // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!config.approvals || !(await runActive($))) return next(e)
+    const gate = gateFor(e.command)
+    if (!gate || approvals.always.has(gate.id)) return next(e)
+    const who = chain(tree, isPrimeCall(e) ? PRIME : e.agentId)
+    approvals.asked++
+    let answer = null
+    try {
+      const rulings = (await rulingLines($, 5))
+      answer = await $.ui.ask(commandQuestion({ who, command: e.command, gate, rulings }), [APPROVE, alwaysLabel(gate), REFUSE])
+    } catch {
+      answer = null
+    }
+    const verdict = answer === null ? { refuse: '__nobody__' } : readCommandAnswer(answer, gate)
+    if (verdict === 'approve' || verdict === 'always') {
+      if (verdict === 'always') approvals.always.add(gate.id)
+      approvals.approved++
+      await noteQuietly($, 'operator approved (' + gate.id + (verdict === 'always' ? ', for the run' : '') + ') for ' + who + ': ' + e.command, 'approval')
+      return next(e)
+    }
+    approvals.refused++
+    const reason = verdict.refuse
+    await noteQuietly($, 'operator refused (' + gate.id + ') for ' + who + ': ' + e.command + (reason && reason !== '__nobody__' ? ' — ' + reason : ''), 'approval')
+    if (reason === '__nobody__') {
+      return { deny: 'baton: "' + gate.label + '" needs the operator\'s approval, and nobody can be asked here (no interactive surface, or the question was dismissed). Do not retry it another way: return BLOCKED with the exact command as a question for the operator.' }
+    }
+    return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
+  })
+
+  // The phase gate: once a sub-orchestrator reports DONE, the prime's next
+  // dispatch waits until the operator approves that phase or sends it back.
+  on('tool.call', { tool: /^(Agent|Task)$/ }, async ($, e, next) => {
+    if (!isPrimeCall(e) || !config.phaseGate || !approvals.queue.length || !(await runActive($))) return next(e)
+    while (approvals.queue.length) {
+      const item = approvals.queue[0]
+      let answer = null
+      try {
+        answer = await $.ui.ask(phaseQuestion(item, await rulingLines($, 5)), [APPROVE, SEND_BACK])
+      } catch {
+        answer = null
+      }
+      if (answer === null) return next(e) // dismissed: leave it queued, do not stall the run
+      approvals.queue.shift()
+      $.ui.invalidate('ui.render')
+      const v = readPhaseAnswer(answer)
+      if (v === 'approve') {
+        approvals.approved++
+        await noteQuietly($, 'operator approved ' + item.label + ': ' + item.line, 'approval')
+        continue
+      }
+      approvals.refused++
+      await noteQuietly($, 'operator sent back ' + item.label + (v.sendBack ? ': ' + v.sendBack : ''), 'approval')
+      return {
+        deny:
+          'baton: the operator sent back ' + item.label + (v.sendBack ? ' — "' + v.sendBack + '"' : ' without a reason (ask what is wrong)') +
+          '. Before dispatching anything else, re-dispatch that phase with the operator\'s reason as its directive.',
+      }
+    }
+    return next(e)
+  })
+
+  // Enforced rulings: a standing ruling with a pattern refuses matching shell
+  // commands outright, run or no run, after the permission rules decide.
+  on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
+    const decided = await next(e)
+    const hit = enforcedHit(await loadRulings($), e.input && e.input.command)
+    if (!hit) return decided
+    return { decision: 'deny', reason: 'baton ruling #' + hit.n + ' (enforced): ' + hit.text }
+  })
 
   // ---------------------------------------------------------------- rotation
 
@@ -885,6 +1244,7 @@ export function register(on, options) {
 
   // The operator's words become run notes, and any standing rule in them a
   // ruling (in the background: the turn does not wait on the cheap model).
+  // After a rotation, the prompt also carries the wake.
   on('prompt.submit', async ($, e, next) => {
     if (!e.agentId && isOperatorPrompt(e.text, run.lastKickoff) && (await runActive($))) {
       const text = String(e.text)
@@ -904,11 +1264,7 @@ export function register(on, options) {
         }
       })
     }
-    return next(e)
-  })
-
-  // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
-  on('prompt.submit', async ($, e, next) => {
+    // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
     const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
     if (!wake) return next(e)
     return next({ ...e, context: [...(e.context ?? []), wake] })
@@ -959,6 +1315,22 @@ export function register(on, options) {
         if (!text) return { text: 'usage: /baton rule <a standing instruction> — recorded in the project memory; the newest ruling wins' }
         return { text: 'baton: ruling ' + (await recordRuling($, text, 'ruling-hand')) }
       }
+      case 'retract': {
+        const n = /^#?(\d+)$/.exec(rest.join(' ').trim())
+        if (!n) return { text: 'usage: /baton retract <ruling #>' }
+        const r = (await loadRulings($, true)).find((x) => x.n === Number(n[1]))
+        if (!r) return { text: 'no standing ruling #' + n[1] + ' (/baton rulings lists them)' }
+        await recordRuling($, 'retract #' + r.n + ': ' + r.text, 'retract')
+        return { text: 'baton: ruling #' + r.n + ' retracted' }
+      }
+      case 'enforce': {
+        const p = parseEnforce(rest.join(' '))
+        if (typeof p === 'string') return { text: p }
+        const r = (await loadRulings($, true)).find((x) => x.n === p.n)
+        if (!r) return { text: 'no standing ruling #' + p.n + ' (/baton rulings lists them)' }
+        await recordRuling($, 'enforce #' + p.n + ' /' + p.source + '/', 'enforce')
+        return { text: 'baton: ruling #' + p.n + ' is enforced — shell commands matching /' + p.source + '/ are refused' }
+      }
       case 'rulings': {
         const lines = await rulingLines($, 50)
         return { text: lines.length ? RULINGS_HEAD + '\n' + lines.join('\n') : 'no rulings yet (/baton rule <text>, or say it in a run)' }
@@ -994,7 +1366,7 @@ export function register(on, options) {
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
     if (e.requestId !== PANE) return next(e)
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const { Box, Text, Button, Input } = $.ui.resolve(e)
     const cols = e.props.bodyColumns ?? 80
     const tabs = TABS.map((t) =>
       Button({
@@ -1006,11 +1378,16 @@ export function register(on, options) {
         onPress: () => {
           pane.tab = t.id
           $.ui.invalidate('ui.render')
+          return refreshPane($, (e.props.scroll && e.props.scroll.bodyRows) || 30)
         },
       }),
     )
-    tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, (e.props.scroll && e.props.scroll.bodyRows) || 30) }))
-    const body = (pane.data[pane.tab] ?? []).map((line, i) => Text({ key: 'l' + i, wrap: 'truncate-end', children: [String(line).slice(0, Math.max(20, cols * 2)) || ' '] }))
+    const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
+    tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
+    const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
+    const ui = { Box, Text, Button, Input, line, rows }
+    const body =
+      pane.tab === 'agents' ? agentsBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
     return Box({
       flexDirection: 'column',
       children: [
@@ -1035,7 +1412,10 @@ export function register(on, options) {
       width: e.props.bodyColumns,
     })
     const color = gaugeColor(rotation.lastPercent, config.rotateAtPercent)
-    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...(theirs ? [theirs] : [])] })
+    const flag = approvals.queue.length
+      ? [Text({ key: 'queue', wrap: 'truncate-end', color: 'yellow', children: ['baton ⚑ ' + approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' waiting for your check (' + approvals.queue.map((q) => q.label).join(', ') + ') — asked before the next dispatch · /baton → Agents'] })]
+      : []
+    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...flag, ...(theirs ? [theirs] : [])] })
   })
 
   // The spinner: which phase and node the prime is waiting on.
@@ -1050,6 +1430,14 @@ export function register(on, options) {
   // prime-classified calls were being refused, is the signature of agentId
   // having gone missing: say so loudly (the guard stays closed).
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId) {
+      finishAgent(tree, e.agentId, { line: firstLine(e.answer), aborted: e.isAborted })
+      const who = spawnedByPrime.get(e.agentId)
+      if (who && !e.isAborted && config.phaseGate && String(who.type ?? '').replace(/^baton:/, '') === 'sub-orchestrator' && claimsDone(firstLine(e.answer)) && (await interactive($))) {
+        approvals.queue.push({ agentId: e.agentId, label: who.name || who.description || 'a phase', line: firstLine(e.answer), at: Date.now() })
+      }
+      $.ui.invalidate('ui.render')
+    }
     if (e.agentId && live.delete(e.agentId)) $.ui.invalidate('ui.render')
     if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
     // A subagent the prime dispatched returned: its one line becomes a note
@@ -1092,6 +1480,7 @@ export function register(on, options) {
     const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
+      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model })
       if (!e.parentAgentId) {
         spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })
         live.set(r.agentId, String(e.name || e.description || e.subagentType || 'agent').slice(0, 32))

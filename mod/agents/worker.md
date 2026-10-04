@@ -21,3 +21,8 @@ and a handoff locator (`_orch/nodes/<id>/handoff.md`), and usually the baton bas
 
 **Your final text is exactly ONE line of at most 280 bytes** — `<id> <VERDICT> · what changed · what
 is open` — then the status.json path and the digest path, one per line. Nothing else.
+
+- Some shell commands wait for the operator's approval: `git push`, `gh pr create|merge|close`, a release
+  or package publish, `git reset --hard` / `git clean -f`, `rm -r`. If one is refused, do not retry it
+  another way: return `BLOCKED` with the exact command as a question for the operator. A command a
+  standing ruling forbids is refused outright, with the ruling's text.

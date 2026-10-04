@@ -24,10 +24,13 @@ write.
 | `lib/memstore.mjs` | the core on disk (Node): fixed-width files, the lockfile, merges, views |
 | `bin/memo.mjs` | the CLI over the store (node, no dependencies). The mod drives the store through it. |
 | `lib/guard.mjs`, `lib/binding.mjs`, `lib/view.mjs` | the prime allowlist, the model binding, and the pane and band text, all pure |
+| `lib/rulings.mjs` | ruling extraction prompt and parsing, retract and enforce, all pure |
+| `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
+| `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
 | `agents/` | `sub-orchestrator`, `worker`, `worker-cheap`, `verifier`, `luminary`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v5's roles and rules map onto v7 |
-| `tests/*.test.ts` | `claude plugin test` (39 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (36 tests) |
+| `tests/*.test.ts` | `claude plugin test` (44 tests) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (43 tests, one of which runs `test/fixtures/hooks-smoke.mjs`: the real hooks module under a fake runtime) |
 
 ### The memory
 
@@ -84,6 +87,28 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Prime replies.** When a prime turn ends, the first line of its answer becomes a run note
   (tag `prime-reply`), so the memory records why the prime dispatched what it did, not only what
   came back.
+- **Approvals.** Two gates, on by default (userConfig `approvals`, `phaseGate`; `BATON_APPROVALS=0`
+  turns both off):
+  - *Command gate.* During a run, `git push`, `gh pr create|merge|close`, a release or package
+    publish, `git reset --hard` / `git clean -f` / `git checkout -- .` and `rm -r` wait for the
+    operator, from any agent at any depth. The question names the chain (`prime › P3 › T7 wants to
+    git push`) and the top rulings. **Approve**, **Approve every … for this run**, **Refuse**, or a
+    typed reason, which the agent reads as its refusal. With nobody to ask (`claude -p`, or the
+    dialog dismissed) the command is refused and the agent is told to return `BLOCKED`. Each answer
+    is a run note (tag `approval`).
+  - *Phase gate.* In an interactive session, a sub-orchestrator whose return leads with a DONE
+    verdict is queued. The prime's next dispatch waits on a dialog: **Approve**, or type what is
+    wrong to send the phase back, which refuses the dispatch and tells the prime to re-dispatch that
+    phase with the reason. The band flags waiting phases; the Agents tab can approve or send back.
+- **Enforced rulings.** `/baton enforce <#> <regex>` attaches a pattern to a standing ruling. A
+  `tool.check` hook then refuses any shell command matching it, run or no run, with the ruling's
+  text. Retracting the ruling (`/baton retract <#>`, or **x** in the Rulings tab) lifts it. Both are
+  notes in the append-only `rulings` namespace, so the history stays.
+- **The pane's tabs.** Run · **Agents** (the live tree: role, model, elapsed, tool count, current
+  tool, then verdict and return line; ✉ on a running agent opens a field that messages it through
+  `$.session.send`) · **Memory** (a browser: **+** opens a summary block into its range, **b** goes
+  back, a search field runs recall) · **Rulings** (add, retract with **x**, enforcement shown) ·
+  Ledger · Luminaries. Switching tabs refreshes.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call
@@ -133,7 +158,8 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
 | claim | how | result |
 |---|---|---|
 | the manifest and hooks validate | `claude plugin validate mod` | `✔ Validation passed` |
-| the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` before rulings; the 7 rulings tests (`tests/rulings.test.ts`) are **not yet run**: on 2026-10-04 the mods rollout switch served off, and `claude plugin test` refuses to run |
+| the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` before rulings. The 12 tests added since (`tests/rulings.test.ts`, `tests/approvals.test.ts`) are **not yet run**: on 2026-10-04 the mods rollout switch served off, and `claude plugin test` refuses to run. Their `ui.ask` mock follows the pattern of the other API mocks and is itself unverified. |
+| the hooks behave end to end, without Claude Code | `node --test mod/test/hooks-smoke.test.mjs` | 25 checks: the tree, the command gate (approve, reason, approve-for-run, headless refusal), the phase gate, enforce and retract, the Agents, Memory and Rulings tabs, the band, `-p` text |
 | the memory core, store, CLI, locking, guard, binding and rulings helpers are correct | `node --test mod/test/*.test.mjs` | `36 pass, 0 fail` |
 | the prime is denied `Read` during a run | headless `claude -p`, fake `_orch` | denied, with the route text |
 | the prime can spawn an agent, which can read | same run | `baton:worker-cheap` read `secret.txt` and returned the word |

@@ -31,6 +31,8 @@ memory tools, notes the start in the run memory, and starts the prime's first tu
 | `/baton rotate` | rotate now: a handoff note, then a compaction, then `memory_wake` (see Rotation) |
 | `/baton rule <text>` | record a standing ruling by hand (rulings are also lifted from what the operator says during a run) |
 | `/baton rulings` | list the rulings, newest first |
+| `/baton retract <#>` | withdraw a ruling (the log keeps it) |
+| `/baton enforce <#> <regex>` | make a ruling refuse matching shell commands |
 | `/baton stop` | close the run (`"closed": true` in the manifest); the guard comes off; `_orch/` stays as the record |
 
 A directory whose `_orch/manifest.json` has `"prime": true` and no `"closed": true` is an active
@@ -61,9 +63,14 @@ run for any session started there.
      `mcp__baton__memory_recall "<regex>"` finds a node id, a question, a criterion.
    - `mcp__baton__project_wake` / `project_note` / `project_recall` — the project memory, which
      spans runs: decisions, criteria fixtures, what failed before.
-4. **After a rotation, call `memory_wake` before anything else.** The mod tells you when one
+4. **The operator approves.** When a sub-orchestrator returns DONE, your next dispatch may be held
+   while the operator checks the phase. If it is refused with "the operator sent back …",
+   re-dispatch that phase with the operator's reason as its directive before anything else.
+   Irreversible commands (push, PR, publish, hard reset, `rm -r`) wait for the operator wherever
+   they run; a refusal comes back to you as a `BLOCKED` return.
+5. **After a rotation, call `memory_wake` before anything else.** The mod tells you when one
    happened; your context then holds only the compaction summary.
-5. **Batch the questions.** `AskUserQuestion` at a gate, never one at a time (v5 §4.4).
+6. **Batch the questions.** `AskUserQuestion` at a gate, never one at a time (v5 §4.4).
 
 ## Rotation
 
