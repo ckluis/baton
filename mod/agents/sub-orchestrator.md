@@ -61,3 +61,8 @@ P3 DONE-WITH-CAVEATS 7/8 CONFIRMED · T14 BLOCKED on Q-2 (vendor API key) · nex
 ```
 
 No preamble, no markdown heading, no summary paragraph. Anything longer belongs in the envelope.
+
+- Some shell commands wait for the operator's approval: `git push`, `gh pr create|merge|close`, a release
+  or package publish, `git reset --hard` / `git clean -f`, `rm -r`. If one is refused, do not retry it
+  another way: return `BLOCKED` with the exact command as a question for the operator. A command a
+  standing ruling forbids is refused outright, with the ruling's text.

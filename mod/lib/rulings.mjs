@@ -45,3 +45,55 @@ export function isOperatorPrompt(text, kickoff) {
   if (/^baton v7 run \S+ started/.test(t)) return false
   return true
 }
+
+// The rulings namespace is append-only. A ruling is a note tagged `ruling` or
+// `ruling-hand`; `retract #N` (tag `retract`) withdraws note N; `enforce #N /re/`
+// (tag `enforce`) makes the mod refuse shell commands matching re while N stands.
+
+/**
+ * The rulings that stand, newest first: [{ n, ts, text, enforce }], where
+ * enforce is { source, re } or null. `notes` is the namespace's notes in order.
+ */
+export function activeRulings(notes) {
+  const retracted = new Set()
+  const enforce = new Map()
+  for (const x of notes ?? []) {
+    if (x.tag === 'retract') {
+      const m = /^retract #(\d+)/i.exec(x.text)
+      if (m) retracted.add(Number(m[1]))
+    } else if (x.tag === 'enforce') {
+      const m = /^enforce #(\d+) \/(.+)\/$/i.exec(x.text)
+      if (m) {
+        try {
+          enforce.set(Number(m[1]), { source: m[2], re: new RegExp(m[2]) })
+        } catch {}
+      }
+    }
+  }
+  return (notes ?? [])
+    .filter((x) => (x.tag === 'ruling' || x.tag === 'ruling-hand') && !retracted.has(x.index))
+    .map((x) => ({ n: x.index, ts: String(x.ts ?? '').slice(0, 10), text: x.text, enforce: enforce.get(x.index) ?? null }))
+    .reverse()
+}
+
+export function rulingLine(r) {
+  return '#' + r.n + ' ' + r.ts + ' ' + r.text + (r.enforce ? '  [enforced: /' + r.enforce.source + '/]' : '')
+}
+
+/** The first standing ruling whose enforcement matches a shell command, or null. */
+export function enforcedHit(rulings, command) {
+  const c = String(command ?? '')
+  return (rulings ?? []).find((r) => r.enforce && r.enforce.re.test(c)) ?? null
+}
+
+/** Parse `/baton enforce <N> <regex>`: { n, source } or an error string. */
+export function parseEnforce(args) {
+  const m = /^#?(\d+)\s+\/?(.+?)\/?$/.exec(String(args ?? '').trim())
+  if (!m) return 'usage: /baton enforce <ruling #> <regex>  — e.g. /baton enforce 3 git push.*\\bmain\\b'
+  try {
+    new RegExp(m[2])
+  } catch (err) {
+    return 'not a regex: ' + err.message
+  }
+  return { n: Number(m[1]), source: m[2] }
+}
