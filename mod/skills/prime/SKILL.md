@@ -29,6 +29,8 @@ memory tools, notes the start in the run memory, and starts the prime's first tu
 | `/baton` | the run pane: Run (phases, nodes, status), Memory (the wake view, the tree), Ledger (last rows), Luminaries. Text where nothing draws (`claude -p`). |
 | `/baton status` | one block of text: run, context %, rotations, guard, memory size |
 | `/baton rotate` | rotate now: a handoff note, then a compaction, then `memory_wake` (see Rotation) |
+| `/baton rule <text>` | record a standing ruling by hand (rulings are also lifted from what the operator says during a run) |
+| `/baton rulings` | list the rulings, newest first |
 | `/baton stop` | close the run (`"closed": true` in the manifest); the guard comes off; `_orch/` stays as the record |
 
 A directory whose `_orch/manifest.json` has `"prime": true` and no `"closed": true` is an active
@@ -46,9 +48,12 @@ run for any session started there.
    the work, writes the full envelope to `_orch`, and returns **one line** of at most 280 bytes
    plus paths. That line lands in your run memory by itself.
 3. **You remember through the memory, not your context.**
-   - `mcp__baton__memory_note` — one line for what only you know: an operator's answer, a route
-     you chose, a node you parked and why, what you are waiting on. Not the returns; they are
-     noted for you.
+   - `mcp__baton__memory_note` — one line for what only you know: a route you chose, a node you
+     parked and why, what you are waiting on. Not the returns, the operator's messages or your
+     replies' first lines; those are noted for you. So lead each reply with the decision.
+   - **Rulings.** `memory_wake` and the kickoff open with the operator's standing rulings, newest
+     first; a newer one overrides an older one it conflicts with. Carry the ones that bear on a
+     dispatch into its directive: a sub-orchestrator does not see them otherwise.
    - `mcp__baton__memory_wake` — the run so far in a fixed budget of lines: the newest notes
      verbatim, older ones merged into summaries (a binary tree of one-line summaries, compressed
      by the cheap model in the background).

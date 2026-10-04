@@ -26,8 +26,8 @@ write.
 | `lib/guard.mjs`, `lib/binding.mjs`, `lib/view.mjs` | the prime allowlist, the model binding, and the pane and band text, all pure |
 | `agents/` | `sub-orchestrator`, `worker`, `worker-cheap`, `verifier`, `luminary`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v5's roles and rules map onto v7 |
-| `tests/*.test.ts` | `claude plugin test` (32 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (31 tests) |
+| `tests/*.test.ts` | `claude plugin test` (39 tests) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (36 tests) |
 
 ### The memory
 
@@ -73,6 +73,17 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Return notes.** When a subagent the prime dispatched returns, its first line becomes one run
   note, tagged with its role. The line comes from its `SubagentHandback` call where the harness
   has one, and otherwise from `turn.complete`'s `answer`.
+- **Operator notes and rulings.** Each prompt the operator sends during a run becomes a run note
+  (tag `operator`). In the background, the cheap model reads it for a standing rule ("from now on…",
+  "never…", a change of mind) and, if it finds one, writes it as one line to the project memory's
+  `rulings` namespace. With no model answer, a marker check (`always`, `never`, `from now on`, …)
+  stands in, and it errs toward missing a ruling. `memory_wake` and the kickoff open with the newest
+  12 rulings, newest first, so the latest word wins without anyone editing a CLAUDE.md.
+  `/baton rule <text>` records one by hand, and `/baton rulings` lists them. The idea is OptChat's
+  (rulings "stick" from the log); the implementation is a namespace and a hook.
+- **Prime replies.** When a prime turn ends, the first line of its answer becomes a run note
+  (tag `prime-reply`), so the memory records why the prime dispatched what it did, not only what
+  came back.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call
@@ -122,8 +133,8 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
 | claim | how | result |
 |---|---|---|
 | the manifest and hooks validate | `claude plugin validate mod` | `✔ Validation passed` |
-| the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` |
-| the memory core, store, CLI, locking, guard and binding are correct | `node --test mod/test/*.test.mjs` | `31 pass, 0 fail` |
+| the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` before rulings; the 7 rulings tests (`tests/rulings.test.ts`) are **not yet run**: on 2026-10-04 the mods rollout switch served off, and `claude plugin test` refuses to run |
+| the memory core, store, CLI, locking, guard, binding and rulings helpers are correct | `node --test mod/test/*.test.mjs` | `36 pass, 0 fail` |
 | the prime is denied `Read` during a run | headless `claude -p`, fake `_orch` | denied, with the route text |
 | the prime can spawn an agent, which can read | same run | `baton:worker-cheap` read `secret.txt` and returned the word |
 | the binding applies | same run | the subagent's messages report `claude-sonnet-5-5` (`-cheap`) |
