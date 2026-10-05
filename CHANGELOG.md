@@ -1,5 +1,32 @@
 # Changelog
 
+## v7.0 — 2026-10-05
+
+The mod. v7 asked whether a prime that only dispatches, with a memory instead of a growing
+context, keeps a long run healthier, and whether luminaries with memory earn their place. It
+measured both first. On Opus 5.5 there was no context rot to fix (E1, E1c, E1b: every arm 24/24,
+to 831K tokens and through 29 compactions) and the luminaries matched a plain reviewer (E2). v7
+ships the mod for cost and continuity and deletes the library. Design and results:
+`docs/designs/v7-mods.md`; upgrade notes: `migrations/from-v6.md`.
+
+- **`mod/`, a Claude Code plugin.** The prime guard (dispatch, ask, memory; everything else
+  refused, fail closed); sub-orchestrators for the bootstrap, each phase and the final report,
+  returning one line; the model binding enforced at spawn.
+- **Memory.** Run and project memories: an append-only log of ≤280-byte notes, a merge tree
+  compressed by Sonnet, wake / zoom / recall, rotation at 35% context. Operator prompts, returns
+  and the prime's replies are noted automatically.
+- **Rulings.** Standing rules lifted from what the operator says, newest first in every wake;
+  `/baton rule | rulings | retract | enforce`.
+- **The pane.** Run, Agents (the live tree, with a message field per running agent), Memory (a
+  browser), Rulings, Ledger; a context gauge above the prompt.
+- **Approvals.** A command gate for push, PR, publish, hard reset and recursive delete from any
+  agent at any depth; a phase gate after each DONE; enforced rulings at the permission check.
+- **Rule 9.4, red, green, blue.** Wired into the node orchestrator, verifier, planner and plan
+  verifier.
+- **Removed:** `library/` (lenses, luminaries, casting, panels, `CRAFT`, `POSITION`, persona rules)
+  and the mod's `baton:luminary`.
+- **Pages:** a new `index.html`; v5 and v6 kept as `baton-v5.html` and `baton-v6.html`.
+
 ## v6.0 — 2026-10-02
 
 The shrink. Six experiments on Opus 5.5 and Sonnet 5.5 found that tier, effort, ladder and persona

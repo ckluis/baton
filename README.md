@@ -1,6 +1,15 @@
 # baton
 
-**v6.0** · Agents do the work. baton keeps the record.
+**v7.0** · Agents do the work. baton keeps the record.
+
+**v7 is a Claude Code mod** (`mod/`): a prime orchestrator that only dispatches, a memory instead
+of a growing context, rulings that stick, the agent tree in a pane, and approvals from anywhere in
+the tree. Underneath, baton is still a router prompt that works in any harness.
+
+```bash
+claude --plugin-dir ./mod        # from a clone of this repo
+/baton start BUILD ./app         # in the session
+```
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and
 it turns that session into a multi-agent run with a record: a plan on disk,
@@ -15,9 +24,40 @@ node with the verdict as a check.
 
 **→ [Read the page](https://ckluis.github.io/baton/)** ·
 [Changelog](CHANGELOG.md) ·
-[Migrating from v1 – v5](MIGRATING.md) ·
-[baton v1](https://ckluis.github.io/baton/baton-v1.html) ·
-[luminaryTeam](https://ckluis.github.io/luminaryTeam/)
+[Migrating from v1 – v6](MIGRATING.md) ·
+[The mod](mod/README.md) ·
+[Earlier versions: v1](https://ckluis.github.io/baton/baton-v1.html) ·
+[v6](https://ckluis.github.io/baton/baton-v6.html)
+
+---
+
+## v7.0 — since v6.0
+
+v7 set out to fix context rot in a long-running prime and to make the luminaries worth having or
+kill them. It measured both first (`docs/designs/v7-mods.md`, pre-registered). On Opus 5.5 there
+was no rot to fix: a prime carrying 831K tokens, and one compacted 29 times, scored 24/24 like one
+with v7's memory. A memory-bearing luminary found exactly what a plain reviewer found. So v7 ships
+on what moved, and deletes what didn't.
+
+- **The prime is a mod.** During a run the main session may only dispatch, ask and use its memory;
+  everything else is refused with the route. Sub-orchestrators own the bootstrap, each phase and
+  the final report, and return one line of at most 280 bytes. A lean prime cost $14.78 where one
+  carrying 831K tokens cost $20.40 for the same score (E1b, one seed).
+- **A memory instead of a growing context.** Fixed-width notes in an append-only log, a binary tree
+  of ≤280-byte summaries merged by Sonnet, a wake view that compresses with age, zoom and recall,
+  rotation at 35% context. A project memory spans runs. Ideas from OptMem; the code is baton's own.
+- **Rulings stick.** What you say during a run is noted; standing rules in it are lifted into the
+  project memory and lead every wake, newest first. `/baton enforce` turns one into a refusal.
+- **See and approve.** `/baton` opens Run, Agents (the live tree), Memory (a browser), Rulings and
+  Ledger. Irreversible commands from any agent at any depth wait for you; a finished phase waits for
+  your approval before the prime dispatches the next.
+- **Red, green, blue** (rule 9.4). Every behavior change lands its failing tests first, then the
+  smallest change that passes them unedited, then a refactor with no test touched. The verifier
+  re-runs red against the unchanged code.
+- **The expert library is gone.** Lenses, luminaries, casting, panels, `CRAFT` and `POSITION`.
+
+Upgrade notes: `migrations/from-v6.md`. Mods are early access in Claude Code 2.1.287; what has and
+has not been exercised live is in `mod/README.md`.
 
 ---
 
@@ -368,8 +408,8 @@ MIGRATE's two discovery passes and the crescent only the second one found.
 | `ROADMAP` | Plan + plan gate only, review-hardened, executable cold | Execution |
 | `GENERIC` | Your directive, held to the same standard | A directive with no completion condition |
 
-`CRAFT` and `POSITION`, the two panel modes, are in `library/` with the expert
-personas (below).
+`CRAFT` and `POSITION`, the two panel modes, were removed with the expert
+personas in v7 (below).
 
 ---
 
@@ -383,10 +423,11 @@ that never spawns a user has never seen its product.** baton ships 7 archetypes
 perception contract (`personas/CONTRACT.md`).
 
 Expert lenses, the 40 named luminaries, casting and panels moved to `library/` in
-v6. A plain fresh reviewer found 15.67 of 16 seeded defects; lens cards and plain
-reviewers at equal spend both found 16, so the lenses bought nothing on the
-default path (`docs/experiments/personas-earn-their-place.md`). They stay one
-setting away: `PERSONAS: library` (`library/README.md`).
+v6 and were deleted in v7. A plain fresh reviewer found 15.67 of 16 seeded defects;
+lens cards and plain reviewers at equal spend both found 16
+(`docs/experiments/personas-earn-their-place.md`). In v7 a luminary with a memory of
+its past reviews found 6.00 of 6 per task, and so did a plain reviewer
+(`docs/designs/v7-mods.md`, E2). The v6 page and the git history keep them.
 
 ---
 
@@ -476,8 +517,8 @@ prompt/
 personas/
   CONTRACT.md         narrative + generated index; the rules live in rules/
   users/              7 — end-user archetypes with real patience budgets
-library/              the v5 persona layer — lenses, luminaries, casting, panels, CRAFT, POSITION; opt-in
-rules/                48 — one file per rule, every one an invariant; the only place each is defined
+mod/                  v7 — the Claude Code plugin: prime guard, memory, rulings, pane, approvals (mod/README.md)
+rules/                30 — one file per rule, every one an invariant; the only place each is defined
 bundle.sh             flatten to a single paste
 tools/embed.py        re-embed the invocation cards + router into index.html
 tools/rules.py        regenerate the contract indexes; refuse a broken rule set
@@ -492,7 +533,7 @@ tools/publish-run.sh  TEAM — the record on a hidden ref and the run branch: in
 tools/node-pr.sh      TEAM — a product node as one commit on the run branch, its verdict as a check
 tools/github-setup.sh TEAM — one ruleset, as configuration
 tools/test-team.sh    every TEAM tool, end to end, against throwaway repos and a fake gh
-migrations/           from-v1 … from-v5 — one file per older version; MIGRATING.md indexes them
+migrations/           from-v1 … from-v6 — one file per older version; MIGRATING.md indexes them
 docs/designs/         design records, including v4.0's github-native-team-mode.md
 docs/experiments/     paste-ready directives that test the framework's own claims
 index.html            the page

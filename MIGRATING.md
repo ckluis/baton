@@ -1,10 +1,11 @@
 # Migrating between baton versions
 
 One file per version you might be coming from. Each says what breaks, what does
-not, and what to do with a run in flight. The current release is **v6.0**.
+not, and what to do with a run in flight. The current release is **v7.0**.
 
 | coming from | read | the short version |
 |---|---|---|
+| **v6.0** | [`migrations/from-v6.md`](migrations/from-v6.md) | change one URL, or run the mod; `PERSONAS: library`, `CRAFT` and `POSITION` are gone; behavior changes go red, green, blue |
 | **v5.0** | [`migrations/from-v5.md`](migrations/from-v5.md) | change one URL; a run in flight resumes; `PERSONAS: library` if you used expert seats, `CRAFT` or `POSITION` |
 | **v4.0** | [`migrations/from-v4.md`](migrations/from-v4.md) | change one URL; a checkout needs one command (`tiers.py remap`); a run in flight needs nothing |
 | **v3.0 – v3.3** | [`migrations/from-v3.md`](migrations/from-v3.md) | the v4.0 hop (`lists.py split`, once per run in flight), then the v5.0 hop |
@@ -18,6 +19,9 @@ and `risk`; what changed at v5.0 is the *meaning* of one field's values.
 
 ## Every hop, for the record
 
+- **v6.0 → v7.0** — a Claude Code mod runs the prime (guard, memory, rulings, pane,
+  approvals); the expert library is deleted; rule 9.4 (red, green, blue) added. Every
+  record field is kept.
 - **v5.0 → v6.0** — one effort; personas, casting, panels, `CRAFT` and `POSITION`
   move to `library/`; no phase runner, digest or decomposer; seven rules merged
   and one cut. Every record field is kept.
