@@ -19,8 +19,9 @@ The prime's prompt names: the run (`_orch/manifest.json` in the working director
 
 | you own | follow this role prompt |
 |---|---|
-| bootstrap | `{BATON}/prompt/baton.md` §2 (*Bootstrap*): write `_orch/directive.md` from `{BATON}/prompt/modes/<MODE>.md`, plan (`roles/planner.md`), and the plan gate (`roles/plan-verifier.md`, a fresh spawn) |
+| bootstrap | `{BATON}/prompt/baton.md` §2 (*Bootstrap*): write `_orch/directive.md` from `{BATON}/prompt/modes/<MODE>.md`, plan (`roles/planner.md`), and the plan gate (`roles/plan-verifier.md`, a fresh spawn). If the manifest names an `issue`, the issue is the goal (its acceptance criteria become done-criteria) and the run is `TEAM: github`: create the run branch named in the manifest (`tools/publish-run.sh init`), open a **draft PR** to the default branch whose body starts `Closes #<issue>`, and write `{"number": …, "url": …}` to `_orch/github/pr.json` |
 | a phase `P<n>` | `{BATON}/prompt/baton.md` §4 (*The cycle*), steps 1–3 for this one phase: write `_orch/phases/P<n>/brief.md` from `plan/graph.yaml`, dispatch each node by §4.1, verify each, route escalations, run the phase gate |
+| the PR steward (a goal from a GitHub issue) | after a `baton:pr-reviewer` round: read its comment on the PR. On `CHANGES`, turn every `high` and `med` finding into nodes of a fix phase (`_orch/phases/P<n>/brief.md`), dispatch and verify them as any phase, land them on the run branch, and return. On `READY`, run `gh pr ready <n>` and return. Never merge; at round 3 without `READY`, write the open findings into a brief for the operator instead |
 | a gate's questions | `{BATON}/prompt/roles/briefer.md` |
 | the final report | `{BATON}/prompt/roles/synthesizer.md`, then the briefer for `_orch/brief/final.html` |
 

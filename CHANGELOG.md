@@ -1,5 +1,28 @@
 # Changelog
 
+## v7.1 — 2026-10-05
+
+GitHub as the mod's backbone, and a tracker for every level (#44).
+
+- **An issue is a goal.** `/baton start #12` reads the issue and makes it the run's goal, `TEAM:
+  github`; the bootstrap opens a draft PR that closes it. `/baton watch` lists the `baton`-labeled
+  queue; `/baton next` archives a finished run and starts the next issue.
+- **The PR reviewer and the steward.** `baton:pr-reviewer` (fresh, Opus 5.5) posts one structured
+  comment: `VERDICT: READY | CHANGES`, findings with `path:line`, complexity in numbers. A
+  sub-orchestrator as the PR steward turns `CHANGES` into a fix phase, at most three rounds, and marks
+  the PR ready on `READY`. baton never merges.
+- **Merge-ready is computed**, like a verdict: every check green, the latest review `READY` with no
+  high finding, no unresolved thread, mergeable, up to date.
+- **PR polling without a model.** The mod reads the PR with `gh` every two minutes; Haiku 4.5 turns
+  each new human comment into one line. `/approve P3`, `/send-back P3 <reason>` and `/approve <gate>`
+  on the thread act as the remote gate; a command held while nobody is at the terminal is asked there.
+- **The tracker.** Goal, PR, phase and node each move through a fixed row of states (node: red →
+  green → blue → verified), computed from the record; every move is a measured row in
+  `_orch/track/`. The new Track tab draws them as steppers with durations, with the issue and PR as
+  links; the band shows the goal and PR.
+- **Measured before it is believed:** `docs/experiments/pr-review-loop-preregistration.md` sets the
+  rule for keeping, trimming or cutting the review loop after ten merged goals.
+
 ## v7.0 — 2026-10-05
 
 The mod. v7 asked whether a prime that only dispatches, with a memory instead of a growing

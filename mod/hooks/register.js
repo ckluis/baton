@@ -12,8 +12,9 @@ import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION }
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
-import { alwaysLabel, APPROVE, claimsDone, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
-import { bindModel, CHEAP, FRONTIER } from '../lib/binding.mjs'
+import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
+import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
+import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -41,7 +42,7 @@ const probe = {
 const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
-const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true }
+const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true, prPollSeconds: 120 }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -92,18 +93,19 @@ const COMPACT_INSTRUCTIONS =
 // The pane: which tab, and what the last refresh read (render hooks do no I/O).
 const PANE = 'baton'
 const TABS = [
-  { id: 'run', label: 'Run', hotkey: '1' },
+  { id: 'track', label: 'Track', hotkey: '1' },
   { id: 'agents', label: 'Agents', hotkey: '2' },
   { id: 'memory', label: 'Memory', hotkey: '3' },
   { id: 'rulings', label: 'Rulings', hotkey: '4' },
   { id: 'ledger', label: 'Ledger', hotkey: '5' },
+  { id: 'run', label: 'Run', hotkey: '6' },
 ]
 const pane = {
   open: false,
-  tab: 'run',
+  tab: 'track',
   timer: null,
   refreshedAt: null,
-  data: { run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'] },
+  data: { track: ['(not read yet)'], run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'] },
   memoryNotes: null, // run-memory note count, for the band
   memTiles: [], // the memory tab's blocks, parallel to its view lines
   memLines: [],
@@ -124,10 +126,31 @@ const approvals = {
   approved: 0,
   refused: 0,
   queue: [], // sub-orchestrator returns that claim DONE: { agentId, label, line, at }
+  approvedPhases: new Set(), // P<n> the operator approved, here or on the PR
+  sentBack: new Set(), // P<n> sent back and not yet re-approved
 }
 
 // The memory browser: a stack of opened ranges ("lo-hi"), or a search.
 const browse = { stack: [], search: null }
+
+// GitHub: the run's goal (an issue), its PR as `gh` last reported it, the
+// reviewer's latest verdict, merge-ready, and the issue queue (/baton watch).
+const gh = {
+  pr: null, // gh pr view --json …
+  review: null, // latestReview(pr.comments)
+  ready: null, // mergeReady(pr, review)
+  polledAt: null,
+  error: null,
+  polling: false,
+  seen: null, // comment ids already handled (Set), loaded per run from $.store
+  noted: { review: null, ready: false, merged: false, checks: null },
+  queue: [], // open issues labeled baton
+  timer: null,
+}
+
+// The tracker: the last computed state of every entity, and the rows measured so far.
+const track = { snap: {}, rows: [], loadedFor: null, at: 0, view: null }
+const TRACK_TTL_MS = 10000
 
 const MEMORY_TOOLS = [
   {
@@ -471,20 +494,47 @@ function makeRunId(mode, iso) {
 const MODES = ['BUILD', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'REVIEW', 'ROADMAP', 'TEST']
 
 function kickoff(m) {
-  return (
+  const base =
     'baton v7 run ' + m.run_id + ' started — MODE ' + m.mode + ', TARGET ' + m.target + '. You are the PRIME orchestrator. ' +
     'Load the baton prime skill (Skill "baton:prime") for your standing orders. In short: you never read, run or edit anything — the mod refuses it; ' +
-    'you dispatch. First dispatch one baton:sub-orchestrator to bootstrap the run (directive from the mode file, cast, plan, plan verification) ' +
+    'you dispatch. First dispatch one baton:sub-orchestrator to bootstrap the run (directive from the mode file, plan, plan verification) ' +
     'and return one line. Then dispatch one sub-orchestrator per phase. Note decisions with memory_note; after a rotation call memory_wake first.'
+  if (!m.issue) return base
+  return (
+    base +
+    '\n\nThe goal is GitHub issue #' + m.issue.number + ' (' + m.issue.url + '): "' + m.issue.title + '". TEAM: github. The bootstrap sub-orchestrator ' +
+    'opens the run branch ' + m.branch + ' and a draft PR whose body starts "Closes #' + m.issue.number + '", and writes {"number":…,"url":…} to _orch/github/pr.json. ' +
+    'After the last phase, dispatch baton:pr-reviewer (fresh) on that PR; on CHANGES dispatch a sub-orchestrator as the PR steward for a fix round, then the reviewer again, ' +
+    'at most 3 rounds; on READY the steward marks the PR ready for review. Never merge. The issue, verbatim:\n\n' + String(m.issue.body || '(no body)').slice(0, 6000)
   )
 }
 
+/** "#12", "12" with a hint, or an issue URL → its number; null otherwise. */
+function issueRef(t) {
+  const s = String(t ?? '').trim()
+  const m = /^#(\d+)$/.exec(s) || /github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/.exec(s)
+  return m ? Number(m[1]) : null
+}
+
 async function batonStart($, args) {
-  const [modeRaw, ...rest] = String(args ?? '').trim().split(/\s+/).filter(Boolean)
+  const words = String(args ?? '').trim().split(/\s+/).filter(Boolean)
+  // /baton start #12 is /baton start BUILD #12
+  if (words.length === 1 && issueRef(words[0])) words.unshift('BUILD')
+  const [modeRaw, ...rest] = words
   const mode = String(modeRaw ?? '').toUpperCase()
-  const target = rest.join(' ')
+  let target = rest.join(' ')
   if (!MODES.includes(mode) || !target) {
-    return 'usage: /baton start <MODE> <TARGET>  — MODE is one of ' + MODES.join(', ') + '; TARGET a path, spec, URL or one-line goal'
+    return 'usage: /baton start <MODE> <TARGET>  — MODE is one of ' + MODES.join(', ') + '; TARGET a path, spec, URL, one-line goal, or a GitHub issue (#12 or its URL; /baton start #12 means BUILD)'
+  }
+  let issue = null
+  const num = issueRef(target)
+  if (num) {
+    try {
+      issue = await ghJson($, ['issue', 'view', String(num), '--json', 'number,title,body,url'])
+    } catch (err) {
+      return 'could not read issue #' + num + ' with gh: ' + err.message
+    }
+    target = 'issue #' + issue.number + ': ' + issue.title
   }
   let existing = null
   try {
@@ -517,12 +567,22 @@ async function batonStart($, args) {
     wake_budget_lines: config.wakeBudgetLines,
     phase: 'bootstrap',
   }
+  if (issue) {
+    m.issue = { number: issue.number, title: issue.title, url: issue.url, body: issue.body }
+    m.team = 'github'
+    m.branch = 'baton/' + m.run_id
+  }
   await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
   run.startedHere = true
   forgetRunCache()
   tree = newTree()
   approvals.always.clear()
   approvals.queue = []
+  approvals.approvedPhases.clear()
+  approvals.sentBack.clear()
+  Object.assign(gh, { pr: null, review: null, ready: null, polledAt: null, error: null, seen: null, noted: { review: null, ready: false, merged: false, checks: null } })
+  track.loadedFor = undefined
+  track.at = 0
   await registerMemoryTools($)
   await appendNote($, 'run', 'run ' + m.run_id + ' started: MODE ' + mode + ', TARGET ' + target, 'operator')
   $.ui.invalidate('ui.render')
@@ -579,6 +639,9 @@ async function statusText($) {
       (approvals.always.size ? ' · approved for the run: ' + [...approvals.always].join(', ') : '') + (approvals.queue.length ? ' · ' + approvals.queue.length + ' phase(s) waiting for your check' : ''),
   )
   if (active) {
+    try {
+      lines.push(...trackLines(await observe($, true)).slice(0, 4))
+    } catch {}
     try {
       const s = JSON.parse(await memoRun($, [...(await memoryArgs($, 'run')), '--json', 'stats']))
       lines.push('run memory: ' + s.notes + ' notes, ' + s.summaries + '/' + s.treeCapacity + ' summaries, ' + s.pending + ' merges pending')
@@ -662,6 +725,8 @@ async function refreshPane($, paneRows) {
     pane.memTiles = []
     pane.memLines = []
   }
+  // Track
+  d.track = trackLines(await observe($))
   // Rulings
   pane.rulings = await loadRulings($, true)
   d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
@@ -685,9 +750,60 @@ async function refreshPane($, paneRows) {
 
 // ------------------------------------------------------------------ pane tabs
 
+const TONE = { done: 'green', current: 'cyan', flagged: 'red', future: undefined, rail: undefined }
+
+/** One stepper as a row of colored Text segments. */
+function stepperRow({ Box, Text }, key, label, st, tl) {
+  const segs = stepper(st, tl)
+  return Box({
+    key,
+    flexDirection: 'row',
+    children: [
+      Text({ key: key + '-l', bold: true, children: [label.padEnd(8).slice(0, 12) + ' '] }),
+      ...segs.map((x, i) => Text({ key: key + '-' + i, wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
+    ],
+  })
+}
+
+/** The goal's issue and its PR, as links to GitHub. */
+function goalLinks({ Box, Text, Link }, key) {
+  const v = track.view
+  if (!v) return []
+  const g = v.goal
+  const kids = []
+  if (g.issue) kids.push(Link({ key: key + '-i', href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
+  else kids.push(Text({ key: key + '-t', bold: true, children: ['goal: ' + String(g.target || '').slice(0, 80)] }))
+  if (v.pr) {
+    kids.push(Text({ key: key + '-s', dimColor: true, children: ['·'] }))
+    kids.push(Link({ key: key + '-p', href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
+    kids.push(Text({ key: key + '-c', dimColor: true, children: [v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : '')] }))
+  }
+  return [Box({ key, flexDirection: 'row', columnGap: 1, children: kids })]
+}
+
+/** Track: the goal, the PR (with the merge-ready rows), every phase and its nodes, each as measured steps. */
+function trackBody($, ui) {
+  const { Box, Text, line } = ui
+  const v = track.view
+  if (!v) return [line('t-none', pane.data.track[0] ?? 'no run is active here', { dimColor: true })]
+  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl)]
+  if (v.pr) {
+    out.push(stepperRow(ui, 't-pr', 'PR', v.pr, v.pr.tl))
+    if (v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '           ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
+  } else out.push(line('t-nopr', 'PR       none yet' + (gh.error ? ' — ' + gh.error : ''), { dimColor: true }))
+  for (const p of v.phases) {
+    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl))
+    p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl)))
+    if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
+  }
+  if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
+  out.push(line('t-foot', 'states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet'), { dimColor: true }))
+  return out
+}
+
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
-function agentsBody($, { Box, Text, Button, Input, line }) {
-  const out = []
+function agentsBody($, { Box, Text, Button, Input, Link, line }) {
+  const out = [...goalLinks({ Box, Text, Link }, 'a-links')]
   approvals.queue.forEach((q, i) => {
     out.push(
       Box({
@@ -751,18 +867,27 @@ function agentsBody($, { Box, Text, Button, Input, line }) {
 }
 
 /** Settle a queued phase from the pane (the dialog's twin). */
-async function resolveQueued($, i, how) {
+async function resolveQueued($, i, how, who = 'operator') {
   const item = approvals.queue[i]
   if (!item) return
   approvals.queue.splice(i, 1)
   $.ui.invalidate('ui.render')
+  const phase = phaseOf(item.label)
   if (how === 'approve') {
     approvals.approved++
-    await noteQuietly($, 'operator approved ' + item.label + ': ' + item.line, 'approval')
+    if (phase) {
+      approvals.approvedPhases.add(phase)
+      approvals.sentBack.delete(phase)
+    }
+    await noteQuietly($, who + ' approved ' + item.label + ': ' + item.line, 'approval')
     return
   }
   approvals.refused++
-  await noteQuietly($, 'operator sent back ' + item.label + ': ' + how.sendBack, 'approval')
+  if (phase) {
+    approvals.sentBack.add(phase)
+    approvals.approvedPhases.delete(phase)
+  }
+  await noteQuietly($, who + ' sent back ' + item.label + ': ' + how.sendBack, 'approval')
   $.prompt
     .submit({ text: 'The operator sent back ' + item.label + ': "' + how.sendBack + '". Re-dispatch that phase with this as its directive before anything else.' })
     .catch((err) => $.ui.log('baton: could not hand the send-back to the prime: ' + err.message))
@@ -873,6 +998,7 @@ function paneText() {
 
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
+  if (id === 'track') return trackLines(track.view)
   if (id === 'agents') return [...queueLines(), ...treeRows(tree).map((r) => r.text)]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
@@ -976,11 +1102,347 @@ async function rulingsBlock($) {
   return lines.length ? RULINGS_HEAD + '\n' + lines.join('\n') + '\n\n' : ''
 }
 
+// ------------------------------------------------------------------ GitHub
+//
+// An issue is the goal, a draft PR is its output (one commit per node, the
+// verdict as a check: TEAM, v4), the PR reviewer's comment is the verdict on
+// the whole, and comments from allowed answerers are the remote gate. The mod
+// reads PR state with `gh` as data — no model. Haiku turns new human comment
+// text into one line for the memory; nothing else here calls a model.
+
+async function ghJson($, args) {
+  const r = await $.process.run(['gh', ...args], { timeoutMs: 30000 })
+  if (r.exitCode !== 0) throw new Error((r.stderr || r.stdout || 'gh exited ' + r.exitCode).trim().split('\n')[0])
+  return JSON.parse(r.stdout || 'null')
+}
+
+async function ghRun($, args, stdin) {
+  const r = await $.process.run(['gh', ...args], stdin === undefined ? { timeoutMs: 30000 } : { stdin, timeoutMs: 30000 })
+  if (r.exitCode !== 0) throw new Error((r.stderr || r.stdout || 'gh exited ' + r.exitCode).trim().split('\n')[0])
+  return r.stdout
+}
+
+const PR_FIELDS = 'number,url,title,state,isDraft,mergeable,mergeStateStatus,statusCheckRollup,comments,assignees,headRefName,author'
+
+/** The run's PR number: the manifest, then _orch/github/pr.json (the bootstrap writes it), then the run branch. */
+async function prNumber($) {
+  const m = run.manifest || {}
+  if (m.pr && m.pr.number) return m.pr.number
+  const f = await readJson($, '_orch/github/pr.json')
+  if (f && f.number) return f.number
+  if (m.branch) {
+    try {
+      const list = await ghJson($, ['pr', 'list', '--head', m.branch, '--state', 'all', '--json', 'number', '--limit', '1'])
+      if (list && list[0]) return list[0].number
+    } catch {}
+  }
+  return null
+}
+
+/** Who may answer on the thread: the PR's assignees and the manifest's answerers; if neither, the PR's author. */
+function allowedAuthors(pr) {
+  const m = run.manifest || {}
+  const set = new Set([...(pr.assignees || []).map((a) => a.login), ...(m.answerers || [])])
+  if (!set.size && pr.author && pr.author.login) set.add(pr.author.login)
+  return set
+}
+
+async function seenComments($) {
+  if (gh.seen) return gh.seen
+  const key = 'gh-seen:' + ((run.manifest && run.manifest.run_id) || 'session')
+  let ids = []
+  try {
+    ids = (await $.store.get(key)) || []
+  } catch {}
+  gh.seen = new Set(ids)
+  gh.seenKey = key
+  return gh.seen
+}
+
+async function saveSeen($) {
+  try {
+    await $.store.set(gh.seenKey, [...gh.seen].slice(-500))
+  } catch {}
+}
+
+/** One poll: PR state, the reviewer's verdict, merge-ready, new comments (commands, then one-line notes). */
+async function pollGithub($) {
+  if (gh.polling || !(await runActive($))) return
+  gh.polling = true
+  try {
+    const n = await prNumber($)
+    if (!n) return
+    const pr = await ghJson($, ['pr', 'view', String(n), '--json', PR_FIELDS])
+    gh.pr = pr
+    gh.review = latestReview(pr.comments)
+    gh.ready = mergeReady(pr, gh.review)
+    gh.polledAt = new Date(Date.now()).toISOString()
+    gh.error = null
+    const tag = 'PR #' + pr.number
+    if (gh.review && gh.noted.review !== gh.review.url + gh.review.verdict) {
+      gh.noted.review = gh.review.url + gh.review.verdict
+      await noteQuietly($, tag + ' review' + (gh.review.round ? ' round ' + gh.review.round : '') + ': ' + gh.review.verdict + ' (' + gh.review.high + ' high, ' + gh.review.med + ' med, ' + gh.review.low + ' low) ' + (gh.review.url || ''), 'review')
+    }
+    if (gh.ready.ok && !gh.noted.ready) {
+      gh.noted.ready = true
+      await noteQuietly($, tag + ' is merge-ready: every row holds. Waiting for the operator to merge.', 'github')
+      try {
+        $.ui.toast(tag + ' is ready for you to merge')
+      } catch {}
+    }
+    if (pr.state === 'MERGED' && !gh.noted.merged) {
+      gh.noted.merged = true
+      await noteQuietly($, tag + ' merged.', 'github')
+    }
+    const cl = checksLine(pr)
+    if (gh.noted.checks !== cl) gh.noted.checks = cl
+    await readComments($, pr)
+  } catch (err) {
+    gh.error = err && err.message ? err.message : String(err)
+  } finally {
+    gh.polling = false
+    $.ui.invalidate('ui.render')
+  }
+}
+
+/** New comments: gate commands from allowed authors act; other human comments become one Haiku line each. */
+async function readComments($, pr) {
+  const seen = await seenComments($)
+  const allowed = allowedAuthors(pr)
+  let changed = false
+  for (const c of pr.comments || []) {
+    const id = c.id || c.url || c.createdAt + (c.author && c.author.login)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    changed = true
+    const body = String(c.body || '')
+    if (/<!--\s*baton:/.test(body)) continue // baton's own: reviews, gates, briefs
+    const who = (c.author && c.author.login) || 'someone'
+    const cmds = parseCommands(body)
+    if (cmds.length) {
+      for (const cmd of cmds) await remoteCommand($, cmd, who, allowed.has(who), pr)
+      continue
+    }
+    let line = null
+    try {
+      const r = await $.model.complete({
+        model: MECH,
+        system: 'You condense one comment on a pull request into ONE line of at most 200 characters for an orchestrator: who wants what (approval, a change, a question, or just remarks). Plain text, no preamble.',
+        prompt: 'PR #' + pr.number + ' comment by ' + who + ':\n' + body.slice(0, 4000),
+        maxTokens: 120,
+        effort: 'low',
+        timeoutMs: 30000,
+      })
+      if (r.isAnswered) line = r.text.split('\n').map((x) => x.trim()).filter(Boolean).join(' ')
+    } catch {}
+    await noteQuietly($, 'PR #' + pr.number + ' ' + who + ': ' + (line || body.replace(/\s+/g, ' ').slice(0, 200)), 'github')
+  }
+  if (changed) await saveSeen($)
+}
+
+/** /approve P3 · /send-back P3 <reason> · /approve <gate> · /approve merge — from the PR thread. */
+async function remoteCommand($, { cmd, target, reason }, who, allowed, pr) {
+  const tag = 'PR #' + pr.number
+  if (!allowed) {
+    await noteQuietly($, tag + ': ignored /' + cmd + ' ' + target + ' from ' + who + ' (not an assignee or answerer)', 'github')
+    return
+  }
+  const phase = /^P\d+$/i.test(target) ? target.toUpperCase() : null
+  if (phase) {
+    const i = approvals.queue.findIndex((q) => phaseOf(q.label) === phase)
+    if (cmd === 'approve') {
+      approvals.approvedPhases.add(phase)
+      approvals.sentBack.delete(phase)
+      if (i >= 0) await resolveQueued($, i, 'approve', who)
+      else await noteQuietly($, tag + ': ' + who + ' approved ' + phase, 'approval')
+    } else {
+      approvals.sentBack.add(phase)
+      approvals.approvedPhases.delete(phase)
+      if (i >= 0) await resolveQueued($, i, { sendBack: reason || 'no reason given' }, who)
+      else await noteQuietly($, tag + ': ' + who + ' sent back ' + phase + (reason ? ': ' + reason : ''), 'approval')
+    }
+    return
+  }
+  if (cmd === 'approve' && target.toLowerCase() === 'merge') {
+    await noteQuietly($, tag + ': ' + who + ' said /approve merge. baton never merges; the operator merges.', 'github')
+    return
+  }
+  const gate = GATES.find((g) => g.id === target.toLowerCase())
+  if (cmd === 'approve' && gate) {
+    approvals.always.add(gate.id)
+    approvals.approved++
+    await noteQuietly($, tag + ': ' + who + ' approved every "' + gate.label + '" for this run (remote). Re-dispatch what was BLOCKED on it.', 'approval')
+    return
+  }
+  await noteQuietly($, tag + ': unknown command /' + cmd + ' ' + target + ' from ' + who, 'github')
+}
+
+/** "P3" from a queued label like "P3", "P3 phase", "phase P3 export". */
+function phaseOf(label) {
+  const m = /\bP(\d+)\b/i.exec(String(label ?? ''))
+  return m ? 'P' + m[1] : null
+}
+
+/** Post a gate question on the PR thread when nobody can be asked here. Returns the PR number, or null. */
+async function askOnThread($, text) {
+  try {
+    const n = await prNumber($)
+    if (!n) return null
+    await ghRun($, ['pr', 'comment', String(n), '--body-file', '-'], '<!-- baton:gate -->\n' + text + '\n')
+    return n
+  } catch {
+    return null
+  }
+}
+
+// ------------------------------------------------------------------ the tracker
+
+async function exists($, path) {
+  try {
+    return await $.fs.exists(path)
+  } catch {
+    return false
+  }
+}
+
+/** Load the measured rows once per run: _orch/track/*.json, one file per transition (rule 6.3). */
+async function loadTrackRows($) {
+  const id = (run.manifest && run.manifest.run_id) || null
+  if (track.loadedFor === id) return
+  track.rows = []
+  track.snap = {}
+  track.loadedFor = id
+  const files = ((await listDir($, '_orch/track')) ?? []).filter((x) => x.kind === 'file' && x.name.endsWith('.json')).map((x) => x.name).sort().slice(-5000)
+  for (const f of files) {
+    const r = await readJson($, '_orch/track/' + f)
+    if (r && r.level && r.id && r.state) {
+      track.rows.push(r)
+      track.snap[r.level + ':' + r.id] = { level: r.level, id: r.id, state: r.state }
+    }
+  }
+}
+
+/**
+ * Observe the record and recompute every entity's state: the goal, the PR,
+ * each phase, each node. Changes are appended as rows. Cheap enough at a
+ * 10-second cadence: a handful of reads per node.
+ */
+async function observe($, force = false) {
+  if (!force && Date.now() - track.at < TRACK_TTL_MS) return track.view
+  track.at = Date.now()
+  if (!(await runActive($))) return (track.view = null)
+  await loadTrackRows($)
+  const m = run.manifest || {}
+  const graphText = await (async () => {
+    try {
+      return await $.fs.read('_orch/plan/graph.yaml')
+    } catch {
+      return null
+    }
+  })()
+  const phaseOfNode = graphPhases(graphText)
+  const nodes = []
+  const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(0, 400)
+  for (const id of nodeDirs) {
+    const base = '_orch/nodes/' + id
+    const st = await readJson($, base + '/status.json')
+    const vd = await readJson($, '_orch/verify/' + id + '-verdict.json')
+    let handoff = ''
+    try {
+      handoff = await $.fs.read(base + '/handoff.md')
+    } catch {}
+    const facts = {
+      exempt: /\brgb:\s*exempt\b/i.test(handoff),
+      red: await exists($, base + '/work/red.txt'),
+      green: await exists($, base + '/work/green.txt'),
+      blue: await exists($, base + '/work/blue.txt'),
+      started: !!st || (await exists($, base + '/work')),
+      status: st && st.verdict,
+      verdict: vd && vd.verdict,
+    }
+    nodes.push({ id, phase: phaseOfNode.get(id) ?? null, ...nodeState(facts), status: facts.status })
+  }
+  const phaseNums = new Set([...phaseOfNode.values()])
+  for (const d of (await listDir($, '_orch/phases')) ?? []) {
+    const mm = /^P(\d+)$/.exec(d.name)
+    if (d.kind === 'directory' && mm && Number(mm[1]) > 0) phaseNums.add(Number(mm[1]))
+  }
+  const phases = []
+  for (const n of [...phaseNums].sort((a, b) => a - b)) {
+    const id = 'P' + n
+    const env = await readJson($, '_orch/phases/' + id + '/envelope.json')
+    const verdict = env ? env.verdict ?? null : null
+    const mine = nodes.filter((x) => x.phase === n)
+    const p = phaseState({
+      brief: await exists($, '_orch/phases/' + id + '/brief.md'),
+      dispatched: mine.some((x) => x.flag !== 'pending'),
+      envelopeVerdict: verdict,
+      approved: approvals.approvedPhases.has(id) || (!config.phaseGate && !!verdict && /^DONE/.test(verdict)),
+      sentBack: approvals.sentBack.has(id),
+    })
+    phases.push({ id, ...p, nodes: mine })
+  }
+  const pr = prState(gh.pr, gh.review, gh.ready)
+  const goal = goalState({
+    planned: !!graphText,
+    anyPhase: phases.some((x) => x.flag !== 'pending'),
+    allPhasesDone: phases.length > 0 && phases.every((x) => x.state === 'verified' || x.state === 'approved'),
+    review: gh.review && gh.review.verdict,
+    ready: !!(gh.ready && gh.ready.ok),
+    prState: pr && pr.state,
+    blocked: nodes.some((x) => x.status === 'BLOCKED'),
+  })
+  // Measure: one row per entity whose computed state moved.
+  const next = { ['goal:' + (m.run_id || 'run')]: { level: 'goal', id: m.run_id || 'run', state: goal.state } }
+  if (pr) next['pr:' + gh.pr.number] = { level: 'pr', id: String(gh.pr.number), state: pr.state }
+  for (const p of phases) if (p.flag !== 'pending') next['phase:' + p.id] = { level: 'phase', id: p.id, state: p.state }
+  for (const x of nodes) if (x.flag !== 'pending') next['node:' + x.id] = { level: 'node', id: x.id, state: x.state }
+  const ts = new Date(Date.now()).toISOString()
+  for (const row of transitions(track.snap, next, ts)) {
+    track.rows.push(row)
+    try {
+      // One file per row (rule 6.3): milliseconds and the state in the name, so two moves in one second never collide.
+      await $.fs.write('_orch/track/' + ts.replace(/[-:]/g, '').replace('.', '') + '-' + row.level + '-' + String(row.id).replace(/[^A-Za-z0-9._-]/g, '_') + '-' + row.state + '.json', JSON.stringify(row) + '\n')
+    } catch {}
+  }
+  track.snap = next
+  const now = Date.now()
+  const tl = (level, id, ladder) => timeline(track.rows.filter((r) => r.level === level && r.id === id), LADDERS[ladder], now)
+  track.view = {
+    goal: { ...goal, tl: tl('goal', m.run_id || 'run', 'goal'), issue: m.issue || null, target: m.target },
+    pr: pr ? { ...pr, tl: tl('pr', String(gh.pr.number), 'pr'), number: gh.pr.number, url: gh.pr.url, checks: checksLine(gh.pr), review: gh.review, ready: gh.ready } : null,
+    phases: phases.map((p) => ({ ...p, tl: tl('phase', p.id, 'phase'), nodes: p.nodes.map((x) => ({ ...x, tl: tl('node', x.id, x.ladder) })) })),
+    unphased: nodes.filter((x) => x.phase == null).map((x) => ({ ...x, tl: tl('node', x.id, x.ladder) })),
+  }
+  return track.view
+}
+
+/** The tracker as plain lines: -p, /baton status, and the tests. */
+function trackLines(v) {
+  if (!v) return ['no run is active here']
+  const out = []
+  const g = v.goal
+  out.push((g.issue ? 'goal #' + g.issue.number + ' ' + g.issue.title + ' ' + g.issue.url : 'goal ' + (g.target || '')) )
+  out.push('  ' + stepperText(g, g.tl))
+  if (v.pr) {
+    out.push('PR #' + v.pr.number + ' ' + v.pr.url + ' · ' + v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : ''))
+    out.push('  ' + stepperText(v.pr, v.pr.tl))
+    if (v.pr.ready) for (const r of v.pr.ready.rows) out.push('    ' + (r.ok ? '✓ ' : '✗ ') + r.row)
+  } else out.push('PR: none yet' + (gh.error ? ' (' + gh.error + ')' : ''))
+  for (const p of v.phases) {
+    out.push(p.id + '  ' + stepperText(p, p.tl))
+    for (const x of p.nodes.slice(0, 16)) out.push('    ' + x.id + '  ' + stepperText(x, x.tl))
+    if (p.nodes.length > 16) out.push('    … ' + (p.nodes.length - 16) + ' more')
+  }
+  return out
+}
+
 export function register(on, options) {
   if (options) {
     if (Number.isFinite(Number(options.rotateAtPercent))) config.rotateAtPercent = Number(options.rotateAtPercent)
     if (Number.isFinite(Number(options.wakeBudgetLines))) config.wakeBudgetLines = Math.max(4, Math.floor(Number(options.wakeBudgetLines)))
     if (options.memoryDir) config.memoryDir = String(options.memoryDir)
+    if (Number.isFinite(Number(options.prPollSeconds))) config.prPollSeconds = Number(options.prPollSeconds)
     if (options.approvals === false || options.approvals === 'false') config.approvals = false
     if (options.phaseGate === false || options.phaseGate === 'false') config.phaseGate = false
   }
@@ -1027,6 +1489,12 @@ export function register(on, options) {
     // The ticker: runs what a command hook may not — the compaction /baton
     // rotate owes, the kickoff prompt /baton start owes — from outside any
     // command's frame. Cheap when idle: two flag checks.
+    // GitHub: poll the run's PR while a run is active (cheap when none is).
+    if (!gh.timer) {
+      try {
+        gh.timer = $.clock.every(Math.max(30, config.prPollSeconds) * 1000, () => pollGithub($).then(() => observe($, true)))
+      } catch {}
+    }
     if (!rotation.ticker) {
       try {
         rotation.ticker = $.clock.every(150, async () => {
@@ -1050,8 +1518,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | rotate | status | rule | rulings | retract | enforce — or no argument for the run pane',
-        argumentHint: '[start <MODE> <TARGET> | stop | rotate | status | rule <text> | rulings | retract <#> | enforce <#> <regex>]',
+        description: 'baton v7: start | stop | rotate | status | watch | next | rule | rulings | retract | enforce — or no argument for the run pane',
+        argumentHint: '[start <MODE> <TARGET|#issue> | stop | rotate | status | watch [label] | next [#issue] | rule <text> | rulings | retract <#> | enforce <#> <regex>]',
         immediate: true,
       })
     } catch (err) {
@@ -1133,7 +1601,14 @@ export function register(on, options) {
     const reason = verdict.refuse
     await noteQuietly($, 'operator refused (' + gate.id + ') for ' + who + ': ' + e.command + (reason && reason !== '__nobody__' ? ' — ' + reason : ''), 'approval')
     if (reason === '__nobody__') {
-      return { deny: 'baton: "' + gate.label + '" needs the operator\'s approval, and nobody can be asked here (no interactive surface, or the question was dismissed). Do not retry it another way: return BLOCKED with the exact command as a question for the operator.' }
+      // Nobody here: ask on the PR thread, where /approve <gate> answers it for the run.
+      const n = await askOnThread($, '**baton:** `' + who + '` wants to ' + gate.label + ':\n\n```\n' + String(e.command).slice(0, 600) + '\n```\n\nReply `/approve ' + gate.id + '` to allow every "' + gate.label + '" for this run.')
+      return {
+        deny:
+          'baton: "' + gate.label + '" needs the operator\'s approval, and nobody can be asked here' +
+          (n ? '; it was asked on PR #' + n + ' (/approve ' + gate.id + ')' : ' (no interactive surface, no PR thread)') +
+          '. Do not retry it another way: return BLOCKED with the exact command, and it is re-dispatched once approved.',
+      }
     }
     return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
   })
@@ -1154,12 +1629,21 @@ export function register(on, options) {
       approvals.queue.shift()
       $.ui.invalidate('ui.render')
       const v = readPhaseAnswer(answer)
+      const phase = phaseOf(item.label)
       if (v === 'approve') {
         approvals.approved++
+        if (phase) {
+          approvals.approvedPhases.add(phase)
+          approvals.sentBack.delete(phase)
+        }
         await noteQuietly($, 'operator approved ' + item.label + ': ' + item.line, 'approval')
         continue
       }
       approvals.refused++
+      if (phase) {
+        approvals.sentBack.add(phase)
+        approvals.approvedPhases.delete(phase)
+      }
       await noteQuietly($, 'operator sent back ' + item.label + (v.sendBack ? ': ' + v.sendBack : ''), 'approval')
       return {
         deny:
@@ -1297,6 +1781,31 @@ export function register(on, options) {
         if (!text) return { text: 'usage: /baton rule <a standing instruction> — recorded in the project memory; the newest ruling wins' }
         return { text: 'baton: ruling ' + (await recordRuling($, text, 'ruling-hand')) }
       }
+      case 'watch': {
+        try {
+          gh.queue = await ghJson($, ['issue', 'list', '--label', rest[0] || 'baton', '--state', 'open', '--json', 'number,title,url', '--limit', '50'])
+        } catch (err) {
+          return { text: 'could not list issues with gh: ' + err.message }
+        }
+        $.ui.invalidate('ui.render')
+        return { text: gh.queue.length ? 'baton queue (label ' + (rest[0] || 'baton') + '):\n' + gh.queue.map((x) => '  #' + x.number + ' ' + x.title).join('\n') + '\n/baton next starts the first once this run is merged or stopped' : 'no open issues labeled ' + (rest[0] || 'baton') }
+      }
+      case 'next': {
+        const m = run.manifest
+        const v = await observe($, true)
+        const done = !m || m.closed || (v && (v.goal.state === 'merged' || v.goal.state === 'ready'))
+        if (!done) return { text: 'baton: this run is still ' + (v ? v.goal.state : 'active') + ' — /baton next starts the next goal once it is ready or merged, or after /baton stop' }
+        const nextIssue = rest[0] ? { number: issueRef(rest[0]) || Number(rest[0]) } : gh.queue.find((x) => !m || !m.issue || x.number !== m.issue.number)
+        if (!nextIssue || !nextIssue.number) return { text: 'no next goal: /baton watch fills the queue, or /baton next #<n>' }
+        if (m) {
+          if (!m.closed) await batonStop($)
+          const dest = '.baton/runs/' + m.run_id
+          const r = await $.process.run(['sh', '-c', 'mkdir -p .baton/runs && mv _orch "$1"', 'sh', dest], { timeoutMs: 30000 })
+          if (r.exitCode !== 0) return { text: 'could not archive _orch to ' + dest + ': ' + (r.stderr || r.stdout) }
+          forgetRunCache()
+        }
+        return { text: (m ? 'archived ' + m.run_id + ' to .baton/runs/. ' : '') + (await batonStart($, 'BUILD #' + nextIssue.number)) }
+      }
       case 'retract': {
         const n = /^#?(\d+)$/.exec(rest.join(' ').trim())
         if (!n) return { text: 'usage: /baton retract <ruling #>' }
@@ -1348,7 +1857,7 @@ export function register(on, options) {
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
     if (e.requestId !== PANE) return next(e)
-    const { Box, Text, Button, Input } = $.ui.resolve(e)
+    const { Box, Text, Button, Input, Link } = $.ui.resolve(e)
     const cols = e.props.bodyColumns ?? 80
     const tabs = TABS.map((t) =>
       Button({
@@ -1367,9 +1876,9 @@ export function register(on, options) {
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
     tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
     const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
-    const ui = { Box, Text, Button, Input, line, rows }
+    const ui = { Box, Text, Button, Input, Link, line, rows }
     const body =
-      pane.tab === 'agents' ? agentsBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
+      pane.tab === 'track' ? trackBody($, ui) : pane.tab === 'agents' ? agentsBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
     return Box({
       flexDirection: 'column',
       children: [
@@ -1397,7 +1906,11 @@ export function register(on, options) {
     const flag = approvals.queue.length
       ? [Text({ key: 'queue', wrap: 'truncate-end', color: 'yellow', children: ['baton ⚑ ' + approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' waiting for your check (' + approvals.queue.map((q) => q.label).join(', ') + ') — asked before the next dispatch · /baton → Agents'] })]
       : []
-    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...flag, ...(theirs ? [theirs] : [])] })
+    const v = track.view
+    const goal = v
+      ? [Text({ key: 'goal', wrap: 'truncate-end', dimColor: true, children: [(v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : '') + (v.pr ? ' · PR #' + v.pr.number + ' ' + v.pr.state + (v.pr.flag ? ' (' + v.pr.flag + ')' : '') + ' · ' + v.pr.checks : '') + (v.pr && v.pr.ready && v.pr.ready.ok ? ' · ready for you to merge' : '')] })]
+      : []
+    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...goal, ...flag, ...(theirs ? [theirs] : [])] })
   })
 
   // The spinner: which phase and node the prime is waiting on.
@@ -1422,6 +1935,8 @@ export function register(on, options) {
     }
     if (e.agentId && live.delete(e.agentId)) $.ui.invalidate('ui.render')
     if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
+    // Any finished turn may have moved a state; the tracker's TTL keeps this cheap.
+    $.clock.after(0, () => observe($).then(() => $.ui.invalidate('ui.render')).catch(() => {}))
     // A subagent the prime dispatched returned: its one line becomes a note
     // (unless its SubagentHandback call already carried it).
     // The prime's own reply: its first line is the decision it just made.

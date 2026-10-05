@@ -37,6 +37,12 @@
       "title": "Check each finished phase",
       "description": "When a sub-orchestrator reports DONE, the prime's next dispatch waits until you approve the phase or send it back with a reason (interactive sessions only)",
       "default": true
+    },
+    "prPollSeconds": {
+      "type": "number",
+      "title": "PR poll interval (seconds)",
+      "description": "During a run with a GitHub goal, how often the mod reads the PR with gh (state, checks, the reviewer's verdict, new comments). At least 30.",
+      "default": 120
     }
   }
 }
