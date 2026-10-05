@@ -19,10 +19,9 @@ node enters at `cheap` only when its handoff names work with no judgment in it
 size. *"This is small"* is not a reason. *"This is `pytest -q` and its exit
 code"* is.
 
-A node carrying `personas:` is frontier work by definition — a persona's phase
-duty is judgment from a lens (personas §2) — and the seat runs there whatever
-the node says; the planner may still assign `cheap` for the node's non-persona
-work.
+A node carrying `personas:` — a user archetype driving the product — runs that
+archetype at frontier whatever the node says; the planner may still assign
+`cheap` for the node's other work.
 
 The asymmetry reversed. It once read: assigning high wastes the budget on work
 that would have succeeded low, and assigning low costs one extra attempt.
@@ -31,17 +30,11 @@ judgment costs the attempt, the verification that refutes it, the escalation —
 and the defect the cheap tier introduced that the verifier did not catch.
 **Assign frontier unless the work is a command.**
 
-**At frontier, the planner also sets the node's `effort:`, and it follows the kind of work, not its
-size.** Effort is the one lever left inside a tier, and the two directions of it measured differently:
-
-| the node's work | `effort` | evidence |
-|---|---|---|
-| building or designing something new: an implementation from a goal, a new tool, a page | `high` | a blind judge scored high 8.05 against medium's 7.33 on a greenfield build; every arm passed every hidden test, and the lead was robustness and tests (`docs/experiments/effort-greenfield-go-blog.md`) |
-| verifying a specified claim; repairing or re-deriving against a named criterion | `medium` | on the eighteen replayed nodes medium matched high's first-try yield, 6 against 6, for 31% less (`docs/experiments/frontier-at-medium-effort.md`) |
-| planning, adjudication, synthesis, a brief | `high` | not measured; judgment over a whole run, spent once |
-| a frontier retry (§1.2) | `high` | not measured; the retry is the node's last agent attempt |
-
-A frontier node with no `effort:` runs at `high`. A verifier takes `medium` unless its node is
-building-class, because a verifier's work is a specified claim whatever the worker did. The cheap
-tier's effort is the harness's default. The ledger's `effort` column records what ran (§7), so this
-table is re-checked by every run's histogram, not assumed.
+**Effort is the binding's, not the node's.** Frontier work runs at the effort `FRONTIER` binds
+(router §1: `medium`), and the cheap tier at the harness's default. A node may carry `effort:` as
+an override; `tools/tiers.py check` refuses a misspelt value or one on a rung-0 node, and the
+ledger's `effort` column records what ran (§7). One effort, because the measured gap was small:
+across forty-five greenfield builds that all passed every hidden test, high beat medium by 0.37
+judge points at 1.4–2× the cost (`docs/experiments/effort-bench-three-tasks.md`), and on eighteen
+replayed repair nodes medium matched high's first-try yield for 31% less
+(`docs/experiments/frontier-at-medium-effort.md`).

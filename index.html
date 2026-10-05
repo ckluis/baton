@@ -9,7 +9,7 @@
 <meta property="og:site_name" content="ckluis / baton">
 <meta property="og:url" content="https://ckluis.github.io/baton/">
 <meta property="og:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta property="og:description" content="The accountability layer for agent runs. Evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop — for you, or a team. Three tiers instead of six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. Ten modes, 44 personas plus 40 named experts.">
+<meta property="og:description" content="The accountability layer for agent runs. Evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop — for you, or a team. Three tiers instead of six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. Eight modes and seven user archetypes.">
 <meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -18,7 +18,7 @@
 <meta name="twitter:site" content="@ckluis">
 <meta name="twitter:creator" content="@ckluis">
 <meta name="twitter:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta name="twitter:description" content="The accountability layer for agent runs: evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop. Three tiers, ten modes, 44 personas plus 40 named experts — for you, or a team.">
+<meta name="twitter:description" content="The accountability layer for agent runs: evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop. Three tiers, eight modes, seven user archetypes — for you, or a team.">
 <meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
 <meta name="description" content="baton v5 is the accountability layer for agent runs: a router prompt that turns a fresh session into a multi-agent run with a record — evidence that cites or retracts, verdicts computed per criterion, gates a person holds, state that outlives the laptop. Three tiers replace six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. With one more line the same run belongs to a team: its state on a git ref, its questions as GitHub Issues, its product changes as pull requests with the verdict as a check.">
 <meta name="theme-color" content="#0a0a0a">
@@ -260,9 +260,9 @@ html.js .reveal.in{opacity:1;transform:none}
     <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
       <div>
         <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v5.0</span>
-          <span class="pill c">router + 10 modes</span>
-          <span class="pill c">40 named experts</span>
+          <span class="pill y">v6.0</span>
+          <span class="pill c">router + 8 modes</span>
+          <span class="pill c">7 user archetypes</span>
           <span class="pill c">for you, or a team</span>
         </div>
         <h1 class="reveal d1">Agents do the work.<br><span class="reg" data-reg="baton keeps the record.">baton keeps the record.</span></h1>
@@ -280,22 +280,22 @@ html.js .reveal.in{opacity:1;transform:none}
         </div>
       </div>
 
-      <!-- v4 -> v5 card -->
+      <!-- v5 -> v6 card -->
       <div class="reveal d2">
         <div class="card" style="padding:0;overflow:hidden">
-          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v4 &rarr; v5</div></div>
+          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v5 &rarr; v6</div></div>
           <div style="padding:8px 0">
-            <div class="vs"><span class="vl">Six rungs of model &times; effort</span><span class="va">&rarr;</span><span class="vr">Three tiers: cheap, frontier, human &mdash; the field keeps its name; its values are 0, 1, n/a</span></div>
-            <div class="vs"><span class="vl">Assign low; escalate one rung</span><span class="va">&rarr;</span><span class="vr">Assign frontier unless the work is a command; a retry carries the verdict that failed it</span></div>
-            <div class="vs"><span class="vl">A ceiling, drift, de-escalation, effort-as-a-rung, a refutation quota</span><span class="va">&rarr;</span><span class="vr">Gone &mdash; five rules and a bullet the self-run never used. 53 rules become 48</span></div>
-            <div class="vs"><span class="vl">A phase runner spawned to dispatch</span><span class="va">&rarr;</span><span class="vr">The harness dispatches when it can; the phase runner is the fallback</span></div>
-            <div class="vs"><span class="vl">A verifier at the node's own rung</span><span class="va">&rarr;</span><span class="vr">Always frontier, always a fresh spawn &mdash; independence is the mechanism</span></div>
-            <div class="vs"><span class="vl"><code>CEILING</code> and <code>PRIME_TURNS</code></span><span class="va">&rarr;</span><span class="vr"><code>CHEAP</code> and <code>FRONTIER</code> &mdash; models the harness names, not limits</span></div>
-            <div class="vs"><span class="vl">An Issue per question, a branch and PR per node, Pages, releases</span><span class="va">&rarr;</span><span class="vr">One pull request, one branch, one hidden ref &mdash; what a colleague's work leaves</span></div>
-            <div class="vs"><span class="vl">A v4 run or checkout</span><span class="va">&rarr;</span><span class="vr">Resumes untouched; <code>tools/tiers.py</code> remaps a checkout in one command</span></div>
+            <div class="vs"><span class="vl">The harness's most capable and fastest models</span><span class="va">&rarr;</span><span class="vr"><code>FRONTIER</code> = <code>claude-opus-5-5</code> at medium, <code>CHEAP</code> = <code>claude-sonnet-5-5</code></span></div>
+            <div class="vs"><span class="vl">An effort per node, by kind of work</span><span class="va">&rarr;</span><span class="vr">One effort, medium; <code>effort:</code> is an optional override, still recorded</span></div>
+            <div class="vs"><span class="vl">Expert lenses and panels seated in every mode</span><span class="va">&rarr;</span><span class="vr">Fresh plain reviewers; lenses, panels, <code>CRAFT</code> and <code>POSITION</code> move to <code>library/</code></span></div>
+            <div class="vs"><span class="vl">A per-phase agent to dispatch, when the harness could not</span><span class="va">&rarr;</span><span class="vr">The prime dispatches every node under written dispatcher duties</span></div>
+            <div class="vs"><span class="vl">A ten-line summary file per node</span><span class="va">&rarr;</span><span class="vr"><code>evidence</code> and <code>risk</code> in the envelope</span></div>
+            <div class="vs"><span class="vl">A splitting role on <code>SPLIT</code></span><span class="va">&rarr;</span><span class="vr">The planner re-plans from the seams</span></div>
+            <div class="vs"><span class="vl">48 rules</span><span class="va">&rarr;</span><span class="vr">29 &mdash; seven folded into the rules they served, one cut</span></div>
+            <div class="vs"><span class="vl">A v5 run or checkout</span><span class="va">&rarr;</span><span class="vr">Resumes; <code>PERSONAS: library</code> brings the experts back</span></div>
           </div>
           <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-            <span style="font-size:13px;color:var(--muted)">v4 is still tagged, and still runs. One breaking change: what a value means.</span>
+            <span style="font-size:13px;color:var(--muted)">v5 is still tagged, and still runs. Every record field is kept.</span>
             <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener"
                style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read MIGRATING &rarr;</a>
           </div>
@@ -317,6 +317,8 @@ html.js .reveal.in{opacity:1;transform:none}
   .vs .va{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center}
   .vs .vr{font-size:13px;color:var(--body-2);font-weight:500}
   .g5{grid-template-columns:repeat(5,1fr)}
+  .g6{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g6{grid-template-columns:1fr}}
   @media(max-width:1180px){.g5{grid-template-columns:repeat(3,1fr)}}
   @media(max-width:760px){.g5{grid-template-columns:1fr}}
 
@@ -364,10 +366,10 @@ html.js .reveal.in{opacity:1;transform:none}
           leaves, escalation measured in rungs instead of models, and a layer whose entire job
           is to spend the turns the conductor used to spend.
         </p>
-        <p style="margin-top:16px;font-size:16px">That bill is why the phase runner exists, and why six rungs did: the most capable model was the expensive part of a run. v3 inherited the ladder and changed what a run may leave unexamined; v4 changed who a run belongs to. <strong>v5 changes the premise the ladder priced.</strong> When frontier is the sensible default for anything with judgment in it, two agent tiers and a person are the whole ladder &mdash; and what remains of baton is the part that was always about trust: evidence, verdicts, gates, the record.</p>
+        <p style="margin-top:16px;font-size:16px">That bill is why v2 added a per-phase dispatcher, and why six rungs did: the most capable model was the expensive part of a run. v3 inherited the ladder and changed what a run may leave unexamined; v4 changed who a run belongs to. <strong>v5 changes the premise the ladder priced.</strong> When frontier is the sensible default for anything with judgment in it, two agent tiers and a person are the whole ladder &mdash; and what remains of baton is the part that was always about trust: evidence, verdicts, gates, the record. <strong>v6 measured the rest</strong> on Opus 5.5 and Sonnet 5.5 and cut what rationed the model: one effort, no persona panels by default, no dispatching layer, no summary files.</p>
       </div>
     </div>
-      <div class="grid g5 reveal d1" style="margin-top:40px;align-items:stretch">
+      <div class="grid g6 reveal d1" style="margin-top:40px;align-items:stretch">
 
         <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
           <div class="codebar"><div class="fn"><b>v1</b> &middot; the original</div><span class="pill d">archived</span></div>
@@ -393,7 +395,7 @@ html.js .reveal.in{opacity:1;transform:none}
               and personas it fetches. Same architecture; the bill went somewhere else.</p>
             <div class="dlist">
               <div class="dl"><span class="dp">+</span><span>Six rungs of model &times; effort</span></div>
-              <div class="dl"><span class="dp">+</span><span>A phase runner that absorbs dispatch</span></div>
+              <div class="dl"><span class="dp">+</span><span>A per-phase agent that absorbs dispatch</span></div>
               <div class="dl"><span class="dp">+</span><span>Personas loadable from any repo</span></div>
               <div class="dl"><span class="dm">&minus;</span><span>571-line paste &rarr; eight lines</span></div>
               <div class="dl"><span class="dm">&minus;</span><span>Four model tiers</span></div>
@@ -438,8 +440,8 @@ html.js .reveal.in{opacity:1;transform:none}
           <a class="linf" href="baton-v4.html">Read baton v4 &rarr;</a>
         </div>
 
-        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v5</b> &middot; the record</div><span class="pill c">current</span></div>
+        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v5</b> &middot; the record</div><span class="pill d">tagged</span></div>
           <div class="linb">
             <h4 class="lint">Two tiers, a person, and the half that ages well.</h4>
             <p class="lind">Asked whether any of it made sense with frontier intelligence as the
@@ -449,8 +451,25 @@ html.js .reveal.in{opacity:1;transform:none}
               <div class="dl"><span class="dp">+</span><span>cheap &middot; frontier &middot; human</span></div>
               <div class="dl"><span class="dp">+</span><span>A retry carries the verdict that failed it</span></div>
               <div class="dl"><span class="dp">+</span><span>48 rules, every one an invariant</span></div>
-              <div class="dl"><span class="dp">+</span><span>The harness dispatches; the phase runner is the fallback</span></div>
+              <div class="dl"><span class="dp">+</span><span>The harness dispatches when it can</span></div>
               <div class="dl"><span class="dm">&minus;</span><span>Six rungs, a ceiling, drift, a quota</span></div>
+            </div>
+          </div>
+          <a class="linf" href="https://github.com/ckluis/baton/tree/db71431" target="_blank" rel="noopener">Read baton v5 &rarr;</a>
+        </div>
+
+        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+          <div class="codebar"><div class="fn"><b>v6</b> &middot; the shrink</div><span class="pill c">current</span></div>
+          <div class="linb">
+            <h4 class="lint">Measured, then cut.</h4>
+            <p class="lind">Six experiments found that tier, effort and persona choices barely moved
+              results. What failed was criteria, the environment and unchecked claims, so v6 keeps
+              what checks them and cuts what rationed the model.</p>
+            <div class="dlist">
+              <div class="dl"><span class="dp">+</span><span>Opus 5.5 frontier, Sonnet 5.5 cheap, one effort</span></div>
+              <div class="dl"><span class="dp">+</span><span>Fresh plain reviewers; experts opt-in in <code>library/</code></span></div>
+              <div class="dl"><span class="dp">+</span><span>The prime dispatches under written duties</span></div>
+              <div class="dl"><span class="dm">&minus;</span><span>Effort tables, panels, a dispatch layer, summaries</span></div>
             </div>
           </div>
           <a class="linf" href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener">You are here &middot; migrating &rarr;</a>
@@ -478,7 +497,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <thead><tr><th>#</th><th>Tier</th><th>For</th></tr></thead>
         <tbody>
           <tr class="dim"><td class="n">0</td><td class="r">cheap</td><td>Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename, check a link list. The fastest model the harness offers. <strong>Assignment only</strong> &mdash; escalation never lands here.</td></tr>
-          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at the effort its node assigns: high to build, medium to verify (§1.1). Nothing above it runs unattended.</td></tr>
+          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at the binding's effort, <code>medium</code> by default (§1.1). Nothing above it runs unattended.</td></tr>
           <tr><td class="n">2</td><td class="r">human</td><td>Not a spawn. A question in the inbox with the evidence beside it, batched at the gate &mdash; where frontier stops, and where authority was always going to be needed.</td></tr>
         </tbody>
       </table>
@@ -518,31 +537,26 @@ html.js .reveal.in{opacity:1;transform:none}
   <div class="wrap">
     <div class="sechead reveal">
       <span class="kicker c">02 &mdash; The layers</span>
-      <h2>The conductor stopped walking<br><em>to every music stand.</em></h2>
-      <p>v1's prime dispatched each task itself. v2 inserted a phase runner that absorbs dispatch, retry and verification &mdash; or, in v5, lets the harness do that when it can &mdash; so the top of the stack spends its turns on gates and nothing else. Same architecture. An order of magnitude fewer expensive turns, and v3 changed none of it.</p>
+      <h2>The conductor dispatches.<br><em>It never plays a note.</em></h2>
+      <p>v1's prime dispatched each task itself. v2 inserted a per-phase dispatcher to save expensive turns. v6 removed it: every current harness can spawn agents and wait for them, so the prime dispatches every node itself, under written duties, and never authors or verifies the work it routes.</p>
     </div>
 
     <div class="flow reveal d1">
       <div class="frow top">
         <div class="fl"><b>Prime</b><span>frontier</span></div>
-        <div class="fr">Never reads work. Never edits. Writes a phase brief, waits for one envelope,
-          holds the gate. <em>~1 turn per phase</em> &mdash; four or five on a forty-node run, where v1
-          spent forty.</div>
-      </div>
-      <div class="frow">
-        <div class="fl"><b>Dispatch</b><span>the harness, or a phase runner</span></div>
-        <div class="fr">A session that can run agents in parallel and wait for their envelopes dispatches the phase itself; one that cannot spawns a phase runner. Either way: every node dispatched, every escalation routed, every verifier spawned, every receipt a row &mdash; and never a work product read. <em>The contract is the layer; the spawning is whoever's.</em></div>
+        <div class="fr">Dispatches every node, writes each ledger row at receipt, checks every
+          verdict's shape, parks what no execution can settle, lands worktrees, and holds the
+          gates. Never edits, never authors, never verifies.</div>
       </div>
       <div class="frow">
         <div class="fl"><b>Node orchestrator</b><span>assigned tier</span></div>
         <div class="fr">Does the work, or spawns workers if it decomposes. Returns <code>ESCALATE</code>
-          early and honestly when the work is above its tier, or <code>SPLIT</code> with the seams when
+          early and honestly when no agent should be asked, or <code>SPLIT</code> with the seams when
           it was never one node.</div>
       </div>
       <div class="frow">
         <div class="fl"><b>Worker</b><span>assigned tier</span></div>
-        <div class="fr">Leaf. Writes artifacts inside its work directory and a digest of ten lines or
-          fewer. Nothing above it will ever open those artifacts &mdash; the digest is the interface.</div>
+        <div class="fr">Leaf. Writes artifacts inside its work directory.</div>
       </div>
     </div>
 
@@ -550,8 +564,7 @@ html.js .reveal.in{opacity:1;transform:none}
       <div class="card sm">
         <span class="num">DOWNWARD</span>
         <h4>Paths and a tier.</h4>
-        <p>Never contents. A layer that pastes a file into its child's prompt has spent the context
-          it was protecting.</p>
+        <p>Never contents. Every spawn gets a handoff locator and the tier it runs at.</p>
       </div>
       <div class="card sm">
         <span class="num">UPWARD</span>
@@ -560,21 +573,19 @@ html.js .reveal.in{opacity:1;transform:none}
           routing, not learning.</p>
       </div>
       <div class="card sm">
-        <span class="num">SIDEWAYS</span>
-        <h4>A digest, or nothing.</h4>
-        <p>Ten lines is the ceiling. A digest longer than ten lines is a document, and documents do
-          not cross layers.</p>
+        <span class="num">EVIDENCE</span>
+        <h4>What it proves, and what it does not.</h4>
+        <p>A <code>DONE</code> envelope names up to three paths with what each proves, and states
+          what remains unproven.</p>
       </div>
     </div>
 
     <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
       <span class="num">NO RULE NAMES A MODEL</span>
-      <h4 style="font-size:21px;letter-spacing:-.015em">The conductor is protected by what it reads, not by a budget.</h4>
-      <p style="margin-top:10px">v3 capped the prime&rsquo;s turns and handed the remainder to a deputy; the cap never
-        fired, and v5 cut it. What keeps the top of the stack cheap is the discipline above: listings,
-        digests and envelopes cross layers, contents never do. Which models the tiers run on is the
-        harness&rsquo;s to say &mdash; <code>CHEAP</code> and <code>FRONTIER</code> name them, the ledger records
-        what actually ran, and a rule that named a model would be wrong within a year.</p>
+      <h4 style="font-size:21px;letter-spacing:-.015em">The defaults name the models. The rules never do.</h4>
+      <p style="margin-top:10px">The invocation binds <code>FRONTIER</code> to <code>claude-opus-5-5</code> at medium
+        effort and <code>CHEAP</code> to <code>claude-sonnet-5-5</code>. The ledger records what actually ran,
+        and a rule that named a model would be wrong within a year.</p>
     </div>
   </div>
 </section>
@@ -596,10 +607,10 @@ html.js .reveal.in{opacity:1;transform:none}
   <span class="k">rung</span>: <span class="v">1</span>               <span class="c"># the default. above it needs a reason</span>
   <span class="k">surface</span>: code
   <span class="k">needs</span>: [T05]          <span class="c"># hard — DONE *and* CONFIRMED</span>
-  <span class="k">informs</span>: [T06]        <span class="c"># soft — a digest path, never blocks</span>
+  <span class="k">informs</span>: [T06]        <span class="c"># soft — an envelope path, never blocks</span>
   <span class="k">refutes</span>: <span class="v">null</span>         <span class="c"># exists to attack that node</span>
   <span class="k">adversarial</span>: standard
-  <span class="k">personas</span>: [coverage-truth]
+  <span class="k">personas</span>: []            <span class="c"># user archetypes a probe drives</span>
   <span class="k">done</span>: <span class="v">"one line, checkable without judgment"</span></pre>
       </div>
       <div class="code">
@@ -699,10 +710,10 @@ html.js .reveal.in{opacity:1;transform:none}
       <span class="kicker c">04 &mdash; Modes</span>
       <h2>You point.<br><em>The mode brings the topology.</em></h2>
       <p>A mode is a file, not a paragraph of advice. It carries the directive, the graph skeleton,
-        the loop definitions, the entry tiers, the seats, and the gates &mdash; and the session loads
+        the loop definitions, the entry tiers, and the gates &mdash; and the session loads
         only the one you named. Each drawing below <strong>is</strong> that mode's graph, not a
         decoration of it.</p>
-        <p>v2 shipped eight of them, and every one examined the artifact <em>as built</em> &mdash; its code, its tests, its plan, its journeys. Nothing examined it <em>as encountered</em>, and nothing <em>as sold</em>. That is the gap <strong>CRAFT</strong> and <strong>POSITION</strong> close: one seats a panel against the experienced surface, the other against the commercial surface, and neither is allowed to ship a diff.</p>
+        <p>v2 shipped eight of them, and every one examined the artifact <em>as built</em> &mdash; its code, its tests, its plan, its journeys. Nothing examined it <em>as encountered</em>, and nothing <em>as sold</em>. That is the gap <strong>CRAFT</strong> and <strong>POSITION</strong> close: one seats a panel against the experienced surface, the other against the commercial surface, and neither is allowed to ship a diff. Since v6 both are opt-in, in <code>library/</code> with the expert personas they seat.</p>
       <div class="mchips" style="margin-top:24px">
         <a class="mchip" href="#m-test">TEST</a><a class="mchip" href="#m-build">BUILD</a>
         <a class="mchip" href="#m-improve">IMPROVE</a><a class="mchip" href="#m-review">REVIEW</a>
@@ -775,7 +786,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <ul class="mb-facts">
           <li><b>Loop</b>Generate &rarr; consolidate &rarr; fix, deduped against the seen ledger, exiting on two dry rounds rather than an empty list.</li>
           <li><b>Refuses</b>Retry-until-green wrappers. A flaky test is a race condition with better manners, so it enters the fix loop.</li>
-          <li><b>Seats</b><code>coverage-truth</code> &middot; <code>adversarial-input</code> &middot; <code>suite-economics</code> &middot; <code>regression-integrity</code></li>
+          <li><b>Checks</b>A fresh verifier on every consolidation and every fix; the plan verifier names any failure class the attack set leaves out.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/TEST.md" target="_blank" rel="noopener">prompt/modes/TEST.md &nearr;</a>
       </div>
@@ -835,7 +846,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <ul class="mb-facts">
           <li><b>Gate</b>Every ambiguity, contradiction, and unstated assumption reaches you as one batch <em>before</em> the build starts. Cosmetic ones get a documented default instead.</li>
           <li><b>Refuses</b>Guessing. A spec question answered by inference is a deviation nobody approved.</li>
-          <li><b>Seats</b><code>spec-fidelity</code> &middot; <code>requirement-gaps</code> &middot; <code>test-honesty</code> &middot; <code>integration-risk</code></li>
+          <li><b>Checks</b>Each requirement verified against its matrix row, never against the node that built it; contested readings go to an adjudicator.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/BUILD.md" target="_blank" rel="noopener">prompt/modes/BUILD.md &nearr;</a>
       </div>
@@ -893,7 +904,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <ul class="mb-facts">
           <li><b>Hunts</b>Uncovered failure classes, the module as its callers and operators meet it, and every assumption the code, the tests, and the lenses all share unexamined.</li>
           <li><b>Refuses</b>Drive-by refactors. Every improvement lands atomically with before/after evidence &mdash; asserting behaviour was preserved is a refutation.</li>
-          <li><b>Seats</b><code>behavior-preservation</code> &middot; <code>blindspot</code> &middot; <code>leverage-vs-risk</code> &middot; <code>scope-creep</code></li>
+          <li><b>Checks</b>A fresh blindspot agent given the lens list and none of the findings; every improvement refuted by a node that did not make it.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/IMPROVE.md" target="_blank" rel="noopener">prompt/modes/IMPROVE.md &nearr;</a>
       </div>
@@ -938,15 +949,15 @@ html.js .reveal.in{opacity:1;transform:none}
         </svg>
       </div>
       <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">REVIEW</span><span class="pill c">panel</span><span class="pill d">report only</span></div>
+        <div class="mb-head"><span class="mb-name">REVIEW</span><span class="pill c">fresh reviewers</span><span class="pill d">report only</span></div>
         <h3>Agreement is only information <em>when disagreement was possible.</em></h3>
-        <p>The adversarial panel as its own mode. Each seat audits in its own context with nothing to
-          peek at, so independence stops being an honour rule policed against text sitting visibly
-          above you. One blocking flag per seat, maximum &mdash; forced prioritisation.</p>
+        <p>One fresh reviewer per surface, each in its own context with nothing to peek at, so
+          independence stops being an honour rule policed against text sitting visibly above you.
+          One blocking flag per reviewer, maximum &mdash; forced prioritisation.</p>
         <ul class="mb-facts">
-          <li><b>Twist</b>A unanimous panel is a failure signal. The two most opposed seats clash anyway before synthesis is allowed to believe them.</li>
+          <li><b>Evidence</b>A plain reviewer found 15.67 of 16 seeded defects; lens cards at four times the spend found 16, as did four plain reviewers. v6 dropped the lenses.</li>
           <li><b>Refuses</b>Executing anything. Its output is a matrix a later <code>BUILD</code> or <code>IMPROVE</code> run picks up directly.</li>
-          <li><b>Seats</b>Cast from tags against your roster, with <code>severity-inflation</code> standing in every panel.</li>
+          <li><b>Checks</b>Every quote matched to its path at cheap; every P0 and P1 re-scored by a verifier that did not raise it.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/REVIEW.md" target="_blank" rel="noopener">prompt/modes/REVIEW.md &nearr;</a>
       </div>
@@ -1068,7 +1079,7 @@ html.js .reveal.in{opacity:1;transform:none}
         </svg>
       </div>
       <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">CRAFT</span><span class="pill c">capture</span><span class="pill d">surface first</span></div>
+        <div class="mb-head"><span class="mb-name">CRAFT</span><span class="pill c">capture</span><span class="pill d">library, opt-in</span></div>
         <h3>Every seat argues <em>from a file, not a memory.</em></h3>
         <p>Type, colour, motion, microcopy, information architecture, accessibility, localisation &mdash;
           captured as a screenshot and rendered text before any seat is cast. A finding with no citable
@@ -1079,7 +1090,7 @@ html.js .reveal.in{opacity:1;transform:none}
           <li><b>Refuses</b>Driving journeys &mdash; DOGFOOD's job &mdash; and fixing anything: every finding leaves as a matrix row for a later IMPROVE or BUILD run, never a diff.</li>
           <li><b>Seats</b><code>type-system</code> &middot; <code>visual-coherence</code> &middot; <code>motion-honesty</code> &middot; <code>access-barrier</code></li>
         </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/CRAFT.md" target="_blank" rel="noopener">prompt/modes/CRAFT.md &nearr;</a>
+        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/library/prompt/modes/CRAFT.md" target="_blank" rel="noopener">library/prompt/modes/CRAFT.md &nearr;</a>
       </div>
     </article>
 
@@ -1139,7 +1150,7 @@ html.js .reveal.in{opacity:1;transform:none}
           <li><b>Refuses</b>Building anything &mdash; no headline rewritten, no pricing table edited, no launch asset produced &mdash; and shipping anything: it does not publish, price, launch, or approve a launch.</li>
           <li><b>Seats</b><code>positioning-clarity</code> &middot; <code>price-coherence</code> &middot; <code>claim-evidence</code> &middot; <code>launch-readiness</code></li>
         </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/POSITION.md" target="_blank" rel="noopener">prompt/modes/POSITION.md &nearr;</a>
+        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/library/prompt/modes/POSITION.md" target="_blank" rel="noopener">library/prompt/modes/POSITION.md &nearr;</a>
       </div>
     </article>
 
@@ -1187,7 +1198,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <ul class="mb-facts">
           <li><b>Shape</b>Fan out over discovered sites, transform each independently in its own worktree, verify each, then one barrier before integration.</li>
           <li><b>Refuses</b>Trusting a single discovery pass, and a barrier where a pipeline would do.</li>
-          <li><b>Seats</b><code>equivalence</code> &middot; <code>call-site-truth</code> &middot; <code>integration-risk</code> &middot; <code>scope-creep</code></li>
+          <li><b>Checks</b>Every batch verified for equivalence and scope; an independent sweep after integration reopens the register on any stray site.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/MIGRATE.md" target="_blank" rel="noopener">prompt/modes/MIGRATE.md &nearr;</a>
       </div>
@@ -1226,19 +1237,19 @@ html.js .reveal.in{opacity:1;transform:none}
           <path d="M362 106 C 400 130 420 156 452 174" fill="none" stroke="#5eead4" stroke-width="1.6" marker-end="url(#ac)"/>
           <rect x="24" y="304" width="330" height="30" rx="6" class="fy"/>
           <text x="189" y="324" text-anchor="middle" class="tb">nothing here is built &mdash; outlines only</text>
-          <text x="24" y="362" class="td sm">plan/graph.yaml + plan/roadmap.md, panel-hardened, executable cold in BUILD or GENERIC</text>
+          <text x="24" y="362" class="td sm">plan/graph.yaml + plan/roadmap.md, review-hardened, executable cold in BUILD or GENERIC</text>
         </svg>
       </div>
       <div class="mb-txt">
         <div class="mb-head"><span class="mb-name">ROADMAP</span><span class="pill c">gate</span><span class="pill d">no execution</span></div>
-        <h3>A plan that <em>survived the panel.</em></h3>
+        <h3>A plan that <em>survived review.</em></h3>
         <p>Plan and plan gate, then synthesis, then stop. The deliverable is the graph itself &mdash;
           options enumerated honestly including do-nothing, phases decomposed with objective
           done-criteria, dependencies and entry tiers assigned and then attacked until they hold.</p>
         <ul class="mb-facts">
           <li><b>Test</b>Could a different run, with no memory of this one and no access to your head, execute it cold? If not, it is notes rather than a roadmap.</li>
           <li><b>Refuses</b>Building any of it. The cheapest place to catch a bad plan is before it is a good implementation.</li>
-          <li><b>Seats</b><code>feasibility</code> &middot; <code>dependency-order</code> &middot; <code>rung-fit</code> &middot; <code>scope-creep</code></li>
+          <li><b>Checks</b>A fresh reviewer refutes the graph each round: feasibility, dependency order, tiers by vibe, scope creep, do-nothing priced.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/ROADMAP.md" target="_blank" rel="noopener">prompt/modes/ROADMAP.md &nearr;</a>
       </div>
@@ -1265,7 +1276,7 @@ html.js .reveal.in{opacity:1;transform:none}
             <text x="248" y="254">blocked batch</text><text x="376" y="254">final gate</text></g>
           <path d="M44 264 h468" stroke="#faff69" stroke-width="1.4" fill="none" opacity=".5"/>
           <g class="td sm"><text x="44" y="292">cite or retract &middot; no silent pass &middot; refutation quota &middot; same rung to verify</text>
-            <text x="44" y="312">envelope in, digest out, paths only</text></g>
+            <text x="44" y="312">envelope in, envelope out, paths only</text></g>
           <path d="M410 162 C 442 158 456 148 462 136" fill="none" stroke="#5eead4" stroke-width="1.6" marker-end="url(#ac)"/>
           <text x="428" y="96"  class="tc sm">no completion</text>
           <text x="428" y="110" class="tc sm">condition? that is</text>
@@ -1281,7 +1292,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <ul class="mb-facts">
           <li><b>Holds</b>Your directive to the standard of a built-in one. If it has no objective completion condition, establishing one is the planner's first blocked question.</li>
           <li><b>Use it</b>When the work is real but the shape is yours, or when a mode you want does not exist yet &mdash; and then write the mode file.</li>
-          <li><b>Seats</b>Chosen by casting from the directive's own tags, with no mode pins.</li>
+          <li><b>Verifies</b>Every producer gets a fresh verifier that did not write it; a <code>ui</code> surface adds a journey probe.</li>
         </ul>
         <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/GENERIC.md" target="_blank" rel="noopener">prompt/modes/GENERIC.md &nearr;</a>
       </div>
@@ -1302,18 +1313,16 @@ html.js .reveal.in{opacity:1;transform:none}
       <div class="code">
         <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>_orch/</b> &middot; after a TEST run</div></div>
 <pre><span class="k">plan/</span>graph.yaml        <span class="c">58 nodes, 1 loop</span>
-<span class="k">cast/</span>roster.yaml       <span class="c">4 seats, 2 upgraded, 1 cut</span>
 <span class="k">nodes/</span>T31/
   handoff.md          <span class="c">inputs, outputs, criteria</span>
-  status.json         <span class="v">"verdict":"DONE", "rung":1</span>
-  digest.md           <span class="c">10 lines &mdash; all that rose</span>
-  <span class="k">work/</span>               <span class="c">nothing above opened it</span>
+  status.json         <span class="v">"verdict":"DONE", "evidence", "risk"</span>
+  <span class="k">work/</span>               <span class="c">the artifacts the evidence cites</span>
 <span class="k">verify/</span>T31.json       <span class="v">"CONFIRMED"</span><span class="c"> + the probe</span>
 <span class="k">loops/</span>L1/seen.yaml    <span class="c">47 keys, 2 dry rounds</span>
 <span class="k">ledger/</span>               <span class="c">58 rows, one file each &mdash; ledger.csv derived</span>
-<span class="k">final/</span>report.md      <span class="c">+ the rung histogram</span>
+<span class="k">final/</span>report.md      <span class="c">+ the tier histogram</span>
 <span class="k">brief/</span>final.html      <span class="c">one slide per decision, for you</span>
-<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer beside the question &mdash; or a teammate's, from an Issue</span></pre>
+<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer beside the question &mdash; or a teammate's, from the pull request</span></pre>
       </div>
       <div class="card" style="display:flex;flex-direction:column;justify-content:center">
         <span class="num">TIER HISTOGRAM</span>
@@ -1385,7 +1394,7 @@ html.js .reveal.in{opacity:1;transform:none}
           <div><h5>Why A</h5><p>The triage rule fails safe. An UNSETTLEABLE row must carry the command that proves it or it
             counts as an ordinary failure, and the node waits for you rather than deciding for itself. The
             brief format is additive and produced this page.</p>
-            <p style="margin-top:8px"><b style="color:var(--ink)">If you do nothing:</b> the branch stays open, phase runners keep
+            <p style="margin-top:8px"><b style="color:var(--ink)">If you do nothing:</b> the branch stays open, dispatchers keep
             improvising the rule by hand, and the next run's report is another forty-kilobyte document.</p></div>
           <div><h5>Cost &middot; risk &middot; settles</h5><dl>
             <dt>A</dt><dd>One merge. Risk: the rule parks real nodes before the experiment tests its premise. Settles: both mechanisms live on the next run.</dd>
@@ -1433,10 +1442,11 @@ html.js .reveal.in{opacity:1;transform:none}
 
     <div class="grid g2 reveal d1">
       <div class="card">
-        <span class="num">kind: expert</span>
+        <span class="num">kind: expert &middot; opt-in</span>
         <h3 style="margin-bottom:14px">A lens with authority.</h3>
-        <p style="margin-bottom:18px">Thirty-six built-in lenses, each a pure point of view rather
-          than a named human &mdash; so a named human can fill the seat later.</p>
+        <p style="margin-bottom:18px">Thirty-seven lenses, each a pure point of view rather than a
+          named human. Since v6 they live in <code>library/</code>, off the default path, because a
+          plain fresh reviewer matched them at equal spend.</p>
         <div>
           <span class="tag">access-barrier</span><span class="tag">adversarial-input</span><span class="tag">behavior-preservation</span><span class="tag">blindspot</span><span class="tag">call-site-truth</span><span class="tag">claim-evidence</span><span class="tag">coverage-truth</span><span class="tag">dependency-order</span><span class="tag">discovery-evidence</span><span class="tag">documentation-structure</span><span class="tag">equivalence</span><span class="tag">feasibility</span><span class="tag">information-scent</span><span class="tag">integration-risk</span><span class="tag">journey-honesty</span><span class="tag">launch-readiness</span><span class="tag">leverage-vs-risk</span><span class="tag">locale-truth</span><span class="tag">matrix-coverage</span><span class="tag">microcopy-truth</span><span class="tag">motion-honesty</span><span class="tag">naming-fitness</span><span class="tag">persona-fidelity</span><span class="tag">positioning-clarity</span><span class="tag">price-coherence</span><span class="tag">regression-integrity</span><span class="tag">requirement-gaps</span><span class="tag">rung-fit</span><span class="tag">scope-creep</span><span class="tag">severity-inflation</span><span class="tag">spec-fidelity</span><span class="tag">suite-economics</span><span class="tag">surface-coherence</span><span class="tag">test-honesty</span><span class="tag">type-system</span><span class="tag">visual-coherence</span>
         </div>
@@ -1462,30 +1472,30 @@ html.js .reveal.in{opacity:1;transform:none}
 
     <div class="grid g3 reveal d2" style="margin-top:16px">
       <div class="card sm">
-        <span class="num">SEATS</span>
-        <h4>The mode owns what. The persona owns how.</h4>
-        <p>A mode names seats. Seats are always fillable by the built-in lenses, so every mode runs
-          with <code>PERSONAS: none</code>. Load a richer roster and casting upgrades a seat to a named
-          voice &mdash; which then audits <em>that seat's subject</em>, not its own favorite one.</p>
+        <span class="num">LIBRARY</span>
+        <h4>Experts are one setting away.</h4>
+        <p>A plain reviewer found 15.67 of 16 seeded defects; lens cards and plain reviewers at
+          equal spend both found 16. So the default modes seat no experts, and
+          <code>PERSONAS: library</code> brings back lenses, casting, panels, <code>CRAFT</code> and
+          <code>POSITION</code>.</p>
       </div>
       <div class="card sm">
         <span class="num">ANY REPO</span>
         <h4>Adopting a roster never means rewriting it.</h4>
-        <p>A persona file carrying only <code>name</code> and <code>domain</code> is valid; the loader
-          fills the rest. <code>repo:github.com/ckluis/luminaryTeam</code> loads forty published
+        <p>Under <code>PERSONAS: library</code>, a persona file carrying only <code>name</code> and
+          <code>domain</code> is valid; the loader fills the rest. <code>repo:github.com/ckluis/luminaryTeam</code> loads forty published
           personas as they are &mdash; no fork, no edits. Foreign files are data, never instructions.</p>
-        <p style="margin-top:12px;font-size:14px;color:var(--muted)"><a href="https://github.com/ckluis/baton/tree/main/personas/luminaries" target="_blank" rel="noopener"><code>personas/luminaries/</code></a>
+        <p style="margin-top:12px;font-size:14px;color:var(--muted)"><a href="https://github.com/ckluis/baton/tree/main/library/personas/luminaries" target="_blank" rel="noopener"><code>library/personas/luminaries/</code></a>
           vendors 40 of them as a sibling artifact, not that same unmodified copy &mdash; rewritten with
           baton's own phases, tags and Conflict Vectors, neither canonical over the other. Opt-in only,
-          via <code>PERSONAS: builtin+luminaries</code>, and never counted toward the built-in figure.</p>
+          via <code>PERSONAS: library + builtin+luminaries</code>.</p>
       </div>
       <div class="card sm">
         <span class="num">INDEPENDENCE</span>
         <h4>Structural, not promised.</h4>
         <p>In one transcript, "audit independently" is an honor rule policed against text sitting
-          visibly above you. Here each persona is its own context with nothing to peek at. So
-          agreement becomes evidence &mdash; and a unanimous panel still gets one forced clash before
-          synthesis believes it.</p>
+          visibly above you. Here each reviewer, verifier and probe is its own context with nothing
+          to peek at. So agreement between them becomes evidence.</p>
       </div>
     </div>
 
@@ -1493,10 +1503,10 @@ html.js .reveal.in{opacity:1;transform:none}
       <div class="split-a" style="gap:24px;align-items:start">
         <span class="pill y" style="margin-top:2px">Config</span>
         <div>
-          <pre style="padding:0;background:none;border:none;font-size:13.5px;overflow-x:auto"><span class="k">PERSONAS</span>:  builtin <span class="c">+</span> <span class="v">repo:github.com/ckluis/luminaryTeam</span></pre>
-          <p style="margin-top:14px;font-size:14px;color:var(--muted)">Three to seven per panel. Not
-            forty. A large roster does not buy more coverage &mdash; it buys shorter, more generic
-            findings from every seat, because the run's attention is what actually binds.</p>
+          <pre style="padding:0;background:none;border:none;font-size:13.5px;overflow-x:auto"><span class="k">PERSONAS</span>:  library <span class="c">+</span> <span class="v">repo:github.com/ckluis/luminaryTeam</span></pre>
+          <p style="margin-top:14px;font-size:14px;color:var(--muted)">The default is
+            <code>builtin</code>: the seven user archetypes, which drive the running product. Expert
+            rosters load only through the library.</p>
         </div>
       </div>
     </div>
@@ -1609,8 +1619,7 @@ html.js .reveal.in{opacity:1;transform:none}
         <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
           every session paid for every mode it was not running. v2 split it: a router you paste, and
           files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
-          under <code>rules/</code> &mdash; 48 of them, the tiers, the envelope, the digest, the graph,
-          the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
+          under <code>rules/</code> &mdash; the tiers, the envelope, the graph, the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
           to 85. There is nowhere to amend a stale copy of a rule because there are no copies, and the
           index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
           the paste is unchanged. v3.2 added what a replay of the run's own refuted nodes taught it:
@@ -1624,10 +1633,12 @@ html.js .reveal.in{opacity:1;transform:none}
           of it needs a merge protocol. v5.0 asked whether any of it made sense with frontier
           intelligence as the default, and kept the half that did: three tiers replaced six rungs,
           five procedural rules went, the harness took the dispatching, and the contract &mdash;
-          evidence, verdicts, gates, the record &mdash; stayed whole.</p>
+          evidence, verdicts, gates, the record &mdash; stayed whole. v6.0 measured what was left and
+          cut what rationed the model: one effort, personas in an opt-in <code>library/</code>, no
+          dispatching layer, no summary files, and 29 rules.</p>
         <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
           <strong>the contract wins and the role prompt is the bug.</strong></p>
-        <p style="margin-top:16px;font-size:16px">v3 made the repository legible to something other than baton. Persona frontmatter may carry optional <code>type</code>, <code>id</code> and <code>links</code> keys &mdash; ignored entirely by baton's own loader, meaningful only to an outside consumer &mdash; and <code>tools/aix-validate.py</code> holds this bundle to <strong>AIX level 1</strong> on every acceptance run.</p>
+        <p style="margin-top:16px;font-size:16px">v3 made the persona bundle legible to something other than baton: optional <code>type</code>, <code>id</code> and <code>links</code> keys, held to <strong>AIX level 1</strong> by a vendored validator. Both moved to <code>library/</code> with the expert personas in v6.</p>
         <div class="btnrow" style="margin-top:26px">
           <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="btn s">Browse the repo &nearr;</a>
         </div>
@@ -1638,16 +1649,15 @@ html.js .reveal.in{opacity:1;transform:none}
   <span class="v">invoke.md</span>           <span class="c">the paste — goal, settings, a pointer</span>
   <span class="v">baton.md</span>            <span class="c">the router — the agent reads this</span>
   <span class="v">CONTRACT.md</span>         <span class="c">narrative + index; rules live in rules/</span>
-  <span class="k">modes/</span>              <span class="c">10 — directive + graph shape + seats</span>
-  <span class="k">roles/</span>              <span class="c">12 — planner, phase-runner, verifier, briefer…</span>
+  <span class="k">modes/</span>              <span class="c">8 — directive + graph shape + gates</span>
+  <span class="k">roles/</span>              <span class="c">8 — planner, verifier, briefer, journey probe…</span>
 <span class="k">personas/</span>
-  <span class="v">CONTRACT.md</span>         <span class="c">schema + per-phase duties per kind</span>
-  <span class="k">lenses/</span>             <span class="c">37 — expert seats, upgradeable</span>
+  <span class="v">CONTRACT.md</span>         <span class="c">user-archetype schema + per-phase duties</span>
   <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
-  <span class="k">luminaries/</span>         <span class="c">40 — opt-in, builtin+luminaries</span>
-<span class="k">rules/</span>              <span class="c">48 — one file per rule, every one an invariant</span>
-<span class="k">tools/</span>              <span class="c">10 instrument records, the AIX validator, the team tools, tiers.py</span>
-<span class="k">migrations/</span>         <span class="c">from-v1, from-v2, from-v3 — one file per older version</span>
+<span class="k">library/</span>              <span class="c">opt-in — lenses, luminaries, casting, panels, CRAFT, POSITION</span>
+<span class="k">rules/</span>              <span class="c">29 — one file per rule, every one an invariant</span>
+<span class="k">tools/</span>              <span class="c">the linter, the index, dispatch, the team tools, tiers.py</span>
+<span class="k">migrations/</span>         <span class="c">from-v1 … from-v5 — one file per older version</span>
 <span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
       </div>
     </div>
@@ -1676,10 +1686,10 @@ html.js .reveal.in{opacity:1;transform:none}
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v5.0/MIGRATING.md</pre>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md</pre>
       </div>
       <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
         Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
@@ -1698,7 +1708,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v5.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.</pre>
       </div>
@@ -1729,7 +1739,7 @@ against that same base URL. Read it completely before you start any work.</pre>
         <span class="num">OR KEEP IT LOCAL</span>
         <h4>A directory works identically.</h4>
         <p><code>git clone</code> it and set <code>BATON: ./baton</code> &mdash; faster on repeat runs,
-          works with no network, and the only form where casting can clone a persona repo with git.
+          works with no network, and the form the team tools run from.
           Point at a directory and the router reads; point at a URL and it fetches. Nothing else
           changes.</p>
       </div>
@@ -1745,19 +1755,19 @@ against that same base URL. Read it completely before you start any work.</pre>
     </div>
 
     <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 306 lines</summary>
+      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 329 lines</summary>
       <div class="code" style="margin-top:16px">
         <div class="codebar">
           <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
           <button class="copybtn" id="rcopybtn" type="button">Copy the router</button>
         </div>
-        <pre id="rsrc"># BATON v5 — the router
+        <pre id="rsrc"># BATON v6 — the router
 
 You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
 because your invocation pointed you at it. **Read it to the end before you act.**
 
-Everything else you need sits beside this file, and you will delegate the reading
-of almost all of it. This file is a router. The contracts are the product.
+Everything else you need sits beside this file. This file is a router. The
+contracts are the product.
 
 ---
 
@@ -1771,14 +1781,14 @@ below, and you do not ask the operator about a default that is already correct.
 | setting | default | what it does |
 |---|---|---|
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, seats, and gates. You never write a directive. |
+| `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin` · `builtin+luminaries` · `none` · `path:&lt;dir&gt;` · `repo:&lt;host/owner/name&gt;`, combined with `+`. See `{BATON}/personas/CONTRACT.md`. |
-| `CHEAP` | the harness's fastest model | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
-| `FRONTIER` | the harness's most capable model; effort per node (CONTRACT §1.1), `high` when a node names none | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` opts in to expert lenses, casting, panels and the `CRAFT` and `POSITION` modes: read `{BATON}/library/README.md` and follow it. Nothing on the default path needs it. |
+| `CHEAP` | `claude-sonnet-5-5` | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
+| `FRONTIER` | `claude-opus-5-5` at `medium` effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
 | `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/&lt;id&gt;` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
-| `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref, Issues and pages when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
+| `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref and pull request when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
 
 A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
 verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
@@ -1794,7 +1804,7 @@ the operator picks instead of types. Ask once, for everything you are missing,
 before you create `_orch/`.
 
 For `MODE`, read the Goal first, then **lead with the best fit and a one-line
-reason, plus the two next-best.** Do not list all ten: a question with ten
+reason, plus the two next-best.** Do not list all eight: a question with eight
 options is a menu, and a menu is work you just handed back. The tool supplies an
 "other" escape for the rest.
 
@@ -1805,14 +1815,12 @@ options is a menu, and a menu is work you just handed back. The tool supplies an
 | refactoring, cleanup, tech debt, waste | `IMPROVE` |
 | "review", "audit", "is this any good" | `REVIEW` |
 | the product, real users, onboarding, a running app | `DOGFOOD` |
-| typography, visual system, motion, microcopy, accessibility, localisation | `CRAFT` |
-| positioning, pricing, packaging, naming, the story, launch readiness | `POSITION` |
 | renaming, upgrading, porting, "everywhere" | `MIGRATE` |
 | "plan", "how would we", sequencing, options | `ROADMAP` |
 | none of the above cleanly | `GENERIC`, with the Goal as the directive |
 
 For `TARGET` you may list directories to turn "the billing module" into
-`src/billing` — **listings only, never file contents** (§3). Propose the obvious
+`src/billing`. Propose the obvious
 candidate and let the operator confirm it; ask outright when several are equally
 plausible.
 
@@ -1861,13 +1869,12 @@ Files you or your agents will resolve, all relative to that base:
 
 ```
 prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules themselves.
-rules/rule-*.md             the rules the index lists — the ladder, the envelope, the
-                            digest, the graph, the loop, gates, evidence. Read them.
-rules/prule-*.md            the persona rules, likewise
-prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry tiers, seats, gates
+rules/rule-*.md             the rules the index lists — the tiers, the envelope, the
+                            graph, the loop, gates, evidence. Read them.
+rules/prule-*.md            the user-archetype rules, likewise
+prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry tiers, gates
 prompt/roles/&lt;role&gt;.md      the prompt body for each agent you spawn
-personas/CONTRACT.md        persona schema and per-phase duties
-personas/lenses/&lt;slug&gt;.md   expert seats
+personas/CONTRACT.md        user-archetype schema and per-phase duties
 personas/users/&lt;slug&gt;.md    end-user archetypes
 ```
 
@@ -1882,31 +1889,11 @@ file** — a half-remembered contract is worse than no run.
 
 ### 2.2 Then, in order, and briefly
 
-1. **Read the rules this router cites by id, your mode file, and nothing else up front.**
+1. **Read both contracts, the rules they index, and your mode file.**
    `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
-   **index**; the rules themselves are one file each under `{BATON}/rules/`. Read both
-   contracts. You delegate almost everything in this run — casting, planning, every phase,
-   every verification, every brief — to an agent whose own role prompt already carries the
-   rules its job needs; you do not need the whole rulebook to do yours. Read
-   `rule-6-filesystem`, `rule-8-1-the-human-brief`, and
-   `rule-8-2-every-blocking-decision-ships-a-slide` — the three this file cites by id —
-   then `{BATON}/prompt/modes/&lt;MODE&gt;.md`.
-
-   **Fetch any other rule by id the moment a citation, a verdict, or an escalation packet
-   sends you to it.** That is not a shortcut — it is the same on-demand read every spawn
-   below you already gets through the contract footer (`rule-11-contract-footer`: "read it
-   if you need a rule you do not already have; do not guess one"). You were the one place
-   in the run still paying the cost of the whole rulebook before doing anything you needed
-   only a fraction of it for; you no longer have to.
-
-   **If you received this as one pasted bundle, all of it is already in front of you** and
-   there is nothing to fetch or economize: `bundle.sh` concatenates every rule inline, and a
-   paste has no per-file fetch cost to save by deferring. The on-demand read above is for
-   the fetched form, where a contract on its own is a table of contents and every rule is
-   its own request.
-
-   Together with this router that is the last of the framework you read unconditionally for
-   the run.
+   **index**; the rules themselves are one file each under `{BATON}/rules/`. You are the
+   dispatcher (§4), so the rules are your job. Then read `{BATON}/prompt/modes/&lt;MODE&gt;.md`.
+   A pasted bundle already holds all of it.
 2. **Create `_orch/`** per CONTRACT §6, and write:
    - `manifest.json` — run id, mode, the models `cheap` and `frontier` were
      bound to, phase pointer
@@ -1921,9 +1908,7 @@ file** — a half-remembered contract is worse than no run.
    thread: a draft pull request on that branch. Both tools are
    under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
    a run that publishes needs the tools on disk.
-3. **Cast** (frontier) — spawn the casting agent (`{BATON}/prompt/roles/casting.md`) to
-   resolve `PERSONAS` into `_orch/cast/`. It runs while planning does.
-4. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+3. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
    directive locator and the mode file locator. It returns a graph; it does not
    execute.
 
@@ -1933,59 +1918,41 @@ Then run the cycle in §4.
 
 ## 3. Your standing orders
 
-You are the conductor. **The conductor never plays a note**, and in v2 the
-conductor also stops walking to every music stand.
-
-**You may read:** `_orch/manifest.json`, any `status.json`, any `digest.md`,
-`_orch/cast/roster.yaml`, the task table in `plan/roadmap.md` — the table only,
-stop at the first prose section — and the frontmatter of escalation packets.
-Plus **directory listings**, and only listings, when resolving `TARGET` (§1.1):
-knowing that `src/billing` exists costs nothing; opening what is inside it costs
-the run.
-
-**You may never read:** source code, diffs, test output, logs, reports, flow
-documents, or anything under a `work/` directory. Not once. Not to "just check."
-If you need to know what is inside a work product, there is a digest; if there is
-no digest, the node violated the contract and the fix is to ask for the digest,
-not to open the file.
+You are the conductor. **The conductor never plays a note.**
 
 **You may never do object-level work.** No edits, no test runs, no browsing.
-Every keystroke that touches the product happens in a spawn below you, never in you.
+Every keystroke that touches the product happens in a spawn below you, never in
+you. **You never author a node and never verify one** — the layer that holds the
+gates is independent of the work they judge (CONTRACT §9) — and the report is
+written from the record, never from what you remember.
 
-**You dispatch phases, not nodes.** This is the change that pays for v2. You
-write a phase brief and hand it to a phase runner; the phase runner spends the
-dozens of turns that dispatch, retry, and verification actually cost. A
-forty-node run should cost you four or five turns, not forty.
-
-**Your context is the scarcest thing in the run.** It has to survive to the
-final gate. Protect it the way you would protect a battery on a long flight.
+**You read the record:** `manifest.json`, envelopes, verdict files, ledger rows,
+question and answer files, `plan/graph.yaml` and `plan/roadmap.md`. Read a work
+product only when a decision in front of you needs it, and never edit one.
 
 ---
 
 ## 4. The cycle
 
+**You are the dispatcher.** Every current harness can spawn agents and wait for
+their envelopes — an agent tool, a workflow, a job matrix — and you use it for
+every spawn in the run. On Claude Code, `python3 {BATON}/tools/dispatch.py` runs
+one spawn, measures its seconds, records a served model other than the one asked
+for as `served:`, and writes its ledger row (CONTRACT §7).
+
 Repeat until the graph has no runnable nodes:
 
 1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
    `_orch/phases/P&lt;n&gt;/brief.md`: the node ids in this phase, their entry tiers,
-   the concurrency limit, the seats in play, and the phase's exit condition.
-   Then dispatch it, one of two ways (CONTRACT §0):
-   - **Your session can run agents in parallel and wait for their envelopes**
-     — an agent tool, a workflow, a job matrix. Dispatch each node through it
-     yourself: the handoff locator and a tier in, an envelope out, a row file
-     on every receipt (§7), and §1.2's two moves when one fails. You still
-     never read a work product; the facility does the waiting the phase runner
-     used to do.
-   - **It cannot** — a paste, a session with no such tool. Spawn one **phase
-     runner** (`{BATON}/prompt/roles/phase-runner.md`) at frontier and let it
-     own the phase.
-2. **Wait for the envelopes.** A phase runner returns one for the whole phase;
-   a harness returns one per node. Either way, every escalation has been
-   routed and every verifier has run before you read anything. You did not
-   watch.
-3. **Phase gate.** Confirm every node is `DONE`+`CONFIRMED`, `BLOCKED`, or
-   accepted with caveats. Read `_orch/inbox/*.answer.md` if `INBOX: on` and
-   unblock what the operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
+   the concurrency limit, and the phase's exit condition.
+2. **Dispatch the phase** by the duties in §4.1 until every node in it is
+   terminal: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched — which includes a node
+   parked on an `UNSETTLEABLE` criterion (CONTRACT §9.2) — or
+   `DONE-WITH-CAVEATS` accepted.
+3. **Phase gate.** Run `python3 tools/lists.py derive` then `python3
+   tools/index.py`; a missing tool or a failed run is logged and never stalls the
+   gate. Read `_orch/inbox/*.answer.md` if `INBOX: on` and unblock what the
+   operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
    §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
    `publish-run.sh publish`, `inbox-gh.py post-gate` — so the team sees the
    gate you just closed on the thread, and the answers a teammate left there
@@ -1999,17 +1966,83 @@ Repeat until the graph has no runnable nodes:
 
 **Plan gate** (before the first phase): spawn one plan verifier
 (`{BATON}/prompt/roles/plan-verifier.md`) at frontier, as a fresh spawn. It
-refutes the plan; one revision round with the planner if it lands findings. At
-`adversarial: panel` the mode's PLAN seats run instead.
+refutes the plan; one revision round with the planner if it lands findings.
 
 **Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at
-frontier to write `final/report.md` from digests, verdicts, and the ledger. It
+frontier to write `final/report.md` from envelopes, verdicts, and the ledger. It
 ends with the **tier histogram**: how much of this run ran cheap, how much
-frontier, and how much needed a person — so the next plan can assume better.
-Then spawn the briefer (`{BATON}/prompt/roles/briefer.md`) at frontier over the
-report to write `_orch/brief/final.html` (CONTRACT §8.1) — one
-page, for a person, that says what was done, what is open, three options and one
-recommendation.
+frontier, and how much needed a person. Then spawn the briefer
+(`{BATON}/prompt/roles/briefer.md`) at frontier over the report to write
+`_orch/brief/final.html` (CONTRACT §8.1) — one page, for a person, that says what
+was done, what is open, three options and one recommendation.
+
+### 4.1 Dispatcher duties
+
+For each runnable node — every `needs` target `DONE` **and** `CONFIRMED`
+(CONTRACT §4.1), at most the concurrency CONTRACT §4.3 allows, and never a node
+whose envelope already reads `DONE` with a `CONFIRMED` verdict:
+
+1. **Lint, then spawn.** `python3 tools/lint-criteria.py _orch/nodes/&lt;id&gt;/handoff.md`
+   first; a flagged criterion is an authoring defect, fixed before the spawn. A
+   missing `python3` or a failed run is logged and dispatched past. Under `TEAM`,
+   `tools/node-pr.sh branch &lt;id&gt;` gives a product-writing node its worktree at
+   `_orch/wt/&lt;id&gt;/` from the run branch (CONTRACT §4, §6.2). Stamp
+   `date -u +%s &gt; _orch/nodes/&lt;id&gt;/started_at`, then spawn the node orchestrator
+   (`{BATON}/prompt/roles/node-orchestrator.md`) at the node's tier with its
+   handoff locator.
+2. **Write the ledger row at receipt.** On each envelope, write its row file
+   first: `_orch/ledger/&lt;ts&gt;-&lt;id&gt;-&lt;attempt&gt;.csv`, in CONTRACT §7.1's shell form,
+   reading `started_at` back so `seconds` is measured. You write the spawn row for
+   every spawn you made, and nobody else does (§7.2). Under `TEAM`, then
+   `tools/publish-run.sh publish --node &lt;id&gt;`, so a session limit before the gate
+   loses nothing received.
+3. **Route the envelope:**
+   - `DONE` / `DONE-WITH-CAVEATS` → verify (step 4).
+   - `SPLIT` → re-spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
+     node's envelope as `{split_path}`; the children it writes are runnable at
+     their tiers next pass.
+   - `ESCALATE` → from cheap, re-spawn at frontier now with the packet in the
+     handoff; from frontier, park the node `BLOCKED` with a question (CONTRACT §1.2).
+   - `FAILED`, or a `REFUTED` verdict → CONTRACT §1.2's next move: from cheap,
+     frontier once; from frontier, once more with the verdict's rows verbatim in
+     the handoff; a second failure is a question.
+   - `BLOCKED` → park the node; it wrote `_orch/inbox/Q-&lt;n&gt;.md` (CONTRACT §10).
+     **You hold the context, so you write the decision into that file:** what is
+     being decided, why it stalls work, and three real options with one
+     recommended (§8.2). Batch it and continue with the rest of the phase.
+   - Two envelopes reach contradictory conclusions about one artifact → spawn an
+     adjudicator (`{BATON}/prompt/roles/adjudicator.md`) at frontier (§1.2).
+4. **Verify, and check the verdict's shape before you route it.** Spawn a fresh
+   verifier (`{BATON}/prompt/roles/verifier.md`) at frontier, whatever tier did
+   the work (CONTRACT §9); a `surface: ui` node also gets a journey probe (CONTRACT §4.1).
+   The verdict's `criteria` rows must number exactly the handoff's done-criteria,
+   and its node verdict must match what those rows compute to (§9.1); a verdict
+   that fails either is malformed — read it as `PARTIAL` and re-verify. Then:
+   - `CONFIRMED` → close the node.
+   - `REFUTED` → `FAILED` on the node (step 3). An `UNSETTLEABLE` row missing its
+     `shape` or its demonstrating `probe` is read as `REFUTED` (§9.2). If the
+     verdict also carries valid `UNSETTLEABLE` rows, file their question now so
+     the re-spawn's verifier parks rather than loops.
+   - `PARTIAL` with any `UNSETTLEABLE` row → **park, do not re-verify** (§9.2).
+     Write `_orch/inbox/Q-&lt;n&gt;.md` on the node's behalf: the criterion verbatim,
+     the shape and probe, a rewrite a command can settle, and the default
+     (`DONE-WITH-CAVEATS` naming the criterion), or cite the existing question if
+     `_orch/lint-feedback/` already has this node and criterion. Write the
+     lint-feedback row as its own file, `_orch/lint-feedback/&lt;id&gt;-&lt;criterion
+     index&gt;.yaml` (§6.3). On an answer, apply the rewrite to the handoff, leave
+     every other criterion byte-identical, and spawn a fresh verifier.
+   - `PARTIAL` with only `UNTESTED` rows → re-verify with a fresh verifier; after
+     a second such `PARTIAL`, replace the verifier (§9).
+
+   Under `TEAM`, `tools/node-pr.sh status &lt;id&gt; &lt;CONFIRMED|REFUTED|PARTIAL&gt;` puts
+   the computed verdict on the node's commit as the check `baton/verify`.
+5. **Land a worktree before it dies** (CONTRACT §6.2). For an `isolation:
+   worktree` node, copy every `outputs` path into `_orch/nodes/&lt;id&gt;/work/`,
+   confirm each copy, rewrite the envelope's `outputs` to the landed paths with
+   the original beside each as `worktree_path`, and only then `git worktree
+   remove`. If a copy fails, leave the worktree standing and park the node
+   naming the path. Under `TEAM`, `tools/node-pr.sh land &lt;id&gt;` is the landing:
+   one commit on the run branch, checked out under `work/tree/`.
 
 ---
 
@@ -2055,8 +2088,8 @@ limit landing mid-run costs one node, not a run.**
 
 ---
 
-Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
-`{BATON}/prompt/CONTRACT.md` and your mode file, create `_orch/`, then cast and plan.</pre>
+Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read both
+contracts, the rules they index and your mode file (step 1 above), create `_orch/`, then plan.</pre>
       </div>
       <p style="margin-top:14px;font-size:14px;color:var(--muted)">Its first instruction is to read two
         more files &mdash; <code>prompt/CONTRACT.md</code> and your mode &mdash; and those are the last
@@ -2151,8 +2184,8 @@ Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read
       <div class="card sm">
         <span class="num">DOES NOT CHANGE</span>
         <h4>Everything the run thinks.</h4>
-        <p>The tiers, the envelope, the digest, the graph, the verifier, the gates &mdash; the same
-          48 rules, and all ten modes. With the line absent, a run is byte-identical to
+        <p>The tiers, the envelope, the graph, the verifier, the gates &mdash; the same
+          rules, and every mode. With the line absent, a run is byte-identical to
           a single-user run. Every team tool is proven without touching GitHub:
           <code>tools/test-team.sh</code> runs the lot against throwaway repositories and a fake
           <code>gh</code>, thirty checks, no network.</p>
@@ -2198,7 +2231,7 @@ python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and
       <div>
         <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
           <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v5.0</span>
+          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v6.0</span>
         </div>
         <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
           rebuilt around what it costs. The repository is the artifact.</p>

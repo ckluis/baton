@@ -166,3 +166,5 @@ greenfield build, every effort met the contract, and a blind judge preferred hig
 it in robustness and tests (`docs/experiments/effort-greenfield-go-blog.md`). So v5 keeps one model and
 sets effort per node (`rules/rule-1-1-entry-rung.md`): high to build or design, medium to verify or
 repair against a named criterion.
+
+v6 replaces this with one effort, medium, and `effort:` as an optional override (`docs/designs/v6-shrink.md`).

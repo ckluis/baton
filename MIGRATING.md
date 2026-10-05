@@ -1,10 +1,11 @@
 # Migrating between baton versions
 
 One file per version you might be coming from. Each says what breaks, what does
-not, and what to do with a run in flight. The current release is **v5.0**.
+not, and what to do with a run in flight. The current release is **v6.0**.
 
 | coming from | read | the short version |
 |---|---|---|
+| **v5.0** | [`migrations/from-v5.md`](migrations/from-v5.md) | change one URL; a run in flight resumes; `PERSONAS: library` if you used expert seats, `CRAFT` or `POSITION` |
 | **v4.0** | [`migrations/from-v4.md`](migrations/from-v4.md) | change one URL; a checkout needs one command (`tiers.py remap`); a run in flight needs nothing |
 | **v3.0 – v3.3** | [`migrations/from-v3.md`](migrations/from-v3.md) | the v4.0 hop (`lists.py split`, once per run in flight), then the v5.0 hop |
 | **v2.0** | [`migrations/from-v2.md`](migrations/from-v2.md) | five breaking changes at v3.0, then the two above |
@@ -12,10 +13,14 @@ not, and what to do with a run in flight. The current release is **v5.0**.
 
 `TEAM: github` is opt-in in every case. Every schema — envelopes, verdicts, the
 ledger, graphs, persona cards — has kept its fields and names through every hop
-since v2.0; what changed at v5.0 is the *meaning* of one field's values.
+since v2.0, except the envelope's `digest`, which v6.0 replaced with `evidence`
+and `risk`; what changed at v5.0 is the *meaning* of one field's values.
 
 ## Every hop, for the record
 
+- **v5.0 → v6.0** — one effort; personas, casting, panels, `CRAFT` and `POSITION`
+  move to `library/`; no phase runner, digest or decomposer; seven rules merged
+  and one cut. Every record field is kept.
 - **v4.0 → v5.0** — one breaking change: a `rung` value now means a tier (`0`
   cheap, `1` frontier, `n/a`); `CEILING` and `PRIME_TURNS` are gone. Five rules
   deleted, four rewritten, one bullet cut; dispatch may belong to the harness.

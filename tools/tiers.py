@@ -17,7 +17,8 @@ the ledger - so nothing that reads it changes. Its values are now 0 (cheap),
 
 `check` exits 1 on any `rung:` value above 1 in what it looks at, and on any
 `effort:` that is not one of low, medium, high, xhigh, max or that sits on a
-rung-0 node - effort is chosen per node inside frontier (CONTRACT §1.1), and the
+rung-0 node - effort is an optional per-node override inside frontier (CONTRACT §1.1),
+and the
 cheap tier takes the harness default. Stdlib only;
 edits only the files it names; prints every change.
 """

@@ -3,7 +3,7 @@ type: Contract
 id: prompt-contract
 ---
 
-# BATON CONTRACT — v3
+# BATON CONTRACT — v6
 
 Every agent in a baton run obeys this contract. Role prompts add duties on top of
 it; nothing in it is optional. Where a role prompt and a rule disagree, **the rule
@@ -33,14 +33,13 @@ files as well** — this file is an index, and an index is not a rulebook.
 
 Work is routed on three **tiers** — cheap for what a command can settle, frontier
 for everything with judgment in it, and a person when frontier has failed twice —
-and a retry carries the verdict that failed it. Each layer passes **locators and a
-tier** downward and receives an **envelope** upward; a **digest** exists so no
-layer ever opens the layer below's work. The plan is a **graph** with typed edges,
-and convergence is a **loop node** with a declared exit rather than a paragraph of
-encouragement. Every claim carries a citation or is retracted, and every verdict is
-computed per criterion rather than asserted. State lives on disk so any fresh
-session resumes and no context is load-bearing. The prime spends its turns on
-**gates** and nothing else.
+and a retry carries the verdict that failed it. The prime dispatches every node,
+passing **locators and a tier** downward and receiving an **envelope** upward. The
+plan is a **graph** with typed edges, and convergence is a **loop node** with a
+declared exit rather than a paragraph of encouragement. Every claim carries a
+citation or is retracted, and every verdict is computed per criterion by a fresh
+verifier rather than asserted. State lives on disk so any fresh session resumes.
+A person decides at **gates**, from a brief.
 
 ## The rules
 
@@ -48,23 +47,16 @@ session resumes and no context is load-bearing. The prime spends its turns on
 
 | § | rule | file |
 |---|---|---|
-| 0 | 0. Layers | [`rule-0-layers.md`](../rules/rule-0-layers.md) |
 | 1 | 1. The Tiers | [`rule-1-the-ladder.md`](../rules/rule-1-the-ladder.md) |
 | &nbsp;&nbsp;1.1 | 1.1. Entry tier | [`rule-1-1-entry-rung.md`](../rules/rule-1-1-entry-rung.md) |
 | &nbsp;&nbsp;1.2 | 1.2. Escalation | [`rule-1-2-escalation.md`](../rules/rule-1-2-escalation.md) |
 | 2 | 2. The Status Envelope | [`rule-2-the-status-envelope.md`](../rules/rule-2-the-status-envelope.md) |
 | &nbsp;&nbsp;2.1 | 2.1. Verdicts | [`rule-2-1-verdicts.md`](../rules/rule-2-1-verdicts.md) |
-| 3 | 3. The Digest | [`rule-3-the-digest.md`](../rules/rule-3-the-digest.md) |
 | 4 | 4. The Graph | [`rule-4-the-graph.md`](../rules/rule-4-the-graph.md) |
 | &nbsp;&nbsp;4.1 | 4.1. Edge types | [`rule-4-1-edge-types.md`](../rules/rule-4-1-edge-types.md) |
-| &nbsp;&nbsp;4.2 | 4.2. Fan-out and barriers | [`rule-4-2-fan-out-and-barriers.md`](../rules/rule-4-2-fan-out-and-barriers.md) |
 | &nbsp;&nbsp;4.3 | 4.3. Concurrency | [`rule-4-3-concurrency.md`](../rules/rule-4-3-concurrency.md) |
-| &nbsp;&nbsp;4.4 | 4.4. Decomposition | [`rule-4-4-decomposition.md`](../rules/rule-4-4-decomposition.md) |
 | &nbsp;&nbsp;4.5 | 4.5. Done-criteria are atomic | [`rule-4-5-done-criteria-are-atomic.md`](../rules/rule-4-5-done-criteria-are-atomic.md) |
 | 5 | 5. The Loop | [`rule-5-the-loop.md`](../rules/rule-5-the-loop.md) |
-| &nbsp;&nbsp;5.1 | 5.1. The seen ledger is the whole trick | [`rule-5-1-the-seen-ledger-is-the-whole-trick.md`](../rules/rule-5-1-the-seen-ledger-is-the-whole-trick.md) |
-| &nbsp;&nbsp;5.2 | 5.2. Dry, not empty | [`rule-5-2-dry-not-empty.md`](../rules/rule-5-2-dry-not-empty.md) |
-| &nbsp;&nbsp;5.3 | 5.3. Every loop declares its exit before its first iteration | [`rule-5-3-every-loop-declares-its-exit-before-its-first.md`](../rules/rule-5-3-every-loop-declares-its-exit-before-its-first.md) |
 | 6 | 6. Filesystem | [`rule-6-filesystem.md`](../rules/rule-6-filesystem.md) |
 | &nbsp;&nbsp;6.1 | 6.1. Framework locators vs run state | [`rule-6-1-framework-locators-vs-run-state.md`](../rules/rule-6-1-framework-locators-vs-run-state.md) |
 | &nbsp;&nbsp;6.2 | 6.2. A worktree node lands its outputs before the worktree dies | [`rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md`](../rules/rule-6-2-a-worktree-node-lands-its-outputs-before-the-worktree-dies.md) |

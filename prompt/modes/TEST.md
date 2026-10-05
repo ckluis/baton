@@ -42,7 +42,6 @@ the baseline recorded in phase 1.
   title: Map every test to the behavior it pins; flag the weak, duplicate, tautological
   rung: 1
   needs: [T01]
-  personas: [suite-economics, coverage-truth]
   done: "work/suite-map.yaml covers every test once; work/flagged.yaml gives each flag a ≤20-word quote, a location, and one of redundant-with <id> | tautological | asserts-implementation"
 - id: T04                       # phase 2 — adversarial generation
   kind: task
@@ -104,16 +103,14 @@ the baseline recorded in phase 1.
   title: Land the regression test for each fix
   rung: 1
   needs: [T11]
-  personas: [regression-integrity]
-  done: "each new test fails against the pre-fix revision and passes after; both runs cited in the digest"
+  done: "each new test fails against the pre-fix revision and passes after; both runs cited in the envelope's evidence"
 - id: T20                       # phase 4 — earns its place
   kind: gate
   phase: 4
   title: Every test added or kept this run justifies itself
   rung: 1
   needs: [L1]
-  adversarial: panel
-  personas: [coverage-truth, adversarial-input, suite-economics, regression-integrity]
+  adversarial: standard
   done: "no test lacks a pinned behavior in suite-map.yaml, and no two tests claim the same behavior without a written reason"
 ```
 
@@ -135,26 +132,13 @@ A contested call about the same test reaches an adjudicator at frontier through
 §1.2, never by assignment; an adjudicator that cannot rule on the evidence is a
 question.
 
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `coverage-truth` | expert | AUDIT, VERIFY | whether tests validate meaningful behavior or merely execute lines; attacks the coverage number itself |
-| `adversarial-input` | expert | PLAN, AUDIT | which malformed, boundary, race, exhaustion, or state-corruption class is still unattacked |
-| `suite-economics` | expert | AUDIT | redundancy, brittleness, runtime — the suite as an asset with a carrying cost |
-| `regression-integrity` | expert | AUDIT, VERIFY | whether every bug fixed in `L1` has a test that fails against the pre-fix code |
-
-Casting upgrades (personas/CONTRACT §4.2) prefer tags `testing`/`quality` for
-`coverage-truth`, `security`/`fuzzing`/`threat-modeling` for `adversarial-input`,
-`refactoring`/`maintainability`/`performance` for `suite-economics`,
-`regression`/`reliability` for `regression-integrity`.
-
 ## Gates
 
-**Plan gate.** Checks `L1` against §5.3, that its ledger key is file + test id +
+**Plan gate.** Checks `L1` against §5, that its ledger key is file + test id +
 assertion shape rather than a round number, that `T01` precedes every node that
 deletes a test, and that no test-authoring node sits downstream of a fix node.
-`adversarial-input` runs its PLAN duty here. Passes with zero P0/P1 standing.
+The plan verifier also names any failure class `T04` leaves unattacked. Passes
+with zero P0/P1 standing.
 
 **Phase gate.** Phase 1 closes when every test is accounted for in
 `suite-map.yaml`. Phase 2 closes when `V1` returns `CONFIRMED` against the
@@ -165,7 +149,7 @@ is undecidable from the contract — the test may be wrong or the code may be, a
 nobody inside the run can tell. Those park and batch while the loop keeps
 running. An unavoidable coverage regression blocks; it never passes as a caveat.
 
-**Final gate.** Synthesis over digests, verdicts, ledger, tier histogram. `T20`
+**Final gate.** Synthesis over envelopes, verdicts, ledger, tier histogram. `T20`
 is its evidence.
 
 ## Done
@@ -181,7 +165,7 @@ failing pre-fix run.
 
 - **The sweep pins the bug.** An author reads the code, records what it returns,
   and calls that the expectation — the suite now defends the defect. `T04` must
-  cite a contract source for every expectation, and `coverage-truth` at VERIFY
+  cite a contract source for every expectation, and `T20`'s fresh verifier
   refutes any test whose expected value exists only in the implementation.
 - **The loop converges on the suite instead of the code.** The cheapest way to
   clear a failure is to edit the test. `T12` may not touch test files, and fix

@@ -95,7 +95,6 @@ the suite is green.
   rung: 1
   needs: [X-b01]
   refutes: X-b01
-  personas: [equivalence]
   done: "verdict.json CONFIRMED/REFUTED/PARTIAL, naming the strongest inequivalence probe tried and why it failed"
 - id: L1
   kind: loop
@@ -114,15 +113,14 @@ the suite is green.
   rung: 1
   needs: [L1]
   done: "every register entry is CONFIRMED, REFUTED-and-reverted, or carried as a written exception"
-- id: A-call-site-truth
+- id: A1
   kind: task
   phase: 3
-  title: "AUDIT — did discovery actually find every site"
+  title: "AUDIT — did discovery find every site, including the ones grep cannot see"
   rung: 1
   needs: [B2]
   refutes: D3
-  adversarial: panel
-  personas: [call-site-truth]
+  adversarial: standard
   done: "an independent sweep for the old form returns only the written exceptions, each quoted with its path"
 - id: I1
   kind: task
@@ -130,7 +128,7 @@ the suite is green.
   title: Integrate the verified batches and run the full suite
   rung: 1
   surface: code
-  needs: [B2, A-call-site-truth]
+  needs: [B2, A1]
   done: "one integrated tree, suite green, baseline comparison shows no behavioral difference"
 ```
 
@@ -143,7 +141,7 @@ The transform nodes are frontier and shaped for wide parallelism, and CONTRACT �
 concurrency at 2. That tension is real and the cap wins. The answer is pipeline
 discipline, not a wider fan: batch 01 verifies while batch 02 transforms, so wall-clock
 is the slowest single chain rather than the sum of the stages, and a session limit
-landing mid-run strands one batch instead of thirty. The phase runner spawns each
+landing mid-run strands one batch instead of thirty. The dispatcher spawns each
 transform with `isolation: worktree` whenever two batches could touch the same file —
 worktrees are what make two concurrent transforms safe, and the batching rule that no
 two batches name the same file is what keeps the number of worktrees at two.
@@ -161,7 +159,7 @@ forbidden to: it must find sites through execution traces, configuration, fixtur
 generated output, serialized data, documentation, or anything else that names the old
 form without spelling it the way the source does. Agreement between them is evidence
 because disagreement was possible. Every delta is adjudicated at frontier into a site or a
-written not-a-site, and `A-call-site-truth` re-runs the sweep after integration against
+written not-a-site, and `A1` re-runs the sweep after integration against
 the frozen register — if it finds an occurrence that is not on the exception list, `D3`
 is refuted and the register reopens.
 
@@ -170,31 +168,17 @@ is refuted and the register reopens.
 | node class | entry tier | why |
 |---|---|---|
 | baseline (`T00`) | 0 `cheap` | Run the suite, record numbers to files. Verifiable by command. |
-| everything else — transform (`X-*`), verify (`Y-*`), fanout, barrier, gate, discovery (`D1`, `D2`), audit seats, integrate (`I1`), reconcile (`D3`) | 1 `frontier` | the default (CONTRACT §1.1). A transform against a frozen register is bounded, but it is still a rewrite of the product; discovery is search under an adversarial assumption that the obvious method is incomplete; reconciling what is and is not a site is the one call the mode cannot undo later. |
+| everything else — transform (`X-*`), verify (`Y-*`), fanout, barrier, gate, discovery (`D1`, `D2`), audit (`A1`), integrate (`I1`), reconcile (`D3`) | 1 `frontier` | the default (CONTRACT §1.1). A transform against a frozen register is bounded, but it is still a rewrite of the product; discovery is search under an adversarial assumption that the obvious method is incomplete; reconciling what is and is not a site is the one call the mode cannot undo later. |
 
 A `REFUTED` transform costs one frontier retry carrying the verdict's rows
 (CONTRACT §1.2); a second refutation of the same batch is a question, not a third
 pass.
 
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `equivalence` | expert | VERIFY, CLASH | Whether the new form does exactly what the old one did — return values, error paths, ordering, timing, side effects, and the edge cases the suite does not cover. |
-| `call-site-truth` | expert | AUDIT, CLASH | Whether discovery found every site, including the ones grep cannot see: dynamic dispatch, reflection, string-built names, config, fixtures, generated code, docs. |
-| `integration-risk` | expert | AUDIT | What breaks when the batches land together — import cycles, ordering, partially migrated interfaces, downstream consumers, deploy sequencing. |
-| `scope-creep` | expert | VERIFY | Whether any diff touches a line the register does not name. Every improvement smuggled into a transform is a behavior change nobody reviewed. |
-
-Casting prefers named experts tagged `refactoring`/`semantics`/`consistency` for
-`equivalence`, `static-analysis`/`tooling` for `call-site-truth`,
-`distributed`/`release-engineering`/`observability`/`resilience`/`api-design`
-for `integration-risk`, and `discipline`/`code-review` for `scope-creep`.
-
 ## Gates
 
 - **Plan gate.** Passes when discovery runs twice by named different methods, no
   transform node precedes `G1`, no transform authors its own verification, `L1` carries
-  all four fields CONTRACT §5.3 requires, and batches do not share files.
+  all four fields CONTRACT §5 requires, and batches do not share files.
 - **Register freeze** (`G1`). Passes when every delta between the two registers is
   resolved in writing and the frozen entry count is in `manifest.json`. An unresolved
   delta is `BLOCKED`, not a default.
@@ -217,16 +201,16 @@ file the register does not name.
 
 - **The 97% migration.** Discovery finds what grep finds, the run reports success, and
   the remaining sites surface as production failures months later. `D2` exists only to
-  fail differently from `D1`, and `A-call-site-truth` re-sweeps after integration with a
+  fail differently from `D1`, and `A1` re-sweeps after integration with a
   `refutes` edge back to `D3` — a stray occurrence reopens the register rather than
   closing the run.
 - **The helpful transform.** An agent holding one file in context fixes a bug, renames a
   variable, and reformats — all improvements, none reviewed, all now indistinguishable
-  from the migration in the diff. `scope-creep` verifies that every changed line maps to
-  a registered site, and the batch's `done` criterion is written to be checkable by diff
+  from the migration in the diff. The `Y-` verifier checks that every changed line maps
+  to a registered site, and the batch's `done` criterion is written to be checkable by diff
   rather than by judgment.
 - **Equivalence assumed from a green suite.** The suite passes because it never covered
-  the error path the old form handled differently. `equivalence` is a VERIFY seat that
+  the error path the old form handled differently. The `Y-` verifier
   probes error paths and edge cases against the recorded baseline and must name the
   strongest inequivalence probe it tried (CONTRACT §9).
 - **The wide fan that strands.** Thirty transforms launch, a session limit lands, and

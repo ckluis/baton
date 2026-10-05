@@ -28,7 +28,7 @@ Two different things get referred to by "path" and they must not be confused:
   rule here work.
 
 So a spawn prompt routinely carries both: a remote locator for the role file it
-should follow, and a local path for the work it should do. Envelopes, digests,
+should follow, and a local path for the work it should do. Envelopes,
 verdicts, and ledgers are local paths without exception.
 
 **Under `TEAM` (router §1) the local `_orch/` is a git worktree that `publish`

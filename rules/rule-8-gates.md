@@ -9,7 +9,7 @@ status: active
 
 ## 8. Gates
 
-A gate is a point where the prime spends a turn. There are exactly four kinds,
+A gate is where the prime stops the run to decide. There are exactly four kinds,
 and a mode may not invent a fifth:
 
 1. **Plan gate** — the graph is refuted before any of it is executed.
@@ -33,7 +33,7 @@ a command the gate's envelope names:
 3. `tools/publish-run.sh publish` — secret scan, commit, push the hidden ref (§6.1).
 4. `python3 tools/inbox-gh.py post-gate` — one comment on the thread:
    `_orch/index/summary.md`, and the brief's markdown twin when the gate wrote
-   one (§8.1), so the team reads the same sixty lines the prime does and the
+   one (§8.1), so the team reads the same summary the prime does and the
    decisions beside them.
 
 A gate that produced only local files, under `TEAM`, did not happen either.

@@ -66,7 +66,6 @@ before/after evidence at a cited path rather than an assertion that it helped.
   rung: 1
   needs: [T02]
   adversarial: standard
-  personas: [behavior-preservation, leverage-vs-risk]
   done: "work/findings/<lens>.yaml per lens: each finding has a ≤20-word quote, file:line, proposed P0–P3, and at most one red flag"
 - id: T10                       # phase 2 — the blindspot pass. needs T02 ONLY.
   kind: task
@@ -74,7 +73,6 @@ before/after evidence at a cited path rather than an assertion that it helped.
   title: Hunt what the lens list structurally cannot see
   rung: 1
   needs: [T02]
-  personas: [blindspot]
   done: "work/blindspot.yaml covers all three obligations — uncovered failure classes, the module as its callers and operators meet it, shared assumptions — and every class carries either a cited finding or 'probed X via Y, found nothing'; every row tagged blindspot: true"
 - id: B1                        # phase 3 — rank once, across both sources
   kind: barrier
@@ -82,7 +80,6 @@ before/after evidence at a cited path rather than an assertion that it helped.
   title: Rank every candidate by leverage against risk and effort; propose the cut line
   rung: 1
   needs: [F1, T10]
-  personas: [leverage-vs-risk, scope-creep]
   done: "plan/improvements.yaml ranks every candidate with leverage, risk, effort, the files it may touch, and above|below the proposed cut line"
 - id: L1                        # phase 4 — execute
   kind: loop
@@ -100,7 +97,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   phase: 4
   title: Land one accepted improvement atomically, with its tests
   rung: 1
-  done: "the diff touches only the candidate's declared files; the suite is green; no observable behavior changed without an approved flag cited in the digest"
+  done: "the diff touches only the candidate's declared files; the suite is green; no observable behavior changed without an approved flag cited in the envelope's evidence"
 - id: T21
   kind: task
   phase: 4
@@ -108,7 +105,6 @@ before/after evidence at a cited path rather than an assertion that it helped.
   rung: 1
   needs: [T20]
   refutes: T20
-  personas: [behavior-preservation]
   done: "verify/T20-verdict.json cites the baseline file it reproduced and a before/after artifact for the claimed gain; an assertion without an artifact is REFUTED"
 - id: T22
   kind: task
@@ -116,7 +112,6 @@ before/after evidence at a cited path rather than an assertion that it helped.
   title: Re-audit the changed surface with a fresh blindspot agent
   rung: 1
   needs: [T21]
-  personas: [blindspot]
   done: "new candidates appended to plan/improvements.yaml with their ledger keys; a candidate already in seen.yaml is not re-proposed"
 - id: T40                       # final phase — the same measurement, taken again by someone else
   kind: task
@@ -132,8 +127,7 @@ before/after evidence at a cited path rather than an assertion that it helped.
   title: Close — the module is measurably better, with proof
   rung: 1
   needs: [L1, T40]
-  adversarial: panel
-  personas: [behavior-preservation, blindspot, leverage-vs-risk, scope-creep]
+  adversarial: standard
   done: "every executed candidate has a CONFIRMED verdict and a before/after artifact; every below-line candidate is logged, not built; the report carries the before/after scorecard delta and every principle that moved cites the improvement that moved it"
 ```
 
@@ -156,34 +150,11 @@ finished, and may not stop the loop on an empty candidate list.
 wants run or a fix it implies may leave as a `cheap` handback when the change is
 separable, and stays with it when it is not.
 
-## Seats
-
-| seat slug | kind | phases | what it examines |
-|---|---|---|---|
-| `behavior-preservation` | expert | AUDIT, VERIFY | whether the observable contract survived; the difference between reproducing the baseline and asserting it |
-| `representation-truth` | expert | AUDIT, CLASH | how state is represented: invalid combinations the type permits, shapes re-assumed at every call site, branching a table would carry |
-| `blindspot` | expert | AUDIT | the failure classes the lens list cannot catch; the module as callers and operators meet it; assumptions code, tests, and lenses share |
-| `leverage-vs-risk` | expert | PLAN, AUDIT, CLASH | whether a candidate's payoff justifies touching working code; the cut line itself |
-| `scope-creep` | expert | PLAN, VERIFY | diffs wider than their candidate; refactors that arrived as passengers |
-
-Casting upgrades (personas/CONTRACT §4.2) prefer tags
-`refactoring`/`maintainability` for `behavior-preservation`,
-`architecture`/`product` for `leverage-vs-risk`, `domain-modeling`/`architecture`
-for `representation-truth`, `discipline`/`process` for `scope-creep`. `blindspot` is listed with no upgrade hint deliberately, and the
-claim that once stood here — that it is the seat where a foreign roster pays for
-itself, because an upgrade with a genuinely different domain sees a different
-complement — is withdrawn. That seat audits the panel rather than the artifact:
-it receives the roster's lens list and never its findings, so an upgrade that
-brings a different domain does not widen what the panel can see, it spends the
-seat that exists to name what a panel of specialists structurally cannot see on
-one more specialist.
-
 ## Gates
 
 **Plan gate.** Checks that `T01` precedes every audit node, that `T10` has no
 edge carrying findings, that `plan/improvements.yaml` will carry a declared file
 list per candidate, and that `L1` stops on dry rounds rather than an empty list.
-`leverage-vs-risk` and `scope-creep` run their PLAN duties here.
 
 **Phase gate.** Phase 2 closes when every lens in `work/lenses.yaml` has a
 findings file and `work/blindspot.yaml` accounts for all three obligations.
@@ -210,7 +181,7 @@ in the report and absent from the tree.
 
 ## Failure modes of this mode
 
-- **Blindspot contamination.** Someone helpfully passes the audit digests to the
+- **Blindspot contamination.** Someone helpfully passes the audit findings to the
   blindspot agent "for context" and it returns the audit with better prose. The
   missing edge is the mechanism, the plan gate rejects any path from `F1` into
   `T10`, and `work/lenses.yaml` is deliberately a list of lens names with no
@@ -220,14 +191,14 @@ in the report and absent from the tree.
   a citation or the sentence *probed X via Y, found nothing* — the second is a
   real deliverable and the run's evidence rules make it inadmissible without the
   probe named.
-- **Improvement by assertion.** The digest says the function is now faster and
+- **Improvement by assertion.** The envelope says the function is now faster and
   cites the diff. `T21` refutes on that alone: preservation is a reproduced
   baseline file and a gain is a before/after artifact, and `T21` is a separate
   node so the agent that made the improvement is not the one grading it.
 - **The passenger refactor.** A candidate touching one file arrives with a
   rename across nine. The candidate row declares its files, `L1`'s invariant
   makes the wider diff a loop violation rather than a code-review opinion, and
-  `scope-creep` sits at VERIFY where it can still stop it.
+  `T21` refutes it before it lands.
 - **The loop that re-audits forever.** Each round the re-audit rediscovers the
   candidates the cut line already rejected, and dry rounds never arrive. Ledger
   keys are file + symbol + claim shape and record rejections, so a rejected
