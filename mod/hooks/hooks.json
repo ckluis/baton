@@ -1,0 +1,4 @@
+{
+  "description": "baton v7: prime guard, run and project memory, rotation, model binding, run pane",
+  "modules": ["./register.js"]
+}

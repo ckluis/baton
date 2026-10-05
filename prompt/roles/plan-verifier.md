@@ -34,6 +34,10 @@ Hunt, specifically:
   satisfy one and mark the whole row `CONFIRMED` — §9.1's arithmetic then
   hands back a clean verdict for work nobody checked. Count the checks; if
   the number is greater than one, the handoff needs that many criteria.
+- **An `rgb: exempt` a test could answer** (CONTRACT §9.4) — the reason names
+  behavior a test in this run could reach. Exemption is for work with no
+  executable behavior or none reachable here; "too small" and "obvious" are
+  not reasons.
 - **Barriers that should be pipelines** — a `barrier` node whose next stage
   doesn't actually need cross-item context from every predecessor
   (CONTRACT §4). Flatten-and-filter is not a reason for a barrier.

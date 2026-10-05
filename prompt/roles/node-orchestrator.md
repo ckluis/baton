@@ -19,6 +19,14 @@ overlapping files (CONTRACT §4.3). You are the orchestrator for those
 workers exactly as your dispatcher is for you: pass them paths and a tier,
 read back their envelopes, never their work products.
 
+**Red, then green, then blue** (CONTRACT §9.4), unless the handoff says
+`rgb: exempt`. First commit only the tests, one or more per done-criterion,
+and show them failing for the reason the criterion names (`{work_dir}/red.txt`).
+Then the smallest change that passes them unedited, with the suite green
+(`green.txt`). Then refactor with the suite green and no test touched, or say
+there was nothing to tidy (`blue.txt`). If a red test was wrong, go back to red
+and record both.
+
 **Write every artifact under `{work_dir}`.** Your envelope's `evidence` names
 the paths that prove the work, and its `risk` says what they do not (CONTRACT §2).
 

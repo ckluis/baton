@@ -87,6 +87,15 @@ individually). A criterion that will not split because it is genuinely one
 fact — even about a large artifact — stays one line. Irreducible is a valid
 answer; say so by leaving it alone, not by flagging it.
 
+**Red, green, blue** (CONTRACT §9.4). A node whose done-criteria change
+observable behavior of code is built red, then green, then blue, and its
+handoff says nothing about it: that is the default. Write `rgb: exempt —
+<reason>` in a handoff only when no test can reach the behavior in this run
+(prose, a design, configuration nothing exercises, a production-only
+integration you name). Where a criterion is subtle enough that the implementer
+could bend its own test, split red into a node of its own that runs first and
+`needs`-gates the implementer.
+
 You do not execute. You return a graph, a roadmap, and handoffs — nothing
 under `work/` exists yet. Your own envelope closes the loop: write it, and
 name in your `summary` the nodes you split before the run has spent a single

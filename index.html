@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>baton v5 — agents do the work, baton keeps the record</title>
+<title>baton v7 — one thread that never fills up</title>
 <link rel="canonical" href="https://ckluis.github.io/baton/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ckluis / baton">
 <meta property="og:url" content="https://ckluis.github.io/baton/">
-<meta property="og:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta property="og:description" content="The accountability layer for agent runs. Evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop — for you, or a team. Three tiers instead of six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. Eight modes and seven user archetypes.">
+<meta property="og:title" content="baton v7 — one thread that never fills up">
+<meta property="og:description" content="A Claude Code mod: a prime orchestrator that only dispatches, sub-orchestrators that do or delegate the work, a memory instead of a growing context, and approvals from anywhere in the tree.">
 <meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="baton v5 — three tiers, one default. Agents do the work; baton keeps the record.">
+<meta property="og:image:alt" content="baton — agents do the work, baton keeps the record.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@ckluis">
 <meta name="twitter:creator" content="@ckluis">
-<meta name="twitter:title" content="baton v5 — agents do the work, baton keeps the record">
-<meta name="twitter:description" content="The accountability layer for agent runs: evidence that cites or retracts, verdicts computed per criterion, gates a person holds, a record that outlives the laptop. Three tiers, eight modes, seven user archetypes — for you, or a team.">
+<meta name="twitter:title" content="baton v7 — one thread that never fills up">
+<meta name="twitter:description" content="A prime that only dispatches, a memory instead of a growing context, approvals from anywhere in the tree. A Claude Code mod over the baton framework.">
 <meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
-<meta name="description" content="baton v5 is the accountability layer for agent runs: a router prompt that turns a fresh session into a multi-agent run with a record — evidence that cites or retracts, verdicts computed per criterion, gates a person holds, state that outlives the laptop. Three tiers replace six rungs: cheap for what a command can settle, frontier for everything with judgment, a person when frontier has failed twice. With one more line the same run belongs to a team: its state on a git ref, its questions as GitHub Issues, its product changes as pull requests with the verdict as a check.">
+<meta name="description" content="baton v7 is a Claude Code mod: a prime orchestrator that only dispatches goals to sub-orchestrators, keeps a memory instead of a growing context, and lets you see the agent tree, browse its memory, set rulings and approve from anywhere.">
 <meta name="theme-color" content="#0a0a0a">
 <script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,1740 +28,458 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --canvas:#0a0a0a; --soft:#121212; --card:#1a1a1a; --raised:#242424;
+  --canvas:#0a0a0a; --soft:#121212; --card:#161616; --raised:#202020;
   --hair:#2a2a2a; --hair-2:#3a3a3a;
-  --ink:#ffffff; --body:#cccccc; --body-2:#e6e6e6; --muted:#888888; --muted-2:#5a5a5a;
-  --yellow:#faff69; --yellow-2:#e6eb52; --yellow-dim:#3a3a1f;
-  --cyan:#5eead4; --cyan-2:#2dd4bf; --cyan-dim:#123c37;
-  --on-yellow:#0a0a0a;
-  --ok:#22c55e; --bad:#ef4444; --blue:#3b82f6;
+  --ink:#ffffff; --body:#cccccc; --muted:#8a8a8a; --muted-2:#5a5a5a;
+  --yellow:#faff69; --yellow-dim:#3a3a1f; --on-yellow:#0a0a0a;
+  --cyan:#5eead4; --cyan-dim:#123c37;
+  --red:#f87171; --green:#4ade80; --blue:#60a5fa; --magenta:#e879f9;
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,monospace;
-  --sec:96px; --maxw:1280px;
+  --maxw:1180px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.55;
-  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;position:relative}
-a{color:inherit;text-decoration:none}
-img,svg{display:block;max-width:100%}
+body{background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em;color:var(--ink);background:var(--raised);padding:1px 6px;border-radius:5px}
 ::selection{background:var(--yellow);color:var(--on-yellow)}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,5vw,44px)}
+body::before{content:"";position:fixed;inset:0;z-index:50;pointer-events:none;opacity:.22;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
 
-/* ---------- risograph plates ---------- */
-/* paper grain: one fixed overlay, screen-blended, never repaints on scroll */
-body::before{content:"";position:fixed;inset:-50%;z-index:9998;pointer-events:none;opacity:.30;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
-  mix-blend-mode:overlay}
-/* ink halftone: 45deg dot screen, used on bands that want the press feel */
-.dots{position:absolute;inset:0;pointer-events:none;opacity:.16;
-  background-image:radial-gradient(currentColor 1px,transparent 1.15px);
-  background-size:6px 6px;background-position:0 0}
-.dots.coarse{background-size:9px 9px;opacity:.13}
+/* nav */
+nav{position:sticky;top:0;z-index:40;background:rgba(10,10,10,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
+.brand{font-family:var(--mono);font-weight:600;color:var(--ink);letter-spacing:.02em}
+.brand i{font-style:normal;color:var(--yellow)}
+.navlinks{display:flex;gap:22px;font-size:14px}
+.navlinks a{color:var(--muted)}
+.navlinks a:hover{color:var(--ink);text-decoration:none}
+@media(max-width:900px){.navlinks a.opt{display:none}}
+@media(max-width:600px){.navlinks{display:none}}
 
-/* misregistration: the second plate lands 2px off, every time */
-.reg{position:relative;display:inline-block}
-.reg::before{content:attr(data-reg);position:absolute;left:-2px;top:2px;z-index:-1;
-  color:var(--cyan);mix-blend-mode:screen;pointer-events:none;-webkit-user-select:none;user-select:none;opacity:.85}
+/* type */
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
+h1{font-size:clamp(40px,7vw,84px);line-height:1.02;letter-spacing:-.035em;color:var(--ink);font-weight:700;margin:18px 0 22px}
+h1 em{font-style:normal;color:var(--yellow)}
+h2{font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-.025em;color:var(--ink);font-weight:700;margin:10px 0 16px}
+h3{font-size:18px;color:var(--ink);font-weight:600;margin-bottom:8px}
+.lede{font-size:clamp(17px,1.6vw,20px);max-width:62ch;color:var(--body)}
+.muted{color:var(--muted)}
+section{padding:96px 0;border-bottom:1px solid var(--hair)}
+.secnum{font-family:var(--mono);font-size:12px;color:var(--muted-2);letter-spacing:.1em}
 
-/* ---------- type ---------- */
-h1,h2,h3,h4{font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1.1}
-h1{font-size:clamp(38px,7.2vw,72px);line-height:1.03;letter-spacing:-.035em}
-h2{font-size:clamp(30px,4.6vw,56px);letter-spacing:-.03em;line-height:1.08}
-h3{font-size:clamp(21px,2.4vw,32px);letter-spacing:-.02em;line-height:1.18}
-h4{font-size:18px;font-weight:600;letter-spacing:0;line-height:1.4}
-p{max-width:68ch}
-.lede{font-size:clamp(17px,1.9vw,21px);color:var(--body-2);line-height:1.5}
-.kicker{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--yellow)}
-.kicker.c{color:var(--cyan)}
-.mono{font-family:var(--mono)}
-em{font-style:normal;color:var(--yellow)}
-strong{color:var(--ink);font-weight:600}
-code{font-family:var(--mono);font-size:.9em;color:var(--cyan);background:var(--card);
-  border:1px solid var(--hair);border-radius:4px;padding:1px 5px}
+/* hero */
+.hero{padding:88px 0 72px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-12%;top:-30%;width:62vw;height:62vw;max-width:820px;max-height:820px;pointer-events:none;
+  background:radial-gradient(circle,rgba(94,234,212,.13),transparent 62%)}
+.status{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);
+  border:1px solid var(--hair);border-radius:999px;padding:6px 12px;background:var(--soft)}
+.status b{color:var(--yellow);font-weight:600}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--hair-2);color:var(--ink);background:var(--raised)}
+.btn.y{background:var(--yellow);color:var(--on-yellow);border-color:var(--yellow)}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:14px;overflow:hidden;margin-top:56px}
+.stat{background:var(--soft);padding:22px 20px}
+.stat .n{font-family:var(--mono);font-size:clamp(24px,3vw,34px);color:var(--ink);font-weight:600;letter-spacing:-.02em}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
 
-/* ---------- layout ---------- */
-section{padding:var(--sec) 0;position:relative}
-section.tight{padding:calc(var(--sec) * .66) 0}
-.band{background:var(--soft)}
-.sechead{max-width:900px;margin-bottom:48px}
-.sechead .kicker{display:block;margin-bottom:16px}
-.sechead p{margin-top:18px;font-size:17px;color:var(--body)}
-.grid{display:grid;gap:16px}
-.g2{grid-template-columns:repeat(2,1fr)}
-.g3{grid-template-columns:repeat(3,1fr)}
-.g4{grid-template-columns:repeat(4,1fr)}
-@media(max-width:1024px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+/* terminal */
+.term{background:#0d0d0d;border:1px solid var(--hair-2);border-radius:12px;overflow:hidden;font-family:var(--mono);font-size:13px;line-height:1.65}
+.term .bar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--hair);background:var(--soft);color:var(--muted);font-size:12px}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:var(--hair-2);display:inline-block}
+.term pre{padding:14px 16px;overflow-x:auto;color:var(--body);white-space:pre}
+.c-y{color:var(--yellow)} .c-c{color:var(--cyan)} .c-g{color:var(--green)} .c-r{color:var(--red)} .c-m{color:var(--magenta)} .c-d{color:var(--muted)} .c-i{color:var(--ink)} .c-b{color:var(--blue)}
 
-/* ---------- cards ---------- */
-.card{background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:32px;position:relative;overflow:hidden}
-.card.sm{padding:24px}
-.card h4{margin-bottom:10px}
-.card p{font-size:15px;color:var(--body);max-width:none}
-.card .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.12em;display:block;margin-bottom:14px}
-.card.y{background:var(--yellow);border-color:var(--yellow)}
-.card.y *{color:var(--on-yellow)}
-.card.y .num{color:rgba(10,10,10,.62)}
-.card.y p{color:rgba(10,10,10,.78)}
+/* grid + cards */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid2>*,.grid3>*,.vers>*{min-width:0}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:22px}
+.card p{font-size:15px}
+.card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:block}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.pill{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--hair-2);color:var(--muted)}
+ul.ticks{list-style:none;margin-top:10px}
+ul.ticks li{padding-left:22px;position:relative;margin:7px 0;font-size:15px}
+ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);font-family:var(--mono)}
 
-/* ---------- buttons ---------- */
-.btn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border-radius:8px;
-  font-size:14px;font-weight:600;font-family:var(--sans);border:1px solid transparent;cursor:pointer;
-  transition:transform .16s ease,background .16s ease,border-color .16s ease}
-.btn.p{background:var(--yellow);color:var(--on-yellow)}
-.btn.p:hover{background:var(--yellow-2);transform:translateY(-1px)}
-.btn.s{background:var(--card);color:var(--ink);border-color:var(--hair-2)}
-.btn.s:hover{border-color:var(--cyan);color:var(--cyan)}
-.btn.g{background:transparent;color:var(--muted);border-color:var(--hair)}
-.btn.g:hover{color:var(--ink);border-color:var(--hair-2)}
-.btnrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+/* the shape */
+.tree{display:grid;gap:14px;margin-top:34px}
+.lvl{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;position:relative}
+.node{background:var(--card);border:1px solid var(--hair-2);border-radius:12px;padding:14px 16px;min-width:190px;max-width:290px;flex:1}
+.node b{display:block;font-family:var(--mono);font-size:13px;color:var(--ink)}
+.node span{font-size:13px;color:var(--muted);line-height:1.45;display:block;margin-top:4px}
+.node.prime{border-color:var(--yellow);background:linear-gradient(180deg,rgba(250,255,105,.08),var(--card));max-width:440px}
+.node.prime b{color:var(--yellow)}
+.node.sub{border-color:rgba(94,234,212,.5)}
+.node.sub b{color:var(--cyan)}
+.down{text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.down b{color:var(--yellow);font-weight:500}
 
-/* ---------- badges ---------- */
-.pill{display:inline-flex;align-items:center;gap:7px;border-radius:9999px;padding:5px 13px;
-  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase}
-.pill.y{background:var(--yellow);color:var(--on-yellow)}
-.pill.c{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(94,234,212,.3)}
-.pill.d{background:var(--card);color:var(--muted);border:1px solid var(--hair)}
-.tag{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--muted);
-  border:1px solid var(--hair);border-radius:9999px;padding:3px 10px;margin:4px 4px 0 0}
+/* rgb */
+.rgb .card{border-top-width:3px}
+.rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
+.rgb h3 span{font-family:var(--mono);font-size:12px;margin-left:8px;color:var(--muted)}
 
-/* ---------- stats ---------- */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:32px;border-top:1px solid var(--hair);padding-top:40px}
-@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr);gap:28px}}
-.stat b{display:block;font-size:clamp(38px,5vw,56px);font-weight:700;line-height:1;letter-spacing:-.04em;color:var(--yellow)}
-.stat span{display:block;margin-top:10px;font-size:13px;color:var(--muted);line-height:1.4}
-.stat.c b{color:var(--cyan)}
+/* evidence table */
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:22px}
+th,td{text-align:left;padding:12px 12px;border-bottom:1px solid var(--hair);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td b{color:var(--ink)}
+.tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:14px;padding:0 6px;background:var(--soft)}
+.verdict{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.v-tie{background:var(--raised);color:var(--body)} .v-cut{background:rgba(248,113,113,.14);color:var(--red)} .v-cost{background:var(--yellow-dim);color:var(--yellow)}
+.callout{border-left:3px solid var(--yellow);padding:14px 18px;background:var(--soft);border-radius:0 12px 12px 0;margin-top:26px;font-size:15.5px}
 
-/* ---------- tables ---------- */
-.tw{overflow-x:auto;border:1px solid var(--hair);border-radius:12px;background:var(--card)}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
-th{text-align:left;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--muted);padding:16px 20px;border-bottom:1px solid var(--hair-2);white-space:nowrap}
-td{padding:15px 20px;border-bottom:1px solid var(--hair);vertical-align:top;color:var(--body)}
-tr:last-child td{border-bottom:none}
-td.r{font-family:var(--mono);font-size:13px;color:var(--cyan);white-space:nowrap}
-td.n{font-family:var(--mono);font-size:13px;color:var(--yellow);font-weight:600;width:1%}
-tr.hi td{background:rgba(250,255,105,.045)}
-tr.hi td.n{color:var(--yellow)}
-tr.dim td{color:var(--muted-2)}
-tr.dim td.r{color:var(--muted-2)}
+/* versions */
+.vers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+@media(max-width:900px){.vers{grid-template-columns:1fr}}
+.ver{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.ver .vh{display:flex;justify-content:space-between;align-items:baseline}
+.ver .vh b{font-family:var(--mono);font-size:20px;color:var(--ink)}
+.ver .vh span{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.ver h3{font-size:15px;margin:0;color:var(--cyan)}
+.ver p{font-size:14px}
+.ver .proc{font-size:13px;color:var(--muted);border-top:1px dashed var(--hair-2);padding-top:8px;margin-top:auto}
+.ver a.go{font-family:var(--mono);font-size:12.5px}
+.ver.now{border-color:var(--yellow)}
+.ver.now .vh b{color:var(--yellow)}
 
-/* ---------- code ---------- */
-.code{background:var(--card);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
-.codebar{display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:14px 20px;border-bottom:1px solid var(--hair);background:var(--raised);flex-wrap:wrap}
-.codebar .fn{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.codebar .fn b{color:var(--ink);font-weight:600}
-.dots3{display:inline-flex;gap:6px;margin-right:12px}
-.dots3 i{width:9px;height:9px;border-radius:50%;background:var(--hair-2);display:block}
-.dots3 i:first-child{background:var(--yellow)}
-.dots3 i:nth-child(2){background:var(--cyan)}
-pre{font-family:var(--mono);font-size:13px;line-height:1.62;color:var(--body-2);
-  padding:24px;overflow-x:auto;white-space:pre;tab-size:2}
-pre .c{color:var(--muted-2)}
-pre .k{color:var(--yellow)}
-pre .v{color:var(--cyan)}
+/* paste */
+.codebar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--hair);background:var(--soft);font-family:var(--mono);font-size:12px;color:var(--muted)}
+.codebar b{color:var(--ink);font-weight:500}
+.codebox{background:#0d0d0d;border:1px solid var(--hair-2);border-radius:12px;overflow:hidden}
+.codebox pre{padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;color:var(--body);white-space:pre}
+#rsrc{max-height:60vh;overflow:auto;font-size:12.5px}
+.copy{font-family:var(--mono);font-size:12px;background:var(--raised);color:var(--ink);border:1px solid var(--hair-2);border-radius:7px;padding:5px 10px;cursor:pointer}
+.copy.ok{background:var(--cyan-dim);color:var(--cyan)}
+details{margin-top:18px;border:1px solid var(--hair);border-radius:12px;background:var(--soft)}
+details summary{cursor:pointer;padding:14px 16px;font-size:14.5px;color:var(--ink)}
+details[open] summary{border-bottom:1px solid var(--hair)}
+details .inner{padding:14px}
 
-/* ---------- flow diagram ---------- */
-.flow{display:grid;gap:0;border:1px solid var(--hair);border-radius:12px;overflow:hidden;background:var(--card)}
-.frow{display:grid;grid-template-columns:190px 1fr;gap:0;border-bottom:1px solid var(--hair);align-items:stretch}
-.frow:last-child{border-bottom:none}
-.frow .fl{padding:22px 24px;border-right:1px solid var(--hair);background:var(--raised)}
-.frow .fl b{display:block;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--ink);margin-bottom:6px}
-.frow .fl span{font-family:var(--mono);font-size:12px;color:var(--cyan)}
-.frow .fr{padding:22px 24px;font-size:14px;color:var(--body)}
-.frow .fr em{color:var(--yellow);font-weight:500}
-.frow.top .fl b{color:var(--yellow)}
-@media(max-width:700px){.frow{grid-template-columns:1fr}.frow .fl{border-right:none;border-bottom:1px solid var(--hair)}}
+footer{padding:56px 0 72px;font-size:14px;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
-/* ---------- mode list ---------- */
-.mode{background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:26px;display:flex;flex-direction:column;gap:10px}
-.mode .mn{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.13em;color:var(--yellow)}
-.mode .md{font-size:14px;color:var(--body);flex:1}
-.mode .mx{font-size:12px;color:var(--muted-2);font-family:var(--mono);border-top:1px solid var(--hair);padding-top:10px;margin-top:2px}
-
-/* ---------- reveal ---------- */
-.split2{display:grid;grid-template-columns:1fr 1fr}
-.split-a{display:grid;grid-template-columns:auto 1fr}
-@media(max-width:760px){.split2,.split-a{grid-template-columns:1fr}}
-.reveal{transition:opacity .9s cubic-bezier(.2,.7,.3,1),transform .9s cubic-bezier(.2,.7,.3,1)}
-html.js .reveal{opacity:0;transform:translateY(22px)}
-html.js .reveal.in{opacity:1;transform:none}
-.d1{transition-delay:.07s}.d2{transition-delay:.14s}.d3{transition-delay:.21s}.d4{transition-delay:.28s}
-@media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-  html.js .reveal{opacity:1!important;transform:none!important}
-}
-
-  /* the brief — a rendered decision slide, in the page's own tokens */
-  .brief{margin-top:16px;background:var(--card);border:1px solid var(--hair);border-radius:12px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.618fr) minmax(0,1fr)}
-  .brief .bw{padding:32px 32px 28px;display:grid;gap:18px;align-content:start}
-  .brief .br{background:var(--soft);border-left:1px solid var(--hair);padding:26px 24px 28px;display:grid;gap:20px;align-content:start;font-size:13px;color:var(--body)}
-  .brief .bk{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
-  .brief h3{font-size:clamp(22px,2.6vw,30px);letter-spacing:-.02em;line-height:1.15;color:var(--ink);text-wrap:balance}
-  .brief .bd{font-size:15px;color:var(--body);max-width:60ch}
-  .brief figure{margin:0}.brief figure svg{width:100%;height:auto;display:block}
-  .brief figcaption{font-size:12px;color:var(--muted);margin-top:8px}
-  .brief svg text{font-family:var(--sans);font-size:12px;fill:var(--body-2)}
-  .brief svg .lb{font-family:var(--mono);font-size:10px;letter-spacing:.12em;fill:var(--muted);text-transform:uppercase}
-  .brief svg .bx{fill:var(--card);stroke:var(--body);stroke-width:1.2}
-  .brief svg .bx.on{stroke:var(--yellow);stroke-width:2}
-  .brief svg .ar{stroke:var(--body);stroke-width:1.2;fill:none}
-  .brief .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-  .brief .opt{border:1px solid var(--hair-2);border-radius:8px;padding:14px 14px 12px;display:grid;gap:6px;align-content:start}
-  .brief .opt.rec{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
-  .brief .opt .l{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--yellow);display:flex;align-items:center;gap:8px}
-  .brief .opt .l .pill{padding:2px 8px;font-size:10px}
-  .brief .opt .n{font-weight:600;color:var(--ink);font-size:14px}
-  .brief .opt p{font-size:13px;color:var(--muted)}
-  .brief .br h5{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-  .brief .br p{font-size:13px;color:var(--body)}
-  .brief .br dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 10px}
-  .brief .br dt{font-family:var(--mono);font-weight:700;color:var(--yellow)}
-  .brief .br dd{color:var(--body)}
-  .brief .br table{width:100%;border-collapse:collapse;font-size:12px}
-  .brief .br td{padding:5px 6px 5px 0;border-bottom:1px solid var(--hair);vertical-align:top}
-  .brief .br td:nth-child(2){font-family:var(--mono);color:var(--cyan);white-space:nowrap}
-  .brief .br td:nth-child(3){font-family:var(--mono);color:var(--muted-2);font-size:11px}
-  .brief .br code{font-family:var(--mono);font-size:11px;color:var(--body-2)}
-  @media(max-width:860px){.brief{grid-template-columns:1fr}.brief .br{border-left:none;border-top:1px solid var(--hair)}.brief .opts{grid-template-columns:1fr}.brief .bw{padding:22px}}
+.reveal{opacity:1}
+.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.js .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.js .reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}.btn:hover{transform:none}}
 </style>
 </head>
 <body>
 
-<!-- ============ NAV ============ -->
-<nav style="position:sticky;top:0;z-index:900;background:rgba(10,10,10,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)">
-  <div class="wrap" style="height:64px;display:flex;align-items:center;justify-content:space-between;gap:20px">
-    <a href="#top" style="display:flex;align-items:baseline;gap:9px">
-      <span style="font-weight:700;font-size:19px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-      <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v5</span>
-    </a>
-    <div style="display:flex;align-items:center;gap:26px">
-      <a href="#ladder" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">The tiers</a>
-      <a href="#topology" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Graphs &amp; loops</a>
-      <a href="#modes" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Modes</a>
-      <a href="#personas" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Personas</a>
-      <a href="#team" style="font-size:14px;font-weight:500;color:var(--muted)" class="nl">Team</a>
-      <a href="#prompt" class="btn p" style="height:38px;padding:0 17px">Get the prompt</a>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">baton<i>.</i>v7</a>
+    <div class="navlinks">
+      <a href="#shape">The shape</a>
+      <a href="#memory">Memory</a>
+      <a href="#see" class="opt">What you see</a>
+      <a href="#approve" class="opt">Approvals</a>
+      <a href="#rgb" class="opt">Red · green · blue</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#versions">Versions</a>
+      <a href="https://github.com/ckluis/baton">GitHub</a>
     </div>
   </div>
 </nav>
-<style>
-  .nl{transition:color .16s ease}.nl:hover{color:var(--ink)}
-  @media(max-width:900px){nav .wrap > div:last-child a.nl{display:none}}
-</style>
 
-<!-- ============ HERO ============ -->
-<section id="top" style="padding-top:88px;padding-bottom:var(--sec);overflow:hidden">
-  <div class="dots coarse" style="color:var(--yellow);opacity:.07"></div>
-  <div class="wrap" style="position:relative">
-    <div style="display:grid;grid-template-columns:1.14fr .86fr;gap:clamp(32px,4.5vw,64px);align-items:center" class="herogrid">
-      <div>
-        <div class="btnrow reveal" style="margin-bottom:26px">
-          <span class="pill y">v6.0</span>
-          <span class="pill c">router + 8 modes</span>
-          <span class="pill c">7 user archetypes</span>
-          <span class="pill c">for you, or a team</span>
-        </div>
-        <h1 class="reveal d1">Agents do the work.<br><span class="reg" data-reg="baton keeps the record.">baton keeps the record.</span></h1>
-        <p class="lede reveal d2" style="margin-top:26px;max-width:58ch">
-          baton is a router prompt that turns a fresh session into a multi-agent run with a
-          record: evidence that cites or retracts, verdicts computed per criterion, gates a person
-          holds, and state that outlives the laptop. Three tiers &mdash; <em>cheap</em> for what a
-          command can settle, <em>frontier</em> for everything with judgment, <em>a person</em> when
-          frontier has failed twice. One more line, <code>TEAM: github</code>, gives the same run
-          to a team.
-        </p>
-        <div class="btnrow reveal d3" style="margin-top:34px">
-          <a href="#prompt" class="btn p">Copy the router &darr;</a>
-          <a href="#team" class="btn s">For a team &rarr;</a>
-        </div>
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="status"><b>v7.0</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
+    <h1>One thread that<br><em>never fills up.</em></h1>
+    <p class="lede">The prime only dispatches. It never reads a file, runs a command or holds a work product: a mod
+      refuses it. It hands goals to sub-orchestrators, which dispatch agents or do the work themselves and hand
+      back one line. That line goes into a memory the prime can zoom into, so the thread lasts as long as the work does.</p>
+    <div class="ctas">
+      <a class="btn y" href="#install">Install the mod</a>
+      <a class="btn" href="#evidence">What we measured</a>
+      <a class="btn" href="#versions">v1 → v6</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">0</div><div class="l">files the prime reads during a run. The guard refuses everything but dispatch, ask and memory.</div></div>
+      <div class="stat"><div class="n">≤280 B</div><div class="l">what crosses back to the prime from a phase: one line, noted verbatim in its memory.</div></div>
+      <div class="stat"><div class="n">−28%</div><div class="l">spend of a v7 prime against one carrying 831K tokens: $14.78 vs $20.40, same score (E1b, one seed).</div></div>
+      <div class="stat"><div class="n">30</div><div class="l">rules, one file each. New: red, green, blue for every behavior change.</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="shape">
+  <div class="wrap">
+    <div class="secnum">01</div>
+    <h2>The prime conducts. It never plays.</h2>
+    <p class="lede">baton always said the conductor never plays a note. v7 makes it mechanical: during a run the main
+      session's tool calls go through a guard, and anything but dispatching, asking you, or using its memory is refused
+      with the route. Context the prime never takes in can't fill it up.</p>
+
+    <div class="tree reveal">
+      <div class="lvl"><div class="node prime"><b>prime · the main session</b><span>Holds the run's goal, your rulings and its memory. Tools: <code>Agent</code>, <code>AskUserQuestion</code>, <code>SendMessage</code>, <code>mcp__baton__*</code>. Nothing else.</span></div></div>
+      <div class="down">dispatches a goal ↓ &nbsp;·&nbsp; gets back <b>one line ≤ 280 bytes</b> ↑</div>
+      <div class="lvl">
+        <div class="node sub"><b>sub-orchestrator · bootstrap</b><span>directive, planner, plan verifier (fresh)</span></div>
+        <div class="node sub"><b>sub-orchestrator · phase P3</b><span>phase brief, dispatch each node, verify, phase gate</span></div>
+        <div class="node sub"><b>sub-orchestrator · final</b><span>synthesizer, then the one-page brief</span></div>
       </div>
-
-      <!-- v5 -> v6 card -->
-      <div class="reveal d2">
-        <div class="card" style="padding:0;overflow:hidden">
-          <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what changed</b> &middot; v5 &rarr; v6</div></div>
-          <div style="padding:8px 0">
-            <div class="vs"><span class="vl">The harness's most capable and fastest models</span><span class="va">&rarr;</span><span class="vr"><code>FRONTIER</code> = <code>claude-opus-5-5</code> at medium, <code>CHEAP</code> = <code>claude-sonnet-5-5</code></span></div>
-            <div class="vs"><span class="vl">An effort per node, by kind of work</span><span class="va">&rarr;</span><span class="vr">One effort, medium; <code>effort:</code> is an optional override, still recorded</span></div>
-            <div class="vs"><span class="vl">Expert lenses and panels seated in every mode</span><span class="va">&rarr;</span><span class="vr">Fresh plain reviewers; lenses, panels, <code>CRAFT</code> and <code>POSITION</code> move to <code>library/</code></span></div>
-            <div class="vs"><span class="vl">A per-phase agent to dispatch, when the harness could not</span><span class="va">&rarr;</span><span class="vr">The prime dispatches every node under written dispatcher duties</span></div>
-            <div class="vs"><span class="vl">A ten-line summary file per node</span><span class="va">&rarr;</span><span class="vr"><code>evidence</code> and <code>risk</code> in the envelope</span></div>
-            <div class="vs"><span class="vl">A splitting role on <code>SPLIT</code></span><span class="va">&rarr;</span><span class="vr">The planner re-plans from the seams</span></div>
-            <div class="vs"><span class="vl">48 rules</span><span class="va">&rarr;</span><span class="vr">29 &mdash; seven folded into the rules they served, one cut</span></div>
-            <div class="vs"><span class="vl">A v5 run or checkout</span><span class="va">&rarr;</span><span class="vr">Resumes; <code>PERSONAS: library</code> brings the experts back</span></div>
-          </div>
-          <div style="padding:16px 24px;border-top:1px solid var(--hair);background:var(--raised);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-            <span style="font-size:13px;color:var(--muted)">v5 is still tagged, and still runs. Every record field is kept.</span>
-            <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener"
-               style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.04em">Read MIGRATING &rarr;</a>
-          </div>
-        </div>
+      <div class="down">dispatches nodes ↓ &nbsp;·&nbsp; reads envelopes ↑, never work products</div>
+      <div class="lvl">
+        <div class="node"><b>baton:worker</b><span>frontier · Opus 5.5 · anything with judgment, red → green → blue</span></div>
+        <div class="node"><b>baton:worker-cheap</b><span>Sonnet 5.5 · what a command can settle</span></div>
+        <div class="node"><b>baton:verifier</b><span>always fresh, always frontier · per-criterion verdict, computed</span></div>
       </div>
     </div>
 
-    <div class="stats reveal d4" style="margin-top:clamp(56px,7vw,88px)">
-      <div class="stat"><b>3</b><span>Tiers. Cheap for a command, frontier for judgment, a person for what no agent decides.</span></div>
-      <div class="stat c"><b>+1</b><span>Line. <code>TEAM: github</code> is the whole difference between your run and your team's.</span></div>
-      <div class="stat"><b>48</b><span>Rules &mdash; every one an invariant a verifier or a tool can check. Five procedures cut.</span></div>
-      <div class="stat c"><b>~25</b><span>Moments a run needs a person, out of ~3,500 things it writes. Those go to Issues; the rest go to git.</span></div>
+    <div class="grid3" style="margin-top:40px">
+      <div class="card reveal"><span class="tag">the guard</span><h3>Fails closed</h3><p>The mod tells the prime from a subagent by the
+        <code>agentId</code> on each tool call. If the guard throws, the call is refused. A sub-orchestrator's calls pass
+        untouched: its context is there to be spent.</p></div>
+      <div class="card reveal"><span class="tag">the binding</span><h3>Two models, enforced</h3><p>Every spawn during a run is bound at
+        <code>agent.spawn</code>: Opus 5.5 for every role, Sonnet 5.5 for a type or name ending <code>-cheap</code>,
+        whatever the caller asked for. Merges of the memory run on Sonnet.</p></div>
+      <div class="card reveal"><span class="tag">the record</span><h3>Unchanged on disk</h3><p>Envelopes, per-criterion verdicts,
+        refutation triage, the ledger, gates and <code>TEAM: github</code> all work as in v6. Sub-orchestrators keep
+        that record; the prime keeps one line per phase.</p></div>
     </div>
   </div>
 </section>
-<style>
-  .vs{display:grid;grid-template-columns:1fr 22px 1fr;gap:10px;align-items:center;padding:11px 24px}
-  .vs .vl{font-size:13px;color:var(--muted-2);text-decoration:line-through;text-decoration-color:var(--hair-2)}
-  .vs .va{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center}
-  .vs .vr{font-size:13px;color:var(--body-2);font-weight:500}
-  .g5{grid-template-columns:repeat(5,1fr)}
-  .g6{grid-template-columns:repeat(3,1fr)}
-  @media(max-width:760px){.g6{grid-template-columns:1fr}}
-  @media(max-width:1180px){.g5{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:760px){.g5{grid-template-columns:1fr}}
 
-  /* lineage cards — v1 -> v2 -> v3 -> v4 */
-  .lin{height:100%}
-  .lin .codebar b{color:var(--ink)}
-  .lin.cur{border-color:var(--cyan-dim)}
-  .linb{padding:20px 22px 18px;flex:1;display:flex;flex-direction:column}
-  .lint{font-size:19px;letter-spacing:-.02em;line-height:1.2;color:var(--ink);margin:0}
-  .lind{margin-top:9px;font-size:14px;line-height:1.55;color:var(--muted)}
-  .dlist{margin-top:auto;padding-top:16px}
-  .dl{display:grid;grid-template-columns:15px 1fr;gap:9px;align-items:baseline;
-    padding:4px 0;font-size:13px;line-height:1.45;color:var(--body)}
-  .dl code{font-size:12px}
-  .dp,.dm{font-family:var(--mono);font-weight:700;font-size:13px;line-height:1.45}
-  .dp{color:var(--ok)}
-  .dm{color:var(--bad)}
-  .linf{display:block;padding:13px 22px;border-top:1px solid var(--hair);background:var(--raised);
-    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--cyan);
-    text-decoration:none;transition:background .16s ease}
-  .linf:hover{background:var(--card)}
-  @media (prefers-reduced-motion: reduce){.linf{transition:none}}
-  #top h1{font-size:clamp(33px,4.9vw,56px);letter-spacing:-.032em}
-  @media(max-width:1000px){.herogrid{grid-template-columns:1fr!important}}
-</style>
-
-<!-- ============ THE BILL ============ -->
-<section class="band tight">
+<section id="memory">
   <div class="wrap">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,64px);align-items:center" class="g2x">
+    <div class="secnum">02</div>
+    <h2>A memory instead of a growing context.</h2>
+    <div class="grid2">
       <div>
-        <span class="kicker">Lineage &mdash; why the ladder exists</span>
-        <h2 style="margin-top:16px">v1 worked.<br><em>The bill was the problem.</em></h2>
+        <p class="lede">Every return, every message you send and the first line of every prime reply is a note: one fixed-width
+          record of at most 280 bytes, appended to a log. Pairs of notes merge into a summary, pairs of summaries into
+          another, up a binary tree, compressed by Sonnet in the background.</p>
+        <ul class="ticks">
+          <li><b>wake</b> shows the run in a fixed budget of lines: recent notes verbatim, older ones in blocks that grow with age.</li>
+          <li><b>zoom</b> opens any block back up to its notes; <b>recall</b> searches all of it.</li>
+          <li><b>rotation</b>: at 35% context the mod writes a handoff line, compacts the prime, and the prime's next act is <code>memory_wake</code>.</li>
+          <li>A <b>project memory</b> spans runs: decisions, criteria that proved vacuous, routes that failed.</li>
+        </ul>
+        <p class="muted" style="margin-top:16px;font-size:14px">The log, the tree and the wake view follow
+          <a href="https://github.com/VictorTaelin/OptMem">OptMem</a>'s ideas; the code is baton's own (OptMem ships no license).</p>
       </div>
-      <div>
-        <p style="font-size:16px">
-          The v1 prime ran on the top model and dispatched every task itself, so a forty-node
-          run cost forty top-tier turns before a single line of work happened. Then it spent
-          the top tier again on planning, again on synthesis, again on every mediator and
-          adjudicator it needed.
-        </p>
-        <p style="margin-top:16px;font-size:16px">
-          None of that was wrong. All of it was <strong>expensive in the same direction</strong>.
-          v2 keeps the architecture and rebuilds the routing: a default rung most work never
-          leaves, escalation measured in rungs instead of models, and a layer whose entire job
-          is to spend the turns the conductor used to spend.
-        </p>
-        <p style="margin-top:16px;font-size:16px">That bill is why v2 added a per-phase dispatcher, and why six rungs did: the most capable model was the expensive part of a run. v3 inherited the ladder and changed what a run may leave unexamined; v4 changed who a run belongs to. <strong>v5 changes the premise the ladder priced.</strong> When frontier is the sensible default for anything with judgment in it, two agent tiers and a person are the whole ladder &mdash; and what remains of baton is the part that was always about trust: evidence, verdicts, gates, the record. <strong>v6 measured the rest</strong> on Opus 5.5 and Sonnet 5.5 and cut what rationed the model: one effort, no persona panels by default, no dispatching layer, no summary files.</p>
+      <div class="term reveal">
+        <div class="bar"><i></i><i></i><i></i>&nbsp; mcp__baton__memory_wake · illustrative</div>
+<pre><span class="c-m">Standing rulings, newest first:</span>
+<span class="c-m">#3 PRs target main directly; never stack.</span> <span class="c-d">[enforced]</span>
+<span class="c-m">#1 Fan-outs on Sonnet; Opus to synthesize.</span>
+
+<span class="c-d">memory: 214 notes, 213 summaries; 24 blocks</span>
+<span class="c-c">#0-127 (128 notes)</span> bootstrap BUILD ./billing;
+  41 nodes / 6 phases; P1–P3 CONFIRMED;
+  Q-1 vendor key answered
+<span class="c-c">#128-191 (64 notes)</span> P4 parser: T14 refuted
+  twice, escalated; a red test passed
+  pre-change and was refuted (9.4)
+<span class="c-c">#192-207 (16 notes)</span> P5 export 9/9; approved
+<span class="c-d">…</span>
+<span class="c-i">#211</span> <span class="c-d">[operator]</span> ship P6, hold the migration
+<span class="c-i">#212</span> <span class="c-d">[prime-reply]</span> P6 dispatched, T31 held
+<span class="c-i">#213</span> <span class="c-d">[sub]</span> P6 DONE 6/7 · T31 parked on Q-4</pre>
       </div>
     </div>
-      <div class="grid g6 reveal d1" style="margin-top:40px;align-items:stretch">
 
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v1</b> &middot; the original</div><span class="pill d">archived</span></div>
-          <div class="linb">
-            <h4 class="lint">One prompt.</h4>
-            <p class="lind">571 lines in a single paste. Four model tiers. Adversarial panels and
-              convergence loops were all here first &mdash; the architecture was right.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span>Named lenses, arguing on the record</span></div>
-              <div class="dl"><span class="dp">+</span><span>Loops that had to converge</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Prime dispatched every task itself</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Cost scaled with the node count</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v1.html">Read baton v1 &rarr;</a>
-        </div>
-
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v2</b> &middot; the cost rewrite</div><span class="pill d">archived</span></div>
-          <div class="linb">
-            <h4 class="lint">A repository.</h4>
-            <p class="lind">The prompt split into a router you paste and the contracts, modes, roles
-              and personas it fetches. Same architecture; the bill went somewhere else.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span>Six rungs of model &times; effort</span></div>
-              <div class="dl"><span class="dp">+</span><span>A per-phase agent that absorbs dispatch</span></div>
-              <div class="dl"><span class="dp">+</span><span>Personas loadable from any repo</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>571-line paste &rarr; eight lines</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Four model tiers</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v2.html">Read baton v2 &rarr;</a>
-        </div>
-
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v3</b> &middot; the roster</div><span class="pill d">archived</span></div>
-          <div class="linb">
-            <h4 class="lint">A roster, and checks that answer for themselves.</h4>
-            <p class="lind">Every mode examined the artifact as built. Two new ones examine it as
-              encountered and as sold &mdash; and the checks stopped being exempt from the standard
-              they enforce.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span><code>CRAFT</code> and <code>POSITION</code></span></div>
-              <div class="dl"><span class="dp">+</span><span>40 named experts, opt-in</span></div>
-              <div class="dl"><span class="dp">+</span><span>Ten instruments, each carrying its yield</span></div>
-              <div class="dl"><span class="dp">+</span><span>One computed row per criterion</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Verdicts asserted per node</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v3.html">Read baton v3 &rarr;</a>
-        </div>
-
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v4</b> &middot; the team</div><span class="pill d">archived</span></div>
-          <div class="linb">
-            <h4 class="lint">A team, and a run that outlives the laptop.</h4>
-            <p class="lind">One setting puts the run's state on a git ref, its questions in Issues
-              and its product changes in pull requests. The run itself executes as before, from local
-              disk.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span><code>TEAM: github</code> &mdash; one line</span></div>
-              <div class="dl"><span class="dp">+</span><span>Git is the record; every verdict a permalink</span></div>
-              <div class="dl"><span class="dp">+</span><span>Issues are the doorbell; anyone answers</span></div>
-              <div class="dl"><span class="dp">+</span><span>PRs carry the product, the verdict as a check</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Four files two layers wrote</span></div>
-            </div>
-          </div>
-          <a class="linf" href="baton-v4.html">Read baton v4 &rarr;</a>
-        </div>
-
-        <div class="card lin" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v5</b> &middot; the record</div><span class="pill d">tagged</span></div>
-          <div class="linb">
-            <h4 class="lint">Two tiers, a person, and the half that ages well.</h4>
-            <p class="lind">Asked whether any of it made sense with frontier intelligence as the
-              default, baton kept the contract and cut the ladder. The harness dispatches when it
-              can; baton keeps the record.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span>cheap &middot; frontier &middot; human</span></div>
-              <div class="dl"><span class="dp">+</span><span>A retry carries the verdict that failed it</span></div>
-              <div class="dl"><span class="dp">+</span><span>48 rules, every one an invariant</span></div>
-              <div class="dl"><span class="dp">+</span><span>The harness dispatches when it can</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Six rungs, a ceiling, drift, a quota</span></div>
-            </div>
-          </div>
-          <a class="linf" href="https://github.com/ckluis/baton/tree/db71431" target="_blank" rel="noopener">Read baton v5 &rarr;</a>
-        </div>
-
-        <div class="card lin cur" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
-          <div class="codebar"><div class="fn"><b>v6</b> &middot; the shrink</div><span class="pill c">current</span></div>
-          <div class="linb">
-            <h4 class="lint">Measured, then cut.</h4>
-            <p class="lind">Six experiments found that tier, effort and persona choices barely moved
-              results. What failed was criteria, the environment and unchecked claims, so v6 keeps
-              what checks them and cuts what rationed the model.</p>
-            <div class="dlist">
-              <div class="dl"><span class="dp">+</span><span>Opus 5.5 frontier, Sonnet 5.5 cheap, one effort</span></div>
-              <div class="dl"><span class="dp">+</span><span>Fresh plain reviewers; experts opt-in in <code>library/</code></span></div>
-              <div class="dl"><span class="dp">+</span><span>The prime dispatches under written duties</span></div>
-              <div class="dl"><span class="dm">&minus;</span><span>Effort tables, panels, a dispatch layer, summaries</span></div>
-            </div>
-          </div>
-          <a class="linf" href="https://github.com/ckluis/baton/blob/main/MIGRATING.md" target="_blank" rel="noopener">You are here &middot; migrating &rarr;</a>
-        </div>
-
+    <div class="grid2" style="margin-top:44px">
+      <div class="card reveal"><span class="tag">rulings</span><h3>Say it once</h3>
+        <p>When you state a standing rule mid-run ("from now on…", "never…", a change of mind), Sonnet lifts it into the
+          project memory's rulings. Every wake and every kickoff leads with the newest twelve, and the newest wins.
+          Tested on ten real operator messages: five rules found, five one-offs left alone.</p>
+        <div class="pills"><span class="pill">/baton rule &lt;text&gt;</span><span class="pill">/baton rulings</span><span class="pill">/baton retract &lt;#&gt;</span><span class="pill">/baton enforce &lt;#&gt; &lt;regex&gt;</span></div>
+      </div>
+      <div class="card reveal"><span class="tag">honest scope</span><h3>What the memory is for</h3>
+        <p>On Opus 5.5 we found no context rot to fix: a prime carrying 831K tokens lost nothing. The memory earns its
+          place on <b>cost</b> (a lean prime is cheaper per run) and <b>continuity</b>: runs longer than a window,
+          and rulings that hold across sessions. <a href="#evidence">The numbers.</a></p>
       </div>
     </div>
+  </div>
 </section>
-<style>@media(max-width:860px){.g2x{grid-template-columns:1fr!important}}</style>
 
-<!-- ============ THE LADDER ============ -->
-<section id="ladder">
+<section id="see">
   <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker">01 &mdash; The tiers</span>
-      <h2>Two agent tiers.<br><em>Then a person.</em></h2>
-      <p>Six rungs priced one thing: the most capable model was the expensive part of a run. When
-        it is the sensible default for anything with judgment in it, the ladder has two agent tiers
-        and one human &mdash; and a retry is not a bigger model. It is the same model, carrying the
-        verdict that failed it.</p>
-    </div>
+    <div class="secnum">03</div>
+    <h2>See the tree. Browse the memory.</h2>
+    <p class="lede">Claude Code mods can draw panes, bands and dialogs. <code>/baton</code> opens a pane with five tabs: Run, Agents,
+      Memory, Rulings and Ledger. The band above the prompt shows the prime's context gauge, and the spinner shows the phase.</p>
+    <div class="grid2" style="margin-top:30px">
+      <div class="term reveal">
+        <div class="bar"><i></i><i></i><i></i>&nbsp; /baton → Agents</div>
+<pre><span class="c-y">⚑ P5 export: P5 DONE+CONFIRMED 9/9</span>   <span class="c-d">[approve]</span>
+<span class="c-d">Send back P5: what is wrong ⏎</span>
 
-    <div class="tw reveal d1">
+◆ prime · 3h12m · 96 tools · now Agent
+  <span class="c-g">✓ sub-orchestrator P5 · opus · 41m · 212 tools · DONE+CONFIRMED</span>
+    <span class="c-g">✓ worker T22 · opus · 9m · 37 tools · DONE</span>
+    <span class="c-r">✗ worker-cheap T23 · sonnet · 2m · 8 tools · ESCALATE</span>
+  <span class="c-c">● sub-orchestrator P6 · opus · 12m · 64 tools · now Bash</span>  <span class="c-d">✉</span>
+    <span class="c-c">● worker T29 · opus · 4m · 19 tools · now Edit</span>        <span class="c-d">✉</span>
+    <span class="c-c">● verifier T27 · opus · 1m · 6 tools · now Bash</span>      <span class="c-d">✉</span>
+
+<span class="c-d">baton ▕██████░░┊░░░░░░░░░░░░░▏ 24% · rotate at 35% · rotations 3 · 214 notes · P6</span></pre>
+      </div>
+      <div>
+        <div class="card reveal"><span class="tag">agents</span><h3>The live tree</h3><p>Prime → sub-orchestrators → workers and verifiers, from
+          every spawn's parent, every tool call's agent and every turn's end. <b>✉</b> on a running agent opens a field that
+          messages it directly: steer one phase without going through the prime.</p></div>
+        <div class="card reveal" style="margin-top:16px"><span class="tag">memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
+          summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>
+        <div class="card reveal" style="margin-top:16px"><span class="tag">rulings</span><h3>Add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
+          Enforced rulings show their pattern. The rulings log is append-only, so the history stays.</p></div>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:18px;font-size:14px">The drawings above follow the mod's render code. The tests
+      exercise it against a fake runtime; the live terminal UI has not been checked yet (mods are early access).</p>
+  </div>
+</section>
+
+<section id="approve">
+  <div class="wrap">
+    <div class="secnum">04</div>
+    <h2>Approve from anywhere in the tree.</h2>
+    <p class="lede">A mod can hold any tool call, from any agent at any depth, and ask you first. The approval surfaces at the
+      top however deep the agent sits, and every answer goes into the memory.</p>
+    <div class="grid3" style="margin-top:30px">
+      <div class="card reveal"><span class="tag">command gate</span><h3>Irreversible commands wait</h3>
+        <p><code>git push</code>, <code>gh pr create|merge|close</code>, a release or package publish, <code>reset --hard</code>,
+          <code>clean -f</code>, <code>rm -r</code>. The dialog names the chain (<i>prime › P3 › T7 wants to git push</i>) and your
+          top rulings. Approve, approve for the run, refuse, or type a reason. With nobody to ask, it's refused.</p></div>
+      <div class="card reveal"><span class="tag">phase gate</span><h3>Finished phases wait for you</h3>
+        <p>When a sub-orchestrator reports DONE, the prime's next dispatch waits until you approve the phase or send it back
+          with what's wrong. Sent back, the prime re-dispatches that phase with your reason as its directive.</p></div>
+      <div class="card reveal"><span class="tag">enforced rulings</span><h3>Rules that bite</h3>
+        <p><code>/baton enforce 3 git push.*\bmain\b</code> turns ruling #3 into a refusal at the permission check, run
+          or no run, quoting the ruling. Retract the ruling and the block lifts.</p></div>
+    </div>
+    <div class="term reveal" style="margin-top:26px;max-width:760px">
+      <div class="bar"><i></i><i></i><i></i>&nbsp; dialog</div>
+<pre><span class="c-i">baton: prime › P6 › T29 wants to git push:</span>
+  git push origin baton/build-20261004 --force-with-lease
+
+Your rulings:
+  #3 2026-10-04 Target every PR directly at main; never stack.
+
+<span class="c-y">❯ 1. Approve</span>
+  2. Approve every "git push" for this run
+  3. Refuse
+  4. Type something…</pre>
+    </div>
+  </div>
+</section>
+
+<section id="rgb">
+  <div class="wrap">
+    <div class="secnum">05</div>
+    <h2>Red, green, blue.</h2>
+    <p class="lede">A test written after the code passes by construction. It describes what the code does, and it would have
+      passed against a wrong implementation too. Rule 9.4 forces the order for every node that changes behavior.</p>
+    <div class="grid3 rgb" style="margin-top:30px">
+      <div class="card r reveal"><h3>Red <span>work/red.txt</span></h3><p>Only the tests, one or more per done-criterion. They run and
+        <b>fail</b> against the unchanged code, for the reason the criterion names: not a syntax error or a missing import.</p></div>
+      <div class="card g reveal"><h3>Green <span>work/green.txt</span></h3><p>The smallest change that passes them. The red tests are
+        <b>frozen</b>: a green that needed one edited has redefined the criterion, so it goes back to red.</p></div>
+      <div class="card bl reveal"><h3>Blue <span>work/blue.txt</span></h3><p>Refactor with the suite green and no test touched, or
+        write down that there was nothing to tidy. Each step is its own commit.</p></div>
+    </div>
+    <div class="callout reveal"><b>The verifier checks it, fresh.</b> It re-runs the red tests against the parent of the red commit in a
+      private worktree (a red that passes there refutes its criterion), checks that the freeze held, and that green and blue are green.
+      Exemption is the planner's call, never the node's, and the plan verifier refutes one a test could answer. Unmeasured so far:
+      the first run under it should count the reds the verifier refuted.</div>
+  </div>
+</section>
+
+<section id="evidence">
+  <div class="wrap">
+    <div class="secnum">06</div>
+    <h2>What we measured before building it.</h2>
+    <p class="lede">v7 was built as an experiment: decision rules committed before any run, blind scoring, answer keys audited.
+      The result was not what we set out to show, and the page says so.</p>
+    <div class="tablewrap reveal">
       <table>
-        <thead><tr><th>#</th><th>Tier</th><th>For</th></tr></thead>
+        <thead><tr><th>experiment</th><th>what it stressed</th><th>carry everything</th><th>default compaction</th><th>v7 memory</th><th>verdict</th></tr></thead>
         <tbody>
-          <tr class="dim"><td class="n">0</td><td class="r">cheap</td><td>Mechanical and verifiable by command: run the suite, collect coverage numbers, apply a named rename, check a link list. The fastest model the harness offers. <strong>Assignment only</strong> &mdash; escalation never lands here.</td></tr>
-          <tr class="hi"><td class="n">1</td><td class="r">frontier</td><td><strong>The default.</strong> Everything with judgment in it: implementation against a spec, diagnosis, design, verification, planning, adjudication, synthesis. The most capable model the harness offers, at the binding's effort, <code>medium</code> by default (§1.1). Nothing above it runs unattended.</td></tr>
-          <tr><td class="n">2</td><td class="r">human</td><td>Not a spawn. A question in the inbox with the evidence beside it, batched at the gate &mdash; where frontier stops, and where authority was always going to be needed.</td></tr>
+          <tr><td><b>E1</b> · 3 seeds</td><td>~250K tokens, 5 compactions</td><td>1.000</td><td>1.000</td><td>1.000</td><td><span class="verdict v-tie">tie at ceiling</span></td></tr>
+          <tr><td><b>E1c</b> · 3 seeds</td><td>29 compactions; facts crossing 7–21 of them</td><td>—</td><td>24/24 ×3</td><td>24/24 ×3</td><td><span class="verdict v-tie">tie at ceiling</span></td></tr>
+          <tr><td><b>E1b</b> · exploratory</td><td>the prime carried to <b>831K</b> tokens</td><td>24/24 · <b>$20.40</b></td><td>24/24 · $13.24</td><td>24/24 · $14.78</td><td><span class="verdict v-cost">no rot; ~50% cost</span></td></tr>
+          <tr><td><b>E2</b> · 3 × 8 tasks</td><td>reviewers on unstated project conventions</td><td colspan="3">plain reviewer 6.00/6 · luminary with memory 6.00/6 · memory wiped 6.00/6</td><td><span class="verdict v-cut">luminaries cut</span></td></tr>
         </tbody>
       </table>
     </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:16px">
-      <div class="card">
-        <span class="num">ENTRY</span>
-        <h4>Frontier, unless the work is a command.</h4>
-        <p>The asymmetry reversed. Assigning frontier to mechanical work wastes a little; assigning
-          cheap to judgment costs the attempt, the verification that refutes it, the escalation
-          &mdash; and the defect the cheap tier introduced that the verifier missed. A node enters
-          at cheap only with a reason that names <em>the property that makes it a command</em>.</p>
-      </div>
-      <div class="card">
-        <span class="num">ESCALATION</span>
-        <h4>Two moves, then a person.</h4>
-        <p>Cheap fails &rarr; frontier, once. Frontier fails &rarr; frontier once more, with the
-          verdict's refuted rows verbatim in its handoff &mdash; a different prompt, not a repeat.
-          A second frontier failure is a question. In the self-run every attempt-2 row succeeded,
-          and every one carried the previous verdict. That was the mechanism; the ladder was the
-          packaging.</p>
-      </div>
-      <div class="card">
-        <span class="num">VERIFICATION</span>
-        <h4>Always frontier. Always a fresh spawn.</h4>
-        <p>Whatever tier did the work. Independence is what catches defects, not model tier: a
-          fresh adversary broke three of three contract changes their author had drafted at the top
-          of the old ladder, and the refutation rate did not move with the rung.</p>
-      </div>
-    </div>
+    <div class="callout reveal"><b>What that means.</b> On Opus 5.5 the problem v7 was built to fix (context rot in a long prime) did not
+      appear, up to 831K tokens or through 29 compactions. So v7 ships on what moved: a prime that stays lean is cheaper, and
+      a memory carries a run past the window and across sessions. The expert library is deleted; a plain fresh reviewer
+      did as well. One harness defect was caught along the way (an answer key that expected dispatches the record didn't
+      support), audited, rescored and fixed before the later runs.
+      <a href="https://github.com/ckluis/baton/blob/main/docs/designs/v7-mods.md">Design and results record →</a></div>
   </div>
 </section>
 
-<!-- ============ LAYERS ============ -->
-<section class="band" id="layers">
+<section id="install">
   <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">02 &mdash; The layers</span>
-      <h2>The conductor dispatches.<br><em>It never plays a note.</em></h2>
-      <p>v1's prime dispatched each task itself. v2 inserted a per-phase dispatcher to save expensive turns. v6 removed it: every current harness can spawn agents and wait for them, so the prime dispatches every node itself, under written duties, and never authors or verifies the work it routes.</p>
-    </div>
-
-    <div class="flow reveal d1">
-      <div class="frow top">
-        <div class="fl"><b>Prime</b><span>frontier</span></div>
-        <div class="fr">Dispatches every node, writes each ledger row at receipt, checks every
-          verdict's shape, parks what no execution can settle, lands worktrees, and holds the
-          gates. Never edits, never authors, never verifies.</div>
-      </div>
-      <div class="frow">
-        <div class="fl"><b>Node orchestrator</b><span>assigned tier</span></div>
-        <div class="fr">Does the work, or spawns workers if it decomposes. Returns <code>ESCALATE</code>
-          early and honestly when no agent should be asked, or <code>SPLIT</code> with the seams when
-          it was never one node.</div>
-      </div>
-      <div class="frow">
-        <div class="fl"><b>Worker</b><span>assigned tier</span></div>
-        <div class="fr">Leaf. Writes artifacts inside its work directory.</div>
-      </div>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:16px">
-      <div class="card sm">
-        <span class="num">DOWNWARD</span>
-        <h4>Paths and a tier.</h4>
-        <p>Never contents. Every spawn gets a handoff locator and the tier it runs at.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">UPWARD</span>
-        <h4>An envelope.</h4>
-        <p>Never prose. Six verdicts, paths only, a summary capped at three sentences. The reader is
-          routing, not learning.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">EVIDENCE</span>
-        <h4>What it proves, and what it does not.</h4>
-        <p>A <code>DONE</code> envelope names up to three paths with what each proves, and states
-          what remains unproven.</p>
-      </div>
-    </div>
-
-    <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
-      <span class="num">NO RULE NAMES A MODEL</span>
-      <h4 style="font-size:21px;letter-spacing:-.015em">The defaults name the models. The rules never do.</h4>
-      <p style="margin-top:10px">The invocation binds <code>FRONTIER</code> to <code>claude-opus-5-5</code> at medium
-        effort and <code>CHEAP</code> to <code>claude-sonnet-5-5</code>. The ledger records what actually ran,
-        and a rule that named a model would be wrong within a year.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ TOPOLOGY ============ -->
-<section id="topology">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker">03 &mdash; Graphs &amp; loops</span>
-      <h2>The plan is a graph.<br><em>Some of its nodes are loops.</em></h2>
-      <p>v1's plan was a task list with a <code>blocked_by</code> column and convergence described in prose. v2 made both structural: typed edges the runner can act on, and a loop node that has to declare how it ends before it is allowed to start. v3 pushed the same move into the roster &mdash; 361 typed edges now say which personas contradict which, in the file rather than in a paragraph.</p>
-    </div>
-
-    <div class="grid g2 reveal d1">
-      <div class="code">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>plan/graph.yaml</b> &middot; a node</div><span class="pill d">graph</span></div>
-<pre><span class="c">- </span><span class="k">id</span>: T07
-  <span class="k">kind</span>: task            <span class="c"># task|loop|gate|fanout|barrier</span>
-  <span class="k">rung</span>: <span class="v">1</span>               <span class="c"># the default. above it needs a reason</span>
-  <span class="k">surface</span>: code
-  <span class="k">needs</span>: [T05]          <span class="c"># hard — DONE *and* CONFIRMED</span>
-  <span class="k">informs</span>: [T06]        <span class="c"># soft — an envelope path, never blocks</span>
-  <span class="k">refutes</span>: <span class="v">null</span>         <span class="c"># exists to attack that node</span>
-  <span class="k">adversarial</span>: standard
-  <span class="k">personas</span>: []            <span class="c"># user archetypes a probe drives</span>
-  <span class="k">done</span>: <span class="v">"one line, checkable without judgment"</span></pre>
-      </div>
-      <div class="code">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>plan/graph.yaml</b> &middot; a loop</div><span class="pill d">loop</span></div>
-<pre><span class="c">- </span><span class="k">id</span>: L1
-  <span class="k">kind</span>: loop
-  <span class="k">body</span>: [T07, T08, T09]      <span class="c"># the subgraph per iteration</span>
-  <span class="k">invariant</span>: <span class="v">"suite green every iteration"</span>
-  <span class="k">ledger</span>: _orch/loops/L1/seen.yaml
-  <span class="k">stop</span>:
-    <span class="k">dry_rounds</span>: <span class="v">2</span>            <span class="c"># admitted nothing new, twice</span>
-    <span class="k">max_iterations</span>: <span class="v">6</span>
-    <span class="k">max_rungs</span>: <span class="v">40</span>           <span class="c"># attempts before forced stop</span>
-  <span class="k">on_stop</span>: T10</pre>
-      </div>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:16px">
-      <div class="card">
-        <span class="num">THE SEEN LEDGER</span>
-        <h4>Dedupe against everything seen. Not everything admitted.</h4>
-        <p>Every candidate the loop has ever encountered gets a content-derived key, whether it was
-          admitted or rejected. Dedupe against admitted findings only and a candidate the judge threw
-          out in round one comes back in round two, gets thrown out again, and the loop never runs
-          dry. <em>This is the bug that eats a night.</em></p>
-      </div>
-      <div class="card">
-        <span class="num">DRY, NOT EMPTY</span>
-        <h4>Stop on two quiet rounds.</h4>
-        <p>A count-based stop &mdash; "find ten bugs" &mdash; always misses the tail. An empty-list stop
-          fires on the first lazy iteration. Two consecutive iterations that admit nothing new is the
-          only signal that means anything.</p>
-      </div>
-      <div class="card">
-        <span class="num">PIPELINE FIRST</span>
-        <h4>A barrier is rarely correct.</h4>
-        <p>Items flow through stages independently; item A can be in stage 3 while B is in stage 1.
-          A barrier is right only when the next stage genuinely needs all of the previous &mdash;
-          deduping across every producer, an early exit on the total. Needing to flatten a list is
-          not a reason. Do that inside the next stage.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ MODES ============ -->
-<style>
-  /* --- risograph plate system for the mode artworks --- */
-  .riso{width:100%;height:auto;display:block;overflow:visible}
-  .riso text{font-family:var(--mono);font-size:11px;letter-spacing:.03em}
-  .riso .ty{fill:var(--yellow)}.riso .tc{fill:var(--cyan)}.riso .td{fill:var(--muted)}.riso .tw{fill:var(--ink)}
-  .riso .tb{fill:#0a0a0a;font-weight:600}
-  .riso .big{font-size:13px;font-weight:600}
-  .riso .sm{font-size:9.5px}
-  .gy{color:var(--yellow)}
-  .gc{color:var(--cyan);opacity:.62;mix-blend-mode:screen}
-  .riso .sd{fill:none;stroke:#2f2f2f;stroke-width:1.4}
-  .riso .fy{fill:var(--yellow)}.riso .fc{fill:var(--cyan)}
-  .riso .hy{fill:url(#hy)}.riso .hc{fill:url(#hc)}.riso .hd{fill:url(#hd)}.riso .hx{fill:url(#hx)}
-  .riso .card{fill:#141414;stroke:#2a2a2a;stroke-width:1}
-
-  /* --- mode bands --- */
-  .modeband{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);
-    gap:clamp(28px,4.5vw,64px);align-items:center;padding:clamp(40px,5vw,64px) 0;border-top:1px solid var(--hair)}
-  .modeband:nth-child(even) .mb-art{order:2}
-  .mb-art{position:relative;background:var(--card);border:1px solid var(--hair);border-radius:12px;
-    padding:clamp(20px,2.6vw,32px);overflow:hidden}
-  .mb-art::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.045;
-    background-image:radial-gradient(#faff69 1px,transparent 1.2px);background-size:7px 7px}
-  .mb-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-  .mb-name{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:.1em;color:var(--yellow)}
-  .mb-txt h3{margin-bottom:14px;font-size:clamp(20px,2.2vw,28px)}
-  .mb-txt > p{font-size:15px;color:var(--body);max-width:52ch}
-  .mb-facts{list-style:none;margin-top:22px;display:grid;gap:9px}
-  .mb-facts li{position:relative;padding-left:100px;font-size:13.5px;color:var(--body);line-height:1.5}
-  .mb-facts b{position:absolute;left:0;top:.28em;width:88px;font-family:var(--mono);font-size:10.5px;
-    font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--muted-2)}
-  .mb-facts code{white-space:nowrap}
-  .mb-link{display:inline-flex;align-items:center;gap:7px;margin-top:22px;font-family:var(--mono);
-    font-size:12px;font-weight:600;color:var(--cyan);letter-spacing:.03em;border-bottom:1px solid transparent;transition:border-color .16s}
-  .mb-link:hover{border-color:var(--cyan)}
-  .mchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-  .mchip{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);
-    border:1px solid var(--hair);border-radius:9999px;padding:6px 14px;transition:color .16s,border-color .16s}
-  .mchip:hover{color:var(--yellow);border-color:var(--yellow-dim)}
-  @media(max-width:880px){
-    .modeband{grid-template-columns:1fr;gap:28px;padding:36px 0}
-    .modeband:nth-child(even) .mb-art{order:0}
-    .mb-facts li{padding-left:0;padding-top:20px}
-    .mb-facts b{top:0}
-  }
-</style>
-
-<section class="band" id="modes">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">04 &mdash; Modes</span>
-      <h2>You point.<br><em>The mode brings the topology.</em></h2>
-      <p>A mode is a file, not a paragraph of advice. It carries the directive, the graph skeleton,
-        the loop definitions, the entry tiers, and the gates &mdash; and the session loads
-        only the one you named. Each drawing below <strong>is</strong> that mode's graph, not a
-        decoration of it.</p>
-        <p>v2 shipped eight of them, and every one examined the artifact <em>as built</em> &mdash; its code, its tests, its plan, its journeys. Nothing examined it <em>as encountered</em>, and nothing <em>as sold</em>. That is the gap <strong>CRAFT</strong> and <strong>POSITION</strong> close: one seats a panel against the experienced surface, the other against the commercial surface, and neither is allowed to ship a diff. Since v6 both are opt-in, in <code>library/</code> with the expert personas they seat.</p>
-      <div class="mchips" style="margin-top:24px">
-        <a class="mchip" href="#m-test">TEST</a><a class="mchip" href="#m-build">BUILD</a>
-        <a class="mchip" href="#m-improve">IMPROVE</a><a class="mchip" href="#m-review">REVIEW</a>
-        <a class="mchip" href="#m-dogfood">DOGFOOD</a><a class="mchip" href="#m-craft">CRAFT</a>
-        <a class="mchip" href="#m-position">POSITION</a><a class="mchip" href="#m-migrate">MIGRATE</a>
-        <a class="mchip" href="#m-roadmap">ROADMAP</a><a class="mchip" href="#m-generic">GENERIC</a>
-      </div>
-    </div>
-
-    <!-- shared riso plates -->
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-      <pattern id="hy" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="1.6" r="1.25" fill="#faff69"/></pattern>
-      <pattern id="hc" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="1.6" r="1.25" fill="#5eead4"/></pattern>
-      <pattern id="hd" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="1.6" r="1.1" fill="#3d3d3d"/></pattern>
-      <pattern id="hx" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#5eead4" stroke-width="1.5"/></pattern>
-      <marker id="ay" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#faff69"/></marker>
-      <marker id="ad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#5a5a5a"/></marker>
-      <marker id="ac" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#5eead4"/></marker>
-    </defs></svg>
-
-    <!-- ===== TEST ===== -->
-    <article class="modeband reveal" id="m-test">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="A closed loop of three nodes circling a seen-ledger. Rejected candidates fall out to the right; the loop exits only after two dry rounds.">
-          <defs><g id="a-test" fill="none" stroke="currentColor" stroke-width="1.9">
-            <path d="M255 82  A112 112 0 0 1 324 222"/>
-            <path d="M310 254 A112 112 0 0 1 154 254"/>
-            <path d="M140 222 A112 112 0 0 1 209 82"/>
-          </g></defs>
-          <use href="#a-test" class="gc" x="-3" y="3"/><use href="#a-test" class="gy"/>
-          <g fill="none" stroke="#faff69" stroke-width="2" opacity=".95">
-            <path d="M255 82  A112 112 0 0 1 324 222" marker-end="url(#ay)"/>
-            <path d="M310 254 A112 112 0 0 1 154 254" marker-end="url(#ay)"/>
-            <path d="M140 222 A112 112 0 0 1 209 82"  marker-end="url(#ay)"/>
-          </g>
-          <g fill="#141414" stroke="#faff69" stroke-width="1.9">
-            <circle cx="232" cy="76" r="21"/><circle cx="329" cy="244" r="21"/><circle cx="135" cy="244" r="21"/>
-          </g>
-          <rect x="176" y="160" width="112" height="56" rx="8" class="card"/>
-          <rect x="176" y="160" width="112" height="56" rx="8" fill="none" stroke="#5eead4" stroke-width="1.4"/>
-          <text x="232" y="182" text-anchor="middle" class="tc sm">seen.yaml</text>
-          <text x="232" y="202" text-anchor="middle" class="tw big">47 keys</text>
-          <text x="232" y="81"  text-anchor="middle" class="ty sm">T07</text>
-          <text x="329" y="249" text-anchor="middle" class="ty sm">T08</text>
-          <text x="135" y="249" text-anchor="middle" class="ty sm">T09</text>
-          <g class="td">
-            <text x="232" y="42" text-anchor="middle" class="td sm">generate</text>
-            <text x="376" y="268" class="td sm">fix</text>
-            <text x="58"  y="268" class="td sm">re-run</text>
-          </g>
-          <g stroke="#5eead4" stroke-width="1.6" opacity=".7">
-            <path d="M438 118 l14 14 M452 118 l-14 14"/><path d="M438 158 l14 14 M452 158 l-14 14"/>
-            <path d="M438 198 l14 14 M452 198 l-14 14"/>
-          </g>
-          <path d="M356 168 C 396 150 404 150 430 152" fill="none" stroke="#5eead4" stroke-width="1.4" stroke-dasharray="4 5" marker-end="url(#ac)"/>
-          <text x="470" y="126" class="tc sm">already</text><text x="470" y="140" class="tc sm">seen &mdash;</text>
-          <text x="470" y="154" class="tc sm">dropped</text>
-          <rect x="176" y="312" width="120" height="30" rx="6" class="fy"/>
-          <text x="236" y="332" text-anchor="middle" class="tb">dry &times; 2 &rarr; exit</text>
-          <text x="20" y="360" class="td sm">L1 &middot; invariant: suite green every iteration &middot; max_iterations 6</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">TEST</span><span class="pill c">loop</span><span class="pill d">converges</span></div>
-        <h3>The adversarial sweep, <em>run until it goes quiet.</em></h3>
-        <p>Baseline, then a suite audit that maps tests to behaviours, then generation aimed at edge
-          cases, malformed input, races, boundary values, exhaustion, and state corruption. Every new
-          test states the behaviour it pins and why nothing else covers it &mdash; a test that cannot
-          justify itself does not merge.</p>
-        <ul class="mb-facts">
-          <li><b>Loop</b>Generate &rarr; consolidate &rarr; fix, deduped against the seen ledger, exiting on two dry rounds rather than an empty list.</li>
-          <li><b>Refuses</b>Retry-until-green wrappers. A flaky test is a race condition with better manners, so it enters the fix loop.</li>
-          <li><b>Checks</b>A fresh verifier on every consolidation and every fix; the plan verifier names any failure class the attack set leaves out.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/TEST.md" target="_blank" rel="noopener">prompt/modes/TEST.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== BUILD ===== -->
-    <article class="modeband reveal" id="m-build">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="Six spec requirements trace rightward into build nodes. Five reach a verified check; one stops at an ambiguity gate that blocks the run before any code is written.">
-          <defs><g id="a-build" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="24" y="46" width="132" height="268" rx="9"/>
-          </g></defs>
-          <use href="#a-build" class="gc" x="-3" y="3"/><use href="#a-build" class="gy"/>
-          <text x="90" y="34" text-anchor="middle" class="td sm">{TARGET} &mdash; the spec</text>
-          <g class="sd">
-            <rect x="40" y="62"  width="100" height="30" rx="5"/><rect x="40" y="102" width="100" height="30" rx="5"/>
-            <rect x="40" y="142" width="100" height="30" rx="5"/><rect x="40" y="182" width="100" height="30" rx="5"/>
-            <rect x="40" y="222" width="100" height="30" rx="5"/><rect x="40" y="262" width="100" height="30" rx="5"/>
-          </g>
-          <g class="td">
-            <text x="52" y="82">R1</text><text x="52" y="122">R2</text><text x="52" y="162">R3</text>
-            <text x="52" y="202">R4</text><text x="52" y="242">R5</text><text x="52" y="282">R6</text>
-          </g>
-          <g fill="none" stroke="#faff69" stroke-width="1.5" opacity=".85">
-            <path d="M140 77  C 210 77  240 84  300 84"  marker-end="url(#ay)"/>
-            <path d="M140 117 C 210 117 240 124 300 124" marker-end="url(#ay)"/>
-            <path d="M140 197 C 210 197 240 204 300 204" marker-end="url(#ay)"/>
-            <path d="M140 237 C 210 237 240 244 300 244" marker-end="url(#ay)"/>
-            <path d="M140 277 C 210 277 240 284 300 284" marker-end="url(#ay)"/>
-          </g>
-          <path d="M140 157 C 210 157 250 164 306 164" fill="none" stroke="#5eead4" stroke-width="1.9" stroke-dasharray="5 5" marker-end="url(#ac)"/>
-          <path d="M330 150 l14 14 -14 14 -14 -14z" class="hc"/>
-          <path d="M330 150 l14 14 -14 14 -14 -14z" fill="none" stroke="#5eead4" stroke-width="1.6"/>
-          <text x="330" y="168" text-anchor="middle" class="tb sm">?</text>
-          <text x="356" y="160" class="tc sm">ambiguity gate</text>
-          <text x="356" y="174" class="tc sm">&rarr; BLOCKED</text>
-          <g class="sd"><rect x="300" y="68" width="112" height="32" rx="5"/><rect x="300" y="108" width="112" height="32" rx="5"/>
-            <rect x="300" y="188" width="112" height="32" rx="5"/><rect x="300" y="228" width="112" height="32" rx="5"/>
-            <rect x="300" y="268" width="112" height="32" rx="5"/></g>
-          <g class="ty"><text x="312" y="88">T01</text><text x="312" y="128">T02</text><text x="312" y="208">T04</text>
-            <text x="312" y="248">T05</text><text x="312" y="288">T06</text></g>
-          <g fill="none" stroke="#faff69" stroke-width="2.2" stroke-linecap="round">
-            <path d="M446 82 l7 8 12 -16"/><path d="M446 122 l7 8 12 -16"/><path d="M446 202 l7 8 12 -16"/>
-            <path d="M446 242 l7 8 12 -16"/><path d="M446 282 l7 8 12 -16"/>
-          </g>
-          <text x="486" y="60" class="td sm">verified</text>
-          <text x="24" y="346" class="td sm">plan/traceability.yaml &mdash; every requirement to a node to a verification path</text>
-          <text x="24" y="362" class="tc sm">a requirement with no CONFIRMED path is a P0, not a footnote</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">BUILD</span><span class="pill c">gate</span><span class="pill d">ambiguity first</span></div>
-        <h3>A spec, <em>honored.</em></h3>
-        <p>The traceability matrix is written before any code exists: every requirement to the nodes
-          that satisfy it to the method that will prove it. Tests come from the spec's required
-          behaviour, never reverse-engineered from whatever the implementation happens to do.</p>
-        <ul class="mb-facts">
-          <li><b>Gate</b>Every ambiguity, contradiction, and unstated assumption reaches you as one batch <em>before</em> the build starts. Cosmetic ones get a documented default instead.</li>
-          <li><b>Refuses</b>Guessing. A spec question answered by inference is a deviation nobody approved.</li>
-          <li><b>Checks</b>Each requirement verified against its matrix row, never against the node that built it; contested readings go to an adjudicator.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/BUILD.md" target="_blank" rel="noopener">prompt/modes/BUILD.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== IMPROVE ===== -->
-    <article class="modeband reveal" id="m-improve">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="Four audit lenses light up the left two thirds of a module. The remaining third stays hatched and unlit, and a separate blindspot agent aims at exactly that region.">
-          <defs>
-            <clipPath id="clipMod"><rect x="150" y="52" width="286" height="230" rx="10"/></clipPath>
-            <g id="a-imp" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="150" y="52" width="286" height="230" rx="10"/></g>
-          </defs>
-          <rect x="150" y="52" width="286" height="230" rx="10" fill="#101010"/>
-          <rect x="150" y="52" width="286" height="230" rx="10" class="hx" opacity=".8"/>
-          <g clip-path="url(#clipMod)">
-            <path d="M150 52 L336 52 L354 167 L336 282 L150 282 Z" fill="#0a0a0a"/>
-            <path d="M150 52 L336 52 L354 167 L336 282 L150 282 Z" class="hy" opacity=".95"/>
-          </g>
-          <g fill="none" stroke="#faff69" stroke-width="1.2" opacity=".55">
-            <path d="M104 84 L332 66"/><path d="M104 132 L340 128"/><path d="M104 180 L346 186"/><path d="M104 228 L332 254"/>
-          </g>
-          <use href="#a-imp" class="gc" x="-3" y="3"/><use href="#a-imp" class="gy"/>
-          <path d="M336 52 L354 167 L336 282" fill="none" stroke="#faff69" stroke-width="2.2"/>
-          <g fill="#141414" stroke="#faff69" stroke-width="1.8"><circle cx="96" cy="84" r="9"/><circle cx="96" cy="132" r="9"/><circle cx="96" cy="180" r="9"/><circle cx="96" cy="228" r="9"/></g>
-          <g class="td sm" text-anchor="end">
-            <text x="80" y="88">correctness</text><text x="80" y="136">coupling</text>
-            <text x="80" y="184">contracts</text><text x="80" y="232">test gaps</text>
-          </g>
-          <text x="20" y="34" class="ty sm">the audit &mdash; four lenses</text>
-          <text x="293" y="40" text-anchor="middle" class="td sm">{TARGET}</text>
-          <text x="243" y="172" text-anchor="middle" class="tb big">lit</text>
-          <text x="396" y="150" text-anchor="middle" class="tc big">the</text>
-          <text x="396" y="170" text-anchor="middle" class="tc big">blindspot</text>
-          <rect x="348" y="180" width="96" height="30" rx="4" fill="#0a0a0a" opacity=".82"/>
-          <text x="396" y="192" text-anchor="middle" class="tc sm">no lens</text>
-          <text x="396" y="205" text-anchor="middle" class="tc sm">reaches here</text>
-          <g fill="#141414" stroke="#5eead4" stroke-width="1.8"><circle cx="502" cy="252" r="17"/></g>
-          <path d="M488 240 C 452 226 432 216 414 212" fill="none" stroke="#5eead4" stroke-width="1.8" marker-end="url(#ac)"/>
-          <text x="502" y="292" text-anchor="middle" class="tc sm">a fresh agent</text>
-          <text x="502" y="306" text-anchor="middle" class="tc sm">gets the lens list,</text>
-          <text x="502" y="320" text-anchor="middle" class="tc sm">never the findings</text>
-          <text x="20" y="336" class="td sm">callers &middot; operators &middot; the 3 a.m. incident</text>
-          <text x="20" y="352" class="td sm">the clock, the locale, "input is already validated"</text>
-          <text x="20" y="370" class="ty sm">every uncovered class gets a cited finding &mdash; or "probed X via Y, found nothing"</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">IMPROVE</span><span class="pill c">loop</span><span class="pill d">blindspot pass</span></div>
-        <h3>Then hunt what the audit <em>structurally cannot see.</em></h3>
-        <p>An audit is a set of lenses, and a set of lenses has a shape. Whatever falls outside that
-          shape is invisible to it no matter how carefully it looks &mdash; so a fresh agent receives
-          the audit's <em>lens list</em> and never its findings, and goes hunting there instead of
-          re-walking ground already covered.</p>
-        <ul class="mb-facts">
-          <li><b>Hunts</b>Uncovered failure classes, the module as its callers and operators meet it, and every assumption the code, the tests, and the lenses all share unexamined.</li>
-          <li><b>Refuses</b>Drive-by refactors. Every improvement lands atomically with before/after evidence &mdash; asserting behaviour was preserved is a refutation.</li>
-          <li><b>Checks</b>A fresh blindspot agent given the lens list and none of the findings; every improvement refuted by a node that did not make it.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/IMPROVE.md" target="_blank" rel="noopener">prompt/modes/IMPROVE.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== REVIEW ===== -->
-    <article class="modeband reveal" id="m-review">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 400" role="img" aria-label="Five sealed audit contexts with no connections between them, each raising at most one flag. Two are then paired for a bounded steelman clash, and a barrier verifies citations before synthesis.">
-          <defs><g id="a-rev" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="20"  y="44" width="92" height="82" rx="8"/><rect x="128" y="44" width="92" height="82" rx="8"/>
-            <rect x="236" y="44" width="92" height="82" rx="8"/><rect x="344" y="44" width="92" height="82" rx="8"/>
-            <rect x="452" y="44" width="92" height="82" rx="8"/>
-          </g></defs>
-          <use href="#a-rev" class="gc" x="-3" y="3"/><use href="#a-rev" class="gy"/>
-          <g class="td sm" text-anchor="middle">
-            <text x="66" y="70">seat 1</text><text x="174" y="70">seat 2</text><text x="282" y="70">seat 3</text>
-            <text x="390" y="70">seat 4</text><text x="498" y="70">seat 5</text>
-          </g>
-          <g class="fy"><rect x="52" y="84" width="28" height="8" rx="2"/><rect x="268" y="84" width="28" height="8" rx="2"/>
-            <rect x="376" y="84" width="28" height="8" rx="2"/></g>
-          <g fill="none" stroke="#3a3a3a" stroke-width="1.4"><rect x="160" y="84" width="28" height="8" rx="2"/><rect x="484" y="84" width="28" height="8" rx="2"/></g>
-          <g class="td sm" text-anchor="middle"><text x="66" y="112">1 flag</text><text x="174" y="112">0</text>
-            <text x="282" y="112">1 flag</text><text x="390" y="112">1 flag</text><text x="498" y="112">0</text></g>
-          <text x="20" y="30" class="tc sm">no edges between these boxes &mdash; independence is structural, not promised</text>
-          <path d="M66 126 L66 158 M174 126 L174 158 M282 126 L282 158 M390 126 L390 158 M498 126 L498 158"
-                fill="none" stroke="#2f2f2f" stroke-width="1.4"/>
-          <text x="20" y="180" class="td sm">unanimity would be a failure signal, so a clash is forced either way</text>
-          <rect x="20" y="192" width="366" height="58" rx="8" fill="#0f1f1c"/>
-          <rect x="20" y="192" width="366" height="58" rx="8" fill="none" stroke="#5eead4" stroke-width="1.8"/>
-          <text x="36" y="216" class="tc">seat 1 &nbsp;&harr;&nbsp; seat 4</text>
-          <text x="182" y="216" class="td sm">one exchange, then a ruling</text>
-          <text x="36" y="238" class="tw sm">steelman first, or the rebuttal is discarded unread</text>
-          <path d="M203 250 L203 282" fill="none" stroke="#faff69" stroke-width="1.8" marker-end="url(#ay)"/>
-          <line x1="20" y1="288" x2="540" y2="288" stroke="#faff69" stroke-width="2.4"/>
-          <text x="20" y="308" class="ty sm">BARRIER &mdash; citation verification</text>
-          <text x="20" y="322" class="td sm">a quote that is not where it was placed becomes UNVERIFIED, and cannot block</text>
-          <rect x="20" y="334" width="520" height="56" rx="9" class="card"/>
-          <text x="40" y="358" class="tw big">recommendation matrix</text>
-          <text x="40" y="376" class="td sm">final priority &middot; owner node &middot; verification path</text>
-          <text x="330" y="376" class="tc sm">P0/P1 become graph nodes</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">REVIEW</span><span class="pill c">fresh reviewers</span><span class="pill d">report only</span></div>
-        <h3>Agreement is only information <em>when disagreement was possible.</em></h3>
-        <p>One fresh reviewer per surface, each in its own context with nothing to peek at, so
-          independence stops being an honour rule policed against text sitting visibly above you.
-          One blocking flag per reviewer, maximum &mdash; forced prioritisation.</p>
-        <ul class="mb-facts">
-          <li><b>Evidence</b>A plain reviewer found 15.67 of 16 seeded defects; lens cards at four times the spend found 16, as did four plain reviewers. v6 dropped the lenses.</li>
-          <li><b>Refuses</b>Executing anything. Its output is a matrix a later <code>BUILD</code> or <code>IMPROVE</code> run picks up directly.</li>
-          <li><b>Checks</b>Every quote matched to its path at cheap; every P0 and P1 re-scored by a verifier that did not raise it.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/REVIEW.md" target="_blank" rel="noopener">prompt/modes/REVIEW.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== DOGFOOD ===== -->
-    <article class="modeband reveal" id="m-dogfood">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="A matrix of user personas against journeys. Filled cells were completed, hatched cells were abandoned, and empty cells were never probed at all.">
-          <g class="td sm" text-anchor="end">
-            <text x="146" y="94">first-run</text><text x="146" y="140">admin-operator</text>
-            <text x="146" y="186">mobile-commuter</text><text x="146" y="232">assistive-tech</text>
-            <text x="146" y="278">low-trust-evaluator</text>
-          </g>
-          <g class="td sm">
-            <text x="166" y="58" transform="rotate(-38 166 58)">sign up</text>
-            <text x="240" y="58" transform="rotate(-38 240 58)">invite</text>
-            <text x="314" y="58" transform="rotate(-38 314 58)">configure</text>
-            <text x="388" y="58" transform="rotate(-38 388 58)">daily task</text>
-            <text x="462" y="58" transform="rotate(-38 462 58)">billing</text>
-          </g>
-          <defs><g id="a-dog" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="160" y="70" width="370" height="230" rx="8"/>
-          </g></defs>
-          <use href="#a-dog" class="gc" x="-3" y="3"/><use href="#a-dog" class="gy"/>
-          <g class="sd">
-            <path d="M234 70 v230 M308 70 v230 M382 70 v230 M456 70 v230"/>
-            <path d="M160 116 h370 M160 162 h370 M160 208 h370 M160 254 h370"/>
-          </g>
-          <g class="hy">
-            <rect x="166" y="76" width="62" height="34" rx="4"/><rect x="240" y="76" width="62" height="34" rx="4"/>
-            <rect x="166" y="122" width="62" height="34" rx="4"/><rect x="240" y="122" width="62" height="34" rx="4"/>
-            <rect x="314" y="122" width="62" height="34" rx="4"/><rect x="388" y="122" width="62" height="34" rx="4"/>
-            <rect x="166" y="168" width="62" height="34" rx="4"/><rect x="388" y="168" width="62" height="34" rx="4"/>
-            <rect x="166" y="214" width="62" height="34" rx="4"/><rect x="240" y="260" width="62" height="34" rx="4"/>
-          </g>
-          <g class="hx">
-            <rect x="314" y="76" width="62" height="34" rx="4"/><rect x="240" y="168" width="62" height="34" rx="4"/>
-            <rect x="240" y="214" width="62" height="34" rx="4"/><rect x="166" y="260" width="62" height="34" rx="4"/>
-          </g>
-          <g fill="none" stroke="#5eead4" stroke-width="1.5">
-            <rect x="314" y="76" width="62" height="34" rx="4"/><rect x="240" y="168" width="62" height="34" rx="4"/>
-            <rect x="240" y="214" width="62" height="34" rx="4"/><rect x="166" y="260" width="62" height="34" rx="4"/>
-          </g>
-          <g fill="none" stroke="#2f2f2f" stroke-width="1.4" stroke-dasharray="3 4">
-            <rect x="388" y="76" width="62" height="34" rx="4"/><rect x="462" y="76" width="62" height="34" rx="4"/>
-            <rect x="462" y="122" width="62" height="34" rx="4"/><rect x="314" y="168" width="62" height="34" rx="4"/>
-            <rect x="462" y="168" width="62" height="34" rx="4"/><rect x="314" y="214" width="62" height="34" rx="4"/>
-            <rect x="388" y="214" width="62" height="34" rx="4"/><rect x="462" y="214" width="62" height="34" rx="4"/>
-            <rect x="314" y="260" width="62" height="34" rx="4"/><rect x="388" y="260" width="62" height="34" rx="4"/>
-            <rect x="462" y="260" width="62" height="34" rx="4"/>
-          </g>
-          <g><rect x="20" y="326" width="14" height="12" rx="3" class="hy"/><text x="42" y="337" class="td sm">completed</text>
-             <rect x="130" y="326" width="14" height="12" rx="3" class="hx"/><text x="152" y="337" class="td sm">abandoned &mdash; a first-class finding</text>
-             <rect x="392" y="326" width="14" height="12" rx="3" fill="none" stroke="#2f2f2f" stroke-dasharray="3 4"/>
-             <text x="414" y="337" class="td sm">never probed</text></g>
-          <text x="20" y="362" class="tc sm">matrix-coverage audits the empty cells &mdash; the run has to say why, not just what it saw</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">DOGFOOD</span><span class="pill c">fanout</span><span class="pill d">user personas</span></div>
-        <h3>Users who <em>never saw the DOM.</em></h3>
-        <p>Simulated people drive the running product through real journeys, deciding every action
-          from screenshots alone. If it is not visible in the current screenshot, this person does
-          not know it exists &mdash; and a step without a screenshot is a fabricated step.</p>
-        <ul class="mb-facts">
-          <li><b>Gate</b>The persona matrix reaches you as one batch before any journey runs. Persona choices change everything downstream.</li>
-          <li><b>Probes</b>Tenant isolation, privilege boundaries, impersonation. These are the findings only a simulated user surfaces.</li>
-          <li><b>Refuses</b>Fixing anything, and refuting taste. Verification re-drives facts: steps, error text, timings, dead ends.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/DOGFOOD.md" target="_blank" rel="noopener">prompt/modes/DOGFOOD.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== CRAFT ===== -->
-    <article class="modeband reveal" id="m-craft">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="Three captured surfaces feed a shared pool. Three sealed audit seats draw from that pool with no edges between them, a forced pairing and a citation barrier sit before the matrix, and a yellow band marks the two things this panel refuses to do.">
-          <defs><g id="a-craft" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="20" y="40" width="150" height="54" rx="8"/><rect x="205" y="40" width="150" height="54" rx="8"/><rect x="390" y="40" width="150" height="54" rx="8"/>
-          </g></defs>
-          <use href="#a-craft" class="gc" x="-3" y="3"/><use href="#a-craft" class="gy"/>
-          <text x="20" y="30" class="td sm">capture precedes every seat &mdash; argue from a file, not a memory of a mock</text>
-          <g class="ty sm" text-anchor="middle">
-            <text x="95" y="62">S1</text><text x="280" y="62">S2</text><text x="465" y="62">S3</text>
-          </g>
-          <g class="td sm" text-anchor="middle">
-            <text x="95" y="80">shot + text</text><text x="280" y="80">shot + text</text><text x="465" y="80">shot + text</text>
-          </g>
-          <g fill="none" stroke="#faff69" stroke-width="1.5" opacity=".85">
-            <path d="M95 94 L95 118" marker-end="url(#ay)"/>
-            <path d="M280 94 L280 118" marker-end="url(#ay)"/>
-            <path d="M465 94 L465 118" marker-end="url(#ay)"/>
-          </g>
-          <rect x="20" y="118" width="520" height="28" rx="6" class="card"/>
-          <text x="280" y="137" text-anchor="middle" class="tc sm">captured surfaces &mdash; every seat argues from this, none from a mock</text>
-          <g fill="none" stroke="#5eead4" stroke-width="1.4" opacity=".85">
-            <path d="M95 146 L95 168" marker-end="url(#ac)"/>
-            <path d="M280 146 L280 168" marker-end="url(#ac)"/>
-            <path d="M465 146 L465 168" marker-end="url(#ac)"/>
-          </g>
-          <g fill="none" stroke="currentColor" stroke-width="1.6">
-            <rect x="20" y="168" width="150" height="88" rx="8"/><rect x="205" y="168" width="150" height="88" rx="8"/><rect x="390" y="168" width="150" height="88" rx="8"/>
-          </g>
-          <g class="td sm" text-anchor="middle">
-            <text x="95" y="196">type-system</text><text x="280" y="196">motion-honesty</text><text x="465" y="196">access-barrier</text>
-            <text x="95" y="214">1 blocking</text><text x="280" y="214">0</text><text x="465" y="214">1 blocking</text>
-            <text x="95" y="240">quote cited</text><text x="280" y="240">quote cited</text><text x="465" y="240">quote cited</text>
-          </g>
-          <text x="20" y="270" class="tc sm">no edges between these boxes &mdash; each seat sees its own capture and nothing else</text>
-          <rect x="20" y="282" width="366" height="34" rx="8" fill="#0f1f1c"/>
-          <rect x="20" y="282" width="366" height="34" rx="8" fill="none" stroke="#5eead4" stroke-width="1.6"/>
-          <text x="36" y="303" class="tc sm">type-system &nbsp;&harr;&nbsp; access-barrier &mdash; one exchange, then a ruling</text>
-          <path d="M203 316 L203 330" fill="none" stroke="#faff69" stroke-width="1.6" marker-end="url(#ay)"/>
-          <line x1="20" y1="336" x2="540" y2="336" stroke="#faff69" stroke-width="2"/>
-          <text x="20" y="352" class="ty sm">BARRIER &mdash; a quote missing from its capture becomes UNVERIFIED, and cannot block</text>
-          <rect x="20" y="356" width="520" height="20" rx="5" class="fy"/>
-          <text x="280" y="370" text-anchor="middle" class="tb sm">drives no journeys &middot; fixes nothing &mdash; every finding leaves as a matrix row</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">CRAFT</span><span class="pill c">capture</span><span class="pill d">library, opt-in</span></div>
-        <h3>Every seat argues <em>from a file, not a memory.</em></h3>
-        <p>Type, colour, motion, microcopy, information architecture, accessibility, localisation &mdash;
-          captured as a screenshot and rendered text before any seat is cast. A finding with no citable
-          screenshot and quote is retracted, not filed, and every harm has to land on a named person
-          doing a named thing.</p>
-        <ul class="mb-facts">
-          <li><b>Gate</b>The full surface list &mdash; every screen, route, and state &mdash; reaches you as one batch before capture starts; it is the only gate that halts the mode, because capture is the expensive stage.</li>
-          <li><b>Refuses</b>Driving journeys &mdash; DOGFOOD's job &mdash; and fixing anything: every finding leaves as a matrix row for a later IMPROVE or BUILD run, never a diff.</li>
-          <li><b>Seats</b><code>type-system</code> &middot; <code>visual-coherence</code> &middot; <code>motion-honesty</code> &middot; <code>access-barrier</code></li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/library/prompt/modes/CRAFT.md" target="_blank" rel="noopener">library/prompt/modes/CRAFT.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== POSITION ===== -->
-    <article class="modeband reveal" id="m-position">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="A three-column claim ledger of claim, location and verbatim wording feeds three sealed audit seats with no edges between them, a forced pairing and a citation barrier sit before the matrix, and a yellow band marks the two things this panel refuses to do.">
-          <defs><g id="a-position" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="20" y="40" width="520" height="90" rx="8"/>
-          </g></defs>
-          <use href="#a-position" class="gc" x="-3" y="3"/><use href="#a-position" class="gy"/>
-          <text x="20" y="30" class="td sm">every claim enters the ledger with its exact location and verbatim wording &mdash; before any seat is cast</text>
-          <path d="M193 40 L193 130 M367 40 L367 130" fill="none" stroke="#2f2f2f" stroke-width="1.4"/>
-          <path d="M20 64 L540 64" fill="none" stroke="#2f2f2f" stroke-width="1.4"/>
-          <g class="ty sm" text-anchor="middle">
-            <text x="106" y="56">claim</text><text x="280" y="56">location</text><text x="454" y="56">wording</text>
-          </g>
-          <g class="td sm" text-anchor="middle">
-            <text x="106" y="79">C1</text><text x="280" y="79">pricing page</text><text x="454" y="79">verbatim</text>
-            <text x="106" y="101">C2</text><text x="280" y="101">landing page</text><text x="454" y="101">verbatim</text>
-            <text x="106" y="123">C3</text><text x="280" y="123">README</text><text x="454" y="123">verbatim</text>
-          </g>
-          <g fill="none" stroke="#faff69" stroke-width="1.5" opacity=".85">
-            <path d="M106 130 L106 152" marker-end="url(#ay)"/>
-            <path d="M280 130 L280 152" marker-end="url(#ay)"/>
-            <path d="M454 130 L454 152" marker-end="url(#ay)"/>
-          </g>
-          <g fill="none" stroke="currentColor" stroke-width="1.6">
-            <rect x="20" y="152" width="150" height="88" rx="8"/><rect x="205" y="152" width="150" height="88" rx="8"/><rect x="390" y="152" width="150" height="88" rx="8"/>
-          </g>
-          <g class="td sm" text-anchor="middle">
-            <text x="95" y="180">positioning-clarity</text><text x="280" y="180">price-coherence</text><text x="465" y="180">claim-evidence</text>
-            <text x="95" y="198">1 blocking</text><text x="280" y="198">0</text><text x="465" y="198">1 blocking</text>
-            <text x="95" y="224">ledger row cited</text><text x="280" y="224">ledger row cited</text><text x="465" y="224">ledger row cited</text>
-          </g>
-          <text x="20" y="254" class="tc sm">no edges between these boxes &mdash; each seat cites the ledger, never another seat's file</text>
-          <rect x="20" y="266" width="366" height="34" rx="8" fill="#0f1f1c"/>
-          <rect x="20" y="266" width="366" height="34" rx="8" fill="none" stroke="#5eead4" stroke-width="1.6"/>
-          <text x="36" y="287" class="tc sm">positioning-clarity &nbsp;&harr;&nbsp; claim-evidence &mdash; one exchange, then a ruling</text>
-          <path d="M203 300 L203 314" fill="none" stroke="#faff69" stroke-width="1.6" marker-end="url(#ay)"/>
-          <line x1="20" y1="320" x2="540" y2="320" stroke="#faff69" stroke-width="2"/>
-          <text x="20" y="336" class="ty sm">BARRIER &mdash; a quote missing from the ledger becomes UNVERIFIED, and cannot block</text>
-          <rect x="20" y="340" width="520" height="20" rx="5" class="fy"/>
-          <text x="280" y="354" text-anchor="middle" class="tb sm">builds nothing &middot; ships nothing &mdash; no headline, no price, no launch, ever approved here</text>
-          <text x="20" y="374" class="tc sm">final/position-report.md &mdash; priority &middot; owner task &middot; verification path &middot; citation status</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">POSITION</span><span class="pill c">ledger</span><span class="pill d">ships nothing</span></div>
-        <h3>What it claims, <em>argued from a quoted line.</em></h3>
-        <p>Positioning, pricing and packaging, naming, the story, launch readiness &mdash; every commercial
-          claim enters a ledger with its exact location and verbatim wording before any seat is cast. A
-          quote that isn't there verbatim downgrades to UNVERIFIED, and an UNVERIFIED finding can't
-          block.</p>
-        <ul class="mb-facts">
-          <li><b>Gate</b>The surface inventory and the claim ledger reach you together as one batch &mdash; confirming them separately would quote pages nobody agreed were in scope.</li>
-          <li><b>Refuses</b>Building anything &mdash; no headline rewritten, no pricing table edited, no launch asset produced &mdash; and shipping anything: it does not publish, price, launch, or approve a launch.</li>
-          <li><b>Seats</b><code>positioning-clarity</code> &middot; <code>price-coherence</code> &middot; <code>claim-evidence</code> &middot; <code>launch-readiness</code></li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/library/prompt/modes/POSITION.md" target="_blank" rel="noopener">library/prompt/modes/POSITION.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== MIGRATE ===== -->
-    <article class="modeband reveal" id="m-migrate">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="Two independent discovery passes drawn as overlapping sets. The agreed overlap is transformed; the crescent only the second method found is the part that would have been silently missed.">
-          <defs>
-            <clipPath id="clipL"><circle cx="222" cy="172" r="118"/></clipPath>
-            <g id="a-mig" fill="none" stroke="currentColor" stroke-width="1.9">
-              <circle cx="222" cy="172" r="118"/><circle cx="342" cy="172" r="118"/>
-            </g>
-          </defs>
-          <circle cx="222" cy="172" r="118" class="hd"/>
-          <circle cx="342" cy="172" r="118" class="hx" opacity=".75"/>
-          <circle cx="342" cy="172" r="118" class="hy" clip-path="url(#clipL)"/>
-          <use href="#a-mig" class="gc" x="-3" y="3"/><use href="#a-mig" class="gy"/>
-          <rect x="116" y="152" width="70" height="34" rx="4" fill="#0a0a0a" opacity=".8"/>
-          <text x="151" y="168" text-anchor="middle" class="td sm">pass 1</text>
-          <text x="151" y="182" text-anchor="middle" class="td sm">grep</text>
-          <rect x="230" y="146" width="104" height="44" rx="5" class="fy"/>
-          <text x="282" y="166" text-anchor="middle" class="tb big">agreed</text>
-          <text x="282" y="182" text-anchor="middle" class="tb sm">transform these</text>
-          <rect x="380" y="146" width="76" height="48" rx="4" fill="#0a0a0a" opacity=".82"/>
-          <text x="418" y="162" text-anchor="middle" class="tc sm">pass 2</text>
-          <text x="418" y="176" text-anchor="middle" class="tc sm">a different</text>
-          <text x="418" y="190" text-anchor="middle" class="tc sm">method</text>
-          <path d="M470 100 C 440 116 430 128 424 140" fill="none" stroke="#5eead4" stroke-width="1.6" marker-end="url(#ac)"/>
-          <text x="478" y="72" class="tc sm">dynamic dispatch</text>
-          <text x="478" y="86" class="tc sm">reflection, config,</text>
-          <text x="478" y="100" class="tc sm">docs, generated code</text>
-          <path d="M96 300 C 128 286 146 268 158 252" fill="none" stroke="#5a5a5a" stroke-width="1.4" marker-end="url(#ad)"/>
-          <text x="20" y="318" class="td sm">grep-only &mdash; check these for false hits</text>
-          <text x="20" y="346" class="ty sm">the passes must agree before anything is transformed</text>
-          <text x="20" y="366" class="tc sm">a migration that misses 3% of sites is worse than one never started</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">MIGRATE</span><span class="pill c">pipeline</span><span class="pill d">worktrees</span></div>
-        <h3>Discovery <em>is the entire risk.</em></h3>
-        <p>The transform is the easy part &mdash; it is bounded, frontier, and verifiable per site.
-          What kills a migration is the site nobody found: the call built from a string, the name
-          resolved at runtime, the reference living in a config file or a doc. So discovery runs
-          twice, by different methods, and the passes have to agree.</p>
-        <ul class="mb-facts">
-          <li><b>Shape</b>Fan out over discovered sites, transform each independently in its own worktree, verify each, then one barrier before integration.</li>
-          <li><b>Refuses</b>Trusting a single discovery pass, and a barrier where a pipeline would do.</li>
-          <li><b>Checks</b>Every batch verified for equivalence and scope; an independent sweep after integration reopens the register on any stray site.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/MIGRATE.md" target="_blank" rel="noopener">prompt/modes/MIGRATE.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== ROADMAP ===== -->
-    <article class="modeband reveal" id="m-roadmap">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="A phased graph drawn as unfilled outlines, including a do-nothing option, handed across a dashed boundary to a later run that has no memory of this one.">
-          <defs><g id="a-road" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="24"  y="86"  width="86" height="38" rx="6"/>
-            <rect x="150" y="60"  width="86" height="38" rx="6"/><rect x="150" y="112" width="86" height="38" rx="6"/>
-            <rect x="276" y="86"  width="86" height="38" rx="6"/><rect x="276" y="164" width="86" height="38" rx="6"/>
-            <rect x="150" y="216" width="86" height="38" rx="6"/>
-          </g></defs>
-          <use href="#a-road" class="gc" x="-3" y="3"/><use href="#a-road" class="gy"/>
-          <g class="ty sm" text-anchor="middle">
-            <text x="67" y="109">T01</text><text x="193" y="83">T02</text><text x="193" y="135">T03</text>
-            <text x="319" y="109">T05</text><text x="319" y="187">T06</text>
-          </g>
-          <text x="193" y="239" text-anchor="middle" class="td sm">do nothing</text>
-          <g fill="none" stroke="#faff69" stroke-width="1.5" opacity=".85">
-            <path d="M110 100 C 130 92 134 82 148 79" marker-end="url(#ay)"/>
-            <path d="M110 110 C 130 118 134 128 148 131" marker-end="url(#ay)"/>
-            <path d="M236 79  C 256 86 260 96 274 101" marker-end="url(#ay)"/>
-            <path d="M236 131 C 256 138 260 168 274 179" marker-end="url(#ay)"/>
-          </g>
-          <path d="M110 118 C 128 170 130 214 148 232" fill="none" stroke="#5a5a5a" stroke-width="1.4" stroke-dasharray="4 5" marker-end="url(#ad)"/>
-          <text x="24" y="60" class="td sm">phase 1</text><text x="150" y="40" class="td sm">phase 2</text><text x="276" y="60" class="td sm">phase 3</text>
-          <text x="24" y="276" class="td sm">enumerated honestly, and costed</text>
-          <line x1="404" y1="30" x2="404" y2="290" stroke="#5eead4" stroke-width="1.8" stroke-dasharray="6 7"/>
-          <text x="418" y="112" class="tc sm">a later run,</text>
-          <text x="418" y="126" class="tc sm">no memory of</text>
-          <text x="418" y="140" class="tc sm">this one</text>
-          <circle cx="470" cy="180" r="18" fill="none" stroke="#5eead4" stroke-width="1.8"/>
-          <path d="M362 106 C 400 130 420 156 452 174" fill="none" stroke="#5eead4" stroke-width="1.6" marker-end="url(#ac)"/>
-          <rect x="24" y="304" width="330" height="30" rx="6" class="fy"/>
-          <text x="189" y="324" text-anchor="middle" class="tb">nothing here is built &mdash; outlines only</text>
-          <text x="24" y="362" class="td sm">plan/graph.yaml + plan/roadmap.md, review-hardened, executable cold in BUILD or GENERIC</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">ROADMAP</span><span class="pill c">gate</span><span class="pill d">no execution</span></div>
-        <h3>A plan that <em>survived review.</em></h3>
-        <p>Plan and plan gate, then synthesis, then stop. The deliverable is the graph itself &mdash;
-          options enumerated honestly including do-nothing, phases decomposed with objective
-          done-criteria, dependencies and entry tiers assigned and then attacked until they hold.</p>
-        <ul class="mb-facts">
-          <li><b>Test</b>Could a different run, with no memory of this one and no access to your head, execute it cold? If not, it is notes rather than a roadmap.</li>
-          <li><b>Refuses</b>Building any of it. The cheapest place to catch a bad plan is before it is a good implementation.</li>
-          <li><b>Checks</b>A fresh reviewer refutes the graph each round: feasibility, dependency order, tiers by vibe, scope creep, do-nothing priced.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/ROADMAP.md" target="_blank" rel="noopener">prompt/modes/ROADMAP.md &nearr;</a>
-      </div>
-    </article>
-
-    <!-- ===== GENERIC ===== -->
-    <article class="modeband reveal" id="m-generic">
-      <div class="mb-art">
-        <svg class="riso" viewBox="0 0 560 380" role="img" aria-label="An empty dashed slot for the operator's own directive, surrounded by the full machinery: the tiers, the gates, the envelope, and the evidence rules.">
-          <defs><g id="a-gen" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="24" y="30" width="512" height="316" rx="12"/>
-          </g></defs>
-          <use href="#a-gen" class="gc" x="-3" y="3"/><use href="#a-gen" class="gy"/>
-          <rect x="150" y="118" width="260" height="106" rx="10" fill="none" stroke="#5eead4" stroke-width="2" stroke-dasharray="8 7"/>
-          <text x="280" y="158" text-anchor="middle" class="tc sm">OPERATOR NOTES</text>
-          <text x="280" y="184" text-anchor="middle" class="tw big">your directive, verbatim</text>
-          <text x="280" y="204" text-anchor="middle" class="td sm">the only empty box on this page</text>
-          <g class="td sm"><text x="44" y="58">the machinery, unchanged</text></g>
-          <g class="hy"><rect x="44" y="76" width="20" height="12" rx="2"/><rect x="70" y="76" width="20" height="12" rx="2"/>
-            <rect x="96" y="76" width="20" height="12" rx="2"/><rect x="122" y="76" width="20" height="12" rx="2"/></g>
-          <g fill="none" stroke="#2f2f2f" stroke-width="1.3"><rect x="148" y="76" width="20" height="12" rx="2"/><rect x="174" y="76" width="20" height="12" rx="2"/></g>
-          <text x="204" y="86" class="td sm">the tiers</text>
-          <g class="ty sm"><text x="44" y="254">plan gate</text><text x="140" y="254">phase gate</text>
-            <text x="248" y="254">blocked batch</text><text x="376" y="254">final gate</text></g>
-          <path d="M44 264 h468" stroke="#faff69" stroke-width="1.4" fill="none" opacity=".5"/>
-          <g class="td sm"><text x="44" y="292">cite or retract &middot; no silent pass &middot; refutation quota &middot; same rung to verify</text>
-            <text x="44" y="312">envelope in, envelope out, paths only</text></g>
-          <path d="M410 162 C 442 158 456 148 462 136" fill="none" stroke="#5eead4" stroke-width="1.6" marker-end="url(#ac)"/>
-          <text x="428" y="96"  class="tc sm">no completion</text>
-          <text x="428" y="110" class="tc sm">condition? that is</text>
-          <text x="428" y="124" class="tc sm">question one</text>
-        </svg>
-      </div>
-      <div class="mb-txt">
-        <div class="mb-head"><span class="mb-name">GENERIC</span><span class="pill c">yours</span><span class="pill d">same rigor</span></div>
-        <h3>Your directive, <em>their machinery.</em></h3>
-        <p>The <code>OPERATOR NOTES</code> block becomes the directive, verbatim, and everything else
-          in the framework applies unchanged &mdash; the ladder, the gates, the envelope, the evidence
-          rules, the report. The planner decides the phase structure.</p>
-        <ul class="mb-facts">
-          <li><b>Holds</b>Your directive to the standard of a built-in one. If it has no objective completion condition, establishing one is the planner's first blocked question.</li>
-          <li><b>Use it</b>When the work is real but the shape is yours, or when a mode you want does not exist yet &mdash; and then write the mode file.</li>
-          <li><b>Verifies</b>Every producer gets a fresh verifier that did not write it; a <code>ui</code> surface adds a journey probe.</li>
-        </ul>
-        <a class="mb-link" href="https://github.com/ckluis/baton/blob/main/prompt/modes/GENERIC.md" target="_blank" rel="noopener">prompt/modes/GENERIC.md &nearr;</a>
-      </div>
-    </article>
-  </div>
-</section>
-
-<!-- ============ WHAT COMES OUT ============ -->
-<section id="output">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker">05 &mdash; What comes out</span>
-      <h2>A run leaves behind <em>a shape.</em></h2>
-      <p>Everything lands in <code>_orch/</code>. Not a transcript you have to re-read &mdash; a
-        directory a fresh session resumes from, every verdict citing a path you can open yourself.</p>
-    </div>
-    <div class="grid g2 reveal d1">
-      <div class="code">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>_orch/</b> &middot; after a TEST run</div></div>
-<pre><span class="k">plan/</span>graph.yaml        <span class="c">58 nodes, 1 loop</span>
-<span class="k">nodes/</span>T31/
-  handoff.md          <span class="c">inputs, outputs, criteria</span>
-  status.json         <span class="v">"verdict":"DONE", "evidence", "risk"</span>
-  <span class="k">work/</span>               <span class="c">the artifacts the evidence cites</span>
-<span class="k">verify/</span>T31.json       <span class="v">"CONFIRMED"</span><span class="c"> + the probe</span>
-<span class="k">loops/</span>L1/seen.yaml    <span class="c">47 keys, 2 dry rounds</span>
-<span class="k">ledger/</span>               <span class="c">58 rows, one file each &mdash; ledger.csv derived</span>
-<span class="k">final/</span>report.md      <span class="c">+ the tier histogram</span>
-<span class="k">brief/</span>final.html      <span class="c">one slide per decision, for you</span>
-<span class="k">inbox/</span>Q-3.answer.md   <span class="c">your answer beside the question &mdash; or a teammate's, from the pull request</span></pre>
-      </div>
-      <div class="card" style="display:flex;flex-direction:column;justify-content:center">
-        <span class="num">TIER HISTOGRAM</span>
-        <h4 style="margin-bottom:20px">What ran cheap, what ran frontier, what needed a person.</h4>
-        <div class="hist">
-          <div class="hrow"><span>0 cheap</span><i style="width:14%"></i><b>8</b></div>
-          <div class="hrow on"><span>1 frontier</span><i style="width:86%"></i><b>50</b></div>
-          <div class="hrow"><span>2 human</span><i style="width:7%"></i><b>4</b></div>
+    <div class="secnum">07</div>
+    <h2>Install it, or paste it.</h2>
+    <div class="grid2" style="margin-top:20px">
+      <div>
+        <h3>With the mod (Claude Code)</h3>
+        <div class="term" style="margin-top:12px">
+          <div class="bar"><i></i><i></i><i></i>&nbsp; terminal</div>
+<pre><span class="c-d"># from a clone of ckluis/baton</span>
+claude --plugin-dir ./mod
+<span class="c-d"># then, in the session:</span>
+<span class="c-y">/baton start BUILD ./app</span>
+/baton            <span class="c-d"># the pane</span>
+/baton status     <span class="c-d"># run, context, rotations, approvals</span></pre>
         </div>
-        <p style="margin-top:20px;font-size:14px;color:var(--muted)">Illustrative, not a benchmark
-          &mdash; the point is that the number exists. Every spawn records its tier, model, effort and
-          seconds, so frontier-by-default is a bet the ledger measures rather than a belief: if the
-          cheap tier's work starts failing verification, or frontier costs more than the retries it
-          saves, the next plan's entry tiers are an argument instead of a habit.</p>
+        <p style="margin-top:14px;font-size:15px">Modes: <code>BUILD</code> <code>DOGFOOD</code> <code>GENERIC</code> <code>IMPROVE</code>
+          <code>MIGRATE</code> <code>REVIEW</code> <code>ROADMAP</code> <code>TEST</code>. Needs <code>node</code> on <code>PATH</code>.
+          <code>BATON_APPROVALS=0</code> turns the gates off for unattended runs. <a href="https://github.com/ckluis/baton/blob/main/mod/README.md">The mod's README →</a></p>
       </div>
-    </div>
-    <div class="sechead reveal" style="margin-top:56px;margin-bottom:24px">
-      <span class="kicker c">The brief</span>
-      <h3 style="font-size:clamp(22px,3vw,34px);letter-spacing:-.02em;line-height:1.1;margin-top:12px">The report is the record. <em>This is what you open.</em></h3>
-      <p>Every decision that stalls work ships one slide, at a gate or mid-phase: three options, one
-        recommendation, every number with the command that produced it. The loop is on disk. A blocked
-        node writes its question to <code>_orch/inbox/Q-&lt;n&gt;.md</code>; a rung-2 briefer renders
-        the slide; your answer lands beside the question as <code>Q-&lt;n&gt;.answer.md</code>; the run
-        reads it at its next gate and moves. The deck is cumulative &mdash; an answered slide keeps its
-        place, marked with the answer &mdash; and a slide that only schedules a decision, who decides or
-        what order, is a defect. Below is a real one &mdash; the brief for the pull request that added
-        the brief.</p>
-    </div>
-    <div class="reveal d1">
-      <div class="code" style="border-radius:12px 12px 0 0;border-bottom:none">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>_orch/brief/final.html</b> &middot; decision 1 of 3 &middot; PR #14</div></div>
-      </div>
-      <div class="brief" style="margin-top:0;border-radius:0 0 12px 12px">
-        <div class="bw">
-          <span class="bk">Decision 1 of 3 &middot; PR #14</span>
-          <h3>Merge the triage rule and the human brief</h3>
-          <p class="bd">You asked how much of baton exists to prop up a weaker model. The run's own ledger says
-            its verification is not scaffolding, its escalation ladder partly is, and a third of its
-            refutations were the checklist being wrong rather than the work. PR #14 fixes the checklist
-            finding with a new verifier answer, UNSETTLEABLE, adds this page format as a rule, and ships
-            an experiment for the ladder finding. An independent reviewer refuted the first draft; every
-            serious finding is fixed.</p>
-          <figure>
-            <svg viewBox="0 0 680 216" role="img" aria-label="Routing a failed criterion before and after rule 9.2">
-              <defs><marker id="brief-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cccccc"></path></marker></defs>
-              <text x="120" y="16" text-anchor="middle" class="lb">before</text>
-              <rect class="bx" x="45" y="28" width="150" height="32" rx="5"></rect><text x="120" y="48" text-anchor="middle">criterion fails</text>
-              <line class="ar" x1="120" y1="60" x2="120" y2="118" marker-end="url(#brief-ar)"></line>
-              <rect class="bx" x="45" y="122" width="150" height="44" rx="5"></rect><text x="120" y="140" text-anchor="middle">escalate</text><text x="120" y="156" text-anchor="middle">one rung, always</text>
-              <text x="470" y="16" text-anchor="middle" class="lb">after</text>
-              <rect class="bx" x="395" y="28" width="150" height="32" rx="5"></rect><text x="470" y="48" text-anchor="middle">criterion fails</text>
-              <path class="ar" d="M470,60 L400,90" marker-end="url(#brief-ar)"></path><path class="ar" d="M470,60 L560,90" marker-end="url(#brief-ar)"></path>
-              <rect class="bx" x="325" y="94" width="150" height="32" rx="5"></rect><text x="400" y="114" text-anchor="middle">row REFUTED</text>
-              <rect class="bx on" x="485" y="94" width="170" height="32" rx="5"></rect><text x="570" y="114" text-anchor="middle">row UNSETTLEABLE</text>
-              <line class="ar" x1="400" y1="126" x2="400" y2="166" marker-end="url(#brief-ar)"></line><line class="ar" x1="570" y1="126" x2="570" y2="166" marker-end="url(#brief-ar)"></line>
-              <rect class="bx" x="325" y="170" width="150" height="38" rx="5"></rect><text x="400" y="193" text-anchor="middle">retry with the verdict</text>
-              <rect class="bx on" x="485" y="170" width="170" height="38" rx="5"></rect><text x="570" y="193" text-anchor="middle">question for you</text>
-            </svg>
-            <figcaption>Before: a failed checklist line always escalates the node to a costlier model. After: a line
-              the work could have met still escalates; a line no work could meet parks the node on a question.</figcaption>
-          </figure>
-          <div class="opts">
-            <div class="opt rec"><div class="l">A <span class="pill y">recommended</span></div><div class="n">Merge now, run the experiment after</div><p>Both rules land; the replay runs on its own schedule.</p></div>
-            <div class="opt"><div class="l">B</div><div class="n">Merge the triage rule only</div><p>Split the branch; the brief format waits for its own review.</p></div>
-            <div class="opt"><div class="l">C</div><div class="n">Hold until the experiment reports</div><p>Nothing merges until the replay has tested the ladder.</p></div>
-          </div>
-        </div>
-        <aside class="br">
-          <div><h5>Why A</h5><p>The triage rule fails safe. An UNSETTLEABLE row must carry the command that proves it or it
-            counts as an ordinary failure, and the node waits for you rather than deciding for itself. The
-            brief format is additive and produced this page.</p>
-            <p style="margin-top:8px"><b style="color:var(--ink)">If you do nothing:</b> the branch stays open, dispatchers keep
-            improvising the rule by hand, and the next run's report is another forty-kilobyte document.</p></div>
-          <div><h5>Cost &middot; risk &middot; settles</h5><dl>
-            <dt>A</dt><dd>One merge. Risk: the rule parks real nodes before the experiment tests its premise. Settles: both mechanisms live on the next run.</dd>
-            <dt>B</dt><dd>Time to split two commits. Risk: the brief format sits unreviewed. Settles: the better-evidenced rule ships alone.</dd>
-            <dt>C</dt><dd>A delay of one experiment. Risk: a grounded rule waits on a question it does not depend on. Settles: nothing the merge does not.</dd>
-          </dl></div>
-          <div><h5>Numbers</h5><table>
-            <tr><td>nodes refuted at rung 1 / 2 / 3</td><td>28% / 29% / 21%</td><td>awk over verifier rows, ledger.csv</td></tr>
-            <tr><td>refutations traceable / of which the checklist was wrong</td><td>14 / 6</td><td>instruments/summary.md §2</td></tr>
-            <tr><td>spawns spent on one bad line, P76</td><td>15</td><td>ledger rows P76*, P90c*, P81*, P100*</td></tr>
-            <tr><td>workers that escalated on their own</td><td>0</td><td>awk '$7=="ESCALATE"' ledger.csv</td></tr>
-          </table></div>
-          <div><h5>Record</h5><p><code>rules/rule-9-2-refutation-triage.md</code> &middot; <code>rules/rule-8-1-the-human-brief.md</code> &middot; <code>prompt/roles/briefer.md</code> &middot; github.com/ckluis/baton/pull/14</p></div>
-        </aside>
-      </div>
-      <p style="margin-top:14px;font-size:13px;color:var(--muted)">Written from the report by a briefer at frontier, never from the work. Decisions 2 and 3 &mdash; run the
-        replay experiment, delete what the run never used &mdash; are the next two slides. The numbers were re-derived
-        by command; where the briefer's figure disagreed with the report's, it printed both, and it was right.</p>
-    </div>
-  </div>
-</section>
-<style>
-  .hist{display:grid;gap:9px}
-  .hrow{display:grid;grid-template-columns:96px 1fr 26px;gap:12px;align-items:center;
-    font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-  .hrow i{display:block;height:14px;border-radius:3px;background:var(--hair-2);min-width:2px}
-  .hrow b{text-align:right;color:var(--body);font-weight:600}
-  .hrow.on span,.hrow.on b{color:var(--yellow)}
-  .hrow.on i{background:var(--yellow)}
-  .hrow.z i{background:repeating-linear-gradient(90deg,#2a2a2a 0 4px,transparent 4px 8px);min-width:100%;height:1px}
-  .hrow.z span,.hrow.z b{color:var(--muted-2)}
-</style>
-
-<!-- ============ PERSONAS ============ -->
-<section id="personas">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker">06 &mdash; Personas</span>
-      <h2>Two kinds of witness.<br><em>Most systems own only one.</em></h2>
-      <p>An expert is a lens with authority: it knows everything relevant, on purpose, and judges
-        against a standard. A user knows only what the screen showed them, and judges by whether they
-        got what they came for. Swap them and both break &mdash; an expert acting like a user produces
-        vague taste, and a user acting like an expert produces fiction.</p>
-    </div>
-
-    <div class="grid g2 reveal d1">
-      <div class="card">
-        <span class="num">kind: expert &middot; opt-in</span>
-        <h3 style="margin-bottom:14px">A lens with authority.</h3>
-        <p style="margin-bottom:18px">Thirty-seven lenses, each a pure point of view rather than a
-          named human. Since v6 they live in <code>library/</code>, off the default path, because a
-          plain fresh reviewer matched them at equal spend.</p>
-        <div>
-          <span class="tag">access-barrier</span><span class="tag">adversarial-input</span><span class="tag">behavior-preservation</span><span class="tag">blindspot</span><span class="tag">call-site-truth</span><span class="tag">claim-evidence</span><span class="tag">coverage-truth</span><span class="tag">dependency-order</span><span class="tag">discovery-evidence</span><span class="tag">documentation-structure</span><span class="tag">equivalence</span><span class="tag">feasibility</span><span class="tag">information-scent</span><span class="tag">integration-risk</span><span class="tag">journey-honesty</span><span class="tag">launch-readiness</span><span class="tag">leverage-vs-risk</span><span class="tag">locale-truth</span><span class="tag">matrix-coverage</span><span class="tag">microcopy-truth</span><span class="tag">motion-honesty</span><span class="tag">naming-fitness</span><span class="tag">persona-fidelity</span><span class="tag">positioning-clarity</span><span class="tag">price-coherence</span><span class="tag">regression-integrity</span><span class="tag">requirement-gaps</span><span class="tag">rung-fit</span><span class="tag">scope-creep</span><span class="tag">severity-inflation</span><span class="tag">spec-fidelity</span><span class="tag">suite-economics</span><span class="tag">surface-coherence</span><span class="tag">test-honesty</span><span class="tag">type-system</span><span class="tag">visual-coherence</span>
-        </div>
-        <p style="margin-top:20px;font-size:14px;color:var(--muted)">Duties are defined per phase:
-          refute the plan at <strong>PLAN</strong>, find and cite at <strong>AUDIT</strong>, steelman
-          before rebutting at <strong>CLASH</strong>, attack one claim at <strong>VERIFY</strong>, and
-          say <em>nothing at all</em> during synthesis.</p>
-      </div>
-      <div class="card">
-        <span class="num">kind: user</span>
-        <h3 style="margin-bottom:14px">A person using the product.</h3>
-        <p style="margin-bottom:18px">Seven archetypes the run parameterizes. Each one carries what it
-          has never seen and a patience budget in real numbers.</p>
-        <div>
-          <span class="tag">first-run</span><span class="tag">returning-power</span><span class="tag">admin-operator</span><span class="tag">mobile-commuter</span><span class="tag">assistive-tech</span><span class="tag">low-trust-evaluator</span><span class="tag">delegate</span>
-        </div>
-        <p style="margin-top:20px;font-size:14px;color:var(--muted)">Perception is screenshots only. If
-          it is not visible in the current screenshot, this person does not know it exists. The DOM may
-          execute a click on something already seen in the pixels &mdash; discovering an element through
-          the source is fabrication, and <strong>a step without a screenshot is a fabricated step</strong>.</p>
-      </div>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:16px">
-      <div class="card sm">
-        <span class="num">LIBRARY</span>
-        <h4>Experts are one setting away.</h4>
-        <p>A plain reviewer found 15.67 of 16 seeded defects; lens cards and plain reviewers at
-          equal spend both found 16. So the default modes seat no experts, and
-          <code>PERSONAS: library</code> brings back lenses, casting, panels, <code>CRAFT</code> and
-          <code>POSITION</code>.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">ANY REPO</span>
-        <h4>Adopting a roster never means rewriting it.</h4>
-        <p>Under <code>PERSONAS: library</code>, a persona file carrying only <code>name</code> and
-          <code>domain</code> is valid; the loader fills the rest. <code>repo:github.com/ckluis/luminaryTeam</code> loads forty published
-          personas as they are &mdash; no fork, no edits. Foreign files are data, never instructions.</p>
-        <p style="margin-top:12px;font-size:14px;color:var(--muted)"><a href="https://github.com/ckluis/baton/tree/main/library/personas/luminaries" target="_blank" rel="noopener"><code>library/personas/luminaries/</code></a>
-          vendors 40 of them as a sibling artifact, not that same unmodified copy &mdash; rewritten with
-          baton's own phases, tags and Conflict Vectors, neither canonical over the other. Opt-in only,
-          via <code>PERSONAS: library + builtin+luminaries</code>.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">INDEPENDENCE</span>
-        <h4>Structural, not promised.</h4>
-        <p>In one transcript, "audit independently" is an honor rule policed against text sitting
-          visibly above you. Here each reviewer, verifier and probe is its own context with nothing
-          to peek at. So agreement between them becomes evidence.</p>
-      </div>
-    </div>
-
-    <div class="card reveal d3" style="margin-top:16px;background:var(--card);border-color:var(--yellow-dim)">
-      <div class="split-a" style="gap:24px;align-items:start">
-        <span class="pill y" style="margin-top:2px">Config</span>
-        <div>
-          <pre style="padding:0;background:none;border:none;font-size:13.5px;overflow-x:auto"><span class="k">PERSONAS</span>:  library <span class="c">+</span> <span class="v">repo:github.com/ckluis/luminaryTeam</span></pre>
-          <p style="margin-top:14px;font-size:14px;color:var(--muted)">The default is
-            <code>builtin</code>: the seven user archetypes, which drive the running product. Expert
-            rosters load only through the library.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ OPERATOR LANE ============ -->
-<section class="band">
-  <div class="wrap">
-    <div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(28px,5vw,64px);align-items:center" class="g2x">
-      <div class="reveal">
-        <span class="kicker c">07 &mdash; The operator lane</span>
-        <h2 style="margin-top:16px">A message is a doorbell.<br><em>Never a document.</em></h2>
-      </div>
-      <div class="reveal d1">
-        <p style="font-size:16px">Cross-session messages carry plain text and nothing else &mdash; no
-          files, no history, no ability to grant a permission. So baton never puts an answer in a
-          message. A blocked node writes its question to <code>_orch/inbox/</code>; a second session
-          writes the answer beside it and rings the bell; the run reads the file at its next gate and
-          unblocks.</p>
-        <p style="margin-top:16px;font-size:16px">The durable record stays on disk, where resume can
-          find it &mdash; and it works identically whether the answer arrived by message, by a
-          hand-edited file, or by you typing it into the run. <strong>The disk protocol is the
-          contract. Messaging is only a faster doorbell.</strong> With
-          <code>INBOX: off</code> a run behaves the same way, with longer pauses.</p>
-        <p style="margin-top:16px;font-size:16px">Under <code>TEAM: github</code> the doorbell is the
-          run's pull request. Every blocked question is posted there as a comment, and anyone on the
-          repository answers by replying <code>/answer Q-&lt;n&gt; &hellip;</code>. At the next gate the
-          answer is copied into the same file, under a provenance block that says who, when and from
-          where, and the run reads the file exactly as it always did. Same contract; a doorbell anyone
-          can ring, on a thread the repository already has.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ EVIDENCE ============ -->
-<section class="tight" id="evidence">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker">08 &mdash; Evidence</span>
-      <h2>Findings must <em>earn survival.</em></h2>
-    </div>
-    <div class="grid g4 reveal d1">
-      <div class="card sm"><span class="num">01</span><h4>Cite or retract</h4><p>A claim without an artifact path is inadmissible. A citation is a direct quote of twenty words or fewer plus its location. A bare line number is not a citation.</p></div>
-      <div class="card sm"><span class="num">02</span><h4>No silent pass</h4><p>A verifier returning <code>CONFIRMED</code> must name the strongest attack it tried and why the attack failed. "Looks good" is a refutation of the verifier.</p></div>
-      <div class="card sm"><span class="num">03</span><h4>A refutation is evidence</h4><p>A refuted node retries once at frontier with the verdict's rows verbatim in its handoff &mdash; a different prompt, not a repeat. A second refutation of the same criterion reaches a person, never a larger model.</p></div>
-      <div class="card sm"><span class="num">04</span><h4>Always frontier, always fresh</h4><p>Verification runs at frontier, as a fresh spawn, whatever tier did the work. A verifier that returns <code>PARTIAL</code> twice on the same node is replaced by another fresh spawn &mdash; independence is the mechanism.</p></div>
-    </div>
-    <div class="card reveal d2" style="margin-top:16px;border-color:var(--cyan-dim)">
-      <span class="num">INSTRUMENTS</span>
-      <h4 style="font-size:21px;letter-spacing:-.015em">The checks had to earn survival too.</h4>
-      <p style="margin-top:10px">Every rule above is a duty a verifier owes. v3 turned the same
-        demand back on the machinery. A verdict now carries <strong>one row per done-criterion</strong>,
-        each quoting its criterion with its own probe and evidence, and the node verdict is
-        <em>computed</em> from those rows rather than asserted &mdash; a row count that disagrees with
-        the handoff is malformed, reads as <code>PARTIAL</code>, and re-verifies. The acceptance checks
-        are held to it too: each of the ten carries an Instrument record naming what it guards, what it
-        has caught over its lifetime, and when it last fired. The one that mattered most turned out to
-        be unsound and reporting the right answer by luck &mdash; it was repaired, fixtured, and it
-        immediately found what it had been hiding. v4 added an instrument nobody had to build: GitHub
-        records every push server-side, so a ledger row whose timestamp is later than the push that
-        carried it was not measured &mdash; <code>inbox-gh.py clock</code> names it.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ QUICKSTART ============ -->
-<section class="band" id="start">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">09 &mdash; Start</span>
-      <h2>Say what you want,<br><em>then leave the room.</em></h2>
-    </div>
-    <div class="grid g3 reveal d1">
-      <div class="card">
-        <span class="num">STEP 01</span>
-        <h4>Nothing</h4>
-        <p style="margin-top:12px">There is no install step. The framework lives at a URL and the
-          agents fetch what they need from it. The router is a router &mdash; the contracts, modes,
-          roles, and personas are the product, and they stay out of your context until something
-          actually needs them.</p>
-      </div>
-      <div class="card">
-        <span class="num">STEP 02</span>
-        <h4>Say what you want, and point</h4>
-        <p style="margin-top:12px">Eight lines: your goal, three sending the session to the
-          router's URL, and one pointing you to MIGRATING.md if you're upgrading. No target, no
-          mode, no config &mdash; those are questions, not homework.</p>
-      </div>
-      <div class="card">
-        <span class="num">STEP 03</span>
-        <h4>Answer one question</h4>
-        <p style="margin-top:12px">The router proposes the mode it thinks fits and you confirm it.
-          Then it casts, plans, and gates on its own. Everything lives on disk &mdash; for a team, on
-          a git ref &mdash; so a session limit costs one node, not a run, and a dead laptop costs a
-          fetch.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ LAYOUT ============ -->
-<section class="tight" id="box">
-  <div class="wrap">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,56px);align-items:start" class="g2x">
-      <div class="reveal">
-        <span class="kicker">10 &mdash; What's in the box</span>
-        <h2 style="margin-top:16px">One prompt became<br><em>a repository.</em></h2>
-        <p style="margin-top:20px;font-size:16px">v1 shipped as a single 571-line prompt, which meant
-          every session paid for every mode it was not running. v2 split it: a router you paste, and
-          files the agents read. v3.1 went one step further: <strong>every rule is its own file</strong>
-          under <code>rules/</code> &mdash; the tiers, the envelope, the graph, the loop &mdash; and the two contracts became narrative plus a generated index, 663 lines down
-          to 85. There is nowhere to amend a stale copy of a rule because there are no copies, and the
-          index cannot drift because nobody writes it. <code>bundle.sh</code> concatenates them all, so
-          the paste is unchanged. v3.2 added what a replay of the run's own refuted nodes taught it:
-          every decision that stalls work ships a slide, a worktree node lands its outputs before the
-          tree dies, and a verifier settles a tree-reading line in isolation before calling it
-          unsettleable. v3.3 turned that same discipline on the framework's own footprint: the prime
-          reads only the rules it cites by id instead of the whole rulebook, and <code>tools/index.py
-          --sqlite</code> makes the run's own evidence queryable. v4.0 gave the same run to a team:
-          one setting puts its state on a git ref, its questions in Issues and its product changes in
-          draft pull requests &mdash; and every append-only list became a directory of rows, so none
-          of it needs a merge protocol. v5.0 asked whether any of it made sense with frontier
-          intelligence as the default, and kept the half that did: three tiers replaced six rungs,
-          five procedural rules went, the harness took the dispatching, and the contract &mdash;
-          evidence, verdicts, gates, the record &mdash; stayed whole. v6.0 measured what was left and
-          cut what rationed the model: one effort, personas in an opt-in <code>library/</code>, no
-          dispatching layer, no summary files, and 29 rules.</p>
-        <p style="margin-top:16px;font-size:16px">Where a role prompt and the contract disagree,
-          <strong>the contract wins and the role prompt is the bug.</strong></p>
-        <p style="margin-top:16px;font-size:16px">v3 made the persona bundle legible to something other than baton: optional <code>type</code>, <code>id</code> and <code>links</code> keys, held to <strong>AIX level 1</strong> by a vendored validator. Both moved to <code>library/</code> with the expert personas in v6.</p>
-        <div class="btnrow" style="margin-top:26px">
-          <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="btn s">Browse the repo &nearr;</a>
-        </div>
-      </div>
-      <div class="code reveal d1">
-        <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>ckluis/baton</b></div></div>
-<pre><span class="k">prompt/</span>
-  <span class="v">invoke.md</span>           <span class="c">the paste — goal, settings, a pointer</span>
-  <span class="v">baton.md</span>            <span class="c">the router — the agent reads this</span>
-  <span class="v">CONTRACT.md</span>         <span class="c">narrative + index; rules live in rules/</span>
-  <span class="k">modes/</span>              <span class="c">8 — directive + graph shape + gates</span>
-  <span class="k">roles/</span>              <span class="c">8 — planner, verifier, briefer, journey probe…</span>
-<span class="k">personas/</span>
-  <span class="v">CONTRACT.md</span>         <span class="c">user-archetype schema + per-phase duties</span>
-  <span class="k">users/</span>              <span class="c">7 — end-user archetypes</span>
-<span class="k">library/</span>              <span class="c">opt-in — lenses, luminaries, casting, panels, CRAFT, POSITION</span>
-<span class="k">rules/</span>              <span class="c">29 — one file per rule, every one an invariant</span>
-<span class="k">tools/</span>              <span class="c">the linter, the index, dispatch, the team tools, tiers.py</span>
-<span class="k">migrations/</span>         <span class="c">from-v1 … from-v5 — one file per older version</span>
-<span class="v">bundle.sh</span>             <span class="c">flatten it all into one paste</span></pre>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ PROMPT ============ -->
-<section id="prompt" class="band">
-  <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">11 &mdash; The invocation</span>
-      <h2>Say what you want.<br><em>Answer one question.</em></h2>
-      <p>What you paste is not the process &mdash; it points at the process. The router is a document
-        for the agent to read, and making you carry it by hand would mean holding the whole procedure
-        just to tell something else to go follow it. So the paste carries the one thing only you know:
-        what you want. The router reads that, works out which mode fits, and asks you to confirm.</p>
-    </div>
-
-    <div class="reveal d1">
-      <div class="code">
-        <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>the whole paste</b> &middot; 8 lines</div>
-          <button class="copybtn" id="copybtn" type="button">Copy it</button>
-        </div>
-        <pre id="psrc"># Goal
+      <div>
+        <h3>Without it (any harness)</h3>
+        <p style="font-size:15px;margin:12px 0">The framework underneath is still a router prompt. Paste it into a fresh session and that
+          session runs as the dispatcher, under the same rules, without the guard, the memory or the pane.</p>
+        <div class="codebox">
+          <div class="codebar"><div><b>the whole paste</b> &middot; 8 lines</div><button class="copy" id="copybtn" type="button">Copy it</button></div>
+          <pre id="psrc"># Goal
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md</pre>
-      </div>
-      <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>No JavaScript?</strong>
-        Click inside the box, select all, copy. Replace the goal with yours &mdash; that is the only
-        line you have to touch.</p>
-    </div>
-
-    <div class="reveal d1" style="margin-top:24px">
-      <div class="code">
-        <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>for a team</b> &middot; 10 lines</div>
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.0/MIGRATING.md</pre>
         </div>
-        <pre id="tsrc"># Goal
+        <div class="codebox" style="margin-top:12px">
+          <div class="codebar"><div><b>for a team</b> &middot; 10 lines</div></div>
+          <pre id="tsrc"># Goal
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Settings
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.</pre>
-      </div>
-      <p style="margin-top:16px;font-size:14px;color:var(--muted)"><strong>One line more.</strong>
-        <code>TEAM: github</code> puts the run's state on a git ref any machine can resume, its
-        questions in Issues anyone can answer, and its product changes in draft pull requests with the
-        verdict as a check. <a href="#team">Section 12</a> says what moves and what does not.</p>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:32px">
-      <div class="card sm">
-        <span class="num">IT ASKS</span>
-        <h4>One question, not a form.</h4>
-        <p>The router reads your goal, infers the mode, and confirms it &mdash; leading with its best
-          fit and the two next-best rather than making you choose from ten. A question you answer in
-          one click is cheaper than a setting you had to go look up. In a session that cannot ask, it
-          infers, records the inference <em>as</em> an inference, and says so.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">NO SETUP</span>
-        <h4>The URL is the whole dependency.</h4>
-        <p>No clone, no install, no config file. Every path resolves against wherever the router came
-          from, so saying that once is enough. It also makes the base URL the version pin: point at
-          <code>/v4.0</code> instead of <code>/main</code> and the entire framework comes from that
-          tag, with no second version to keep in sync.</p>
-      </div>
-      <div class="card sm">
-        <span class="num">OR KEEP IT LOCAL</span>
-        <h4>A directory works identically.</h4>
-        <p><code>git clone</code> it and set <code>BATON: ./baton</code> &mdash; faster on repeat runs,
-          works with no network, and the form the team tools run from.
-          Point at a directory and the router reads; point at a URL and it fetches. Nothing else
-          changes.</p>
-      </div>
-    </div>
-
-    <div class="card reveal d3" style="margin-top:16px;border-color:var(--cyan-dim)">
-      <span class="num">AND IF YOU CAN DO NEITHER</span>
-      <h4 style="font-size:19px">Flatten the whole thing into one document.</h4>
-      <p style="margin-top:10px"><code>./bundle.sh TEST</code> inlines the router, both contracts,
-        your mode, the roles, and only that mode's seats. Paste that instead of the invocation and the
-        run needs no network and no filesystem beyond its own work &mdash; the v1 shape, kept for the
-        environments that still need it.</p>
-    </div>
-
-    <details class="rdet reveal d3">
-      <summary>What that one line actually invokes &mdash; <code>prompt/baton.md</code>, 329 lines</summary>
-      <div class="code" style="margin-top:16px">
-        <div class="codebar">
-          <div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>prompt/baton.md</b> &middot; the agent reads this, not you</div>
-          <button class="copybtn" id="rcopybtn" type="button">Copy the router</button>
         </div>
-        <pre id="rsrc"># BATON v6 — the router
+      </div>
+    </div>
+    <details>
+      <summary>What that paste invokes &mdash; <code>prompt/baton.md</code>, 329 lines</summary>
+      <div class="inner">
+        <div class="codebox">
+          <div class="codebar"><div><b>prompt/baton.md</b></div><button class="copy" id="rcopybtn" type="button">Copy the router</button></div>
+          <pre id="rsrc"># BATON v6 — the router
 
 You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
 because your invocation pointed you at it. **Read it to the end before you act.**
@@ -1783,7 +501,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
 | `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` opts in to expert lenses, casting, panels and the `CRAFT` and `POSITION` modes: read `{BATON}/library/README.md` and follow it. Nothing on the default path needs it. |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` was v6's opt-in for expert lenses and panels; v7 removed it, so treat it as `builtin` and say so in the manifest. |
 | `CHEAP` | `claude-sonnet-5-5` | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
 | `FRONTIER` | `claude-opus-5-5` at `medium` effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
@@ -2090,174 +808,84 @@ limit landing mid-run costs one node, not a run.**
 
 Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read both
 contracts, the rules they index and your mode file (step 1 above), create `_orch/`, then plan.</pre>
+        </div>
       </div>
-      <p style="margin-top:14px;font-size:14px;color:var(--muted)">Its first instruction is to read two
-        more files &mdash; <code>prompt/CONTRACT.md</code> and your mode &mdash; and those are the last
-        documents the conductor reads all run. Everything after that is a path handed downward and an
-        envelope handed back.</p>
     </details>
   </div>
 </section>
-<style>
-  .copybtn{display:none;align-items:center;gap:7px;height:36px;padding:0 16px;border-radius:8px;
-    background:var(--yellow);color:var(--on-yellow);border:none;cursor:pointer;
-    font-family:var(--sans);font-size:13px;font-weight:600;transition:background .16s ease}
-  html.js .copybtn{display:inline-flex}
-  .copybtn:hover{background:var(--yellow-2)}
-  .copybtn.ok{background:var(--ok);color:#04140a}
-  #psrc,#tsrc{font-size:13px;line-height:1.7}
-  #rsrc{max-height:60vh;overflow:auto;font-size:12.5px;line-height:1.65}
-  code.brk{overflow-wrap:anywhere;word-break:break-word}
-  .rdet{margin-top:40px;border-top:1px solid var(--hair);padding-top:28px}
-  .rdet summary{cursor:pointer;font-family:var(--mono);font-size:12.5px;font-weight:600;
-    letter-spacing:.04em;color:var(--cyan);list-style:none}
-  .rdet summary::-webkit-details-marker{display:none}
-  .rdet summary::before{content:"\002B  ";font-weight:700}
-  .rdet[open] summary::before{content:"\2212  "}
-  .rdet summary:hover{color:var(--yellow)}
-</style>
 
-<!-- ============ TEAM ============ -->
-<section id="team" class="tight">
+<section id="versions">
   <div class="wrap">
-    <div class="sechead reveal">
-      <span class="kicker c">12 &mdash; For a team</span>
-      <h2>One more line.<br><em>Three things move; the run does not.</em></h2>
-      <p>The instinct is to put a team's run in GitHub Issues. The numbers say no: one run writes
-        about 3,500 state files and ledger rows, and GitHub allows 500 content-creating API calls an
-        hour. Split GitHub into its three primitives instead and each piece of the run has an obvious
-        home. Git carries the record on a ref nobody sees; one pull request carries the product as a
-        commit per node, and the ~25 moments a run needs a person as comments. What a run leaves on
-        your repository is what a colleague's work leaves: one pull request, one branch, commits.</p>
-    </div>
-
-    <div class="grid g3 reveal d1" style="margin-top:32px">
-      <div class="card sm">
-        <span class="num">THE RECORD</span>
-        <h4>Git holds the run.</h4>
-        <p><code>_orch/</code> is pushed at every node close and gate to
-          <code>refs/baton/run/&lt;id&gt;</code> &mdash; a ref GitHub lists nowhere, not a branch. Still
-          local disk, still every path a rule names &mdash; and every path a verdict cites gains
-          <code>/blob/&lt;sha&gt;/&hellip;</code>, so the evidence outlives the laptop and any machine
-          resumes with a fetch. Invisible in the UI; one command to delete.</p>
+    <div class="secnum">08</div>
+    <h2>How it got here.</h2>
+    <p class="lede">Seven versions, each a response to what the one before measured. Every earlier page is kept as it shipped.</p>
+    <div class="vers">
+      <div class="ver reveal">
+        <div class="vh"><b>v1</b><span>2026-08-23</span></div>
+        <h3>The original</h3>
+        <p>One 571-line prompt: a Fable-led orchestrator of orchestrators, file-passing handoffs, a four-tier ladder, adversarial verification, six modes.</p>
+        <div class="proc">Process: one prompt, no measurements yet. Its routing paid the top model for everything.</div>
+        <a class="go" href="baton-v1.html">Read v1 →</a>
       </div>
-      <div class="card sm">
-        <span class="num">THE DOORBELL</span>
-        <h4>Issues hold the questions.</h4>
-        <p>Every blocked question is a comment on the run's pull request. Anyone on the repository
-          answers with <code>/answer Q-&lt;n&gt; &hellip;</code> &mdash; from a phone, in a meeting. At
-          the next gate the answer is copied into <code>Q-&lt;n&gt;.answer.md</code> under a provenance
-          block, and the run reads the file exactly as it always did. Every gate posts its summary and
-          its decisions on the same thread. No Issue per question, no label.</p>
+      <div class="ver reveal">
+        <div class="vh"><b>v2</b><span>2026-08-24</span></div>
+        <h3>The cost rewrite</h3>
+        <p>Six rungs of model × effort instead of four tiers; a failure climbs one rung, buying more thinking before a bigger model.</p>
+        <div class="proc">Process: keep v1's architecture, reprice its routing: one failure buys one rung, not one model.</div>
+        <a class="go" href="baton-v2.html">Read v2 →</a>
       </div>
-      <div class="card sm">
-        <span class="num">THE DIFF</span>
-        <h4>Pull requests hold the product.</h4>
-        <p>A node that writes code lands as one commit on the run's branch &mdash; the pull request
-          &mdash; with its node id in the trailer and its computed verdict as the check
-          <code>baton/verify</code> on that commit: green, red, or pending, linking to the rows that
-          decided it. The commit is the landing, so nothing can die with a worktree, and the merge node
-          the plan names is merging the one pull request. A reviewer reads N commits, the way they read
-          anyone's branch.</p>
+      <div class="ver reveal">
+        <div class="vh"><b>v3</b><span>2026-08-31</span></div>
+        <h3>The roster</h3>
+        <p>40 named experts, <code>CRAFT</code> and <code>POSITION</code>, verdicts computed per criterion, every rule a file, every check an instrument with a yield.</p>
+        <div class="proc">Process: make the checks accountable too: per-criterion verdicts, and instrument records with a lifetime yield.</div>
+        <a class="go" href="baton-v3.html">Read v3 →</a>
       </div>
-    </div>
-
-    <div class="grid g3 reveal d2" style="margin-top:20px">
-      <div class="card sm">
-        <span class="num">STAYS ON THE LAPTOP</span>
-        <h4>The node that is running.</h4>
-        <p>Its <code>work/</code> and the agent's own context. Everything else is a checkout of the
-          ref. One structural change made this safe: every append-only list &mdash; the ledger first
-          &mdash; is now a directory of rows, one file each, so no two writers ever share a path and
-          nothing needs a merge protocol. That change is the one breaking change in v4.0, and it costs
-          a run in flight one command.</p>
+      <div class="ver reveal">
+        <div class="vh"><b>v4</b><span>2026-09-18</span></div>
+        <h3>Team mode</h3>
+        <p>The run on a hidden git ref any machine resumes; questions as comments anyone answers; product changes as one commit per node, the verdict as a check.</p>
+        <div class="proc">Process: GitHub split into its primitives: git the record, PRs the changes, Issues the human lane.</div>
+        <a class="go" href="baton-v4.html">Read v4 →</a>
       </div>
-      <div class="card sm">
-        <span class="num">ONE-TIME SETUP</span>
-        <h4>Configuration, not code.</h4>
-        <p><code>gh</code> authenticated on the machine that runs the prime; the tools on disk
-          (<code>git clone</code>, then <code>BATON: ./baton</code>); a private target repository, or
-          a private <code>RUNS_REPO</code>. Then <code>tools/github-setup.sh --apply</code>: one ruleset
-          on <code>baton/**</code> that blocks force-pushes and deletions of run branches. That is all
-          &mdash; no labels, no Pages, no environments. A secret scan gates every push.</p>
+      <div class="ver reveal">
+        <div class="vh"><b>v5</b><span>2026-09-21</span></div>
+        <h3>The accountability layer</h3>
+        <p>Three tiers instead of six rungs, rules cut to invariants, the harness dispatching when it can. "Agents do the work. baton keeps the record."</p>
+        <div class="proc">Process: ask what a stronger model makes unnecessary; subtract it, keep every field name, record the change as a bet the ledger measures.</div>
+        <a class="go" href="baton-v5.html">Read v5 →</a>
       </div>
-      <div class="card sm">
-        <span class="num">DOES NOT CHANGE</span>
-        <h4>Everything the run thinks.</h4>
-        <p>The tiers, the envelope, the graph, the verifier, the gates &mdash; the same
-          rules, and every mode. With the line absent, a run is byte-identical to
-          a single-user run. Every team tool is proven without touching GitHub:
-          <code>tools/test-team.sh</code> runs the lot against throwaway repositories and a fake
-          <code>gh</code>, thirty checks, no network.</p>
+      <div class="ver reveal">
+        <div class="vh"><b>v6</b><span>2026-10-02</span></div>
+        <h3>The shrink</h3>
+        <p>−30% framework for Opus 5.5 and Sonnet 5.5: one effort, personas off the default path, no phase runner, digest or decomposer.</p>
+        <div class="proc">Process: six experiments (effort, tiers, Opus vs Sonnet, personas); cut what moved nothing.</div>
+        <a class="go" href="baton-v6.html">Read v6 →</a>
       </div>
-    </div>
-
-    <div class="code reveal d2" style="margin-top:32px">
-      <div class="codebar"><div class="fn"><span class="dots3"><i></i><i></i><i></i></span><b>what a gate does under TEAM</b> &middot; rule 8</div></div>
-<pre><span class="c"># before the prime reads the inbox</span>
-python3 tools/inbox-gh.py sync          <span class="c">questions out as comments, answers in to files</span>
-python3 tools/lists.py derive           <span class="c">the four list files from their rows</span>
-tools/publish-run.sh publish            <span class="c">secret scan, commit, push the hidden ref</span>
-python3 tools/inbox-gh.py post-gate     <span class="c">the sixty-line index and the decisions, one comment</span></pre>
-    </div>
-  </div>
-</section>
-
-<!-- ============ CTA ============ -->
-<section style="padding-bottom:0">
-  <div class="wrap">
-    <div class="card y reveal" style="padding:clamp(40px,6vw,72px);text-align:center">
-      <div class="dots" style="color:var(--on-yellow);opacity:.14"></div>
-      <div style="position:relative">
-        <h2 style="letter-spacing:-.03em;max-width:22ch;margin:0 auto">Point it at the folder everyone is afraid of.</h2>
-        <p style="max-width:60ch;margin:22px auto 0;font-size:17px;color:rgba(10,10,10,.78)">
-          Your flakiest module. Your most ignored spec. The migration nobody wants to start. The worst
-          case is a written plan, a tier histogram, and a batch of good questions &mdash; with every
-          attempt, every verdict and every decision on the record.</p>
-        <div class="btnrow" style="margin-top:32px;justify-content:center">
-          <a href="#prompt" class="btn" style="background:var(--on-yellow);color:var(--yellow)">Copy the router &uarr;</a>
-          <a href="#team" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">For a team &rarr;</a>
-          <a href="baton-v4.html" class="btn" style="background:transparent;color:var(--on-yellow);border-color:rgba(10,10,10,.35)">Read v4 &rarr;</a>
-        </div>
+      <div class="ver now reveal" style="grid-column:1/-1">
+        <div class="vh"><b>v7</b><span>2026-10 · current</span></div>
+        <h3>The mod</h3>
+        <p>The prime becomes a Claude Code mod that only dispatches, with a memory instead of a growing context, rulings that stick,
+          the agent tree in a pane, approvals from anywhere, and red/green/blue for every behavior change. The expert library is deleted.</p>
+        <div class="proc">Process: pre-registered experiments on context rot and reviewer memory (E1, E1b, E1c, E2), an audited answer key, and ideas from
+          <a href="https://github.com/VictorTaelin/OptMem">OptMem</a> and OptChat taken where they fit and dropped where they didn't.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ FOOTER ============ -->
-<footer style="padding:var(--sec) 0 56px">
+<footer>
   <div class="wrap">
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:end;padding-bottom:40px;border-bottom:1px solid var(--hair)" class="g2x">
-      <div>
-        <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:14px">
-          <span style="font-weight:700;font-size:22px;letter-spacing:-.03em;color:var(--ink)">baton</span>
-          <span class="mono" style="font-size:12px;font-weight:600;color:var(--yellow)">v6.0</span>
-        </div>
-        <p style="font-size:15px;color:var(--muted);max-width:48ch">An orchestrator of orchestrators,
-          rebuilt around what it costs. The repository is the artifact.</p>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px 24px;font-size:14px;color:var(--muted)">
-        <a href="https://github.com/ckluis/baton" target="_blank" rel="noopener" class="nl">Repo &nearr;</a>
-        <a href="baton-v4.html" class="nl">baton v4 &rarr;</a>
-        <a href="baton-v3.html" class="nl">baton v3 &rarr;</a>
-        <a href="baton-v1.html" class="nl">baton v1 &rarr;</a>
-        <a href="https://ckluis.github.io/luminaryTeam/" target="_blank" rel="noopener" class="nl">luminaryTeam &nearr;</a>
-        <a href="https://ckluis.github.io/experiments/" target="_blank" rel="noopener" class="nl">Experiments &nearr;</a>
-        <a href="https://www.linkedin.com/in/ckluis" target="_blank" rel="noopener" class="nl">LinkedIn &nearr;</a>
-      </div>
-    </div>
-    <div style="padding-top:24px;font-size:13px;color:var(--muted-2)">
-      &copy; 2026 Chris Kluis &middot; MIT &middot; baton v3 is an experiment in orchestration &mdash;
-      the prompt is the entire artifact, and this page is only its label
-    </div>
+    <div>baton · MIT · <a href="https://github.com/ckluis/baton">github.com/ckluis/baton</a> · <a href="https://github.com/ckluis/baton/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md">Migrating</a></div>
+    <div>Agents do the work. baton keeps the record.</div>
   </div>
 </footer>
 
 <script>
-  var io = new IntersectionObserver(function(es){
-    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  },{threshold:.1,rootMargin:'0px 0px -5% 0px'});
-  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px' }) : null;
+  document.querySelectorAll('.reveal').forEach(function(el){ if (io) io.observe(el); else el.classList.add('in'); });
 
   function wireCopy(btnId, srcId, label){
     var btn = document.getElementById(btnId), src = document.getElementById(srcId);

@@ -14,7 +14,7 @@ What this checks, all of it by existence rather than by inference:
     4  no rule text survives in either contract - a numbered heading outside the
        generated index means a rule has two homes again
     5  every rule id cited anywhere in the repo resolves to a file - except in the
-       record of the past and the opt-in library (HISTORY below), which cite rules
+       record of the past (HISTORY below), which cites rules
        as they were when written
     6  the index on disk equals the index regenerated from the files
 
@@ -45,11 +45,10 @@ ID_CITE_RE = re.compile(r"\b((?:p?rule)-\d+(?:-\d+[a-z]?)*-[a-z0-9-]+)\b")
 # referring to a section that no longer existed, and it reached main.
 SEC_CITE_RE = re.compile(r"§\s?(\d+(?:\.\d+[a-z]?)*)")
 # Check 5 does not hold these to today's rule set. Experiment and design records,
-# the changelog and the migration notes describe the rules a version had; the
-# library carries the v5 persona layer and its own v5 rule files. Everything else
-# - router, contracts, rules, roles, modes, personas, tools, README, the page - is
-# held strictly.
-HISTORY = ("docs/experiments/", "docs/designs/", "CHANGELOG.md", "migrations/", "library/")
+# the changelog, the migration notes and the pages of earlier versions describe
+# the rules a version had. Everything else - router, contracts, rules, roles,
+# modes, personas, tools, the mod, README, the page - is held strictly.
+HISTORY = ("docs/experiments/", "docs/designs/", "CHANGELOG.md", "migrations/", "baton-v")
 
 
 def is_history(rel):
