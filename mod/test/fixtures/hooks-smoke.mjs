@@ -17,24 +17,25 @@ fs.writeFileSync(W + '/_orch/manifest.json', JSON.stringify({ prime: true, run_i
 const hooks = {}
 register((ev, a, b) => { const [m, f] = typeof a === 'function' ? [null, a] : [a, b]; (hooks[ev] ??= []).push({ m, f }); return { catch() {} } })
 const match = (m, e) => !m || Object.entries(m).every(([k, v]) => v instanceof RegExp ? v.test(e[k]) : e[k] === v)
-const terminal = { 'tool.call': () => ({ result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => ({ agentId: e._id, model: e.model }) }
+const BIG = (n, mark) => Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? mark : 'line ' + i)).join('\n')
+const terminal = { 'tool.call': (e) => (e.tool === 'Read' && /big\.ts$/.test(e.file_path) ? { result: BIG(700, 'x') } : e.tool === 'Bash' && e.command === 'make test' ? { result: BIG(1200, 'FAIL cart.test.ts > empty cart') } : { result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => ({ agentId: e._id, model: e.model }) }
 async function fire(ev, e) {
   const hs = hooks[ev] ?? []
   const go = async (i, x) => { for (; i < hs.length; i++) if (match(hs[i].m, x)) return hs[i].f($, x, (y) => go(i + 1, y)); return terminal[ev] ? terminal[ev](x) : x }
   return go(0, e)
 }
-let surfaces = ['terminal'], answers = [], asked = [], sent = [], submitted = [], toasts = []
+let surfaces = ['terminal'], answers = [], asked = [], sent = [], submitted = [], toasts = [], opened = []
 const timers = []
 const $ = {
   plugin: { root: MOD },
   env: { get: async () => undefined },
-  fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => fs.writeFileSync(path.resolve(W, p), t), exists: async (p) => fs.existsSync(p),
+  fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(p),
         list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sent.push(x), { isDelivered: true }) },
   process: { run: async (argv, o) => { try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '' }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
   model: { complete: async () => ({ isAnswered: true, text: 'NONE' }) },
   clock: { after: (ms, f) => timers.push(f), every: () => ({ cancel() {} }) },
-  ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async () => ({ isPlaced: true }),
+  ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async (x) => (opened.push(x), { isPlaced: true }),
         ask: async (q, opts) => { asked.push({ q, opts }); const a = answers.shift(); if (a === undefined) throw new Error('dismissed'); return typeof a === 'function' ? a(opts) : a },
         resolve: () => new Proxy({}, { get: (_, type) => (props) => ({ type, props }) }) },
   prompt: { submit: async (x) => (submitted.push(x), {}) },
@@ -44,6 +45,8 @@ const $ = {
 }
 const ok = (c, msg) => { if (!c) { console.log('FAIL', msg); process.exitCode = 1 } else console.log('ok  ', msg) }
 await fire('session.start', { cwd: W })
+for (const f of timers.splice(0)) await f()
+ok(opened.some((x) => x.id === 'baton' && x.focus === false), 'the pane opened by itself at session start, unfocused (no /baton needed)')
 
 // hierarchy
 await fire('agent.spawn', { _id: 's1', subagentType: 'baton:sub-orchestrator', description: 'P3', model: 'claude-opus-5-5' })
@@ -100,7 +103,7 @@ let t = await render()
 await byKey(t, 'tab-agents').props.onPress()
 t = await render()
 const at = text(t)
-ok(/◆ prime/.test(at) && /✓ sub-orchestrator P3 · opus/.test(at) && /worker-cheap T7 · sonnet .* DONE — T7 DONE 3\/3/.test(at), 'Agents tab draws the tree')
+ok(/agent\s+context\s+budget\s+model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+50%\s+opus/.test(at) && /✓ worker-cheap T7\s+—\s+50%\s+sonnet/.test(at), 'Agents tab draws the tree as a table')
 // a live agent to message
 await fire('agent.spawn', { _id: 's2', subagentType: 'baton:sub-orchestrator', description: 'P4' })
 t = await render()
@@ -144,3 +147,33 @@ ok(/approvals on · asked \d+ · approved \d+ · refused \d+ · approved for the
 surfaces = []
 r = await fire('command.run', { command: 'baton', args: '' })
 ok(/## Agents[\s\S]*⚑ P4/.test(r.text) && /## Rulings/.test(r.text), '-p prints Agents and Rulings')
+
+// ---- the kit: code tools, the Read hint, quiet output, notifications
+fs.mkdirSync(W + '/src', { recursive: true })
+fs.writeFileSync(W + '/src/cart.ts', 'export function addItem(c, i) {\n  return [...c, i]\n}\n')
+let k = await fire('tool.call', { agentId: 'w1', tool: 'mcp__baton__code_search', query: 'additem' })
+ok(/src\/cart\.ts:1-3 {2}function addItem/.test(k.result || ''), 'code_search answers from the index, built on demand')
+k = await fire('tool.call', { agentId: 'w1', tool: 'mcp__baton__code_fetch', target: 'addItem' })
+ok(/return \[\.\.\.c, i\]/.test(k.result || ''), 'code_fetch returns just the symbol')
+ok(fs.readFileSync(W + '/.baton/code/.gitignore', 'utf8') === '*\n', 'the index hides itself from git')
+k = await fire('tool.call', { tool: 'mcp__baton__code_fetch', target: 'addItem' })
+ok(/is not a prime tool/.test(k.deny || ''), 'the prime may not read code, even through the index')
+k = await fire('tool.call', { agentId: 'w1', tool: 'Read', file_path: W + '/src/big.ts' })
+ok((k.context || []).some((c) => /all 700 lines/.test(c) && /code_fetch/.test(c)), 'a large source Read runs, with a pointer to code_fetch')
+k = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'make test' })
+const kept = (k.result || '').split('\n').length
+const logs = fs.readdirSync(W + '/_orch/out')
+ok(kept < 120 && /601\| FAIL cart\.test\.ts > empty cart/.test(k.result) && logs.length === 1 && fs.readFileSync(W + '/_orch/out/' + logs[0], 'utf8').split('\n').length === 1200, 'quiet output: 1200 lines → ' + kept + ', the failure kept, the whole saved')
+const st = (await fire('command.run', { command: 'baton', args: 'status' })).text
+ok(/code tools 2 calls · large reads 1 \(700 lines\) · quieted 1 outputs \(1200 → \d+ lines\)/.test(st), 'status counts the kit: ' + st.split('\n').find((l) => /^code tools/.test(l)))
+const stop = await fire('classic.Stop', {})
+ok(typeof stop.terminalSequence === 'string' && stop.terminalSequence.length > 0, 'a waiting phase reaches the desktop as a terminal notification')
+const stop2 = await fire('classic.Stop', {})
+ok(!stop2 || !stop2.terminalSequence, 'and only once')
+
+// ---- every session: the band carries plan usage
+await fire('session.measure', { context: { tokens: 240000, window: 1000000, percent: 24 }, rateLimits: [{ kind: 'five_hour', percentUsed: 42.5, resetsAt: '2026-10-05T14:20:00Z' }, { kind: 'seven_day', percentUsed: 18 }, { kind: 'seven_day_fable', percentUsed: 3 }], changed: ['context', 'rateLimits'] })
+const bandNow = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 160 } })
+const bandText = text(bandNow)
+ok(/5h ▕.*▏ 42\.5%/.test(bandText) && /week ▕.*▏ 18%/.test(bandText) && /Fable week ▕.*▏ 3%/.test(bandText), 'the band shows plan usage: 5h, week, Fable')
+

@@ -67,7 +67,7 @@ const $ = {
 const ok = (c, msg) => { if (!c) { console.log('FAIL', msg); process.exitCode = 1 } else console.log('ok  ', msg) }
 const put = (p, t) => { fs.mkdirSync(path.dirname(path.join(W, p)), { recursive: true }); fs.writeFileSync(path.join(W, p), t) }
 const drain = async () => { while (timers.length) await timers.shift()() }
-const poll = async () => { for (const f of every.slice(0, 1)) await f() } // the first every() is the PR poll (the ticker is second)
+const poll = async () => { for (const f of every) await f() } // every clock job: plan usage, the PR poll, the ticker
 const status = async () => (await fire('command.run', { command: 'baton', args: 'status' })).text
 await fire('session.start', { cwd: W })
 
@@ -161,7 +161,7 @@ ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its wind
 surfaces = []
 const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Agents')[1] || ''
 const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
-ok(/ctx 61%\/50%/.test(w9row) && /\$\d+\.\d\d(?!\+)/.test(w9row) && /cached/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
+ok(/worker T10 big parser\s+61%\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
 const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
 ok(/\/35%/.test(primeRow) || !/ctx/.test(primeRow), 'the prime row measures against the rotation threshold: ' + primeRow.trim())
 // the budget refuses another round once spent
@@ -189,7 +189,7 @@ s = await status()
 await poll()
 surfaces = []
 const tl = (await fire('command.run', { command: 'baton', args: '' })).text
-ok(/worker T2 .*●─●─●─● verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Agents')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
+ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Agents')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 

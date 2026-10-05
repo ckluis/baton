@@ -30,7 +30,9 @@ export function isBatonSkill(e) {
 }
 
 export function primeMayUse(tool, e) {
-  return PRIME_TOOLS.includes(tool) || String(tool).startsWith(MOD_TOOL_PREFIX) || isBatonSkill(e ?? { tool })
+  // The mod's memory tools are the prime's; its code tools read code, which is a subagent's job.
+  const mod = String(tool).startsWith(MOD_TOOL_PREFIX) && !String(tool).startsWith(MOD_TOOL_PREFIX + 'code_')
+  return PRIME_TOOLS.includes(tool) || mod || isBatonSkill(e ?? { tool })
 }
 
 export function denyReason(tool) {

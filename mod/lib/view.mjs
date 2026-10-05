@@ -90,3 +90,58 @@ export function spinnerSuffix(base, phase, node) {
 export function byId(a, b) {
   return String(a).localeCompare(String(b), undefined, { numeric: true })
 }
+
+// ------------------------------------------------------------------ plan usage
+
+/** A short name for a rate-limit window: five_hour → 5h, seven_day → week, seven_day_fable → Fable week. */
+export function limitLabel(kind) {
+  const k = String(kind ?? '')
+  if (k === 'five_hour') return '5h'
+  if (k === 'seven_day') return 'week'
+  if (k === 'spend_limit') return 'spend'
+  const model = /(fable|opus|sonnet|haiku)/i.exec(k)
+  const win = /five_hour/.test(k) ? '5h' : /seven_day/.test(k) ? 'week' : ''
+  if (model) return model[1][0].toUpperCase() + model[1].slice(1).toLowerCase() + (win ? ' ' + win : '')
+  return k.replace(/_/g, ' ')
+}
+
+/** When a window resets, short: "14:20" today, "Thu 09:00" this week, else the date. */
+export function resetLabel(iso, now = Date.now()) {
+  if (!iso) return ''
+  const t = new Date(iso)
+  if (Number.isNaN(t.getTime())) return ''
+  const hm = t.toISOString().slice(11, 16)
+  const days = (t.getTime() - now) / 86400000
+  if (days < 1 && t.getUTCDate() === new Date(now).getUTCDate()) return hm + 'Z'
+  if (days < 7) return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][t.getUTCDay()] + ' ' + hm + 'Z'
+  return t.toISOString().slice(0, 10)
+}
+
+/** green, yellow from 60%, red from 85%. */
+export function usageColor(pct) {
+  if (typeof pct !== 'number') return undefined
+  return pct >= 85 ? 'red' : pct >= 60 ? 'yellow' : 'green'
+}
+
+/**
+ * The plan-usage line: 5h, week, then any model window, then spend; and the session's cost.
+ * Segments: [{ text, color }].
+ */
+export function usageSegs(limits, cost, now = Date.now()) {
+  const order = (k) => (k === 'five_hour' ? 0 : k === 'seven_day' ? 1 : k === 'spend_limit' ? 9 : 5)
+  const out = []
+  for (const l of [...(limits || [])].sort((a, b) => order(a.kind) - order(b.kind))) {
+    if (out.length) out.push({ text: '  ·  ', color: undefined })
+    const pct = Math.round(Number(l.percentUsed) * 10) / 10
+    const fill = Math.max(0, Math.min(8, Math.round((pct / 100) * 8)))
+    out.push({ text: limitLabel(l.kind) + ' ▕' + '█'.repeat(fill) + '░'.repeat(8 - fill) + '▏ ' + pct + '%', color: usageColor(pct) })
+    const r = resetLabel(l.resetsAt, now)
+    if (r) out.push({ text: ' resets ' + r, color: undefined })
+  }
+  if (cost && typeof cost.usd === 'number') {
+    if (out.length) out.push({ text: '  ·  ', color: undefined })
+    out.push({ text: 'session $' + cost.usd.toFixed(2), color: undefined })
+  }
+  if (!out.length) out.push({ text: 'plan usage: no reading yet (it arrives with the first response on a subscription)', color: undefined })
+  return out
+}

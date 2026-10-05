@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Always there.** The band carries plan usage in every session (5h, week, a model's own week such as
+  Fable, spend; reset times; the session's cost from `$.session.usage()`), and the pane opens by itself.
+  Metering and the agent tree work outside runs too.
+- **The Agents tab is a table:** agent · context · budget · model · input · cache write · cache read ·
+  output · cost · steps · state, columns dropped by usefulness on narrow panes; a cache-reuse flag.
+- **A built-in code index** (#48 D1): `code_search`, `code_fetch`, `code_refs`, `code_explore`,
+  answered by the mod, refreshed before every query, nothing to set up; a pointer to `code_fetch` on
+  large source reads. The prime may not use them.
+- **Quiet output** (#48 D3): long shell results cut to head, failures and tail; the whole saved to a file.
+- **Notifications** (#48 D5): toasts and desktop notifications when something waits for you.
+- **One install** (#48 D6): `.claude-plugin/marketplace.json`; `/plugin install baton@baton`.
+- **Pre-registered:** `docs/experiments/code-tools-and-quiet-output-preregistration.md` (#48 D7).
+- **Page:** section 4 is a whole Claude Code window: the conversation, the pane with the agent table,
+  the usage band and the input box.
 - **A meter on every agent.** Each Agents row shows that agent's context against its own threshold (the prime's
   rotation point; `agentContextWarnPercent`, 50, for a subagent), its fresh tokens and cache reads, and its
   API-equivalent cost priced per model from verified prices (`prices` adds more; an unpriced model shows `$?`,

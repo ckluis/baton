@@ -28,6 +28,9 @@ write.
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
 | `lib/ledger.mjs` | spend and the budget, forbidden files, the goal's label and board column, `Blocked by`, pure |
+| `lib/table.mjs` | the agent table: columns, widths, the drop order for narrow panes, pure |
+| `lib/codeidx.mjs`, `bin/code.mjs` | the code index: symbol extraction per language, end lines, ranking; the CLI the code tools run |
+| `lib/quiet.mjs` | quiet output: head, failures, tail, pure |
 | `lib/track.mjs` | the tracker: each level's states computed from the record, measured transitions, steppers; the PR's merge-ready rows, the reviewer's comment, gate commands, pure |
 | `agents/` | `sub-orchestrator` (also the PR steward), `worker`, `worker-cheap`, `verifier`, `pr-reviewer`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
@@ -147,6 +150,34 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
     with `boardProject`, moves the issue's card on a Projects board.
   - **Blocked by.** Open questions show the line they rest on and whether it is `explicit` (fix the
     cause) or `interpreted` (you may overrule it).
+- **Always there, no command.** In any interactive session with the mod loaded, the band above the
+  prompt carries plan usage (each rate-limit window the API reports: `5h`, `week`, a model's own week
+  such as `Fable week`, a gateway's `spend`, with reset times) and the session's cost. The pane opens
+  by itself, unfocused (`autoPane`), at session start and when the first subagent spawns, on Agents
+  outside a run and Track inside one. Spend is metered in every session; it is written to
+  `_orch/spend.json` only in a run.
+- **The agent table.** Agents is a table, one row per agent: agent · context · budget (the agent's
+  own threshold) · model · input · cache write · cache read · output · cost · steps · state. Output
+  is never cached, so caching shows as writes and reads on the input side. Columns drop from the
+  least useful when the pane is narrow (`lib/table.mjs`). A subagent past its budget gets one
+  message from the mod: finish, or split. A row with low cache reuse after eight requests is flagged.
+- **A code index, built in** (`bin/code.mjs`, `lib/codeidx.mjs`; codemunch's idea, MIT, baton's own
+  code). `code_search`, `code_fetch`, `code_refs`, `code_explore` are registered in every session
+  and answered in JavaScript, not by model steps. The index is warmed in the background at session
+  start, and every query re-stats the tracked files and re-parses only the changed ones, so it is
+  never stale and never set up or updated by hand. It lives in `.baton/code/` with its own
+  `.gitignore`. The prime may not use the code tools: reading code is a subagent's job. A Read of a
+  whole source file over `readHintLines` (300) runs as asked and carries a pointer to `code_fetch`.
+- **Quiet output.** A shell result over `quietOutputLines` (400) is cut to its first 40 lines, up
+  to 80 lines that look like failures, and its last 40; the whole output is saved to
+  `_orch/out/` (or `.baton/out/` outside a run) and its path ends the result. `BATON_QUIET=0` or
+  `quietOutputLines: 0` turns it off. Whether it and the code tools stay is pre-registered:
+  `docs/experiments/code-tools-and-quiet-output-preregistration.md`.
+- **Notifications.** A phase waiting for you, a PR ready to merge, a new question, a spent budget:
+  a toast at once and a desktop notification (OSC 9, 99 or 777 for your terminal, else a bell) at
+  the next Stop or Notification, once each.
+- **One install.** The repository is a marketplace: `/plugin marketplace add ckluis/baton`, then
+  `/plugin install baton@baton`. Nothing else to install, initialize or update.
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's tabs.** **Track** (above) · **Agents** (the live tree: role, model, elapsed, tool count, current

@@ -12,12 +12,17 @@ import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION }
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { langOf } from '../lib/codeidx.mjs'
+import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
+import { agentTable, tableText } from '../lib/table.mjs'
+import { shortModel } from '../lib/agents.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
+import { usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -46,7 +51,8 @@ const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
 const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true, prPollSeconds: 120,
-  tokensPerGoal: 0, agentContextWarnPercent: 50, prices: {}, forbiddenFiles: FORBIDDEN_DEFAULT, labels: true, boardProject: 0, boardOwner: '', boardStatusMap: {} }
+  autoPane: true,
+  tokensPerGoal: 0, agentContextWarnPercent: 50, prices: {}, quietOutputLines: 400, readHintLines: 300, forbiddenFiles: FORBIDDEN_DEFAULT, labels: true, boardProject: 0, boardOwner: '', boardStatusMap: {} }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -259,6 +265,145 @@ async function memoryArgs($, which, namespace) {
   }
   const ns = cleanNamespace(namespace)
   return ns ? ['--dir', dir, '--ns', ns] : ['--dir', dir]
+}
+
+// ------------------------------------------------------------------ the code index
+//
+// baton's own index of the code (codemunch's idea, MIT; bin/code.mjs, lib/codeidx.mjs),
+// served as tools to the agents that read: built in the background when the session
+// starts, refreshed before every query, never set up or updated by hand.
+
+const CODE_TOOLS = [
+  {
+    name: 'code_search',
+    description: 'baton code index: find a function, class, type or module by name (exact, prefix, substring, fuzzy). Returns file:lines for each match, nothing else. Use it before reading a file.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' }, kind: { type: 'string', enum: ['function', 'class', 'type', 'method', 'module', 'impl'] }, limit: { type: 'integer', minimum: 1, maximum: 100 } }, required: ['query'] },
+  },
+  {
+    name: 'code_fetch',
+    description: 'baton code index: the source of one symbol by name, of a line range "path:A-B", or the outline of a file given its path. Reads only those lines, not the whole file.',
+    inputSchema: { type: 'object', properties: { target: { type: 'string', description: 'a symbol name, a path, or path:A-B' }, max: { type: 'integer', minimum: 10, maximum: 2000 } }, required: ['target'] },
+  },
+  {
+    name: 'code_refs',
+    description: 'baton code index: every whole-word reference to a name across the code, file:line and the line, definitions marked *. Cheaper than grep plus reading files.',
+    inputSchema: { type: 'object', properties: { name: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 1000 } }, required: ['name'] },
+  },
+  {
+    name: 'code_explore',
+    description: 'baton code index: the shape of a directory — subdirectories with file, symbol and line counts, and each file with its symbol names. Start here in an unfamiliar codebase.',
+    inputSchema: { type: 'object', properties: { dir: { type: 'string', description: 'a directory relative to the project root; empty for the root' } } },
+  },
+]
+
+// Plan usage: the rate-limit windows the last response reported, and the session's cost.
+const usage = { limits: [], cost: null, at: null }
+
+async function readUsage($) {
+  try {
+    const u = await $.session.usage()
+    if (u && Array.isArray(u.rateLimits) && u.rateLimits.length) usage.limits = u.rateLimits
+    if (u && u.cost) usage.cost = u.cost
+    usage.at = Date.now()
+  } catch {}
+}
+
+/** Open the pane by itself (unfocused): in every interactive session, the mod is simply there. */
+async function autoOpenPane($) {
+  if (pane.open || !config.autoPane || !(await interactive($))) return
+  pane.tab = (await runActive($)) ? 'track' : 'agents'
+  try {
+    const r = await $.ui.open({ id: PANE, title: 'baton', focus: false, closeOnEscape: true })
+    pane.open = !r || r.isPlaced !== false
+  } catch {
+    return
+  }
+  await refreshPane($, 30)
+  try {
+    if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
+  } catch {}
+}
+
+// What the code tools and quiet output did, for /baton status and the experiment (#48).
+const kit = { codeCalls: 0, codeOut: 0, bigReads: 0, bigReadLines: 0, quieted: 0, quietLinesKept: 0, quietLinesTotal: 0, toolsRegistered: false }
+
+async function codeRun($, args) {
+  const root = await $.session.root()
+  const r = await $.process.run(['node', $.plugin.root + '/bin/code.mjs', '--root', root, ...args], { timeoutMs: 120000 })
+  if (r.exitCode !== 0) throw new Error((r.stderr || r.stdout || 'code exited ' + r.exitCode).trim())
+  return r.stdout
+}
+
+async function registerCodeTools($) {
+  if (kit.toolsRegistered) return
+  for (const t of CODE_TOOLS) await $.tool.register(t)
+  kit.toolsRegistered = true
+}
+
+async function serveCodeTool($, e) {
+  const name = String(e.tool).slice('mcp__baton__'.length)
+  const lim = (k, d) => (Number.isInteger(e[k]) ? String(e[k]) : d)
+  let args
+  if (name === 'code_search') args = ['search', ...(e.kind ? ['--kind', String(e.kind)] : []), '--limit', lim('limit', '20'), '--', String(e.query ?? '')]
+  else if (name === 'code_fetch') args = ['fetch', '--max', lim('max', '400'), '--', String(e.target ?? '')]
+  else if (name === 'code_refs') args = ['refs', '--limit', lim('limit', '200'), '--', String(e.name ?? '')]
+  else if (name === 'code_explore') args = ['explore', '--', String(e.dir ?? '')]
+  else return { result: 'baton: no code tool named ' + name }
+  try {
+    const out = await codeRun($, args)
+    kit.codeCalls++
+    kit.codeOut += out.length
+    return { result: out }
+  } catch (err) {
+    return { result: 'baton code index error: ' + (err && err.message ? err.message : String(err)) + ' — fall back to Read/Grep' }
+  }
+}
+
+// ------------------------------------------------------------------ quiet output
+//
+// A shell result longer than quietOutputLines is cut to its head, the lines that
+// look like failures, and its tail; the whole of it goes to a file whose path is
+// in the result. Off with quietOutputLines 0 or BATON_QUIET=0.
+
+// ------------------------------------------------------------------ notifications
+//
+// Something waits for the operator: a toast now, and a desktop notification (OSC
+// 9 / 99 / 777, or a bell) the next time Claude Code hands a hook a chance to
+// emit one. Each event notifies once.
+
+const notices = { pending: [], sent: new Set(), term: null }
+
+async function notify($, key, text) {
+  if (notices.sent.has(key)) return
+  notices.sent.add(key)
+  try {
+    $.ui.toast(text)
+  } catch {}
+  notices.pending.push(text)
+}
+
+async function terminalSequence($) {
+  if (!notices.pending.length) return null
+  const text = notices.pending.splice(0).join(' · ').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 240)
+  if (notices.term == null) {
+    try {
+      notices.term = String((await $.env.get('TERM_PROGRAM')) || '') + ' ' + String((await $.env.get('TERM')) || '')
+    } catch {
+      notices.term = ''
+    }
+  }
+  const t = notices.term.toLowerCase()
+  if (/ghostty|warp|rxvt/.test(t)) return '\x1b]777;notify;baton;' + text + '\x07'
+  if (/kitty/.test(t)) return '\x1b]99;;baton: ' + text + '\x1b\\'
+  if (/iterm|wezterm|windows|conemu/.test(t)) return '\x1b]9;baton: ' + text + '\x07'
+  return '\x07'
+}
+
+/** Stop and Notification: emit what is waiting as a desktop notification. */
+async function withNotice($, e, next) {
+  const r = await next(e)
+  const seq = await terminalSequence($)
+  return seq ? { ...(r || {}), terminalSequence: seq } : r
 }
 
 async function registerMemoryTools($) {
@@ -648,6 +793,10 @@ async function statusText($) {
       (rotation.lastAt ? ' (last ' + rotation.lastAt + ', ' + rotation.lastTrigger + ')' : ''),
   )
   lines.push('guard ' + (active ? 'armed' : 'off') + ' · prime denials ' + probe.denied + ' · agentId ' + (probe.verified ? 'verified' : 'unverified') + (probe.notice ? ' — ' + probe.notice : ''))
+  lines.push(usageSegs(usage.limits, usage.cost).map((x) => x.text).join(''))
+  lines.push(
+    'code tools ' + kit.codeCalls + ' calls · large reads ' + kit.bigReads + ' (' + kit.bigReadLines + ' lines) · quieted ' + kit.quieted + ' outputs (' + kit.quietLinesTotal + ' → ' + kit.quietLinesKept + ' lines)',
+  )
   lines.push(
     'approvals ' + (config.approvals ? 'on' : 'off (BATON_APPROVALS=0)') + ' · asked ' + approvals.asked + ' · approved ' + approvals.approved + ' · refused ' + approvals.refused +
       (approvals.always.size ? ' · approved for the run: ' + [...approvals.always].join(', ') : '') + (approvals.queue.length ? ' · ' + approvals.queue.length + ' phase(s) waiting for your check' : ''),
@@ -797,11 +946,15 @@ function goalLinks({ Box, Text, Link }, key) {
 }
 
 /** Track: the goal, the PR (with the merge-ready rows), every phase and its nodes, each as measured steps. */
+function usageRow({ Box, Text }, key) {
+  return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: key + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+}
+
 function trackBody($, ui) {
   const { Box, Text, line } = ui
   const v = track.view
   if (!v) return [line('t-none', pane.data.track[0] ?? 'no run is active here', { dimColor: true })]
-  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
+  const out = [usageRow(ui, 't-use'), ...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
   if (v.pr) {
     out.push(stepperRow(ui, 't-pr', 'PR', v.pr, v.pr.tl))
     if (v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '           ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
@@ -837,9 +990,34 @@ function workState(agentId) {
   return null
 }
 
+/** One agent as a table row. */
+function agentRow(r) {
+  const n = r.id ? tree.nodes.get(r.id) : null
+  if (!n) return { label: r.text.trim(), tone: 'rail' }
+  const glyph = n.id === PRIME ? '◆' : r.live ? '●' : r.color === 'red' ? '✗' : '✓'
+  const name = n.id === PRIME ? 'prime' : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
+  const st = workState(r.id)
+  const mini = st ? stepperMini(st) : null
+  const pct = ctxPct(n)
+  const thr = thresholdFor(n)
+  return {
+    label: '  '.repeat(r.depth) + glyph + ' ' + name,
+    tone: r.color,
+    ctxPct: pct,
+    ctxTone: ctxTone(pct, thr),
+    threshold: thr,
+    model: shortModel(n.served || n.model) || '',
+    acc: n.spend || null,
+    cost: n.spend ? shortUsd(costOf(n.spend, config.prices)) : '',
+    steps: mini ? mini.slice(0, -1) : [],
+    state: mini ? mini.at(-1).text.trim() : r.live ? (n.lastTool ? 'now ' + n.lastTool : 'starting') : String(n.verdict || '').toLowerCase(),
+    stateTone: mini ? mini.at(-1).tone : r.live ? 'current' : r.color,
+  }
+}
+
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
-function agentsBody($, { Box, Text, Button, Input, Link, line }) {
-  const out = [...goalLinks({ Box, Text, Link }, 'a-links')]
+function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
+  const out = [usageRow({ Box, Text }, 'a-use'), ...goalLinks({ Box, Text, Link }, 'a-links')]
   approvals.queue.forEach((q, i) => {
     out.push(
       Box({
@@ -865,24 +1043,24 @@ function agentsBody($, { Box, Text, Button, Input, Link, line }) {
       }),
     )
   }
-  const rows = treeRows(tree)
-  rows.forEach((r, i) => {
-    const children = []
-    if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: '✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
-    children.push(line('a' + i, r.text, r.color ? { color: r.color } : {}))
-    // This agent's own meter: its context against its own threshold, its tokens, its cost.
-    meterSegs(r.id ? tree.nodes.get(r.id) : null).forEach((m, j) => children.push(Text({ key: 'a' + i + 'm' + j, ...(m.color ? { color: m.color } : { dimColor: true }), children: [m.text] })))
-    // The parcel steps of what this agent works on (its node, else its phase; the goal for the prime), at the end of its row.
-    const st = workState(r.id)
-    if (st) children.push(Box({ key: 'a' + i + 'st', flexDirection: 'row', children: stepperMini(st).map((x, j) => Text({ key: 'a' + i + 's' + j, ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }), children: [x.text] })) }))
-    out.push(Box({ key: 'ar' + i, flexDirection: 'row', columnGap: 1, children }))
+  // One row per agent: its own context against its own budget, its model, its tokens by kind, its cost,
+  // and the parcel steps of what it works on (its node, else its phase; the goal for the prime).
+  const rowsData = treeRows(tree)
+  const t = agentTable(rowsData.map(agentRow), Math.max(60, (cols || 120) - 4))
+  const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
+  out.push(Box({ key: 'ah', flexDirection: 'row', children: t.header.map((x, j) => Text({ key: 'ah' + j, dimColor: true, children: [x.text] })) }))
+  t.lines.forEach((segs, i) => {
+    const r = rowsData[i]
+    const children = segs.map((x, j) => Text({ key: 'a' + i + 'c' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] }))
+    if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
+    out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
   })
-  const t = pane.target && tree.nodes.get(pane.target)
-  if (t && t.endedAt == null) {
+  const tg = pane.target && tree.nodes.get(pane.target)
+  if (tg && tg.endedAt == null) {
     out.push(
       Input({
         key: 'agent-msg',
-        label: 'Message ' + t.label,
+        label: 'Message ' + tg.label,
         placeholder: 'steer this agent (it reads it at its next step)',
         value: '',
         submitLabel: 'send',
@@ -892,12 +1070,12 @@ function agentsBody($, { Box, Text, Button, Input, Link, line }) {
           if (!text) return
           let r = null
           try {
-            r = await $.session.send({ to: { agentId: t.id }, text })
+            r = await $.session.send({ to: { agentId: tg.id }, text })
           } catch (err) {
             r = { isDelivered: false, reason: err.message }
           }
-          $.ui.toast(r && r.isDelivered ? 'sent to ' + t.label : 'not delivered: ' + ((r && r.reason) || 'unknown'))
-          if (r && r.isDelivered) await noteQuietly($, 'operator → ' + t.label + ': ' + text, 'operator')
+          $.ui.toast(r && r.isDelivered ? 'sent to ' + tg.label : 'not delivered: ' + ((r && r.reason) || 'unknown'))
+          if (r && r.isDelivered) await noteQuietly($, 'operator → ' + tg.label + ': ' + text, 'operator')
         },
       }),
     )
@@ -1040,15 +1218,7 @@ function paneText() {
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
   if (id === 'track') return trackLines(track.view)
-  if (id === 'agents')
-    return [
-      ...queueLines(),
-      ...treeRows(tree).map((r) => {
-        const st = workState(r.id)
-        const m = meterSegs(r.id ? tree.nodes.get(r.id) : null).map((x) => x.text).join(' · ')
-        return r.text + (m ? ' · ' + m : '') + (st ? '  ' + stepperMiniText(st) : '')
-      }),
-    ]
+  if (id === 'agents') return [usageSegs(usage.limits, usage.cost).map((x) => x.text).join(''), ...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160))]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }
@@ -1250,9 +1420,7 @@ async function pollGithub($) {
       gh.noted.ready = true
       await noteQuietly($, tag + ' is merge-ready: every row holds. Waiting for the operator to merge.', 'github')
       await upsertSpendComment($, pr)
-      try {
-        $.ui.toast(tag + ' is ready for you to merge')
-      } catch {}
+      await notify($, 'ready:' + pr.number, tag + ' is ready for you to merge')
     }
     if (pr.state === 'MERGED' && !gh.noted.merged) {
       gh.noted.merged = true
@@ -1431,6 +1599,9 @@ function meterSegs(n) {
   out.push({ text: shortTokens(n.spend.fresh) + (n.spend.cacheRead ? ' +' + shortTokens(n.spend.cacheRead) + ' cached' : ''), color: undefined })
   const c = shortUsd(costOf(n.spend, config.prices))
   if (c) out.push({ text: c, color: undefined })
+  // Cache health: an agent that keeps paying for its whole prompt has a prefix that keeps changing.
+  const reuse = n.spend.cacheRead / Math.max(1, n.spend.cacheRead + n.spend.fresh)
+  if (n.spend.requests >= 8 && reuse < 0.5) out.push({ text: 'cache ' + Math.round(reuse * 100) + '%', color: 'yellow' })
   return out
 }
 
@@ -1653,6 +1824,7 @@ async function observe($, force = false) {
       text = await $.fs.read('_orch/inbox/' + f)
     } catch {}
     questions.push({ id: f.replace(/\.md$/, ''), first: firstLine(text), blockedBy: parseBlockedBy(text) })
+    await notify($, 'q:' + (m.run_id || '') + f, 'a question waits for you: ' + firstLine(text).slice(0, 120))
   }
   await loadSpend($)
   const now = Date.now()
@@ -1707,6 +1879,9 @@ export function register(on, options) {
     if (options.memoryDir) config.memoryDir = String(options.memoryDir)
     if (Number.isFinite(Number(options.prPollSeconds))) config.prPollSeconds = Number(options.prPollSeconds)
     if (Number.isFinite(Number(options.tokensPerGoal))) config.tokensPerGoal = Number(options.tokensPerGoal)
+    if (Number.isFinite(Number(options.quietOutputLines))) config.quietOutputLines = Number(options.quietOutputLines)
+    if (options.autoPane === false || options.autoPane === 'false') config.autoPane = false
+    if (Number.isFinite(Number(options.readHintLines))) config.readHintLines = Number(options.readHintLines)
     if (Number.isFinite(Number(options.agentContextWarnPercent)) && Number(options.agentContextWarnPercent) > 0) config.agentContextWarnPercent = Number(options.agentContextWarnPercent)
     if (options.prices) {
       try {
@@ -1755,6 +1930,18 @@ export function register(on, options) {
       probe.notice = 'baton: could not read the engine version; the prime guard fails closed (no agentId = prime).'
       $.ui.log(probe.notice)
     }
+    // The code tools exist in every session the mod is loaded in, and the index
+    // warms in the background so the first query is already fast.
+    try {
+      await registerCodeTools($)
+      $.clock.after(0, () => codeRun($, ['index']).catch((err) => $.ui.log('baton: code index: ' + err.message)))
+    } catch (err) {
+      $.ui.log('baton: could not register the code tools: ' + err.message)
+    }
+    try {
+      const q = await $.env.get('BATON_QUIET')
+      if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
+    } catch {}
     // The memory tools exist for a run; a session with none sees no new tools.
     if (await runActive($)) {
       try {
@@ -1766,6 +1953,11 @@ export function register(on, options) {
     // The ticker: runs what a command hook may not — the compaction /baton
     // rotate owes, the kickoff prompt /baton start owes — from outside any
     // command's frame. Cheap when idle: two flag checks.
+    // The pane opens by itself, and plan usage refreshes on the clock: no /baton needed.
+    $.clock.after(500, () => autoOpenPane($).catch(() => {}))
+    try {
+      $.clock.every(30000, () => readUsage($).then(() => $.ui.invalidate('ui.render')))
+    } catch {}
     // GitHub: poll the run's PR while a run is active (cheap when none is).
     if (!gh.timer) {
       try {
@@ -1941,6 +2133,60 @@ export function register(on, options) {
     return next(e)
   })
 
+  // ---------------------------------------------------------------- the kit
+
+  on('tool.call', { tool: /^mcp__baton__code_/ }, async ($, e) => serveCodeTool($, e))
+
+  // A Read of a large source file runs as asked; its result carries a pointer to
+  // code_fetch, and the mod counts it (the experiment in #48 decides whether this
+  // ever becomes a redirect).
+  on('tool.call', { tool: 'Read' }, async ($, e, next) => {
+    const r = await next(e)
+    try {
+      if (r && !r.deny && config.readHintLines && langOf(e.file_path) && !e.offset && !e.limit) {
+        const text = typeof r.result === 'string' ? r.result : ''
+        const n = text ? text.split('\n').length : 0
+        if (n > config.readHintLines) {
+          kit.bigReads++
+          kit.bigReadLines += n
+          const hint = 'baton: that was all ' + n + ' lines of ' + e.file_path + '. Next time, mcp__baton__code_fetch with the symbol name (or the path, for its outline) returns only the part you need.'
+          return { ...r, context: [...(r.context ?? []), hint] }
+        }
+      }
+    } catch {}
+    return r
+  })
+
+  // Quiet output: a long shell result is cut to head, failures and tail; the whole goes to a file.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const r = await next(e)
+    try {
+      if (!r || r.deny || !config.quietOutputLines || typeof r.result !== 'string' || /--json\b/.test(String(e.command)) || /^\s*[[{]/.test(r.result)) return r
+      const n = r.result.split('\n').length
+      if (n <= config.quietOutputLines) return r
+      const dir = (await runActive($)) ? '_orch/out' : '.baton/out'
+      const file = dir + '/' + new Date(Date.now()).toISOString().replace(/[-:.]/g, '') + '-' + (e.agentId ? String(e.agentId).slice(0, 8) : 'main') + '.log'
+      await $.fs.write(file, r.result)
+      if (dir === '.baton/out') {
+        try {
+          if (!(await $.fs.exists('.baton/out/.gitignore'))) await $.fs.write('.baton/out/.gitignore', '*\n')
+        } catch {}
+      }
+      const q = quietText(r.result, config.quietOutputLines, file)
+      if (!q) return r
+      kit.quieted++
+      kit.quietLinesTotal += n
+      kit.quietLinesKept += q.split('\n').length
+      return { ...r, result: q }
+    } catch {
+      return r
+    }
+  })
+
+  // Notifications reach the desktop when Claude Code next lets a hook emit one.
+  on('classic.Stop', withNotice)
+  on('classic.Notification', withNotice)
+
   // Enforced rulings: a standing ruling with a pattern refuses matching shell
   // commands outright, run or no run, after the permission rules decide.
   on('tool.check', { tool: 'Bash' }, async ($, e, next) => {
@@ -1953,6 +2199,10 @@ export function register(on, options) {
   // ---------------------------------------------------------------- rotation
 
   on('session.measure', async ($, e, next) => {
+    if (Array.isArray(e.rateLimits) && e.rateLimits.length) {
+      usage.limits = e.rateLimits
+      $.ui.invalidate('ui.render')
+    }
     const ctx = e.context || {}
     if (typeof ctx.percent === 'number') {
       rotation.lastPercent = ctx.percent
@@ -2163,7 +2413,7 @@ export function register(on, options) {
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
     tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
     const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
-    const ui = { Box, Text, Button, Input, Link, line, rows }
+    const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     const body =
       pane.tab === 'track' ? trackBody($, ui) : pane.tab === 'agents' ? agentsBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
     return Box({
@@ -2178,9 +2428,14 @@ export function register(on, options) {
 
   // The band above the prompt: the prime's context gauge and rotation count.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (!(run.active || run.startedHere)) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     const theirs = await next(e)
+    // Every session: plan usage. Then, in a run, the gauge, the goal and what waits for you.
+    const use = Box({ key: 'usage', flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: 'u' + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+    if (!(run.active || run.startedHere)) {
+      const ctx = typeof rotation.lastPercent === 'number' ? Text({ key: 'ctx', dimColor: true, children: ['context ' + rotation.lastPercent + '%' + (tree.nodes.size > 1 ? ' · ' + (tree.nodes.size - 1) + ' agents · /baton for the table' : '')] }) : null
+      return Box({ flexDirection: 'column', children: [use, ...(ctx ? [ctx] : []), ...(theirs ? [theirs] : [])] })
+    }
     const line = gaugeLine({
       percent: rotation.lastPercent,
       threshold: config.rotateAtPercent,
@@ -2197,7 +2452,7 @@ export function register(on, options) {
     const goal = v
       ? [Text({ key: 'goal', wrap: 'truncate-end', dimColor: true, children: [(v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : '') + spendTail(v.spend.total, v.spend.budget) + (v.pr ? ' · PR #' + v.pr.number + ' ' + v.pr.state + (v.pr.flag ? ' (' + v.pr.flag + ')' : '') + ' · ' + v.pr.checks : '') + (v.pr && v.pr.ready && v.pr.ready.ok ? ' · ready for you to merge' : '')] })]
       : []
-    return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...goal, ...flag, ...(theirs ? [theirs] : [])] })
+    return Box({ flexDirection: 'column', children: [use, Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...goal, ...flag, ...(theirs ? [theirs] : [])] })
   })
 
   // The spinner: which phase and node the prime is waiting on.
@@ -2217,6 +2472,7 @@ export function register(on, options) {
       const who = spawnedByPrime.get(e.agentId)
       if (who && !e.isAborted && config.phaseGate && String(who.type ?? '').replace(/^baton:/, '') === 'sub-orchestrator' && claimsDone(firstLine(e.answer)) && (await interactive($))) {
         approvals.queue.push({ agentId: e.agentId, label: who.name || who.description || 'a phase', line: firstLine(e.answer), at: Date.now() })
+        await notify($, 'phase:' + e.agentId, (who.name || who.description || 'a phase') + ' is done and waits for your check')
       }
       $.ui.invalidate('ui.render')
     }
@@ -2259,16 +2515,17 @@ export function register(on, options) {
   on('turn.step', async function* ($, e, next) {
     const result = yield* next(e)
     try {
-      if (result && result.usage && (run.active || run.startedHere)) {
-        await loadSpend($)
+      if (result && result.usage) {
+        const inRun = run.active || run.startedHere
+        if (inRun) await loadSpend($)
         meter(e.agentId, result.usage)
         if (e.agentId) await maybeNudge($, e.agentId)
         const b = budgetNow()
-        if (b.status === 'warn' && !spend.warned) {
+        if (inRun && b.status === 'warn' && !spend.warned) {
           spend.warned = true
           await noteQuietly($, 'spend at ' + b.pct + '% of the goal budget (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + '); another fix round will need the operator at 100%', 'budget')
         }
-        await saveSpend($)
+        if (inRun) await saveSpend($)
         if (pane.open) $.ui.invalidate('ui.render')
       }
     } catch {}
@@ -2284,6 +2541,7 @@ export function register(on, options) {
         const b = budgetNow()
         if (b.status === 'exceeded') {
           await noteQuietly($, 'refused ' + (e.description || e.subagentType) + ': goal budget spent (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + ')', 'budget')
+          await notify($, 'budget:' + ((run.manifest && run.manifest.run_id) || ''), 'the goal budget is spent; the next round needs you')
           return { deny: 'baton: the goal budget is spent (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + ' fresh tokens). Do not start another review or fix round: brief the operator with the open findings and ask whether to raise tokensPerGoal.' }
         }
       }
@@ -2301,6 +2559,7 @@ export function register(on, options) {
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
       addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model })
+      if (!pane.open) $.clock.after(0, () => autoOpenPane($).catch(() => {}))
       if (!e.parentAgentId) {
         spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })
         live.set(r.agentId, String(e.name || e.description || e.subagentType || 'agent').slice(0, 32))

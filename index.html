@@ -172,6 +172,28 @@ ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);fon
 .ref td,.ref th{padding:8px 8px}
 .ref td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
 
+/* section 4: a whole Claude Code window */
+.cc{background:#0c0c0c;border:1px solid var(--hair-2);border-radius:14px;overflow:hidden;font-family:var(--mono);font-size:12.5px;line-height:1.6;margin-top:30px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.cc .title{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--soft);border-bottom:1px solid var(--hair);color:var(--muted);font-size:12px}
+.cc .title i{width:11px;height:11px;border-radius:50%;background:#3a3a3a;display:inline-block}
+.cc .title i:nth-child(1){background:#ff5f57}.cc .title i:nth-child(2){background:#febc2e}.cc .title i:nth-child(3){background:#28c840}
+.cc pre{margin:0;padding:12px 16px;white-space:pre;overflow-x:auto;color:var(--body)}
+.cc .tx{border-bottom:1px solid var(--hair)}
+.cc .pane{border-bottom:1px solid var(--hair);background:#0e0f10}
+.cc .tabs{display:flex;gap:18px;padding:9px 16px 0;color:var(--muted);font-size:12px}
+.cc .tabs b{color:var(--ink);font-weight:500;border-bottom:2px solid var(--cyan);padding-bottom:6px}
+.cc .tabs span{padding-bottom:6px}
+.cc .tabs .x{margin-left:auto;color:var(--muted-2)}
+.cc .band{padding:8px 16px 2px}
+.cc .band pre{padding:0}
+.cc .input{margin:6px 12px 4px;border:1px solid var(--hair-2);border-radius:8px;padding:9px 12px;color:var(--ink);display:flex;gap:8px;align-items:center}
+.cc .input .p{color:var(--muted)}
+.cc .caret{display:inline-block;width:8px;height:16px;background:var(--ink);vertical-align:-3px;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.cc .hint{padding:0 16px 10px;color:var(--muted-2);font-size:11.5px;display:flex;justify-content:space-between}
+.cc .who{color:var(--muted-2);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:10px 16px 0}
+@media (prefers-reduced-motion: reduce){.cc .caret{animation:none}}
+
 /* rgb */
 .rgb .card{border-top-width:3px}
 .rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
@@ -403,34 +425,56 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <section id="see">
   <div class="wrap">
     <div class="secnum">04</div>
-    <h2>See the tree. Browse the memory.</h2>
-    <p class="lede">Claude Code mods can draw panes, bands and dialogs. <code>/baton</code> opens a pane with five tabs: Run, Agents,
-      Memory, Rulings and Ledger. The band above the prompt shows the prime's context gauge, and the spinner shows the phase.</p>
-    <div class="grid2" style="margin-top:30px;grid-template-columns:1fr">
-      <div class="term reveal">
-        <div class="bar"><i></i><i></i><i></i>&nbsp; /baton → Agents</div>
-<pre><span class="c-y">⚑ P5 export: P5 DONE+CONFIRMED 9/9</span>   <span class="c-d">[approve]</span>
-<span class="c-d">Send back P5: what is wrong ⏎</span>
+    <h2>It is just there.</h2>
+    <p class="lede">There is nothing to open. In any Claude Code session with baton loaded, the band above the prompt carries your plan usage
+      (5 hours, the week, Fable) and the session's cost, and the pane opens by itself beside or above the conversation as soon as there are
+      agents to show. Inside a run it adds the context gauge, the goal and the PR, and the phase that waits for you. This is what a run looks like.</p>
+    <div class="cc reveal" role="img" aria-label="A Claude Code session running baton: the conversation, the baton pane with the agent table, the usage band and the input box">
+      <div class="title"><i></i><i></i><i></i>&nbsp; ~/shop — claude --plugin-dir ~/baton/mod</div>
+      <div class="who">the conversation</div>
+      <pre class="tx"><span class="c-i">&gt; /baton start #12</span>
+  <span class="c-d">baton run build-20261005T0912Z started (MODE BUILD, TARGET issue #12: CSV export). The prime guard is armed.</span>
 
-◆ prime                   <span class="c-g">ctx 24%/35%</span>  <span class="c-d"> 310k  $2.10</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">building</span>
-<span class="c-g">  ✓ sub-orch P5           </span><span class="c-g">ctx 18%/50%</span>  <span class="c-d"> 1.1M  $7.40</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">approved</span>
-<span class="c-g">    ✓ worker T22          </span><span class="c-y">ctx 31%/50%</span>  <span class="c-d"> 402k  $2.71</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">verified</span>
-<span class="c-r">    ✗ worker-cheap T23    </span><span class="c-g">ctx  9%/50%</span>  <span class="c-d">  88k  $?   </span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-r">green (refuted)</span>
-<span class="c-c">  ● sub-orch P6 ✉         </span><span class="c-g">ctx 12%/50%</span>  <span class="c-d"> 240k  $1.62</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">dispatched</span>
-<span class="c-c">    ● worker T29 ✉        </span><span class="c-r">ctx 57%/50%</span>  <span class="c-d"> 512k  $3.30</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">blue</span>
-<span class="c-c">    ● verifier T27 ✉      </span><span class="c-g">ctx  6%/50%</span>  <span class="c-d">  41k  $0.28</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span> <span class="c-c">verified</span>
+<span class="c-i">⏺</span> I'll start with the bootstrap, then run the phases.
+<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · bootstrap)
+  ⎿ bootstrap DONE · 6 phases, 41 nodes, plan verified · draft PR #47 opened
+<span class="c-i">⏺</span> <span class="c-c">Read</span>(src/export.ts)
+  ⎿ <span class="c-r">baton: Read is not a prime tool — dispatch a sub-orchestrator</span>
+<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · P5 export) <span class="c-d">…</span>
+  ⎿ P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed
+<span class="c-y">  ⚑ you approved P5</span>
 
-<span class="c-d">    T29 crossed 50%: the mod told it to finish or split</span>
+<span class="c-i">&gt; ship P6, but hold the migration until I say</span>
+  <span class="c-m">baton: ruling recorded — Hold the database migration until the operator releases it.</span>
 
-<span class="c-d">baton ▕██████░░┊░░░░░░░░▏ 24% · rotations 3 · P6</span>
-<span class="c-d">#12 building · PR #47 draft · 2.7M · $17.41+?</span></pre>
+<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · P6 import) <span class="c-d">running</span>
+<span class="c-c">✻ Coordinating… · baton · P6 · P6 import</span></pre>
+      <div class="pane">
+        <div class="tabs"><span>1 Track</span><b>2 Agents</b><span>3 Memory</span><span>4 Rulings</span><span>5 Ledger</span><span>6 Run</span><span class="x">baton · opened by itself</span></div>
+        <pre><span class="c-d">agent                         </span><span class="c-d">context  </span><span class="c-d">budget  </span><span class="c-d">model    </span><span class="c-d"> input  </span><span class="c-d">c.write  </span><span class="c-d"> c.read  </span><span class="c-d">output  </span><span class="c-d">   cost  </span><span class="c-d">steps        </span><span class="c-d">state             </span>
+◆ prime                       <span class="c-g">    24%</span>  <span class="c-d">   35%</span>  opus        41k  <span class="c-d">    88k</span>  <span class="c-d">   2.1M</span>     19k    $1.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>  <span class="c-c">building          </span>
+<span class="c-g">  ✓ sub-orch P5 export      </span>  <span class="c-g">    18%</span>  <span class="c-d">   50%</span>  opus       120k  <span class="c-d">   310k</span>  <span class="c-d">   6.4M</span>     88k    $5.39  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">approved          </span>
+<span class="c-g">    ✓ worker T22            </span>  <span class="c-y">    31%</span>  <span class="c-d">   50%</span>  opus        52k  <span class="c-d">   140k</span>  <span class="c-d">   2.9M</span>     41k    $2.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">verified          </span>
+<span class="c-r">    ✗ worker-cheap T23      </span>  <span class="c-g">     9%</span>  <span class="c-d">   50%</span>  sonnet      18k  <span class="c-d">    22k</span>  <span class="c-d">   410k</span>      9k       $?  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-r">green (refuted)   </span>
+<span class="c-c">  ● sub-orch P6 import      </span>  <span class="c-g">    12%</span>  <span class="c-d">   50%</span>  opus        36k  <span class="c-d">    90k</span>  <span class="c-d">   1.5M</span>     21k    $1.28  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">dispatched        </span>
+<span class="c-c">    ● worker T29            </span>  <span class="c-r">    57%</span>  <span class="c-d">   50%</span>  opus        61k  <span class="c-d">   160k</span>  <span class="c-d">   3.8M</span>     52k    $3.05  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span>
+<span class="c-c">    ● verifier T27          </span>  <span class="c-g">     6%</span>  <span class="c-d">   50%</span>  opus         9k  <span class="c-d">    31k</span>  <span class="c-d">   220k</span>      4k    $0.32  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span></pre>
+        <pre class="c-d" style="padding-top:0">    worker T29 crossed its 50% budget: the mod told it to finish or split.   ✉ on a running row messages it.</pre>
       </div>
-      <div class="grid3">
+      <div class="band"><pre><span class="c-g">5h ▕███░░░░░▏ 42%</span><span class="c-d"> resets 14:20Z</span><span class="c-d">  ·  </span><span class="c-g">week ▕█░░░░░░░▏ 18%</span><span class="c-d"> resets Thu 09:00Z</span><span class="c-d">  ·  </span><span class="c-g">Fable week ▕░░░░░░░░▏ 3%</span><span class="c-d">  ·  </span><span class="c-d">session $17.41</span>
+<span class="c-g">baton ▕█████▉░░┊░░░░░░░░░▏ 24% · rotate at 35% · rotations 3 · 214 notes · P6</span>
+<span class="c-d">#12 building · 2.7M · $17.41+? · PR #47 draft · checks 5/6</span></pre></div>
+      <div class="input"><span class="p">&gt;</span><span>also export the archived orders</span><span class="caret" aria-hidden="true"></span></div>
+      <div class="hint"><span>? for shortcuts</span><span>opus · /baton for commands</span></div>
+    </div>
+    <div style="margin-top:26px"></div>
+    <div class="grid3">
         <div class="card reveal"><span class="tag">agents</span><h3>The live tree, with its parcel steps</h3><p>Prime → sub-orchestrators → workers and verifiers, from
           every spawn's parent, every tool call's agent and every turn's end. Each row ends with the steps of what that agent is working on:
           a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal.
-          Every row also carries its own meter: its context against <i>its own</i> threshold (the prime rotates at 35%; a subagent is told
-          to finish or split at 50%), its fresh tokens, and its cost, priced per model (API-equivalent; a model without a verified price shows <code>$?</code>). <b>✉</b> on a running agent opens a field that
+          Every row is a line of a table: the agent, its context against <i>its own</i> budget (the prime rotates at 35%;
+          a subagent is told to finish or split at 50%), its model, its input, cache writes, cache reads and output, its cost priced per model
+          (API-equivalent; a model without a verified price shows <code>$?</code>), its steps and its state. On a narrow terminal the least useful columns go first. <b>✉</b> on a running agent opens a field that
           messages it directly: steer one phase without going through the prime.</p></div>
         <div class="card reveal"><span class="tag">memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
           summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>

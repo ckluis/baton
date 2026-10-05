@@ -1,7 +1,7 @@
 {
   "name": "baton",
   "version": "7.0.0-dev",
-  "description": "baton v7: a prime orchestrator that never reads, with a run memory and a project memory instead of a growing context",
+  "description": "baton v7: a prime orchestrator that only dispatches, a memory instead of a growing context, a tracker and per-agent meters, approvals from anywhere, GitHub goals, and a built-in code index \u2014 nothing to set up",
   "author": {
     "name": "Chris Kluis"
   },
@@ -85,6 +85,24 @@
       "title": "Model prices (JSON)",
       "description": "Add or override $ per million tokens, e.g. {\"claude-sonnet-5-5\": {\"input\": 3, \"output\": 15, \"cacheRead\": 0.3}}. Models without a price show their cost as unknown.",
       "default": ""
+    },
+    "quietOutputLines": {
+      "type": "number",
+      "title": "Quiet output above (lines)",
+      "description": "A shell result longer than this is cut to its head, its failure lines and its tail; the whole output is saved to a file named in the result. 0 turns it off (or BATON_QUIET=0).",
+      "default": 400
+    },
+    "readHintLines": {
+      "type": "number",
+      "title": "Point to code_fetch above (lines)",
+      "description": "A Read of a whole source file longer than this runs as asked and carries a pointer to code_fetch. 0 turns the pointer off.",
+      "default": 300
+    },
+    "autoPane": {
+      "type": "boolean",
+      "title": "Open the pane by itself",
+      "description": "In an interactive session, open the baton pane (unfocused) at start and when the first subagent spawns, on terminals wide enough to place it beside the transcript",
+      "default": true
     }
   }
 }
