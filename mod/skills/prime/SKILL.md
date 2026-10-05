@@ -26,7 +26,10 @@ memory tools, notes the start in the run memory, and starts the prime's first tu
 
 | command | does |
 |---|---|
-| `/baton` | the run pane: Run (phases, nodes, status), Agents (the live tree), Memory (a browser over the tree), Rulings, Ledger (last rows). Text where nothing draws (`claude -p`). |
+| `/baton` | the run pane: Track (every level as measured steps), Agents (the live tree), Memory (a browser over the tree), Rulings, Ledger, Run. Text where nothing draws (`claude -p`). |
+| `/baton start #12` | the goal is GitHub issue #12 (BUILD unless a mode is given): a draft PR closes it, a PR reviewer judges it |
+| `/baton watch [label]` | list open issues labeled `baton` (or the label given) as the goal queue |
+| `/baton next [#n]` | once this goal is ready or merged: archive `_orch/` to `.baton/runs/<run-id>/` and start the next issue |
 | `/baton status` | one block of text: run, context %, rotations, guard, memory size |
 | `/baton rotate` | rotate now: a handoff note, then a compaction, then `memory_wake` (see Rotation) |
 | `/baton rule <text>` | record a standing ruling by hand (rulings are also lifted from what the operator says during a run) |
@@ -71,6 +74,25 @@ run for any session started there.
 5. **After a rotation, call `memory_wake` before anything else.** The mod tells you when one
    happened; your context then holds only the compaction summary.
 6. **Batch the questions.** `AskUserQuestion` at a gate, never one at a time (router §4, step 4).
+
+## A goal from GitHub
+
+When the manifest names an `issue`, the goal is that issue and its output is one draft PR.
+
+1. The bootstrap sub-orchestrator opens the run branch and the draft PR (`Closes #<issue>`), as its
+   card says. The phases run as usual; each node lands as one commit with its verdict as a check.
+2. After the last phase, **dispatch `baton:pr-reviewer`** with the PR number, the issue number and
+   the round (1). It is fresh by construction and returns one line: `VERDICT READY` or `CHANGES`.
+3. On `CHANGES`, **dispatch a sub-orchestrator as the PR steward** for that round. It turns the high
+   and medium findings into a fix phase and returns. Then dispatch the reviewer again (round 2, 3).
+4. On `READY`, the steward marks the PR ready for review. **Never merge.** At round 3 without
+   `READY`, the steward writes a brief and you ask the operator.
+
+The mod reads the PR with `gh` every couple of minutes and notes what changed: the reviewer's
+verdict, merge-ready (every check green, `READY` with no high finding, no open thread, mergeable,
+up to date), and one line per new human comment. Allowed answerers can act from the PR thread:
+`/approve P3`, `/send-back P3 <reason>`, `/approve push` (for a command the gate held while nobody
+was here). Those land in your memory like anything else.
 
 ## Rotation
 

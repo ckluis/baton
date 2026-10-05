@@ -123,6 +123,27 @@ ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);fon
 .down{text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .down b{color:var(--yellow);font-weight:500}
 
+/* tracker */
+.trk{display:grid;gap:22px;margin-top:30px}
+.trow{display:grid;grid-template-columns:110px 1fr;gap:18px;align-items:center}
+.trow .who{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.4}
+.trow .who b{display:block;color:var(--ink);font-weight:500;font-size:13px}
+.steps{display:flex;align-items:flex-start;min-width:0}
+.st{display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 0 auto;width:86px;text-align:center}
+.st i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:14px;font-weight:600;
+  background:var(--raised);color:var(--muted-2);border:2px solid var(--hair-2)}
+.st span{font-size:12px;color:var(--muted-2);line-height:1.25}
+.st em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.st.done i{background:var(--green);border-color:var(--green);color:#0a0a0a}
+.st.done span{color:var(--green)}
+.st.now i{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 0 5px rgba(94,234,212,.12)}
+.st.now span{color:var(--cyan)}
+.st.bad i{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
+.st.bad span{color:var(--red)}
+.rail{flex:1 1 auto;min-width:14px;height:2px;background:var(--hair-2);margin-top:17px}
+.rail.done{background:var(--green)}
+@media(max-width:760px){.trow{grid-template-columns:1fr}.st{width:62px}.st span{font-size:11px}.steps{overflow-x:auto;padding-bottom:4px}}
+
 /* rgb */
 .rgb .card{border-top-width:3px}
 .rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
@@ -183,6 +204,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
       <a href="#shape">The shape</a>
       <a href="#memory">Memory</a>
       <a href="#see" class="opt">What you see</a>
+      <a href="#track">Track</a>
       <a href="#approve" class="opt">Approvals</a>
       <a href="#rgb" class="opt">Red · green · blue</a>
       <a href="#evidence">Evidence</a>
@@ -194,7 +216,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <header class="hero" id="top">
   <div class="wrap">
-    <span class="status"><b>v7.0</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
+    <span class="status"><b>v7.1</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
     <h1>One thread that<br><em>never fills up.</em></h1>
     <p class="lede">The prime only dispatches. It never reads a file, runs a command or holds a work product: a mod
       refuses it. It hands goals to sub-orchestrators, which dispatch agents or do the work themselves and hand
@@ -343,9 +365,39 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   </div>
 </section>
 
-<section id="approve">
+<section id="track">
   <div class="wrap">
     <div class="secnum">04</div>
+    <h2>Track every level, like a parcel.</h2>
+    <p class="lede">The goal, its PR, each phase and each node move through a fixed row of states. Every state is computed from
+      the record, never claimed by an agent: a node is <b>red</b> when <code>work/red.txt</code> exists, <b>verified</b> when a
+      fresh verifier's verdict says so. Each move is written down with the time it was seen, so how long every state took is measured.</p>
+    <div class="trk">
+<div class="trow reveal"><div class="who"><b>goal</b>#12 CSV export ↗</div><div class="steps"><div class="st done"><i>✓</i><span>queued</span><em>2m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>planned</span><em>6m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>building</span><em>1h04</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>reviewing</span><em>18m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
+<div class="trow reveal"><div class="who"><b>PR #47</b>draft ↗</div><div class="steps"><div class="st done"><i>✓</i><span>draft</span><em>1h10</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>checks</span><em>4m</em></div><span class="rail done"></span><div class="st bad"><i>✗</i><span>reviewed<br>changes</span><em>14m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
+<div class="trow reveal"><div class="who"><b>P4</b>fix round 1</div><div class="steps"><div class="st done"><i>✓</i><span>briefed</span><em>1m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>dispatched</span><em>11m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div><span class="rail"></span><div class="st "><i></i><span>approved</span></div></div></div>
+<div class="trow reveal"><div class="who"><b>T31</b>empty export</div><div class="steps"><div class="st done"><i>✓</i><span>red</span><em>3m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>green</span><em>6m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>blue</span><em>2m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div></div></div>
+    </div>
+    <div class="grid3" style="margin-top:36px">
+      <div class="card reveal"><span class="tag">issue → PR</span><h3>A goal is an issue</h3><p><code>/baton start #12</code> makes the issue the goal.
+        A draft PR closes it, one commit per node, each verdict a check. <code>/baton watch</code> queues issues labeled <code>baton</code>;
+        <code>/baton next</code> starts the next one. The issue and PR are links in the pane.</p></div>
+      <div class="card reveal"><span class="tag">pr reviewer + steward</span><h3>An aggressive last look</h3><p>After the last phase a fresh Opus
+        reviewer tries to refute "this PR completes the issue": every acceptance criterion mapped to a red-then-green test,
+        complexity in numbers, scope nobody asked for. A steward turns <code>CHANGES</code> into a fix round, at most three. baton never merges.</p></div>
+      <div class="card reveal"><span class="tag">merge-ready, computed</span><h3>No model reads the status</h3><p>The PR is data: <code>gh pr view --json</code>
+        every two minutes. Ready means every check green, the latest review <code>READY</code>, no open thread, mergeable, up to date.
+        Haiku only condenses new comments to one line; <code>/approve P3</code> on the thread works from your phone.</p></div>
+    </div>
+    <p class="muted" style="margin-top:18px;font-size:14px">Whether the review loop earns its place is pre-registered: after ten merged goals,
+      keep it, trim it to one round, or cut it, by the share of its findings you accepted.
+      <a href="https://github.com/ckluis/baton/blob/main/docs/experiments/pr-review-loop-preregistration.md">The rule →</a></p>
+  </div>
+</section>
+
+<section id="approve">
+  <div class="wrap">
+    <div class="secnum">05</div>
     <h2>Approve from anywhere in the tree.</h2>
     <p class="lede">A mod can hold any tool call, from any agent at any depth, and ask you first. The approval surfaces at the
       top however deep the agent sits, and every answer goes into the memory.</p>
@@ -379,7 +431,7 @@ Your rulings:
 
 <section id="rgb">
   <div class="wrap">
-    <div class="secnum">05</div>
+    <div class="secnum">06</div>
     <h2>Red, green, blue.</h2>
     <p class="lede">A test written after the code passes by construction. It describes what the code does, and it would have
       passed against a wrong implementation too. Rule 9.4 forces the order for every node that changes behavior.</p>
@@ -400,7 +452,7 @@ Your rulings:
 
 <section id="evidence">
   <div class="wrap">
-    <div class="secnum">06</div>
+    <div class="secnum">07</div>
     <h2>What we measured before building it.</h2>
     <p class="lede">v7 was built as an experiment: decision rules committed before any run, blind scoring, answer keys audited.
       The result was not what we set out to show, and the page says so.</p>
@@ -426,7 +478,7 @@ Your rulings:
 
 <section id="install">
   <div class="wrap">
-    <div class="secnum">07</div>
+    <div class="secnum">08</div>
     <h2>Install it, or paste it.</h2>
     <div class="grid2" style="margin-top:20px">
       <div>
@@ -816,7 +868,7 @@ contracts, the rules they index and your mode file (step 1 above), create `_orch
 
 <section id="versions">
   <div class="wrap">
-    <div class="secnum">08</div>
+    <div class="secnum">09</div>
     <h2>How it got here.</h2>
     <p class="lede">Seven versions, each a response to what the one before measured. Every earlier page is kept as it shipped.</p>
     <div class="vers">

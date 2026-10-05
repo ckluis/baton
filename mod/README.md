@@ -27,10 +27,11 @@ write.
 | `lib/rulings.mjs` | ruling extraction prompt and parsing, retract and enforce, all pure |
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
-| `agents/` | `sub-orchestrator`, `worker`, `worker-cheap`, `verifier`. Plugin agents are `baton:<name>`. |
+| `lib/track.mjs` | the tracker: each level's states computed from the record, measured transitions, steppers; the PR's merge-ready rows, the reviewer's comment, gate commands, pure |
+| `agents/` | `sub-orchestrator` (also the PR steward), `worker`, `worker-cheap`, `verifier`, `pr-reviewer`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
 | `tests/*.test.ts` | `claude plugin test` (44 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (43 tests, one of which runs `test/fixtures/hooks-smoke.mjs`: the real hooks module under a fake runtime) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (53 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
 
 ### The memory
 
@@ -104,11 +105,35 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   `tool.check` hook then refuses any shell command matching it, run or no run, with the ruling's
   text. Retracting the ruling (`/baton retract <#>`, or **x** in the Rulings tab) lifts it. Both are
   notes in the append-only `rulings` namespace, so the history stays.
-- **The pane's tabs.** Run · **Agents** (the live tree: role, model, elapsed, tool count, current
+- **The tracker.** Every level of a run moves through a fixed row of states, like a parcel:
+  goal `queued → planned → building → reviewing → ready → merged`, PR `draft → checks → reviewed →
+  ready → merged`, phase `briefed → dispatched → verified → approved`, node `red → green → blue →
+  verified` (`working → verified` when exempt). Each state is **computed** from the record (the
+  node's `work/red.txt`, `green.txt`, `blue.txt` and verdict, the phase's brief and envelope, the PR
+  as `gh` reports it), never asserted. When a state moves, the mod writes one row to `_orch/track/`
+  with the time it saw it, so how long each state lasted is measured. The Track tab draws each level
+  as a stepper with durations; a flagged step (refuted, blocked, changes, sent back) is red.
+- **A goal from GitHub.** `/baton start #12` reads the issue with `gh` and makes it the goal
+  (BUILD unless a mode is given), `TEAM: github`, run branch `baton/<run-id>`. The bootstrap opens a
+  draft PR that closes the issue. After the last phase the prime dispatches `baton:pr-reviewer`, a
+  fresh Opus reviewer that posts one structured comment (`<!-- baton:pr-review round=n -->`,
+  `VERDICT: READY | CHANGES`, findings with `path:line`). On `CHANGES` a sub-orchestrator acting as
+  the **PR steward** runs a fix phase, then the reviewer again, at most three rounds. On `READY` the
+  steward marks the PR ready. baton never merges.
+- **PR polling, no model.** Every `prPollSeconds` (120) during a run, `gh pr view --json …` gives
+  state, checks, mergeability and comments. **Merge-ready** is computed like a verdict: every check
+  green, the reviewer's latest verdict `READY` with no high finding, no unresolved thread, mergeable,
+  up to date. New human comments become one line each through **Haiku 4.5**
+  (`$.model.complete`), the only model call here. From allowed answerers (assignees, `answerers:`,
+  or the PR author), `/approve P3`, `/send-back P3 <reason>` and `/approve <gate>` act as the remote
+  gate. A command the gate holds while nobody is at the terminal is asked on the PR instead.
+- **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
+  ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
+- **The pane's tabs.** **Track** (above) · **Agents** (the live tree: role, model, elapsed, tool count, current
   tool, then verdict and return line; ✉ on a running agent opens a field that messages it through
   `$.session.send`) · **Memory** (a browser: **+** opens a summary block into its range, **b** goes
   back, a search field runs recall) · **Rulings** (add, retract with **x**, enforcement shown) ·
-  Ledger. Switching tabs refreshes.
+  Ledger · Run. The issue and PR show as links at the top of Track and Agents. Switching tabs refreshes.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call
@@ -159,6 +184,7 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
 |---|---|---|
 | the manifest and hooks validate | `claude plugin validate mod` | `✔ Validation passed` |
 | the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` before rulings. The 12 tests added since (`tests/rulings.test.ts`, `tests/approvals.test.ts`) are **not yet run**: on 2026-10-04 the mods rollout switch served off, and `claude plugin test` refuses to run. Their `ui.ask` mock follows the pattern of the other API mocks and is itself unverified. |
+| the GitHub goal flow and the tracker, without Claude Code or GitHub | `node --test mod/test/github-smoke.test.mjs` | 17 checks against a scripted `gh`: start from an issue, computed states and measured rows, PR polling, the reviewer's verdict, merge-ready, remote `/approve`, a non-answerer ignored, a headless push asked on the PR, Track links, the band, watch and next |
 | the hooks behave end to end, without Claude Code | `node --test mod/test/hooks-smoke.test.mjs` | 25 checks: the tree, the command gate (approve, reason, approve-for-run, headless refusal), the phase gate, enforce and retract, the Agents, Memory and Rulings tabs, the band, `-p` text |
 | the memory core, store, CLI, locking, guard, binding and rulings helpers are correct | `node --test mod/test/*.test.mjs` | `36 pass, 0 fail` |
 | the prime is denied `Read` during a run | headless `claude -p`, fake `_orch` | denied, with the route text |

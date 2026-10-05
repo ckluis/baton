@@ -8,6 +8,8 @@
 
 export const FRONTIER = 'claude-opus-5-5'
 export const CHEAP = 'claude-sonnet-5-5'
+// Mechanical text work the mod does itself (a comment in one line), never a subagent tier.
+export const MECH = 'claude-haiku-4-5-20251001'
 
 export function isCheap(e) {
   const type = String(e?.subagentType ?? '').replace(/^.*:/, '')
