@@ -96,3 +96,11 @@ test('steppers: a flagged current step, a finished ladder, a pending entity', ()
   const tones = stepper({ ladder: 'pr', state: 'reviewed', flag: 'changes' }).filter((x) => x.tone !== 'rail' && x.tone !== 'done').map((x) => x.tone)
   assert.deepEqual(tones, ['flagged', 'future', 'future'])
 })
+
+test('mini steppers for tree rows', async () => {
+  const { stepperMiniText } = await import('../lib/track.mjs')
+  assert.equal(stepperMiniText({ ladder: 'node', state: 'blue', flag: null }), '●─●─◉─○ blue')
+  assert.equal(stepperMiniText({ ladder: 'node', state: 'verified', flag: null }), '●─●─●─● verified')
+  assert.equal(stepperMiniText({ ladder: 'phase', state: 'dispatched', flag: 'blocked' }), '●─✗─○─○ dispatched (blocked)')
+  assert.equal(stepperMiniText({ ladder: 'node', state: 'red', flag: 'pending' }), '○─○─○─○ not started')
+})

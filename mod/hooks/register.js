@@ -13,6 +13,7 @@ import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/mem
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
+import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
@@ -816,6 +817,25 @@ function trackBody($, ui) {
   return out
 }
 
+/** The computed state an agent's row shows: its node's, else its phase's; the goal's for the prime. */
+function workState(agentId) {
+  const v = track.view
+  if (!v || !agentId) return null
+  if (agentId === PRIME) return v.goal
+  const n = tree.nodes.get(agentId)
+  const w = workOf(n ? n.label : '')
+  if (w.node) {
+    for (const p of v.phases) {
+      const x = p.nodes.find((y) => y.id === w.node)
+      if (x) return x
+    }
+    const u = (v.unphased || []).find((y) => y.id === w.node)
+    if (u) return u
+  }
+  if (w.phase) return v.phases.find((p) => p.id === w.phase) || null
+  return null
+}
+
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
 function agentsBody($, { Box, Text, Button, Input, Link, line }) {
   const out = [...goalLinks({ Box, Text, Link }, 'a-links')]
@@ -849,6 +869,9 @@ function agentsBody($, { Box, Text, Button, Input, Link, line }) {
     const children = []
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: '✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     children.push(line('a' + i, r.text, r.color ? { color: r.color } : {}))
+    // The parcel steps of what this agent works on (its node, else its phase; the goal for the prime), at the end of its row.
+    const st = workState(r.id)
+    if (st) children.push(Box({ key: 'a' + i + 'st', flexDirection: 'row', children: stepperMini(st).map((x, j) => Text({ key: 'a' + i + 's' + j, ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }), children: [x.text] })) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', columnGap: 1, children }))
   })
   const t = pane.target && tree.nodes.get(pane.target)
@@ -1014,7 +1037,7 @@ function paneText() {
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
   if (id === 'track') return trackLines(track.view)
-  if (id === 'agents') return [...queueLines(), ...treeRows(tree).map((r) => r.text)]
+  if (id === 'agents') return [...queueLines(), ...treeRows(tree).map((r) => { const st = workState(r.id); return r.text + (st ? '  ' + stepperMiniText(st) : '') })]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }

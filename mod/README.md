@@ -150,7 +150,8 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's tabs.** **Track** (above) · **Agents** (the live tree: role, model, elapsed, tool count, current
-  tool, then verdict and return line; ✉ on a running agent opens a field that messages it through
+  tool, then verdict and return line; each row ends with the compact steps of what that agent works on, `●─●─◉─○ blue`: a worker
+  its node, a sub-orchestrator its phase, the prime the goal; ✉ on a running agent opens a field that messages it through
   `$.session.send`) · **Memory** (a browser: **+** opens a summary block into its range, **b** goes
   back, a search field runs recall) · **Rulings** (add, retract with **x**, enforcement shown) ·
   Ledger · Run. The issue and PR show as links at the top of Track and Agents. Switching tabs refreshes.
