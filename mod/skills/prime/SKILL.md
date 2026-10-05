@@ -103,9 +103,9 @@ The band above the prompt shows the context gauge and the rotation count.
 | tiers (`rules/rule-1-*`) | binding enforced by the mod: Opus 5.5 for every role, Sonnet 5.5 for an agent type or name ending `-cheap` |
 | the envelope, the digest (`rule-2`, `rule-3`) | unchanged on disk; what crosses to the prime is the one line |
 | computed verdicts, refutation triage, the criteria linter (`rule-9*`, `tools/lint-criteria.py`) | unchanged, in the sub-orchestrators and verifiers |
-| escalation (`rule-1-2`): two moves, then a person | unchanged; the person is asked at the gate |
-| the ledger with `served:`, row files (`rule-7*`, `rule-6-3`) | unchanged; the Ledger tab shows the last rows |
-| TEAM mode (`rule-6-1`, `rule-10`) | unchanged: a sub-orchestrator runs `tools/publish-run.sh` and `tools/inbox-gh.py` |
+| escalation (§1.2): two moves, then a person | unchanged; the person is asked at the gate |
+| the ledger with `served:`, row files (§7, §6.3) | unchanged; the Ledger tab shows the last rows |
+| TEAM mode (§6.1, §10) | unchanged: a sub-orchestrator runs `tools/publish-run.sh` and `tools/inbox-gh.py` |
 | resume (§6) | a fresh session in the directory finds the manifest, arms the guard, and the prime calls `memory_wake` |
 
 What v7 does not bring back: lens cards, panels as a default, tier ladders, per-node effort.

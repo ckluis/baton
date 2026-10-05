@@ -23,6 +23,13 @@ Your job is to **refute the `DONE` claim**, not confirm it. Read
   path being built.
 - **Check every done-criterion against artifacts directly**, one at a time.
   A criterion you didn't check is a criterion you didn't verify.
+- **Red, green, blue** (CONTRACT §9.4), unless the handoff says `rgb: exempt`.
+  In a private worktree, run the red tests against the parent of the red commit:
+  a red test that passes there refutes the criterion it covers. Then check the
+  freeze (`git diff <red>..<green>` on the red test files is empty), that the
+  suite is green at the green commit and at the final one, and that blue touched
+  no test and changed no pass. Record those three in an `rgb` block. A node with
+  neither an exemption nor `work/red.txt` is `REFUTED`.
 
 **Cite or retract** (CONTRACT §9): a finding without an artifact path is
 inadmissible. A quote is twenty words or fewer plus its exact location; a
@@ -47,6 +54,7 @@ computed from those rows — you do not assert it** (CONTRACT §9.1):
       "shape": "UNSETTLEABLE rows only (CONTRACT §9.2): unbounded-enumeration|measures-outside-node|false-premise|self-contradictory|superseded-form|reads-immutable-ref (the second and the last only after §9.3's retry)"
     }
   ],
+  "rgb": { "exempt": false, "freeze_held": true, "green_at_green_and_final": true, "blue_changed_no_behavior": true },
   "verdict": "CONFIRMED|REFUTED|PARTIAL",
   "probe": "the strongest attack you tried against the node as a whole, and why it failed"
 }

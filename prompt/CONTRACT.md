@@ -71,6 +71,7 @@ A person decides at **gates**, from a brief.
 | &nbsp;&nbsp;9.1 | 9.1. A verdict is per-criterion, and the node verdict is computed | [`rule-9-1-a-verdict-is-per-criterion-and-the-node.md`](../rules/rule-9-1-a-verdict-is-per-criterion-and-the-node.md) |
 | &nbsp;&nbsp;9.2 | 9.2. Refutation triage — a criterion no execution can settle is not a failed node | [`rule-9-2-refutation-triage.md`](../rules/rule-9-2-refutation-triage.md) |
 | &nbsp;&nbsp;9.3 | 9.3. Settle it in isolation before you call it unsettleable | [`rule-9-3-settle-it-in-isolation-before-you-call-it-unsettleable.md`](../rules/rule-9-3-settle-it-in-isolation-before-you-call-it-unsettleable.md) |
+| &nbsp;&nbsp;9.4 | 9.4. Red, green, blue: a behavior change proves its tests could fail | [`rule-9-4-red-green-blue.md`](../rules/rule-9-4-red-green-blue.md) |
 | 10 | 10. The Operator Lane | [`rule-10-the-operator-lane.md`](../rules/rule-10-the-operator-lane.md) |
 | 11 | 11. Contract footer | [`rule-11-contract-footer.md`](../rules/rule-11-contract-footer.md) |
 
