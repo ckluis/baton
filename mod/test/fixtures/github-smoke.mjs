@@ -24,17 +24,23 @@ async function fire(ev, e) {
 // ---- a scripted gh
 const G = {
   issues: { 12: { number: 12, title: 'CSV export', body: '- export a CSV\n- an empty export has a header row', url: 'https://github.com/o/r/issues/12' }, 15: { number: 15, title: 'Retry backoff', body: 'b', url: 'https://github.com/o/r/issues/15' } },
-  pr: { number: 47, url: 'https://github.com/o/r/pull/47', title: 'CSV export', state: 'OPEN', isDraft: true, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN', statusCheckRollup: [{ name: 'baton/verify', conclusion: 'SUCCESS' }], comments: [], assignees: [], headRefName: 'b', author: { login: 'chris' } },
+  pr: { number: 47, url: 'https://github.com/o/r/pull/47', title: 'CSV export', state: 'OPEN', isDraft: true, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN', statusCheckRollup: [{ name: 'baton/verify', conclusion: 'SUCCESS' }], comments: [], assignees: [], headRefName: 'b', author: { login: 'chris' }, closingIssuesReferences: [{ number: 12 }], files: [{ path: 'src/csv.ts' }] },
+  labels: { 12: [] },
+  patched: [],
   posted: [],
   calls: [],
 }
 function fakeGh(args, stdin) {
   G.calls.push(args.join(' '))
-  if (args[0] === 'issue' && args[1] === 'view') return JSON.stringify(G.issues[args[2]])
+  if (args[0] === 'issue' && args[1] === 'view' && !args.includes('labels')) return JSON.stringify(G.issues[args[2]])
   if (args[0] === 'issue' && args[1] === 'list') return JSON.stringify(Object.values(G.issues).map(({ number, title, url }) => ({ number, title, url })))
   if (args[0] === 'pr' && args[1] === 'view') return JSON.stringify(G.pr)
   if (args[0] === 'pr' && args[1] === 'list') return JSON.stringify([])
-  if (args[0] === 'pr' && args[1] === 'comment') { G.posted.push(stdin); return 'https://github.com/o/r/pull/47#c' + G.posted.length }
+  if (args[0] === 'pr' && args[1] === 'comment') { G.posted.push(stdin); if (/baton:spend/.test(stdin)) G.pr.comments.push({ id: 'spend', author: { login: 'chris' }, url: 'https://github.com/o/r/pull/47#issuecomment-999', body: stdin }); return 'https://github.com/o/r/pull/47#c' + G.posted.length }
+  if (args[0] === 'label' && args[1] === 'create') return ''
+  if (args[0] === 'issue' && args[1] === 'edit') { const n = args[2]; for (let i = 3; i < args.length; i += 2) { if (args[i] === '--add-label') G.labels[n] = [...new Set([...(G.labels[n] || []), args[i + 1]])]; if (args[i] === '--remove-label') G.labels[n] = (G.labels[n] || []).filter((x) => x !== args[i + 1]) } return '' }
+  if (args[0] === 'issue' && args[1] === 'view' && args.includes('labels')) return JSON.stringify({ labels: (G.labels[args[2]] || []).map((name) => ({ name })) })
+  if (args[0] === 'api' && args[1] === '-X' && args[2] === 'PATCH') { G.patched.push(args[3]); return '{}' }
   throw new Error('fake gh: unexpected ' + args.join(' '))
 }
 let surfaces = [], answers = [], toasts = [], models = []
@@ -47,7 +53,7 @@ const $ = {
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async () => ({ isDelivered: true }) },
   process: { run: async (argv, o) => {
     if (argv[0] === 'gh') { try { return { exitCode: 0, stdout: fakeGh(argv.slice(1), o?.stdin), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: err.message } } }
-    try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
+    try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
   model: { complete: async (r) => (models.push(r), r.model.includes('haiku') ? { isAnswered: true, text: 'chris asks to also handle unicode in names' } : { isAnswered: true, text: 'NONE' }) },
   clock: { after: (ms, f) => timers.push(f), every: (ms, f) => (every.push(f), { cancel() {} }) },
   ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async () => ({ isPlaced: true }),
@@ -134,6 +140,46 @@ const rows = fs.readdirSync(path.join(W, '_orch/track')).map((f) => JSON.parse(f
 const goalRows = rows.filter((x) => x.level === 'goal').map((x) => x.state)
 ok(goalRows.join(',') === 'building,reviewing,ready', 'goal transitions measured: ' + goalRows.join(' → '))
 ok(rows.some((x) => x.level === 'node' && x.id === 'T2' && x.state === 'verified' && x.from === 'red'), 'node T2 red → verified recorded')
+
+// ---- v7.2: talos's ideas as hooks
+ok((G.labels[12] || []).join(',') === 'baton:ready', 'the issue carries the goal state as a label: ' + (G.labels[12] || []).join(','))
+ok(G.posted.some((b) => /<!-- baton:spend -->/.test(b)) || G.patched.length > 0, 'a spend comment was posted on the PR')
+// metering at turn.step: a worker's two requests and the prime's one
+const step = async (agentId, usage) => { const gen = hooks['turn.step'][0].f($, { agentId }, async function* () { return { usage } }); let r = await gen.next(); while (!r.done) r = await gen.next(); return r.value }
+await fire('agent.spawn', { _id: 'w9', subagentType: 'baton:worker', description: 'T9 export header' })
+await step('w9', { input_tokens: 4000, output_tokens: 1000, cache_read_input_tokens: 50000, model: 'claude-opus-5-5' })
+await step('w9', { input_tokens: 2000, output_tokens: 500 })
+await step(undefined, { input_tokens: 300, output_tokens: 200 })
+await fire('turn.complete', { agentId: 'w9', answer: 'T9 DONE', isAborted: false })
+const sp = JSON.parse(fs.readFileSync(path.join(W, '_orch/spend.json'), 'utf8'))
+ok(sp.total.fresh === 8000 && sp.byNode.T9.fresh === 7500 && sp.byRole.prime.fresh === 500 && sp.total.cacheRead === 50000, 'turn.step meters spend by agent, node and role')
+// the budget refuses another round once spent
+let deny = await fire('agent.spawn', { _id: 'rv', subagentType: 'baton:pr-reviewer', description: 'review round 3' })
+ok(!deny.deny, 'no budget set: the reviewer may spawn')
+// forbidden files: refused at git add, flagged on the PR
+r = await fire('tool.call', { agentId: 'w9', tool: 'Bash', command: 'git add .env src/csv.ts' })
+ok(/\.env matches a forbidden-file pattern/.test(r.deny || ''), 'git add .env is refused outright')
+G.pr.files.push({ path: 'config/.env.production' })
+await poll()
+surfaces = []
+const rowsNow = (await fire('command.run', { command: 'baton', args: '' })).text
+ok(/✗ no forbidden file \(config\/\.env\.production\)/.test(rowsNow) && !/◉ ready/.test(rowsNow), 'a forbidden file on the PR fails merge-ready')
+// a conflict refuses the reviewer
+G.pr.mergeable = 'CONFLICTING'; G.pr.statusCheckRollup = []
+await poll()
+deny = await fire('agent.spawn', { _id: 'rv2', subagentType: 'baton:pr-reviewer', description: 'review round 3' })
+ok(/conflicts with its base/.test(deny.deny || ''), 'a conflicting PR refuses the reviewer')
+const wake2 = execFileSync('node', [MOD + '/bin/memo.mjs', '--dir', W + '/_orch/memory', 'wake'], { encoding: 'utf8' })
+ok(/no CI ran because the branch conflicts/.test(wake2), 'the conflict is diagnosed in the memory')
+G.pr.mergeable = 'MERGEABLE'; G.pr.statusCheckRollup = [{ name: 'baton/verify', conclusion: 'SUCCESS' }, { name: 'ci', conclusion: 'SUCCESS' }]; G.pr.files = G.pr.files.filter((f) => !/\.env/.test(f.path))
+// a question with its Blocked-by line
+put('_orch/inbox/Q-4.md', 'Which vendor key do we use?\nBlocked by: _orch/nodes/T9/handoff.md:"use the vendor API" (explicit)\n')
+s = await status()
+await poll()
+surfaces = []
+const tl = (await fire('command.run', { command: 'baton', args: '' })).text
+ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
+put('_orch/inbox/Q-4.answer.md', 'key B')
 
 // merged → next goal
 G.pr.state = 'MERGED'

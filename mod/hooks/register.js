@@ -12,6 +12,7 @@ import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION }
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
@@ -42,7 +43,8 @@ const probe = {
 const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
-const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true, prPollSeconds: 120 }
+const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true, prPollSeconds: 120,
+  tokensPerGoal: 0, forbiddenFiles: FORBIDDEN_DEFAULT, labels: true, boardProject: 0, boardOwner: '', boardStatusMap: {} }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -147,6 +149,13 @@ const gh = {
   queue: [], // open issues labeled baton
   timer: null,
 }
+
+// Spend: every model request's usage, metered at turn.step by the agent that made it.
+const spend = { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false, savedAt: 0, loadedFor: null }
+const SPEND_SAVE_MS = 5000
+
+// The goal on GitHub: the label last set, labels ensured, the board's ids.
+const mirror = { label: null, labelsEnsured: false, board: null, boardWarned: false, column: null }
 
 // The tracker: the last computed state of every entity, and the rows measured so far.
 const track = { snap: {}, rows: [], loadedFor: null, at: 0, view: null }
@@ -583,6 +592,9 @@ async function batonStart($, args) {
   Object.assign(gh, { pr: null, review: null, ready: null, polledAt: null, error: null, seen: null, noted: { review: null, ready: false, merged: false, checks: null } })
   track.loadedFor = undefined
   track.at = 0
+  spend.loadedFor = undefined
+  Object.assign(spend, { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false })
+  Object.assign(mirror, { label: null, column: null, boardWarned: false })
   await registerMemoryTools($)
   await appendNote($, 'run', 'run ' + m.run_id + ' started: MODE ' + mode + ', TARGET ' + target, 'operator')
   $.ui.invalidate('ui.render')
@@ -753,8 +765,9 @@ async function refreshPane($, paneRows) {
 const TONE = { done: 'green', current: 'cyan', flagged: 'red', future: undefined, rail: undefined }
 
 /** One stepper as a row of colored Text segments. */
-function stepperRow({ Box, Text }, key, label, st, tl) {
+function stepperRow({ Box, Text }, key, label, st, tl, tail = '') {
   const segs = stepper(st, tl)
+  if (tail) segs.push({ text: tail, tone: 'rail' })
   return Box({
     key,
     flexDirection: 'row',
@@ -786,16 +799,18 @@ function trackBody($, ui) {
   const { Box, Text, line } = ui
   const v = track.view
   if (!v) return [line('t-none', pane.data.track[0] ?? 'no run is active here', { dimColor: true })]
-  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl)]
+  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
   if (v.pr) {
     out.push(stepperRow(ui, 't-pr', 'PR', v.pr, v.pr.tl))
     if (v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '           ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
+    if (v.pr.ready && v.pr.ready.diagnosis) out.push(line('t-diag', '           ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
   } else out.push(line('t-nopr', 'PR       none yet' + (gh.error ? ' — ' + gh.error : ''), { dimColor: true }))
   for (const p of v.phases) {
-    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl))
-    p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl)))
+    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl, spendTail(v.spend.byPhase[p.id])))
+    p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))))
     if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
   }
+  ;(v.questions || []).forEach((q, i) => out.push(line('t-qq' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
   if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
   out.push(line('t-foot', 'states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet'), { dimColor: true }))
   return out
@@ -1122,7 +1137,7 @@ async function ghRun($, args, stdin) {
   return r.stdout
 }
 
-const PR_FIELDS = 'number,url,title,state,isDraft,mergeable,mergeStateStatus,statusCheckRollup,comments,assignees,headRefName,author'
+const PR_FIELDS = 'number,url,title,state,isDraft,mergeable,mergeStateStatus,statusCheckRollup,comments,assignees,headRefName,author,closingIssuesReferences,files'
 
 /** The run's PR number: the manifest, then _orch/github/pr.json (the bootstrap writes it), then the run branch. */
 async function prNumber($) {
@@ -1175,17 +1190,32 @@ async function pollGithub($) {
     const pr = await ghJson($, ['pr', 'view', String(n), '--json', PR_FIELDS])
     gh.pr = pr
     gh.review = latestReview(pr.comments)
-    gh.ready = mergeReady(pr, gh.review)
+    const issue = run.manifest && run.manifest.issue ? run.manifest.issue.number : null
+    let otherPRs = null
+    if (issue) {
+      try {
+        const open = await ghJson($, ['pr', 'list', '--state', 'open', '--search', String(issue), '--json', 'number,closingIssuesReferences', '--limit', '50'])
+        otherPRs = (open || []).filter((x) => x.number !== pr.number && (x.closingIssuesReferences || []).some((c) => Number(c.number) === Number(issue))).length
+      } catch {}
+    }
+    const forbidden = forbiddenHits((pr.files || []).map((f) => f.path), config.forbiddenFiles)
+    gh.ready = mergeReady(pr, gh.review, { issue, otherPRs, forbidden, clean: await checkoutClean($) })
+    if (gh.ready.diagnosis && gh.noted.diagnosis !== gh.ready.diagnosis) {
+      gh.noted.diagnosis = gh.ready.diagnosis
+      await noteQuietly($, 'PR #' + pr.number + ': ' + gh.ready.diagnosis, 'github')
+    }
     gh.polledAt = new Date(Date.now()).toISOString()
     gh.error = null
     const tag = 'PR #' + pr.number
     if (gh.review && gh.noted.review !== gh.review.url + gh.review.verdict) {
       gh.noted.review = gh.review.url + gh.review.verdict
       await noteQuietly($, tag + ' review' + (gh.review.round ? ' round ' + gh.review.round : '') + ': ' + gh.review.verdict + ' (' + gh.review.high + ' high, ' + gh.review.med + ' med, ' + gh.review.low + ' low) ' + (gh.review.url || ''), 'review')
+      await upsertSpendComment($, pr)
     }
     if (gh.ready.ok && !gh.noted.ready) {
       gh.noted.ready = true
       await noteQuietly($, tag + ' is merge-ready: every row holds. Waiting for the operator to merge.', 'github')
+      await upsertSpendComment($, pr)
       try {
         $.ui.toast(tag + ' is ready for you to merge')
       } catch {}
@@ -1290,6 +1320,135 @@ async function askOnThread($, text) {
     if (!n) return null
     await ghRun($, ['pr', 'comment', String(n), '--body-file', '-'], '<!-- baton:gate -->\n' + text + '\n')
     return n
+  } catch {
+    return null
+  }
+}
+
+// ------------------------------------------------------------------ spend
+//
+// Metered, not reported: a turn.step hook sees every model request with its
+// usage and the agent that made it. Fresh tokens (input + output + cache
+// writes) are what the budget counts; cache reads are shown apart.
+
+async function loadSpend($) {
+  const id = (run.manifest && run.manifest.run_id) || null
+  if (spend.loadedFor === id) return
+  spend.loadedFor = id
+  const saved = await readJson($, '_orch/spend.json')
+  Object.assign(spend, { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false }, saved && saved.run_id === id ? { total: saved.total || {}, byRole: saved.byRole || {}, byPhase: saved.byPhase || {}, byNode: saved.byNode || {} } : {})
+}
+
+async function saveSpend($, force = false) {
+  if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return
+  spend.savedAt = Date.now()
+  try {
+    await $.fs.write('_orch/spend.json', JSON.stringify({ run_id: run.manifest && run.manifest.run_id, total: spend.total, byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode }, null, 1) + '\n')
+  } catch {}
+}
+
+function meter(agentId, usage) {
+  addUsage(spend.total, usage)
+  const n = agentId ? tree.nodes.get(agentId) : tree.nodes.get(PRIME)
+  const role = n ? n.role : 'agent'
+  addUsage((spend.byRole[role] ??= {}), usage)
+  const w = workOf(n ? n.label : '')
+  if (w.node) addUsage((spend.byNode[w.node] ??= {}), usage)
+  if (w.phase) addUsage((spend.byPhase[w.phase] ??= {}), usage)
+}
+
+function budgetNow() {
+  return budgetCheck(spend.total.fresh || 0, config.tokensPerGoal)
+}
+
+/** Post or edit the PR's one spend comment (marker <!-- baton:spend -->). */
+async function upsertSpendComment($, pr) {
+  try {
+    const repo = /github\.com\/([^/]+\/[^/]+)\/pull\//.exec(pr.url || '')
+    if (!repo) return
+    const body = spendMarkdown({ total: spend.total, budget: budgetNow(), byRole: spend.byRole, byPhase: spend.byPhase })
+    const mine = (pr.comments || []).find((c) => /<!--\s*baton:spend\s*-->/.test(c.body || ''))
+    const cid = mine && /issuecomment-(\d+)/.exec(mine.url || '')
+    if (cid) await ghRun($, ['api', '-X', 'PATCH', 'repos/' + repo[1] + '/issues/comments/' + cid[1], '--input', '-'], JSON.stringify({ body }))
+    else await ghRun($, ['pr', 'comment', String(pr.number), '--body-file', '-'], body + '\n')
+  } catch (err) {
+    $.ui.log('baton: could not post the spend comment: ' + err.message)
+  }
+}
+
+// ------------------------------------------------------------------ the goal on GitHub
+//
+// The tracker's goal state, mirrored where everyone looks: a `baton:<state>`
+// label on the issue, and (with boardProject set) the Status column of a
+// GitHub Projects board. Done by the hook that sees the state change, so no
+// agent has to remember it. A failure is a log line, never a stall.
+
+async function ensureLabels($) {
+  if (mirror.labelsEnsured) return
+  mirror.labelsEnsured = true
+  for (const [state, color] of Object.entries(LABEL_COLORS)) {
+    try {
+      await ghRun($, ['label', 'create', LABEL_PREFIX + state, '--color', color, '--description', 'baton goal state', '--force'])
+    } catch {}
+  }
+}
+
+async function boardIds($) {
+  if (mirror.board) return mirror.board
+  const P = String(config.boardProject)
+  const owner = config.boardOwner || '@me'
+  const proj = await ghJson($, ['project', 'view', P, '--owner', owner, '--format', 'json'])
+  const fields = await ghJson($, ['project', 'field-list', P, '--owner', owner, '--format', 'json'])
+  const status = ((fields && fields.fields) || []).find((f) => String(f.name).toLowerCase() === 'status')
+  mirror.board = { projectId: proj.id, owner, number: P, fieldId: status ? status.id : null, options: new Map(((status && status.options) || []).map((o) => [String(o.name).toLowerCase(), o.id])) }
+  return mirror.board
+}
+
+async function mirrorGoal($, state, flag) {
+  const m = run.manifest || {}
+  if (!m.issue) return
+  const label = goalLabel(state, flag)
+  if (config.labels && mirror.label !== label) {
+    try {
+      await ensureLabels($)
+      const cur = await ghJson($, ['issue', 'view', String(m.issue.number), '--json', 'labels'])
+      const stale = ((cur && cur.labels) || []).map((l) => l.name).filter((n) => n.startsWith(LABEL_PREFIX) && n !== label)
+      const args = ['issue', 'edit', String(m.issue.number), '--add-label', label]
+      for (const n of stale) args.push('--remove-label', n)
+      await ghRun($, args)
+      mirror.label = label
+    } catch (err) {
+      $.ui.log('baton: could not label issue #' + m.issue.number + ': ' + err.message)
+    }
+  }
+  const column = boardColumn(state, flag, config.boardStatusMap)
+  if (config.boardProject && column && mirror.column !== column) {
+    try {
+      const b = await boardIds($)
+      const opt = b.options.get(column.toLowerCase())
+      const item = await ghJson($, ['project', 'item-add', b.number, '--owner', b.owner, '--url', m.issue.url, '--format', 'json'])
+      if (!b.fieldId || !opt) {
+        if (!mirror.boardWarned) {
+          mirror.boardWarned = true
+          await noteQuietly($, 'board project ' + b.number + ' has no Status column "' + column + '": added the issue, left its column (map it with boardStatusMap)', 'github')
+        }
+      } else {
+        await ghRun($, ['project', 'item-edit', '--id', item.id, '--project-id', b.projectId, '--field-id', b.fieldId, '--single-select-option-id', opt])
+      }
+      mirror.column = column
+    } catch (err) {
+      $.ui.log('baton: could not move the board card: ' + err.message)
+    }
+  }
+}
+
+/** Is the main checkout clean apart from baton's own state? (talos: a subagent's cd does not persist, so writes leak.) */
+async function checkoutClean($) {
+  try {
+    const r = await $.process.run(['git', 'status', '--porcelain'], { timeoutMs: 15000 })
+    if (r.exitCode !== 0) return null
+    const dirty = r.stdout.split('\n').map((l) => l.slice(3).trim()).filter((f) => f && !/^(_orch|\.baton)(\/|$)/.test(f) && !/^"?(_orch|\.baton)\//.test(f))
+    return dirty.length === 0
   } catch {
     return null
   }
@@ -1406,6 +1565,19 @@ async function observe($, force = false) {
     } catch {}
   }
   track.snap = next
+  await mirrorGoal($, goal.state, goal.flag)
+  // Open questions, with the line each one rests on (explicit: a person fixes the cause; interpreted: a person may overrule it).
+  const questions = []
+  const inbox = ((await listDir($, '_orch/inbox')) ?? []).filter((x) => x.kind === 'file').map((x) => x.name)
+  for (const f of inbox.filter((n) => /^Q-[^.]+\.md$/.test(n)).sort(byId)) {
+    if (inbox.includes(f.replace(/\.md$/, '.answer.md'))) continue
+    let text = ''
+    try {
+      text = await $.fs.read('_orch/inbox/' + f)
+    } catch {}
+    questions.push({ id: f.replace(/\.md$/, ''), first: firstLine(text), blockedBy: parseBlockedBy(text) })
+  }
+  await loadSpend($)
   const now = Date.now()
   const tl = (level, id, ladder) => timeline(track.rows.filter((r) => r.level === level && r.id === id), LADDERS[ladder], now)
   track.view = {
@@ -1413,27 +1585,40 @@ async function observe($, force = false) {
     pr: pr ? { ...pr, tl: tl('pr', String(gh.pr.number), 'pr'), number: gh.pr.number, url: gh.pr.url, checks: checksLine(gh.pr), review: gh.review, ready: gh.ready } : null,
     phases: phases.map((p) => ({ ...p, tl: tl('phase', p.id, 'phase'), nodes: p.nodes.map((x) => ({ ...x, tl: tl('node', x.id, x.ladder) })) })),
     unphased: nodes.filter((x) => x.phase == null).map((x) => ({ ...x, tl: tl('node', x.id, x.ladder) })),
+    questions,
+    spend: { total: spend.total, budget: budgetNow(), byPhase: spend.byPhase, byNode: spend.byNode },
   }
   return track.view
 }
 
 /** The tracker as plain lines: -p, /baton status, and the tests. */
+/** " · 41k" (and the budget on the goal line). */
+function spendTail(acc, budget) {
+  if (!acc || !acc.fresh) return ''
+  return ' · ' + shortTokens(acc.fresh) + (budget && budget.status !== 'off' ? ' of ' + shortTokens(budget.limit) + ' (' + budget.pct + '%)' : '')
+}
+
+function questionLine(q) {
+  return q.id + ' ' + q.first + (q.blockedBy ? '  — blocked by ' + q.blockedBy.where + ' (' + q.blockedBy.kind + (q.blockedBy.kind === 'interpreted' ? ': you may overrule it' : ': fix the cause') + ')' : '')
+}
+
 function trackLines(v) {
   if (!v) return ['no run is active here']
   const out = []
   const g = v.goal
   out.push((g.issue ? 'goal #' + g.issue.number + ' ' + g.issue.title + ' ' + g.issue.url : 'goal ' + (g.target || '')) )
-  out.push('  ' + stepperText(g, g.tl))
+  out.push('  ' + stepperText(g, g.tl) + spendTail(v.spend.total, v.spend.budget))
   if (v.pr) {
     out.push('PR #' + v.pr.number + ' ' + v.pr.url + ' · ' + v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : ''))
     out.push('  ' + stepperText(v.pr, v.pr.tl))
     if (v.pr.ready) for (const r of v.pr.ready.rows) out.push('    ' + (r.ok ? '✓ ' : '✗ ') + r.row)
   } else out.push('PR: none yet' + (gh.error ? ' (' + gh.error + ')' : ''))
   for (const p of v.phases) {
-    out.push(p.id + '  ' + stepperText(p, p.tl))
-    for (const x of p.nodes.slice(0, 16)) out.push('    ' + x.id + '  ' + stepperText(x, x.tl))
+    out.push(p.id + '  ' + stepperText(p, p.tl) + spendTail(v.spend.byPhase[p.id]))
+    for (const x of p.nodes.slice(0, 16)) out.push('    ' + x.id + '  ' + stepperText(x, x.tl) + spendTail(v.spend.byNode[x.id]))
     if (p.nodes.length > 16) out.push('    … ' + (p.nodes.length - 16) + ' more')
   }
+  for (const q of v.questions || []) out.push('? ' + questionLine(q))
   return out
 }
 
@@ -1443,6 +1628,14 @@ export function register(on, options) {
     if (Number.isFinite(Number(options.wakeBudgetLines))) config.wakeBudgetLines = Math.max(4, Math.floor(Number(options.wakeBudgetLines)))
     if (options.memoryDir) config.memoryDir = String(options.memoryDir)
     if (Number.isFinite(Number(options.prPollSeconds))) config.prPollSeconds = Number(options.prPollSeconds)
+    if (Number.isFinite(Number(options.tokensPerGoal))) config.tokensPerGoal = Number(options.tokensPerGoal)
+    if (options.labels === false || options.labels === 'false') config.labels = false
+    if (Number.isFinite(Number(options.boardProject))) config.boardProject = Number(options.boardProject)
+    if (options.boardOwner) config.boardOwner = String(options.boardOwner)
+    if (options.forbiddenFiles) {
+      const extra = String(options.forbiddenFiles).split(',').map((x) => x.trim()).filter(Boolean)
+      config.forbiddenFiles = Array.from(new Set([...FORBIDDEN_DEFAULT, ...extra]))
+    }
     if (options.approvals === false || options.approvals === 'false') config.approvals = false
     if (options.phaseGate === false || options.phaseGate === 'false') config.phaseGate = false
   }
@@ -1574,6 +1767,16 @@ export function register(on, options) {
   on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e))
 
   // ---------------------------------------------------------------- approvals
+
+  // Forbidden files: refuse a `git add` that names one, from any agent, run or no
+  // run. Prevention at the moment it happens; the PR's merge-ready row catches
+  // what a broad `git add -A` let through.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const hits = forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles)
+    if (!hits.length) return next(e)
+    if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
+    return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
+  })
 
   // The command gate: an irreversible shell command from any agent, at any
   // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
@@ -1908,7 +2111,7 @@ export function register(on, options) {
       : []
     const v = track.view
     const goal = v
-      ? [Text({ key: 'goal', wrap: 'truncate-end', dimColor: true, children: [(v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : '') + (v.pr ? ' · PR #' + v.pr.number + ' ' + v.pr.state + (v.pr.flag ? ' (' + v.pr.flag + ')' : '') + ' · ' + v.pr.checks : '') + (v.pr && v.pr.ready && v.pr.ready.ok ? ' · ready for you to merge' : '')] })]
+      ? [Text({ key: 'goal', wrap: 'truncate-end', dimColor: true, children: [(v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : '') + spendTail(v.spend.total, v.spend.budget) + (v.pr ? ' · PR #' + v.pr.number + ' ' + v.pr.state + (v.pr.flag ? ' (' + v.pr.flag + ')' : '') + ' · ' + v.pr.checks : '') + (v.pr && v.pr.ready && v.pr.ready.ok ? ' · ready for you to merge' : '')] })]
       : []
     return Box({ flexDirection: 'column', children: [Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...goal, ...flag, ...(theirs ? [theirs] : [])] })
   })
@@ -1935,6 +2138,8 @@ export function register(on, options) {
     }
     if (e.agentId && live.delete(e.agentId)) $.ui.invalidate('ui.render')
     if (!e.agentId && pane.open) $.clock.after(0, () => refreshPane($, 30))
+    // A finished turn is a natural point to write the metered spend down.
+    if (run.active || run.startedHere) await saveSpend($, true)
     // Any finished turn may have moved a state; the tracker's TTL keeps this cheap.
     $.clock.after(0, () => observe($).then(() => $.ui.invalidate('ui.render')).catch(() => {}))
     // A subagent the prime dispatched returned: its one line becomes a note
@@ -1965,9 +2170,42 @@ export function register(on, options) {
 
   // The binding: during a run every spawn runs on the model its role names,
   // whatever the caller asked for (opus for prime-side roles, sonnet for -cheap).
+  // Spend: every model request, metered by the agent that made it. The response
+  // streams on untouched; only its usage is read.
+  on('turn.step', async function* ($, e, next) {
+    const result = yield* next(e)
+    try {
+      if (result && result.usage && (run.active || run.startedHere)) {
+        await loadSpend($)
+        meter(e.agentId, result.usage)
+        const b = budgetNow()
+        if (b.status === 'warn' && !spend.warned) {
+          spend.warned = true
+          await noteQuietly($, 'spend at ' + b.pct + '% of the goal budget (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + '); another fix round will need the operator at 100%', 'budget')
+        }
+        await saveSpend($)
+        if (pane.open) $.ui.invalidate('ui.render')
+      }
+    } catch {}
+    return result
+  })
+
   on('agent.spawn', async ($, e, next) => {
     let input = e
     if (await runActive($)) {
+      // The budget guards another round of reviewing or fixing (talos: "may it start another fix round?").
+      if (isRoundSpawn(e)) {
+        await loadSpend($)
+        const b = budgetNow()
+        if (b.status === 'exceeded') {
+          await noteQuietly($, 'refused ' + (e.description || e.subagentType) + ': goal budget spent (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + ')', 'budget')
+          return { deny: 'baton: the goal budget is spent (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + ' fresh tokens). Do not start another review or fix round: brief the operator with the open findings and ask whether to raise tokensPerGoal.' }
+        }
+      }
+      // A reviewer on a PR that conflicts with its base reviews code that will change; resolve first.
+      if (String(e.subagentType || '').replace(/^.*:/, '') === 'pr-reviewer' && gh.pr && gh.pr.mergeable === 'CONFLICTING') {
+        return { deny: 'baton: PR #' + gh.pr.number + ' conflicts with its base. Dispatch a sub-orchestrator to merge the base into the branch (never rebase) and re-run the checks, then the reviewer.' }
+      }
       const model = bindModel(e)
       if (model && e.model !== model) {
         input = { ...e, model }

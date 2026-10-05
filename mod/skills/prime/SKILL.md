@@ -94,6 +94,11 @@ up to date), and one line per new human comment. Allowed answerers can act from 
 `/approve P3`, `/send-back P3 <reason>`, `/approve push` (for a command the gate held while nobody
 was here). Those land in your memory like anything else.
 
+If a review or fix round is refused because **the goal budget is spent**, do not route around it:
+dispatch a sub-orchestrator to write a brief of the open findings and ask the operator. If the
+reviewer is refused because **the PR conflicts with its base**, dispatch a sub-orchestrator to merge
+the base into the branch (never rebase), then the reviewer.
+
 ## Rotation
 
 The mod measures your context after every turn. During a run, when it reaches `rotateAtPercent`

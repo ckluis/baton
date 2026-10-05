@@ -43,6 +43,36 @@
       "title": "PR poll interval (seconds)",
       "description": "During a run with a GitHub goal, how often the mod reads the PR with gh (state, checks, the reviewer's verdict, new comments). At least 30.",
       "default": 120
+    },
+    "tokensPerGoal": {
+      "type": "number",
+      "title": "Token budget per goal",
+      "description": "Fresh tokens (input + output + cache writes, metered by the mod) a goal may spend before another review or fix round is refused and the operator is asked. 0 turns the budget off.",
+      "default": 0
+    },
+    "labels": {
+      "type": "boolean",
+      "title": "Mirror the goal state as an issue label",
+      "description": "Keep one baton:<state> label on the goal's issue (queued, planned, building, reviewing, ready, merged, blocked)",
+      "default": true
+    },
+    "boardProject": {
+      "type": "number",
+      "title": "GitHub Projects board number",
+      "description": "Also move the goal's issue across this project's Status column (Todo, In progress, In review, Done, Blocked). 0 leaves boards alone.",
+      "default": 0
+    },
+    "boardOwner": {
+      "type": "string",
+      "title": "Board owner",
+      "description": "The user or organization that owns the board (default: you)",
+      "default": ""
+    },
+    "forbiddenFiles": {
+      "type": "string",
+      "title": "More forbidden files",
+      "description": "Comma-separated globs added to the defaults (.env, .env.*, *.pem, *.key, id_rsa, credentials.json, \u2026): refused at git add, and a merge-ready row on the PR",
+      "default": ""
     }
   }
 }

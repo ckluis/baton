@@ -92,16 +92,23 @@ export function checksLine(pr) {
  * Merge-ready, computed like a node verdict: every row must hold.
  * `review` is the reviewer's latest parsed verdict; `threads` the unresolved review thread count when known.
  */
-export function mergeReady(pr, review, { threads = 0 } = {}) {
+export function mergeReady(pr, review, { threads = 0, issue = null, otherPRs = null, forbidden = null, clean = null } = {}) {
   const rows = [
     { row: 'every check green (node verdicts and CI)', ok: !!pr && checksGreen(pr) },
     { row: 'the reviewer’s latest verdict is READY', ok: !!review && review.verdict === 'READY' },
     { row: 'no high finding open', ok: !!review && (review.high ?? 0) === 0 },
     { row: 'no unresolved review thread', ok: threads === 0 },
-    { row: 'mergeable', ok: !!pr && pr.mergeable === 'MERGEABLE' },
+    { row: 'mergeable (no conflict with the base)', ok: !!pr && pr.mergeable === 'MERGEABLE' },
     { row: 'up to date with the base', ok: !!pr && pr.mergeStateStatus !== 'BEHIND' },
   ]
-  return { ok: rows.every((r) => r.ok), rows }
+  // Rows that need a fact the caller may not have; a row with no fact is not shown rather than guessed.
+  if (issue != null) rows.push({ row: 'closes issue #' + issue, ok: !!pr && (pr.closingIssuesReferences || []).some((x) => Number(x.number) === Number(issue)) })
+  if (otherPRs != null) rows.push({ row: 'no other open PR closes #' + issue, ok: otherPRs === 0 })
+  if (forbidden != null) rows.push({ row: forbidden.length ? 'no forbidden file (' + forbidden.slice(0, 3).join(', ') + ')' : 'no forbidden file', ok: forbidden.length === 0 })
+  if (clean != null) rows.push({ row: 'the main checkout is clean (nothing leaked from a worktree)', ok: clean })
+  // talos's lesson: a PR with no checks on a fresh head usually conflicts with the base.
+  const diagnosis = pr && pr.mergeable === 'CONFLICTING' && !(pr.statusCheckRollup || []).length ? 'no CI ran because the branch conflicts with the base: merge the base into it (never rebase)' : null
+  return { ok: rows.every((r) => r.ok), rows, diagnosis }
 }
 
 // ------------------------------------------------------------------ the reviewer's comment
