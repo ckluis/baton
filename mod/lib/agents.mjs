@@ -20,19 +20,39 @@ export function shortModel(m) {
   return hit ? hit[1].toLowerCase() : s || null
 }
 
-export function addSpawn(t, { id, parent, type, label, model, at = Date.now() }) {
+export function addSpawn(t, { id, parent, type, label, model, prompt = '', at = Date.now() }) {
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME
   const role = String(type ?? 'agent').replace(/^baton:/, '')
-  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), model: shortModel(model), startedAt: at, endedAt: null, tools: 0, lastTool: null, line: null, verdict: null, children: [] })
+  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), model: shortModel(model), prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
   t.nodes.get(p).children.push(id)
 }
 
-export function addToolCall(t, agentId, tool) {
+/** One line for a tool call: what it touched, not its whole input. */
+export function toolDetail(e) {
+  const t = String(e?.tool ?? '')
+  const pick = (...ks) => {
+    for (const k of ks) if (e && e[k] != null && e[k] !== '') return String(e[k])
+    return ''
+  }
+  let d = ''
+  if (t === 'Bash') d = pick('command')
+  else if (/^(Read|Write|Edit|MultiEdit|NotebookEdit)$/.test(t)) d = pick('file_path', 'notebook_path')
+  else if (t === 'Grep') d = pick('pattern') + (e && e.path ? ' in ' + e.path : '')
+  else if (t === 'Glob') d = pick('pattern')
+  else if (t === 'Agent' || t === 'Task') d = pick('description', 'subagent_type')
+  else if (/^mcp__baton__code_/.test(t)) d = pick('query', 'target', 'name', 'dir')
+  else if (/^mcp__baton__/.test(t)) d = pick('text', 'range', 'pattern', 'namespace')
+  else if (t === 'WebFetch' || t === 'WebSearch') d = pick('url', 'query')
+  return d.replace(/\s+/g, ' ').trim().slice(0, 140)
+}
+
+export function addToolCall(t, agentId, tool, detail = '', at = Date.now()) {
   const n = t.nodes.get(agentId || PRIME)
   if (!n) return
   n.tools++
   n.lastTool = String(tool ?? '').replace(/^mcp__baton__/, '')
+  n.recent = [...(n.recent || []), { tool: n.lastTool, detail, at }].slice(-10)
 }
 
 export function finishAgent(t, agentId, { line, aborted = false, at = Date.now() } = {}) {

@@ -11,7 +11,7 @@
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { mightBeRuling } from '../lib/rulings.mjs'
-import { lessonBlock, lessonNote, lessonsFromVerdict, relevantLessons } from '../lib/lessons.mjs'
+import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
@@ -19,12 +19,13 @@ import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
-import { agentTable, tableText } from '../lib/table.mjs'
-import { shortModel } from '../lib/agents.mjs'
+import { agentTable, components, tableText } from '../lib/table.mjs'
+import { shortModel, toolDetail } from '../lib/agents.mjs'
+import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, rulingDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { bandSegs, usageSegs } from '../lib/view.mjs'
+import { bandSegs, compareVersions, installedCopy, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -114,6 +115,8 @@ const pane = {
   open: false,
   tab: 'work',
   planOpen: false, // Work: every node of every phase, not just one line per phase
+  detail: null, // Work: { kind: agent|phase|node, id, view } opened with Enter on a row; b closes it
+  mdetail: null, // Memory: a ruling's view, opened with Enter on its row
   timer: null,
   refreshedAt: null,
   data: { plan: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], track: ['no run is active here'] },
@@ -440,6 +443,10 @@ async function runDoctor($) {
     memOk = false
   }
   add('project memory', memOk, memOk ? config.memoryDir : 'unreadable', 'check that ' + config.memoryDir + ' is writable')
+  await checkUpdate($).catch(() => {})
+  if (!update.installed) add('baton version', true, (update.local || '?') + ' from a checkout (updates come with git pull)', '')
+  else if (update.state === 'available') add('baton version', false, update.local + ' installed, ' + update.remote + ' published', 'press 9 in an empty prompt, or claude plugin update baton@baton')
+  else add('baton version', true, (update.local || '?') + (update.remote ? ' (latest)' : ' (could not reach GitHub to compare)'), '')
   doctor.checks = checks
   doctor.at = Date.now()
   $.ui.invalidate('ui.render')
@@ -452,7 +459,7 @@ function doctorText(checks) {
 
 /** The one band line a failed check earns (the optional ones never do). */
 function doctorWarning() {
-  const bad = (doctor.checks || []).filter((c) => !c.ok && c.name !== 'ripgrep' && c.name !== 'git repository')
+  const bad = (doctor.checks || []).filter((c) => !c.ok && c.name !== 'ripgrep' && c.name !== 'git repository' && c.name !== 'baton version')
   return bad.length ? 'baton doctor: ' + bad.map((c) => c.name).join(', ') + ' — /baton doctor' : null
 }
 
@@ -543,6 +550,65 @@ async function checkpoint($, why) {
 async function listCheckpoints($) {
   const r = await $.process.run(['git', 'for-each-ref', '--sort=-refname', '--format=%(refname:lstrip=3)\t%(subject)', CHECKPOINT_REF], { timeoutMs: 15000 })
   return r.exitCode === 0 ? r.stdout.split('\n').filter(Boolean).map((l) => l.split('\t')) : []
+}
+
+// ------------------------------------------------------------------ updates
+//
+// Claude Code auto-updates a third-party marketplace only if you turn that on. So the mod checks
+// for itself: at most every six hours it reads the published version, and when a newer one is
+// out the band says so; 9 runs `claude plugin update baton@baton`, then /reload-plugins loads it.
+
+const UPDATE_SOURCE = 'https://raw.githubusercontent.com/ckluis/baton/main/mod/.claude-plugin/plugin.json'
+const update = { local: null, remote: null, installed: false, state: null, message: null }
+
+async function checkUpdate($, force = false) {
+  try {
+    update.local = JSON.parse(await $.fs.read($.plugin.root + '/.claude-plugin/plugin.json')).version || null
+  } catch {}
+  update.installed = installedCopy($.plugin.root)
+  if (!update.installed) return update
+  if (!force) {
+    try {
+      const last = Number((await $.store.get('update-checked-at')) || 0)
+      if (Date.now() - last < 6 * 3600 * 1000) {
+        update.remote = (await $.store.get('update-remote')) || null
+        if (update.remote && update.local && compareVersions(update.remote, update.local) > 0) update.state = 'available'
+        return update
+      }
+    } catch {}
+  }
+  try {
+    const full = await $.process.run(['curl', '-fsSL', '--max-time', '8', UPDATE_SOURCE], { timeoutMs: 12000 })
+    if (full.exitCode === 0) update.remote = JSON.parse(full.stdout).version || null
+  } catch {}
+  try {
+    await $.store.set('update-checked-at', Date.now())
+    await $.store.set('update-remote', update.remote)
+  } catch {}
+  if (update.remote && update.local && compareVersions(update.remote, update.local) > 0) {
+    update.state = 'available'
+    await notify($, 'update:' + update.remote, 'baton ' + update.remote + ' is out (you have ' + update.local + '): 9 updates it')
+  }
+  $.ui.invalidate('ui.render')
+  return update
+}
+
+async function applyUpdate($) {
+  if (update.state !== 'available') return
+  update.state = 'updating'
+  $.ui.invalidate('ui.render')
+  const r = await $.process.run(['claude', 'plugin', 'update', 'baton@baton'], { timeoutMs: 180000 }).catch((err) => ({ exitCode: 1, stderr: err.message }))
+  if (r.exitCode === 0) {
+    update.state = 'installed'
+    update.message = 'baton ' + update.remote + ' installed: /reload-plugins to use it now (new sessions load it on their own)'
+  } else {
+    update.state = 'available'
+    update.message = 'could not update: ' + String(r.stderr || r.stdout || '').trim().split('\n')[0] + ' — /plugin → Installed → baton → Update now'
+  }
+  try {
+    $.ui.toast(update.message)
+  } catch {}
+  $.ui.invalidate('ui.render')
 }
 
 // Pause: hold every new spawn and every gated command until /baton resume.
@@ -863,7 +929,7 @@ async function batonStart($, args) {
     mode,
     target,
     prime: true,
-    baton: '7.0.0-dev',
+    baton: (update.local || '7'),
     baton_base: batonBase,
     started_at: now,
     models: { frontier: FRONTIER_MODEL, cheap: CHEAP_MODEL },
@@ -1075,6 +1141,12 @@ function mergeLine(v) {
  */
 function workspaceBody($, ui) {
   const { Box, Text, Link, line } = ui
+  if (pane.detail) {
+    const d = detailBody($, ui)
+    const n = pane.detail.kind === 'agent' ? tree.nodes.get(pane.detail.id) : null
+    if (n && n.endedAt == null) d.push(...agentsBody($, { ...ui, onlyInput: true }))
+    return d
+  }
   const v = track.view
   const out = []
   if (v) {
@@ -1163,9 +1235,9 @@ function planSection($, ui, v) {
     const ver = p.nodes.filter((x) => x.state === 'verified').length
     const stuck = p.nodes.filter((x) => x.flag && x.flag !== 'pending').map((x) => x.id + ' ' + x.flag)
     const tail = (p.nodes.length ? ' · ' + ver + '/' + p.nodes.length + ' verified' : '') + (stuck.length ? ' · ' + stuck.slice(0, 3).join(', ') : '') + spendTail(v.spend.byPhase[p.id])
-    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail))
+    out.push(Box({ key: 'pr-' + p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + p.id, label: '›', plain: true, onPress: () => openDetail($, 'phase', p.id) }), stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail)] }))
     if (pane.planOpen) {
-      p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))))
+      p.nodes.slice(0, 12).forEach((x) => out.push(Box({ key: 'nr-' + x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.id, label: '›', plain: true, onPress: () => openDetail($, 'node', x.id) }), stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))] })))
       if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
     }
   }
@@ -1176,10 +1248,130 @@ function planSection($, ui, v) {
   return out
 }
 
+/** Open a ruling's view in Memory: what it says, the message it came from, its enforcement. */
+async function openRuling($, r) {
+  let src = null
+  try {
+    src = await $.store.get('ruling-src:' + r.n)
+  } catch {}
+  pane.mdetail = rulingDetail(r, src)
+  $.ui.invalidate('ui.render')
+}
+
 /** Memory: your rulings first (what governs the run), then the memory itself (what happened). */
 function memoryTabBody($, ui) {
-  const { Text } = ui
+  const { Text, Box, Button } = ui
+  if (pane.mdetail) {
+    const d = pane.mdetail
+    const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
+    return [
+      Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ key: 'md-t', bold: true, children: [d.title] })] }),
+      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ key: 'md-l' + i + 's' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ key: 'md-sp' + i, children: [' '] }))),
+    ]
+  }
   return [Text({ key: 'mt-r', bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ key: 'mt-sp', children: [' '] }), Text({ key: 'mt-m', bold: true, children: ['memory'] }), ...memoryBody($, ui)]
+}
+
+// ------------------------------------------------------------------ detail views (Enter on a row)
+
+async function readText($, path, max = 6000) {
+  try {
+    return String(await $.fs.read(path)).slice(0, max)
+  } catch {
+    return null
+  }
+}
+
+/** Build the view for one target from what the mod already holds plus the files it names. */
+async function buildDetail($, kind, id) {
+  const v = track.view || { phases: [], unphased: [] }
+  const findNode = (nid) => {
+    for (const p of v.phases || []) {
+      const x = (p.nodes || []).find((y) => y.id === nid)
+      if (x) return x
+    }
+    return (v.unphased || []).find((y) => y.id === nid) || { id: nid, ladder: 'node', state: 'red', flag: 'pending', tl: [] }
+  }
+  if (kind === 'agent') {
+    const n = tree.nodes.get(id)
+    if (!n) return null
+    const pct = ctxPct(n)
+    const thr = thresholdFor(n)
+    const st = workState(id)
+    return agentDetail(n, {
+      chain: chain(tree, id),
+      ctxPct: pct,
+      threshold: thr,
+      hist: n.ctxHist || [],
+      ctxTone: ctxTone(pct, thr),
+      comps: n.spend ? components(n.spend) : null,
+      cost: n.spend ? shortUsd(costOf(n.spend, config.prices)) : '',
+      steps: st,
+      stepsTl: st && st.tl,
+    })
+  }
+  if (kind === 'phase') {
+    const p = (v.phases || []).find((x) => x.id === id)
+    if (!p) return null
+    const nodes = (p.nodes || []).map((x) => ({ ...x, spendText: spendTail(v.spend.byNode[x.id]).replace(/^ · /, '') }))
+    return phaseDetail({ ...p, nodes }, { brief: await readText($, '_orch/phases/' + id + '/brief.md', 2000), envelope: await readJson($, '_orch/phases/' + id + '/envelope.json'), spend: spendTail(v.spend.byPhase[id]).replace(/^ · /, '') })
+  }
+  if (kind === 'node') {
+    const nd = findNode(id)
+    const base = '_orch/nodes/' + id
+    const handoff = await readText($, base + '/handoff.md')
+    const exempt = handoff && /\brgb:\s*exempt\s*[—-]?\s*(.*)/i.exec(handoff)
+    const mine = (lessons.notes || []).map((n) => parseLessonNote(n.text).text).filter((t) => t.startsWith(id + ':'))
+    return nodeDetail(nd, {
+      handoff,
+      exempt: exempt ? exempt[1] || 'yes' : null,
+      red: await readText($, base + '/work/red.txt', 600),
+      green: await readText($, base + '/work/green.txt', 600),
+      blue: await readText($, base + '/work/blue.txt', 600),
+      verdict: await readJson($, '_orch/verify/' + id + '-verdict.json'),
+      lessons: mine,
+      spend: spendTail(v.spend && v.spend.byNode[id]).replace(/^ · /, ''),
+    })
+  }
+  return null
+}
+
+async function openDetail($, kind, id) {
+  if (kind === 'node') await loadLessons($)
+  const view = await buildDetail($, kind, id)
+  pane.detail = view ? { kind, id, view } : null
+  $.ui.invalidate('ui.render')
+}
+
+/** The open view, drawn in Work: a back button, the title, then its lines. */
+function detailBody($, { Box, Text, Button, line }) {
+  const d = pane.detail
+  const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
+  const out = [
+    Box({
+      key: 'd-h',
+      flexDirection: 'row',
+      columnGap: 2,
+      children: [
+        Button({ key: 'd-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.detail = null), $.ui.invalidate('ui.render')) }),
+        Text({ key: 'd-t', bold: true, children: [d.view.title] }),
+        Button({ key: 'd-refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => openDetail($, d.kind, d.id) }),
+      ],
+    }),
+  ]
+  d.view.lines.forEach((segs, i) => {
+    if (!segs.length) out.push(Text({ key: 'd-sp' + i, children: [' '] }))
+    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ key: 'd-l' + i + 's' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
+  })
+  // A running agent can be messaged from its own view.
+  if (d.kind === 'agent') {
+    const n = tree.nodes.get(d.id)
+    if (n && n.endedAt == null) {
+      pane.target = d.id
+      out.push(Text({ key: 'd-sp-m', children: [' '] }))
+    }
+  }
+  return out
 }
 
 /** The computed state an agent's row shows: its node's, else its phase's; the goal's for the prime. */
@@ -1228,8 +1420,9 @@ function agentRow(r) {
 }
 
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
-function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
+function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }) {
   const out = []
+  if (onlyInput) return messageField($, { Text, Input })
   approvals.queue.forEach((q, i) => {
     out.push(
       Box({
@@ -1260,13 +1453,22 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
   const rowsData = treeRows(tree)
   const t = agentTable(rowsData.map(agentRow), Math.max(60, (cols || 120) - 4))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: t.header.map((x, j) => Text({ key: 'ah' + j, dimColor: true, children: [x.text] })) }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ key: 'ah-pad', children: ['  '] }), ...t.header.map((x, j) => Text({ key: 'ah' + j, dimColor: true, children: [x.text] }))] }))
   t.lines.forEach((segs, i) => {
     const r = rowsData[i]
-    const children = segs.map((x, j) => Text({ key: 'a' + i + 'c' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] }))
+    // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
+    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ key: 'open-pad' + i, children: ['  '] })]
+    const children = [...open, ...segs.map((x, j) => Text({ key: 'a' + i + 'c' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
   })
+  out.push(...messageField($, { Text, Input }))
+  return out
+}
+
+/** The field that messages the targeted running agent (✉ on its row, or its open view). */
+function messageField($, { Text, Input }) {
+  const out = []
   const tg = pane.target && tree.nodes.get(pane.target)
   if (tg && tg.endedAt == null) {
     out.push(
@@ -1276,7 +1478,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
         placeholder: 'steer this agent (it reads it at its next step)',
         value: '',
         submitLabel: 'send',
-        autoFocus: true,
+        ...(pane.detail ? {} : { autoFocus: true }),
         onSubmit: async (v) => {
           const text = String(v).trim()
           if (!text) return
@@ -1292,7 +1494,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
       }),
     )
   } else {
-    out.push(Text({ key: 'agents-hint', dimColor: true, children: ['✉ on a running agent opens a message field for it'] }))
+    out.push(Text({ key: 'agents-hint', dimColor: true, children: ['↑/↓ then Enter on › opens an agent · ✉ messages a running one · p shows every node · b goes back'] }))
   }
   return out
 }
@@ -1405,6 +1607,7 @@ function rulingsBody($, { Box, Button, Input, line, rows }) {
         flexDirection: 'row',
         columnGap: 1,
         children: [
+          Button({ key: 'open-r-' + r.n, label: '›', plain: true, onPress: () => openRuling($, r) }),
           Button({
             key: 'retract-' + r.n,
             label: 'x',
@@ -1498,9 +1701,16 @@ async function extractRuling($, text) {
   return fallbackRuling(text)
 }
 
-async function recordRuling($, text, tag = 'ruling') {
+async function recordRuling($, text, tag = 'ruling', source = null) {
   const r = await appendNote($, 'project', text, tag, RULINGS_NS)
   forgetRulings()
+  // Where it came from, for its view in Memory: the message it was lifted from.
+  const m = /noted #(\d+)/.exec(r)
+  if (m && source) {
+    try {
+      await $.store.set('ruling-src:' + m[1], { text: String(source).slice(0, 600), at: new Date(Date.now()).toISOString().slice(11, 19) + 'Z' })
+    } catch {}
+  }
   return r
 }
 
@@ -2176,6 +2386,7 @@ export function register(on, options) {
     // command's frame. Cheap when idle: two flag checks.
     // The doctor runs once, in the background; a failed check shows in the band.
     $.clock.after(1500, () => runDoctor($).catch(() => {}))
+    $.clock.after(4000, () => checkUpdate($).catch(() => {}))
     // The pane opens by itself, and plan usage refreshes on the clock: no /baton needed.
     $.clock.after(500, () => autoOpenPane($).catch(() => {}))
     try {
@@ -2210,8 +2421,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | pause | resume | rotate | status | doctor | watch | next | rule | rulings | retract | enforce | checkpoints | restore — or no argument for the pane',
-        argumentHint: '[start <MODE> <TARGET|#issue> | stop | pause | resume | rotate | status | doctor | watch | next | rule <text> | rulings | retract <#> | enforce <#> <regex> | checkpoints | restore <id>]',
+        description: 'baton v7: start | stop | pause | resume | rotate | status | show | doctor | watch | next | rule | rulings | retract | enforce | checkpoints | restore — or no argument for the pane',
+        argumentHint: '[start <MODE> <TARGET|#issue> | stop | pause | resume | rotate | status | show <id> | doctor | watch | next | rule <text> | rulings | retract <#> | enforce <#> <regex> | checkpoints | restore <id>]',
         immediate: true,
       })
     } catch (err) {
@@ -2223,7 +2434,7 @@ export function register(on, options) {
   // ---------------------------------------------------------------- the prime guard
 
   on('tool.call', async ($, e, next) => {
-    addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool)
+    addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool, toolDetail(e))
     if (!isPrimeCall(e)) track.dirty = true
     if (pane.open && pane.tab === 'agents') $.ui.invalidate('ui.render')
     if (!isPrimeCall(e)) {
@@ -2520,7 +2731,7 @@ export function register(on, options) {
         const rule = await extractRuling($, text)
         if (!rule) return
         try {
-          await recordRuling($, rule)
+          await recordRuling($, rule, 'ruling', text)
           $.ui.log('baton: ruling recorded — ' + rule)
         } catch (err) {
           $.ui.log('baton: could not record a ruling: ' + err.message)
@@ -2573,6 +2784,27 @@ export function register(on, options) {
       }
       case 'status':
         return { text: await statusText($) }
+      case 'show': {
+        const what = rest.join(' ').trim()
+        await observe($, true)
+        const v = track.view || { phases: [] }
+        const target = resolveTarget(what, {
+          phases: v.phases || [],
+          nodes: [...(v.phases || []).flatMap((p) => p.nodes || []), ...(v.unphased || [])],
+          agents: [...tree.nodes.values()].filter((n) => n.id !== PRIME).map((n) => ({ id: n.id, label: n.label })),
+        })
+        if (!what || !target) return { text: 'usage: /baton show <P3 | T12 | an agent’s name> — the same view Enter opens in Work' }
+        if (target.kind === 'node') await loadLessons($)
+        const view = await buildDetail($, target.kind, target.id)
+        if (!view) return { text: 'nothing to show for ' + what }
+        if (await interactive($)) {
+          pane.detail = { ...target, view }
+          pane.tab = 'work'
+          if (!pane.open) await autoOpenPane($)
+          $.ui.invalidate('ui.render')
+        }
+        return { text: detailText(view) }
+      }
       case 'checkpoints': {
         let cps = []
         try {
@@ -2770,6 +3002,20 @@ export function register(on, options) {
         }),
       )
     }
+    if (update.state === 'available' || update.state === 'updating') {
+      const { Button } = $.ui.resolve(e)
+      flag.push(
+        Box({
+          key: 'upd',
+          flexDirection: 'row',
+          columnGap: 2,
+          children: [
+            Text({ key: 'upd-t', color: 'cyan', children: [update.state === 'updating' ? 'baton: updating to ' + update.remote + '…' : 'baton ' + update.remote + ' is out (you have ' + update.local + ')'] }),
+            ...(update.state === 'available' ? [Button({ key: 'band-update', label: 'update now', hotkey: '9', plain: true, onPress: () => applyUpdate($) })] : []),
+          ],
+        }),
+      )
+    } else if (update.state === 'installed' && update.message) flag.push(Text({ key: 'upd-done', color: 'green', wrap: 'truncate-end', children: [update.message] }))
     if (pause.on) flag.unshift(Text({ key: 'pause', wrap: 'truncate-end', color: 'yellow', children: ['⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume'] }))
     const dw = doctorWarning()
     if (dw) flag.push(Text({ key: 'doctor', wrap: 'truncate-end', color: 'red', children: [dw] }))
@@ -2894,7 +3140,7 @@ export function register(on, options) {
     const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
-      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model })
+      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model, prompt: input.prompt })
       if (!pane.open) $.clock.after(0, () => autoOpenPane($).catch(() => {}))
       if (!e.parentAgentId) {
         spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })

@@ -140,6 +140,18 @@ ok(links.includes('https://github.com/o/r/issues/12') && links.includes('https:/
 const wsTexts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
 ok(wsTexts.some((x) => /merge-ready (\d+)\/\1 · waiting for you to merge/.test(x)), 'Workspace: the merge rows as one line')
 ok(wsTexts.some((x) => /2\/2 verified/.test(x)) && !wsTexts.some((x) => x.trim() === 'T2'), 'Work: one line per phase, the nodes folded until p')
+// Enter on a phase's › opens its view in place; b goes back
+await flat(t).find((n) => n.props?.key === 'open-p-P1').props.onPress()
+t = await render()
+let dTexts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
+ok(dTexts.some((x) => /^P1 · /.test(x)) && dTexts.some((x) => /its nodes/.test(x)) && dTexts.some((x) => /^ {2}T2 {4}$/.test(x)), 'Enter on a phase opens its view: steps, brief, its nodes')
+await flat(t).find((n) => n.props?.key === 'd-back').props.onPress()
+t = await render()
+ok(flat(t).some((n) => n.props?.key === 'plan-toggle'), 'b goes back to Work')
+// an agent row's › opens the agent: its task and its last tool calls
+const aBtn = flat(t).filter((n) => n.type === 'Button' && /^open-a/.test(n.props.key))
+const tree0Rows = () => flat(t).filter((n) => n.props?.key && /^ar\d+$/.test(n.props.key)).length
+ok(aBtn.length === tree0Rows() && aBtn.length >= 2, 'every agent row has a › to open it (' + aBtn.length + ')')
 await flat(t).find((n) => n.props?.key === 'plan-toggle').props.onPress()
 t = await render()
 const texts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
@@ -206,6 +218,15 @@ ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry 
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 
+// ---- /baton show: the same views as text
+surfaces = []
+let sh = await fire('command.run', { command: 'baton', args: 'show T1' })
+ok(/^T1 · verified/.test(sh.text) && /red · green · blue/.test(sh.text), '/baton show T1: the node with its red, green, blue: ' + sh.text.split('\n')[0])
+sh = await fire('command.run', { command: 'baton', args: 'show big parser' })
+ok(/^● worker T10 big parser/.test(sh.text) && /in the tree {2}prime › T10 big parser/.test(sh.text) && /context {6}61% of its window/.test(sh.text), '/baton show <agent>: who, where, its meter')
+sh = await fire('command.run', { command: 'baton', args: 'show nothing-here' })
+ok(/usage: \/baton show/.test(sh.text), 'an unknown target says how to use it')
+
 // merged → next goal
 G.pr.state = 'MERGED'
 await poll()
@@ -215,3 +236,4 @@ ok(/#12 CSV export/.test(r.text) && /#15 Retry backoff/.test(r.text), 'watch lis
 r = await fire('command.run', { command: 'baton', args: 'next' })
 const m2 = JSON.parse(fs.readFileSync(path.join(W, '_orch/manifest.json'), 'utf8'))
 ok(/archived /.test(r.text) && m2.issue.number === 15 && fs.existsSync(path.join(W, '.baton/runs', m.run_id, 'manifest.json')), 'next: archived the run, started #15')
+

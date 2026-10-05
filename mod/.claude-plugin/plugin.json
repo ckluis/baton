@@ -1,6 +1,6 @@
 {
   "name": "baton",
-  "version": "7.0.0-dev",
+  "version": "7.5.0",
   "description": "baton v7: a prime orchestrator that only dispatches, a memory instead of a growing context, a tracker and per-agent meters, approvals from anywhere, GitHub goals, and a built-in code index \u2014 nothing to set up",
   "author": {
     "name": "Chris Kluis"

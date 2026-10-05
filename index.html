@@ -205,6 +205,20 @@ ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);fon
 .cc .c-b{color:var(--blue)}
 .cc .panel pre{min-height:300px}
 
+/* the window's Work panel, live: rows open their views */
+.cc .demo{outline:none}
+.cc .demo:focus-visible{box-shadow:inset 0 0 0 1px var(--cyan-dim)}
+.cc .row{cursor:pointer;border-radius:3px}
+.cc .row:hover{background:rgba(255,255,255,.04)}
+.cc .row.sel{background:rgba(94,234,212,.13);box-shadow:inset 2px 0 0 var(--cyan)}
+.cc .row.sel > .c-d:first-child{color:var(--cyan)}
+.cc .demo .node{display:none}
+.cc .demo.plan-open .node{display:inline}
+.cc .back{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.cc .dview{min-height:300px}
+.cc .keys{color:var(--muted-2);font-size:11.5px}
+.cc .keys b{color:var(--muted);font-weight:500;border:1px solid var(--hair-2);border-radius:4px;padding:0 4px;margin:0 1px}
+
 /* rgb */
 .rgb .card{border-top-width:3px}
 .rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
@@ -340,7 +354,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     <div class="secnum">02</div>
     <h2>Inside the mod.</h2>
     <p class="lede">A mod is a JavaScript module Claude Code runs inside its own loop. It sees every prompt, model request, tool call,
-      spawn and redraw, and can answer, change or refuse each one. baton’s registers <b>27 hooks</b>, <b>15 commands</b>, <b>11 tools</b>
+      spawn and redraw, and can answer, change or refuse each one. baton’s registers <b>27 hooks</b>, <b>16 commands</b>, <b>11 tools</b>
       and <b>16 settings</b>. None of it depends on an agent remembering to do something: each piece runs where its event happens.</p>
     <div class="purp" role="group" aria-label="Filter the hooks by purpose">
       <button type="button" class="k-guard" data-f="guard" aria-pressed="false"><i></i>guard</button>
@@ -351,7 +365,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
       <button type="button" class="k-run" data-f="run" aria-pressed="false"><i></i>run</button>
     </div>
     <div class="life">
-<div class="moment reveal"><h3>When the session starts<span>once</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">session.start</code><p>Reads the engine version. The guard tells the prime from a subagent by <code>agentId</code>, verified on 2.1.287; on any other version it says so and fails closed.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Runs the doctor in the background: node, git, <code>gh</code> and its login, ripgrep, the memory. A failed check shows in the band.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">SessionStart · startup, resume</code><p>A new session in a directory with an active run is told it is that run’s prime: wake from the memory first, then dispatch.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Registers <code>/baton</code>, and in a run directory the seven memory tools. Starts a 150&nbsp;ms ticker for owed rotations and the kickoff, and the PR poller.</p></div></div></div>
+<div class="moment reveal"><h3>When the session starts<span>once</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">session.start</code><p>Reads the engine version. The guard tells the prime from a subagent by <code>agentId</code>, verified on 2.1.287; on any other version it says so and fails closed.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Runs the doctor in the background (node, git, <code>gh</code> and its login, ripgrep, the memory) and checks for a newer baton: a failed check, or an update with <code>9</code> to install it, shows in the band.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">SessionStart · startup, resume</code><p>A new session in a directory with an active run is told it is that run’s prime: wake from the memory first, then dispatch.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Registers <code>/baton</code>, and in a run directory the seven memory tools. Starts a 150&nbsp;ms ticker for owed rotations and the kickoff, and the PR poller.</p></div></div></div>
 <div class="moment reveal"><h3>When you send a prompt<span>every prompt</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>Your words become a run note. In the background, Sonnet reads them for a standing rule; one it finds becomes a ruling in the project memory.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>After a rotation, the prompt carries the instruction to call <code>memory_wake</code> first.</p></div></div></div>
 <div class="moment reveal"><h3>Every model request<span>every step, every agent</span></h3><div class="hooks"><div class="hook k-measure" data-k="measure"><code class="ev">turn.step</code><p>Reads the request’s usage and the agent that made it: fresh tokens and cache reads, by role, phase and node, into <code>_orch/spend.json</code>. The response streams on untouched.</p></div></div></div>
 <div class="moment reveal"><h3>Every tool call<span>before it runs</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">tool.call</code><p><b>The prime guard.</b> A call with no <code>agentId</code> is the prime’s: only <code>Agent</code>, <code>AskUserQuestion</code>, <code>SendMessage</code>, <code>ToolSearch</code>, the prime skill and <code>mcp__baton__*</code> pass. Anything else is refused with the route. If the guard throws, the call is refused.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">tool.call · mcp__baton__*</code><p>Serves <code>memory_wake</code>, <code>_note</code>, <code>_zoom</code>, <code>_recall</code> and the three <code>project_*</code> tools from the log and tree on disk. Wake leads with your rulings.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>Forbidden files.</b> A <code>git add</code> naming <code>.env</code>, a key or credentials is refused from any agent, run or no run.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>The command gate.</b> Push, PR create/merge/close, publish, <code>reset --hard</code> and <code>rm -r</code> from any depth wait on a dialog naming the chain. With nobody at the terminal, it is asked on the PR instead.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>Checkpoints.</b> Before <code>reset --hard</code>, <code>clean -f</code> or <code>rm -r</code> runs, the whole tree is snapshotted to a hidden ref; <code>/baton restore</code> puts it back.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Agent</code><p><b>The phase gate.</b> After a sub-orchestrator reports DONE, the prime’s next dispatch waits until you approve the phase or send it back with a reason.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.check · Bash</code><p><b>Enforced rulings.</b> After the permission rules decide, a command matching an enforced ruling’s pattern is refused, quoting the ruling.</p></div></div></div>
@@ -359,7 +373,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <div class="moment reveal"><h3>Every finished turn<span>prime or subagent</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">turn.complete</code><p>A subagent the prime dispatched: its one-line return becomes a run note, tagged with its role. The prime’s own reply: its first line becomes one too.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">turn.complete</code><p>A sub-orchestrator whose return leads with DONE joins the phase-gate queue, and the band flags it.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">turn.complete</code><p>Writes the spend down and re-reads the record: every computed state that moved becomes a row in <code>_orch/track/</code>.</p></div></div></div>
 <div class="moment reveal"><h3>As the context grows<span>after each turn</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">session.measure</code><p>The context gauge. At <code>rotateAtPercent</code> (35%): a one-line handoff from a fork of the prime, then a compaction off the clock.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">session.compact · SessionStart</code><p>Every compaction in a run counts as a rotation and arms the wake, delivered by whichever comes first: SessionStart, the next prompt, or the next allowed tool result.</p></div></div></div>
 <div class="moment reveal"><h3>Every two minutes<span>on the clock, during a run</span></h3><div class="hooks"><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → gh pr view</code><p>The PR as data, no model: state, checks, mergeability, files, closing issues, comments. Merge-ready is computed row by row; the reviewer’s verdict is parsed from its comment.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → comments</code><p>From allowed answerers, <code>/approve P3</code>, <code>/send-back P3 …</code> and <code>/approve push</code> act as the gate. Other remarks become one line each, condensed by Haiku 4.5.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → the issue</code><p>The goal’s state as a <code>baton:&lt;state&gt;</code> label, and optionally a Projects board column. One spend comment on the PR, edited in place.</p></div></div></div>
-<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p>Opens by itself, with two tabs: Work (the goal, the PR and its review findings linked to their lines, the agent table with a trend column, the plan one line per phase with <code>p</code> for every node, what waits for you) and Memory (your rulings, then the memory browser). Buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>One line: plan usage, the context against its threshold, the cost, the goal and the PR. With a phase waiting, <code>1</code> typed into an empty prompt approves it.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · pause · resume · rotate · status · doctor · watch · next · rule · rulings · retract · enforce · checkpoints · restore. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
+<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p>Opens by itself, with two tabs: Work (the goal, the PR and its review findings linked to their lines, the agent table with a trend column, the plan one line per phase with <code>p</code> for every node, what waits for you) and Memory (your rulings, then the memory browser). Every agent, phase, node and ruling row opens with <code>↑</code>/<code>↓</code> and <code>Enter</code> (<code>b</code> goes back); buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>One line: plan usage, the context against its threshold, the cost, the goal and the PR. With a phase waiting, <code>1</code> typed into an empty prompt approves it.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · pause · resume · rotate · status · doctor · watch · next · rule · rulings · retract · enforce · checkpoints · restore. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
     </div>
 
     <h3 style="margin-top:64px;font-size:22px">One goal, end to end</h3>
@@ -367,7 +381,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     <ol class="walk"><li><span><code>/baton start #12</code> reads the issue with <code>gh</code>, writes the manifest (<code>"prime": true</code>, the run branch), notes the start, and starts the prime’s first turn with the issue verbatim and your rulings.</span><code class="ev">command.run</code></li><li><span>The prime tries to <code>Read</code> the codebase. Refused: <i>dispatch a sub-orchestrator</i>. It dispatches one for the bootstrap.</span><code class="ev">tool.call</code></li><li><span>The spawn is bound to Opus 5.5 and joins the tree. Every request it makes is metered from here on.</span><code class="ev">agent.spawn · turn.step</code></li><li><span>The bootstrap writes the directive and the plan, has it checked by a fresh spawn, and opens the branch and a draft PR that closes #12. It returns one line, which becomes a run note.</span><code class="ev">turn.complete</code></li><li><span>Phases run: workers go red, green, blue; verifiers re-run red against the unchanged code. Each move lands as a tracker row, and the issue’s label goes <code>baton:building</code>.</span><code class="ev">turn.complete · $.clock</code></li><li><span>A worker three levels down runs <code>git push</code>. You get a dialog: <i>prime › P3 › T7 wants to git push</i>. You approve it for the run.</span><code class="ev">tool.call</code></li><li><span>P3 returns DONE. The band flags it, and the prime’s next dispatch waits for your check. You send it back: <i>the empty case is untested</i>.</span><code class="ev">turn.complete · tool.call</code></li><li><span>At 35% context the prime rotates: a handoff line, a compaction, and its next act is <code>memory_wake</code>. Your rulings come first in what it sees.</span><code class="ev">session.measure · session.compact</code></li><li><span>After the last phase, the prime dispatches the PR reviewer. Its comment says <code>CHANGES</code>, 1 high. The poller notes it, and a steward runs a fix round.</span><code class="ev">agent.spawn · $.clock</code></li><li><span>Round 2: <code>READY</code>. Every merge row holds. The PR is marked ready, the label goes <code>baton:ready</code>, and the band says it is waiting for you.</span><code class="ev">$.clock</code></li><li><span>You merge on GitHub. The poller sees it and the goal goes <code>merged</code>. <code>/baton next</code> archives the run and starts the next issue in the queue.</span><code class="ev">$.clock · command.run</code></li></ol>
 
     <div class="ref">
-      <div class="card reveal"><span class="tag">/baton …</span><table><thead><tr><th>command</th><th>does</th></tr></thead><tbody><tr><td>start &lt;MODE&gt; &lt;TARGET|#n&gt;</td><td>arm the guard, write the manifest, start the prime</td></tr><tr><td>stop</td><td>close the run; the guard comes off; <code>_orch/</code> stays</td></tr><tr><td>pause · resume</td><td>hold every new spawn and gated command, then let it go on</td></tr><tr><td>doctor</td><td>check node, git, gh and its login, ripgrep, the version, the memory</td></tr><tr><td>checkpoints · restore &lt;id&gt;</td><td>the snapshots taken before reset/clean/rm, and putting files back</td></tr><tr><td>rotate</td><td>handoff, compaction and wake, now</td></tr><tr><td>status</td><td>run, context, rotations, guard, approvals, the tracker</td></tr><tr><td>watch [label]</td><td>the issue queue</td></tr><tr><td>next [#n]</td><td>archive a finished run and start the next goal</td></tr><tr><td>rule &lt;text&gt;</td><td>a standing ruling, by hand</td></tr><tr><td>rulings</td><td>list them, newest first</td></tr><tr><td>retract &lt;#&gt;</td><td>withdraw one; the log keeps it</td></tr><tr><td>enforce &lt;#&gt; &lt;regex&gt;</td><td>make one refuse matching commands</td></tr></tbody></table></div>
+      <div class="card reveal"><span class="tag">/baton …</span><table><thead><tr><th>command</th><th>does</th></tr></thead><tbody><tr><td>start &lt;MODE&gt; &lt;TARGET|#n&gt;</td><td>arm the guard, write the manifest, start the prime</td></tr><tr><td>stop</td><td>close the run; the guard comes off; <code>_orch/</code> stays</td></tr><tr><td>pause · resume</td><td>hold every new spawn and gated command, then let it go on</td></tr><tr><td>doctor</td><td>check node, git, gh and its login, ripgrep, the version, the memory</td></tr><tr><td>checkpoints · restore &lt;id&gt;</td><td>the snapshots taken before reset/clean/rm, and putting files back</td></tr><tr><td>rotate</td><td>handoff, compaction and wake, now</td></tr><tr><td>status</td><td>run, context, rotations, guard, approvals, the tracker</td></tr><tr><td>show &lt;P3|T12|agent&gt;</td><td>the view Enter opens, as text</td></tr><tr><td>watch [label]</td><td>the issue queue</td></tr><tr><td>next [#n]</td><td>archive a finished run and start the next goal</td></tr><tr><td>rule &lt;text&gt;</td><td>a standing ruling, by hand</td></tr><tr><td>rulings</td><td>list them, newest first</td></tr><tr><td>retract &lt;#&gt;</td><td>withdraw one; the log keeps it</td></tr><tr><td>enforce &lt;#&gt; &lt;regex&gt;</td><td>make one refuse matching commands</td></tr></tbody></table></div>
       <div class="card reveal"><span class="tag">tools its agents get · mcp__baton__*</span><table><thead><tr><th>tool</th><th>does</th></tr></thead><tbody><tr><td>memory_wake</td><td>the run in a fixed budget of lines, rulings first</td></tr><tr><td>memory_note</td><td>one line, at most 280 bytes</td></tr><tr><td>memory_zoom</td><td>open a block back up to its notes</td></tr><tr><td>memory_recall</td><td>regex over notes and summaries</td></tr><tr><td>project_wake</td><td>the memory that spans runs</td></tr><tr><td>project_note</td><td>what the next run should know</td></tr><tr><td>project_recall</td><td>search it; <code>namespace</code> selects one inside it</td></tr></tbody></table></div>
       <div class="card reveal"><span class="tag">settings · userConfig</span><table><thead><tr><th>setting</th><th>default</th></tr></thead><tbody><tr><td>rotateAtPercent</td><td>35</td></tr><tr><td>wakeBudgetLines</td><td>96</td></tr><tr><td>memoryDir</td><td>.baton/memory</td></tr><tr><td>approvals</td><td>on</td></tr><tr><td>phaseGate</td><td>on</td></tr><tr><td>prPollSeconds</td><td>120</td></tr><tr><td>tokensPerGoal</td><td>0 (off)</td></tr><tr><td>labels</td><td>on</td></tr><tr><td>boardProject</td><td>0 (off)</td></tr><tr><td>boardOwner</td><td>you</td></tr><tr><td>forbiddenFiles</td><td>added to the defaults</td></tr></tbody></table><p class="muted" style="font-size:13px;margin:8px 0 10px"><code>BATON_APPROVALS=0</code> turns both gates off for unattended runs; <code>BATON_AUTOROTATE=0</code> leaves rotation to <code>/baton rotate</code>.</p></div>
       <div class="card reveal"><span class="tag">what it writes</span><table><thead><tr><th>path</th><th>holds</th></tr></thead><tbody><tr><td>_orch/manifest.json</td><td>the run: <code>"prime": true</code>, mode, goal, branch</td></tr><tr><td>_orch/memory/</td><td>the run memory: the log and the merge tree</td></tr><tr><td>.baton/memory/</td><td>the project memory; <code>ns/rulings</code> inside it</td></tr><tr><td>_orch/track/</td><td>one row per state change, measured</td></tr><tr><td>_orch/spend.json</td><td>tokens by role, phase and node</td></tr><tr><td>_orch/github/pr.json</td><td>the goal’s PR, written by the bootstrap</td></tr><tr><td>.baton/runs/&lt;id&gt;/</td><td>finished runs, archived by <code>/baton next</code></td></tr></tbody></table></div>
@@ -463,50 +477,336 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <span class="c-c">✻ Coordinating… · baton · P6 · P6 import</span></pre>
       <div class="pane">
         <input type="radio" name="cc-tab" id="cc-w" checked><input type="radio" name="cc-tab" id="cc-m">
-        <div class="tabs"><label for="cc-w">1 Work</label><label for="cc-m">2 Memory</label><span class="x">baton · opened by itself · click a tab</span></div>
+        <div class="tabs"><label for="cc-w">1 Work</label><label for="cc-m">2 Memory</label><span class="x keys">click a row, or here then <b>↑</b><b>↓</b> <b>Enter</b> · <b>b</b> back · <b>p</b> plan · <b>1</b><b>2</b> tabs</span></div>
         <div class="panels">
-          <div class="panel p-w"><pre><span class="c-b">#12 CSV export ↗</span> <span class="c-d">·</span> <span class="c-b">PR #47 ↗</span> <span class="c-d">checks 5/6 · review CHANGES (1 high, 0 med)</span>
+          <div class="panel p-w"><div class="demo" tabindex="0" aria-label="baton Work tab: use the arrow keys and Enter, or click a row"><pre class="work"><span class="c-b">#12 CSV export ↗</span> <span class="c-d">·</span> <span class="c-b">PR #47 ↗</span> <span class="c-d">checks 5/6 · review CHANGES (1 high, 0 med)</span>
 <b class="c-i">goal    </b> <span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span><span class="c-d"> · 2.7M · $17.41+?</span>
 <b class="c-i">PR      </b> <span class="c-g">● draft 1h10</span><span class="c-g"> ─ </span><span class="c-g">● checks 4m</span><span class="c-g"> ─ </span><span class="c-r">✗ reviewed 14m (changes)</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span>
 <span class="c-d">         merge-ready 6/9 · ✗ every check green · ✗ the reviewer’s latest verdict is READY · ✗ no high finding open</span>
+<span class="c-r">         high</span> <span class="c-b">src/import/csv.ts:88 ↗</span> <span class="c-d">a quoted newline splits the row</span>
 
-<span class="c-d">agent                         </span><span class="c-d">context  </span><span class="c-d">trend     </span><span class="c-d">budget  </span><span class="c-d">model    </span><span class="c-d"> input  </span><span class="c-d">c.write  </span><span class="c-d"> c.read  </span><span class="c-d">output  </span><span class="c-d">   cost  </span><span class="c-d">steps        </span><span class="c-d">state             </span>
-◆ prime                       <span class="c-g">    24%</span>  <span class="c-g">▁▁▂▂▂▂  </span>  <span class="c-d">   35%</span>  opus        41k  <span class="c-d">    88k</span>  <span class="c-d">   2.1M</span>     19k    $1.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>  <span class="c-c">building          </span>
-<span class="c-g">  ✓ sub-orch P5 export      </span>  <span class="c-g">    18%</span>  <span class="c-g">▁▁▁▂▂   </span>  <span class="c-d">   50%</span>  opus       120k  <span class="c-d">   310k</span>  <span class="c-d">   6.4M</span>     88k    $5.39  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">approved          </span>
-<span class="c-g">    ✓ worker T22            </span>  <span class="c-y">    31%</span>  <span class="c-y">▁▁▂▂▃   </span>  <span class="c-d">   50%</span>  opus        52k  <span class="c-d">   140k</span>  <span class="c-d">   2.9M</span>     41k    $2.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">verified          </span>
-<span class="c-r">    ✗ worker-cheap T23      </span>  <span class="c-g">     9%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  sonnet      18k  <span class="c-d">    22k</span>  <span class="c-d">   410k</span>      9k       $?  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-r">green (refuted)   </span>
-<span class="c-c">  ● sub-orch P6 import      </span>  <span class="c-g">    12%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  opus        36k  <span class="c-d">    90k</span>  <span class="c-d">   1.5M</span>     21k    $1.28  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">dispatched        </span>
-<span class="c-c">    ● worker T29            </span>  <span class="c-r">    57%</span>  <span class="c-r">▁▂▃▄▄▅  </span>  <span class="c-d">   50%</span>  opus        61k  <span class="c-d">   160k</span>  <span class="c-d">   3.8M</span>     52k    $3.05  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span>
-<span class="c-c">    ● verifier T27          </span>  <span class="c-g">     6%</span>  <span class="c-g">▁▁      </span>  <span class="c-d">   50%</span>  opus         9k  <span class="c-d">    31k</span>  <span class="c-d">   220k</span>      4k    $0.32  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span>
-<span class="c-d">    T29 crossed its 50% budget: the mod told it to finish or split.   ✉ on a running row messages it.</span>
+  <span class="c-d">agent                         </span><span class="c-d">context  </span><span class="c-d">trend     </span><span class="c-d">budget  </span><span class="c-d">model    </span><span class="c-d"> input  </span><span class="c-d">c.write  </span><span class="c-d"> c.read  </span><span class="c-d">output  </span><span class="c-d">   cost  </span><span class="c-d">steps        </span><span class="c-d">state             </span>
+<span class="row" data-d="a-prime"><span class="c-d">›</span> ◆ prime                       <span class="c-g">    24%</span>  <span class="c-g">▁▁▂▂▂▂  </span>  <span class="c-d">   35%</span>  opus        41k  <span class="c-d">    88k</span>  <span class="c-d">   2.1M</span>     19k    $1.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>  <span class="c-c">building          </span></span>
+<span class="row" data-d="a-p5"><span class="c-d">›</span> <span class="c-g">  ✓ sub-orch P5 export      </span>  <span class="c-g">    18%</span>  <span class="c-g">▁▁▁▂▂   </span>  <span class="c-d">   50%</span>  opus       120k  <span class="c-d">   310k</span>  <span class="c-d">   6.4M</span>     88k    $5.39  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">approved          </span></span>
+<span class="row" data-d="a-t22"><span class="c-d">›</span> <span class="c-g">    ✓ worker T22            </span>  <span class="c-y">    31%</span>  <span class="c-y">▁▁▂▂▃   </span>  <span class="c-d">   50%</span>  opus        52k  <span class="c-d">   140k</span>  <span class="c-d">   2.9M</span>     41k    $2.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">verified          </span></span>
+<span class="row" data-d="a-t23"><span class="c-d">›</span> <span class="c-r">    ✗ worker-cheap T23      </span>  <span class="c-g">     9%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  sonnet      18k  <span class="c-d">    22k</span>  <span class="c-d">   410k</span>      9k       $?  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-r">green (refuted)   </span></span>
+<span class="row" data-d="a-p6"><span class="c-d">›</span> <span class="c-c">  ● sub-orch P6 import      </span>  <span class="c-g">    12%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  opus        36k  <span class="c-d">    90k</span>  <span class="c-d">   1.5M</span>     21k    $1.28  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">dispatched        </span></span>
+<span class="row" data-d="a-t29"><span class="c-d">›</span> <span class="c-c">    ● worker T29            </span>  <span class="c-r">    57%</span>  <span class="c-r">▁▂▃▄▄▅  </span>  <span class="c-d">   50%</span>  opus        61k  <span class="c-d">   160k</span>  <span class="c-d">   3.8M</span>     52k    $3.05  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span></span>
+<span class="row" data-d="a-t27"><span class="c-d">›</span> <span class="c-c">    ● verifier T27          </span>  <span class="c-g">     6%</span>  <span class="c-g">▁▁      </span>  <span class="c-d">   50%</span>  opus         9k  <span class="c-d">    31k</span>  <span class="c-d">   220k</span>      4k    $0.32  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span></span>
+<span class="c-d">    T29 crossed its 50% budget: the mod told it to finish or split.</span>
 
 <b class="c-i">plan</b>  <span class="c-d">p every node</span>
-<b class="c-i">P5      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span><span class="c-d"> · 9/9 verified · 1.4M · $8.12</span>
-<b class="c-i">P6      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span><span class="c-d"> · 2/5 verified · T31 blocked · 410k · $4.65</span>
-<b class="c-i">P7      </b> <span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
+<span class="row" data-d="p-P5"><span class="c-d">›</span> <b class="c-i">P5      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span><span class="c-d"> · 2/2 verified · 1.4M · $8.12</span></span>
+<span class="row node" data-d="n-T22"><span class="c-d">›</span> <b class="c-i">  T22   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span>
+</span><span class="row node" data-d="n-T23"><span class="c-d">›</span> <b class="c-i">  T23   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+</span><span class="row" data-d="p-P6"><span class="c-d">›</span> <b class="c-i">P6      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span><span class="c-d"> · 1/5 verified · T31 blocked · 410k · $4.65</span></span>
+<span class="row node" data-d="n-T27"><span class="c-d">›</span> <b class="c-i">  T27   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+</span><span class="row node" data-d="n-T29"><span class="c-d">›</span> <b class="c-i">  T29   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+</span><span class="row node" data-d="n-T30"><span class="c-d">›</span> <b class="c-i">  T30   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span>
+</span><span class="row node" data-d="n-T31"><span class="c-d">›</span> <b class="c-i">  T31   </b> <span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+</span><span class="row node" data-d="n-T32"><span class="c-d">›</span> <b class="c-i">  T32   </b> <span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+</span><span class="row" data-d="p-P7"><span class="c-d">›</span> <b class="c-i">P7      </b> <span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span></span>
 
 <span class="c-r">? Q-4 Which vendor key does the import use?  — blocked by _orch/nodes/T31/handoff.md:"use the vendor API" (explicit: fix the cause)</span>
 <span class="c-m">ruling #3 2026-10-05 Hold the database migration until the operator releases it.</span>
-<span class="c-m">ruling #1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span></pre></div>
-          <div class="panel p-m"><pre><b class="c-i">rulings</b>
-<span class="c-d">New ruling: </span><span class="c-d">a standing instruction; the newest wins ⏎ add</span>
-<span class="c-d">[x]</span> <span class="c-m">#3 2026-10-05 Hold the database migration until the operator releases it.</span>
-<span class="c-d">[x]</span> <span class="c-m">#1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span>
-<span class="c-d">[x]</span> <span class="c-m">#0 2026-10-02 Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span>
-<span class="c-d">x retracts · /baton enforce &lt;#&gt; &lt;regex&gt; makes a ruling refuse matching shell commands</span>
+<span class="c-d">↑/↓ then Enter on › opens an agent, a phase or a node · ✉ messages a running one · p shows every node · b goes back</span></pre><pre class="dview" data-id="a-prime" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● prime prime</b>   <span class="c-d">refresh (r)</span>
 
-<b class="c-i">memory</b>
-<span class="c-d">tree: 214 notes · 213/213 summaries · 8 levels · 0 merges pending</span>
-<span class="c-d">[b] back   Search: </span><span class="c-i">migration</span><span class="c-d"> ⏎ search</span>
-<span class="c-c">[+]</span> #0-127 (128 notes) bootstrap BUILD ./shop; 41 nodes / 6 phases; P1–P3 CONFIRMED; Q-1 vendor key answered
-<span class="c-c">[+]</span> #128-191 (64 notes) P4 parser: T14 refuted twice, escalated; a red test passed pre-change and was refuted (9.4)
-<span class="c-c">[+]</span> #192-207 (16 notes) P5 export 9/9; T23 refuted once, fixed; approved
-    #208 2026-10-05T10:31:02Z [approval] operator approved P5: P5 DONE+CONFIRMED 9/9
-    #209 2026-10-05T10:31:40Z [operator] ship P6, but hold the migration until I say
-    #210 2026-10-05T10:31:41Z [prime-reply] P6 dispatched with the migration held (ruling #3)
-    #211 2026-10-05T10:39:12Z [budget] worker T29 reached 57% context; told to finish or split
-    #212 2026-10-05T10:41:55Z [review] PR #47 review round 1: CHANGES (1 high, 0 med, 2 low)
-    #213 2026-10-05T10:42:07Z [github] PR #47 chris: asks to also export archived orders</pre></div>
+<span class="c-d">in the tree  </span>prime
+<span class="c-d">model        </span>opus  ·  running 1h31m  ·  96 tool calls
+<span class="c-d">context      </span><span class="c-g">24% of its window</span><span class="c-d">  ·  budget 35%  ·  trend </span><span class="c-g">▁▁▂▂▂▂</span>
+<span class="c-d">tokens       </span>input 41k  ·  cache write 88k  ·  cache read 2.1M  ·  output 19k  ·  $1.43
+<span class="c-d">its work     </span><span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span>
+
+<span class="c-i">the task it was given</span>
+  /baton start #12 — the goal is GitHub issue #12: "CSV export". Export orders as CSV from the admin; an
+  empty export still has a header row; quoting follows RFC 4180. Hold the database migration until the
+  operator releases it (ruling #3).
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  10:31:41  </span>memory_note   P6 dispatched with the migration held (ruling #3)
+<span class="c-d">  10:31:44  </span>Agent         P6 import
+<span class="c-d">  10:39:02  </span>memory_wake   
+<span class="c-d">  10:41:58  </span>Agent         pr-reviewer round 1</pre><pre class="dview" data-id="a-p5" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✓ sub-orch P5 export</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P5 export
+<span class="c-d">model        </span>opus  ·  finished in 41m00s  ·  212 tool calls  ·  DONE+CONFIRMED
+<span class="c-d">context      </span><span class="c-g">18% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁▂▂</span>
+<span class="c-d">tokens       </span>input 120k  ·  cache write 310k  ·  cache read 6.4M  ·  output 88k  ·  $5.39
+<span class="c-d">its work     </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span>
+
+<span class="c-i">the task it was given</span>
+  Own phase P5 (export) of run build-20261005T0912Z: write the phase brief from plan/graph.yaml, dispatch
+  each node by §4.1, verify each with a fresh verifier, route escalations, run the phase gate, and return
+  one line.
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  09:52:10  </span>Agent         T23 empty export header (retry)
+<span class="c-d">  09:58:30  </span>Agent         verifier T23
+<span class="c-d">  10:00:02  </span>Write         _orch/phases/P5/envelope.json
+
+<span class="c-i">returned</span>
+  P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed · next: P6 import</pre><pre class="dview" data-id="a-t22" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✓ worker T22</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P5 export › T22
+<span class="c-d">model        </span>opus  ·  finished in 18m00s  ·  37 tool calls  ·  DONE
+<span class="c-d">context      </span><span class="c-y">31% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-y">▁▁▂▂▃</span>
+<span class="c-d">tokens       </span>input 52k  ·  cache write 140k  ·  cache read 2.9M  ·  output 41k  ·  $2.43
+<span class="c-d">its work     </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span>
+
+<span class="c-i">the task it was given</span>
+  Node T22: quote fields per RFC 4180 in src/export/csv.ts. Handoff: _orch/nodes/T22/handoff.md.
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  09:33:12  </span>Write         test/export/csv.test.ts
+<span class="c-d">  09:33:40  </span>Bash          npm test -- csv  (red: 6 failing)
+<span class="c-d">  09:41:02  </span>Edit          src/export/csv.ts
+<span class="c-d">  09:41:30  </span>Bash          npm test  (green: 412 passing)
+
+<span class="c-i">returned</span>
+  T22 DONE · quoting per RFC 4180, 6 tests red→green · nothing open</pre><pre class="dview" data-id="a-t23" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✗ worker-cheap T23</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P5 export › T23
+<span class="c-d">model        </span>sonnet  ·  finished in 9m00s  ·  8 tool calls  ·  REFUTED
+<span class="c-d">context      </span><span class="c-g">9% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁</span>
+<span class="c-d">tokens       </span>input 18k  ·  cache write 22k  ·  cache read 410k  ·  output 9k  ·  $?
+<span class="c-d">its work     </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+
+<span class="c-i">the task it was given</span>
+  Node T23: an empty export has a header row (src/export/csv.ts).
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  09:34:02  </span>Edit          src/export/csv.ts
+<span class="c-d">  09:35:10  </span>Write         test/export/empty.test.ts
+<span class="c-d">  09:35:40  </span>Bash          npm test -- empty
+
+<span class="c-i">returned</span>
+  T23 DONE · header row on empty export · 1 test</pre><pre class="dview" data-id="a-p6" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● sub-orch P6 import</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P6 import
+<span class="c-d">model        </span>opus  ·  running 12m00s  ·  64 tool calls
+<span class="c-d">context      </span><span class="c-g">12% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁</span>
+<span class="c-d">tokens       </span>input 36k  ·  cache write 90k  ·  cache read 1.5M  ·  output 21k  ·  $1.28
+<span class="c-d">its work     </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
+
+<span class="c-i">the task it was given</span>
+  Own phase P6 (import) of run build-20261005T0912Z. The operator holds the database migration (ruling
+  #3): do not dispatch T32 until it is released.
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  10:31:50  </span>Write         _orch/phases/P6/brief.md
+<span class="c-d">  10:32:05  </span>Agent         T29 import parser
+<span class="c-d">  10:32:07  </span>Agent         T31 vendor key
+<span class="c-d">  10:39:20  </span>Agent         verifier T27
+<span class="c-d">  10:42:12  </span>Bash          git status --short</pre><pre class="dview" data-id="a-t29" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● worker T29</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P6 import › T29
+<span class="c-d">model        </span>opus  ·  running 11m00s  ·  19 tool calls
+<span class="c-d">context      </span><span class="c-r">57% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-r">▁▂▃▄▄▅</span>
+<span class="c-d">tokens       </span>input 61k  ·  cache write 160k  ·  cache read 3.8M  ·  output 52k  ·  $3.05
+<span class="c-d">its work     </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+
+<span class="c-i">the task it was given</span>
+  Node T29: parse orders from CSV in src/import/csv.ts; a bad row reports its line number.
+
+<span class="c-i">lessons the mod added to it</span><span class="c-d">  (from earlier refutations in this code)</span>
+<span class="c-m">  - T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code</span>
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  10:33:01  </span>code_search   parseCsv
+<span class="c-d">  10:33:04  </span>code_fetch    src/export/csv.ts:12-48
+<span class="c-d">  10:34:10  </span>Write         test/import/csv.test.ts
+<span class="c-d">  10:34:40  </span>Bash          npm test -- import  (red: 4 failing)
+<span class="c-d">  10:40:22  </span>Edit          src/import/csv.ts
+<span class="c-d">  10:41:05  </span>Bash          npm test  (green: 418 passing)
+<span class="c-d">  10:42:30  </span>Edit          src/import/csv.ts</pre><pre class="dview" data-id="a-t27" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● verifier T27</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">in the tree  </span>prime › P6 import › T27
+<span class="c-d">model        </span>opus  ·  running 4m00s  ·  6 tool calls
+<span class="c-d">context      </span><span class="c-g">6% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁</span>
+<span class="c-d">tokens       </span>input 9k  ·  cache write 31k  ·  cache read 220k  ·  output 4k  ·  $0.32
+<span class="c-d">its work     </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
+
+<span class="c-i">the task it was given</span>
+  Verify node T27 (import dedupes orders by id). Refute each done-criterion; re-run red against the
+  unchanged code; write _orch/verify/T27-verdict.json.
+
+<span class="c-i">last tool calls</span>
+<span class="c-d">  10:39:30  </span>Read          _orch/nodes/T27/handoff.md
+<span class="c-d">  10:40:02  </span>Bash          git worktree add /tmp/verify-T27 &lt;red parent>
+<span class="c-d">  10:40:40  </span>Bash          npm test -- dedupe  (red reproduced: 2 failing)</pre><pre class="dview" data-id="p-P5" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P5 · approved</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span>
+<span class="c-d">nodes        </span>1 of 2 verified  ·  1.4M · $8.12
+
+<span class="c-i">the brief</span>
+  P5 — export
+  Nodes: T22 (frontier), T23 (cheap)
+  Concurrency: 2 · exit: every node DONE+CONFIRMED, the gate approved
+
+<span class="c-i">its nodes</span><span class="c-d">  (Enter on one in Work opens it)</span>
+  T22   <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-d">  ·  233k · $2.43</span>
+  T23   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  49k · $?</span>
+
+<span class="c-i">its envelope</span>
+  DONE+CONFIRMED — 9/9 criteria confirmed; T23 refuted once (the red test passed pre-change) and redone.
+<span class="c-d">  risk: </span>exports over 1M rows are untested</pre><pre class="dview" data-id="p-P6" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P6 · dispatched</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
+<span class="c-d">nodes        </span>1 of 5 verified  ·  410k · $4.65
+
+<span class="c-i">the brief</span>
+  P6 — import
+  Nodes: T27, T29, T30, T31, T32 (T32 held: ruling #3, the migration)
+  Concurrency: 3 · exit: every node DONE+CONFIRMED or BLOCKED-and-batched
+
+<span class="c-i">its nodes</span><span class="c-d">  (Enter on one in Work opens it)</span>
+  T27   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  44k · $0.32</span>
+  T29   <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  273k · $3.05</span>
+  T30   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span><span class="c-d">  ·  120k · $1.10</span>
+  T31   <span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
+  T32   <span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span></pre><pre class="dview" data-id="p-P7" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P7 · briefed</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
+<span class="c-d">nodes        </span>0 of 0 verified
+
+<span class="c-i">the brief</span>
+  P7 — docs and release notes (not started)</pre><pre class="dview" data-id="n-T29" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T29 · blue</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  273k · $3.05</span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>a CSV of 3 orders imports as 3 orders
+<span class="c-d">  2. </span>a bad row reports its line number
+<span class="c-d">  3. </span>quoting per RFC 4180 round-trips with the export
+
+<span class="c-i">red · green · blue</span>
+<span class="c-r">  red   </span>npm test -- import
+<span class="c-r">        </span>4 failing: imports 3 orders · reports the bad line · round-trips quoting · rejects BOM
+<span class="c-r">        </span>commit 41c2e0a (tests only)
+<span class="c-g">  green </span>npm test
+<span class="c-g">        </span>418 passing
+<span class="c-g">        </span>commit 7d10b9f
+<span class="c-d">  blue  </span><span class="c-d">not yet</span></pre><pre class="dview" data-id="n-T31" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T31 · red (blocked)</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  38k · $0.29</span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>the import authenticates with the vendor API
+
+<span class="c-i">red · green · blue</span>
+<span class="c-r">  red   </span>npm test -- vendor
+<span class="c-r">        </span>1 failing: 401 from the vendor API
+<span class="c-d">  green </span><span class="c-d">not yet</span>
+<span class="c-d">  blue  </span><span class="c-d">not yet</span></pre><pre class="dview" data-id="n-T23" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T23 · green (refuted)</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>an empty export has a header row
+
+<span class="c-i">red · green · blue</span>
+<span class="c-r">  red   </span>npm test -- empty
+<span class="c-r">        </span>0 failing (!)
+<span class="c-g">  green </span>npm test
+<span class="c-g">        </span>412 passing
+<span class="c-d">  blue  </span><span class="c-d">not yet</span>
+
+<span class="c-i">the verifier</span><span class="c-d">  REFUTED — reverted src/export/csv.ts; the red test still passed</span>
+<span class="c-r">  ✗ </span>an empty export has a header row
+<span class="c-d">      the red test passed against the unchanged code: it asserted the file exists, not the header</span>
+
+<span class="c-i">lessons it left</span><span class="c-d">  (carried to later agents working here)</span>
+<span class="c-m">  - T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code</span></pre><pre class="dview" data-id="n-T22" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T22 · verified</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-d"></span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>(see _orch/nodes/T22/handoff.md)</pre><pre class="dview" data-id="n-T27" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T27 · blue</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>(see _orch/nodes/T27/handoff.md)</pre><pre class="dview" data-id="n-T30" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T30 · verified</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span><span class="c-d"></span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>(see _orch/nodes/T30/handoff.md)</pre><pre class="dview" data-id="n-T32" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T32 · not started</b>   <span class="c-d">refresh (r)</span>
+
+<span class="c-d">steps        </span><span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
+
+<span class="c-i">done-criteria</span>
+<span class="c-d">  1. </span>(see _orch/nodes/T32/handoff.md)</pre></div></div>
+          <div class="panel p-m"><div class="demo" tabindex="0" aria-label="baton Memory tab: use the arrow keys and Enter, or click a row"><pre class="work"><b class="c-i">rulings</b>  <span class="c-d">x retracts · Enter opens</span>
+<span class="c-d">New ruling: a standing instruction; the newest wins ⏎ add</span>
+<span class="row" data-d="r-3"><span class="c-d">x</span> <span class="c-m">#3 2026-10-05 Hold the database migration until the operator releases it.</span></span>
+<span class="row" data-d="r-1"><span class="c-d">x</span> <span class="c-m">#1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span></span>
+<span class="row" data-d="r-0"><span class="c-d">x</span> <span class="c-m">#0 2026-10-02 Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span></span>
+
+<b class="c-i">memory</b>  <span class="c-d">tree: 214 notes · 213/213 summaries · 8 levels · 0 merges pending</span>
+<span class="c-d">Search: </span><span class="c-d">a node id, a word, a regex ⏎ search</span>
+<span class="row" data-d="m-0-127"><span class="c-d">+</span> #0-127 (128 notes) bootstrap BUILD ./shop; 41 nodes / 6 phases; P1–P3 CONFIRMED; Q-1 vendor key answered</span>
+<span class="row" data-d="m-128-191"><span class="c-d">+</span> #128-191 (64 notes) P4 parser: T14 refuted twice, escalated; a red test passed pre-change and was refuted (9.4)</span>
+<span class="row" data-d="m-192-207"><span class="c-d">+</span> #192-207 (16 notes) P5 export 9/9; T23 refuted once, fixed; approved</span>
+<span class="c-d">#208 10:31:02Z </span><span class="c-d">[approval]</span> operator approved P5: P5 DONE+CONFIRMED 9/9
+<span class="c-d">#209 10:31:40Z </span><span class="c-d">[operator]</span> ship P6, but hold the migration until I say
+<span class="c-d">#210 10:31:41Z </span><span class="c-d">[prime-reply]</span> P6 dispatched with the migration held (ruling #3)
+<span class="c-d">#211 10:39:12Z </span><span class="c-d">[budget]</span> worker T29 reached 57% context; told to finish or split
+<span class="c-d">#212 10:41:55Z </span><span class="c-d">[review]</span> PR #47 review round 1: CHANGES (1 high, 0 med, 2 low)
+<span class="c-d">#213 10:42:07Z </span><span class="c-d">[github]</span> PR #47 chris: asks to also export archived orders
+<span class="c-d">↑/↓ then Enter: a ruling shows where it came from; + opens a block into the notes under it · b goes back</span></pre><pre class="dview" data-id="r-3" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #3</b>
+
+<span class="c-d">ruling       </span><span class="c-m">Hold the database migration until the operator releases it.</span>
+<span class="c-d">from         </span>your message at 10:31:40Z: <span class="c-y">"ship P6, but hold the migration until I say"</span>
+<span class="c-d">lifted by    </span>Sonnet 5.5, from a message that could state a rule
+<span class="c-d">enforced     </span>no — it leads every wake and every kickoff; the prime held T32 for it
+
+<b class="c-i">what you can do</b>
+  <span class="c-d">x</span> retracts it (the log keeps it)   ·   <span class="c-d">/baton enforce 3 &lt;regex></span> makes it refuse matching commands</pre><pre class="dview" data-id="r-1" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #1</b>
+
+<span class="c-d">ruling       </span><span class="c-m">Target every PR directly at main; never stack.</span>
+<span class="c-d">from         </span>/baton rule, by hand, 2026-10-02
+<span class="c-d">enforced     </span><span class="c-c">/git push.*\bmain\b/</span> — a shell command matching it is refused at the permission check, run or no run
+
+<b class="c-i">what you can do</b>
+  <span class="c-d">x</span> retracts it, which also lifts the block</pre><pre class="dview" data-id="r-0" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #0</b>
+
+<span class="c-d">ruling       </span><span class="c-m">Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span>
+<span class="c-d">from         </span>your message on 2026-10-02: <span class="c-y">"Fan-outs should go on sonnet or haiku; keep opus for synthesis and verification."</span>
+<span class="c-d">enforced     </span>no</pre><pre class="dview" data-id="m-0-127" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-127 (128 notes)</b>
+
+<span class="row" data-d="m-0-63"><span class="c-d">+</span> #0-63 (64 notes) bootstrap BUILD ./shop; plan 41 nodes / 6 phases verified; P1 schema 7/7</span>
+<span class="row" data-d="m-64-127"><span class="c-d">+</span> #64-127 (64 notes) P2–P3 CONFIRMED; Q-1 vendor key answered (key B); T12 split into T12a/b</span></pre><pre class="dview" data-id="m-0-63" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-63 (64 notes)</b>
+
+<span class="row" data-d="m-0-31"><span class="c-d">+</span> #0-31 (32 notes) run started; bootstrap: directive, plan, plan verifier (2 findings fixed)</span>
+<span class="row" data-d="m-32-63"><span class="c-d">+</span> #32-63 (32 notes) P1 schema: 7/7 CONFIRMED; operator approved P1</span></pre><pre class="dview" data-id="m-0-31" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-31 (32 notes)</b>
+
+<span class="c-d">#0   09:12:04Z </span><span class="c-d">[operator]</span> run build-20261005T0912Z started: MODE BUILD, TARGET issue #12: CSV export
+<span class="c-d">#1   09:12:09Z </span><span class="c-d">[prime-reply]</span> Dispatched the bootstrap sub-orchestrator
+<span class="c-d">#2   09:19:40Z </span><span class="c-d">[sub]</span> bootstrap: bootstrap DONE · 6 phases, 41 nodes, plan verified · draft PR #47 opened
+<span class="c-d">#3   09:19:44Z </span><span class="c-d">[prime-reply]</span> P1 dispatched
+<span class="c-d">    …</span>
+<span class="c-d">#31  09:31:10Z </span><span class="c-d">[sub]</span> P1: P1 DONE+CONFIRMED 7/7 · next: P2</pre><pre class="dview" data-id="m-32-63" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #32-63 (32 notes)</b>
+
+<span class="c-d">#32  09:31:30Z </span><span class="c-d">[approval]</span> operator approved P1: P1 DONE+CONFIRMED 7/7
+<span class="c-d">    …</span>
+<span class="c-d">#63  09:44:02Z </span><span class="c-d">[sub]</span> P2: T7 escalated to frontier; packet attached</pre><pre class="dview" data-id="m-64-127" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #64-127 (64 notes)</b>
+
+<span class="c-d">#64  09:44:20Z </span><span class="c-d">[operator]</span> use vendor key B for the import
+<span class="c-d">#65  09:44:21Z </span><span class="c-d">[lesson]</span> [src/import] T9: "the import authenticates" was refuted — key A is revoked
+<span class="c-d">    …</span>
+<span class="c-d">#127 09:58:40Z </span><span class="c-d">[sub]</span> P3: P3 DONE+CONFIRMED 12/12</pre><pre class="dview" data-id="m-128-191" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #128-191 (64 notes)</b>
+
+<span class="c-d">#128 09:59:02Z </span><span class="c-d">[prime-reply]</span> P4 dispatched
+<span class="c-d">#141 10:06:30Z </span><span class="c-d">[sub]</span> T14 REFUTED: the red test passed against the unchanged code
+<span class="c-d">#152 10:12:10Z </span><span class="c-d">[sub]</span> T14 REFUTED again; escalation packet: rounding at .005
+<span class="c-d">    …</span>
+<span class="c-d">#191 10:22:47Z </span><span class="c-d">[approval]</span> operator approved P4</pre><pre class="dview" data-id="m-192-207" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #192-207 (16 notes)</b>
+
+<span class="c-d">#192 10:23:05Z </span><span class="c-d">[prime-reply]</span> P5 dispatched
+<span class="c-d">#199 10:27:40Z </span><span class="c-d">[lesson]</span> [test/export src/export] T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code
+<span class="c-d">    …</span>
+<span class="c-d">#207 10:30:58Z </span><span class="c-d">[sub]</span> P5: P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed</pre></div></div>
         </div>
       </div>
       <div class="band"><pre><span class="c-g">5h ▕██░░░▏42%</span><span class="c-d"> · </span><span class="c-g">wk ▕█░░░░▏18%</span><span class="c-d"> · </span><span class="c-g">Fable ▕░░░░░▏3%</span><span class="c-d"> · </span><span class="c-g">ctx ▕█░┊░░▏24%/35%</span><span class="c-d"> · </span><span class="c-d">↻3</span><span class="c-d"> · </span><span class="c-d">$17.41</span><span class="c-d"> · </span><span class="c-d">#12 building</span><span class="c-d"> · </span><span class="c-r">PR #47 5/6</span>
@@ -1137,6 +1437,31 @@ contracts, the rules they index and your mode file (step 1 above), create `_orch
       fbtns.forEach(function(x){ x.setAttribute('aria-pressed', String(x.dataset.f === active)); });
       document.querySelectorAll('.hook').forEach(function(h){ h.classList.toggle('dim', !!active && h.dataset.k !== active); });
     });
+  });
+
+  // Section 4's window, live: both tabs. Rows open the views the mod draws; a view's own rows open
+  // deeper (memory blocks into their notes); b steps back one level.
+  document.querySelectorAll('.cc .demo').forEach(function(demo){
+    var list = demo.querySelector('pre.work'), stack = [], sel = 0
+    var shown = function(){ return stack.length ? demo.querySelector('pre.dview[data-id="' + stack[stack.length - 1] + '"]') : list }
+    var rows = function(){ return Array.prototype.filter.call(shown().querySelectorAll('.row'), function(r){ return r.offsetParent !== null }) }
+    var mark = function(i){ var rs = rows(); demo.querySelectorAll('.row.sel').forEach(function(r){ r.classList.remove('sel') }); if (!rs.length) return; sel = Math.max(0, Math.min(rs.length - 1, i)); rs[sel].classList.add('sel'); rs[sel].scrollIntoView({ block: 'nearest' }) }
+    var show = function(){ var cur = shown(); list.hidden = cur !== list; demo.querySelectorAll('pre.dview').forEach(function(v){ v.hidden = v !== cur }); mark(0) }
+    var open = function(id){ if (!demo.querySelector('pre.dview[data-id="' + id + '"]')) return; stack.push(id); show(); demo.focus({ preventScroll: true }) }
+    var back = function(){ if (!stack.length) return; var from = stack.pop(); show(); var rs = rows(); var i = rs.findIndex(function(r){ return r.getAttribute('data-d') === from }); if (i >= 0) mark(i) }
+    demo.addEventListener('click', function(ev){
+      if (ev.target.closest('.back')) { back(); return }
+      var r = ev.target.closest('.row'); if (r) open(r.getAttribute('data-d'))
+    })
+    demo.addEventListener('keydown', function(ev){
+      var k = ev.key
+      if (k === 'ArrowDown' || k === 'ArrowUp') { ev.preventDefault(); mark(sel + (k === 'ArrowDown' ? 1 : -1)) }
+      else if (k === 'Enter') { var rs = rows(); if (rs[sel]) { ev.preventDefault(); open(rs[sel].getAttribute('data-d')) } }
+      else if (k === 'b' || k === 'Escape' || k === 'Backspace') { if (stack.length) { ev.preventDefault(); back() } }
+      else if (k === 'p' && !stack.length && demo.closest('.p-w')) { demo.classList.toggle('plan-open'); mark(sel) }
+      else if (k === '1' || k === '2') { var t = document.getElementById(k === '1' ? 'cc-w' : 'cc-m'); if (t) { t.checked = true; var d = document.querySelector(k === '1' ? '.cc .p-w .demo' : '.cc .p-m .demo'); if (d) d.focus({ preventScroll: true }) } }
+    })
+    demo.addEventListener('focus', function(){ if (!demo.querySelector('.row.sel')) mark(sel) })
   });
   wireCopy('copybtn', 'psrc', 'Copy it');
   wireCopy('rcopybtn', 'rsrc', 'Copy the router');
