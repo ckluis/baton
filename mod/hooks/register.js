@@ -97,14 +97,13 @@ const TABS = [
   { id: 'memory', label: 'Memory', hotkey: '3' },
   { id: 'rulings', label: 'Rulings', hotkey: '4' },
   { id: 'ledger', label: 'Ledger', hotkey: '5' },
-  { id: 'luminaries', label: 'Luminaries', hotkey: '6' },
 ]
 const pane = {
   open: false,
   tab: 'run',
   timer: null,
   refreshedAt: null,
-  data: { run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'], luminaries: ['(not read yet)'] },
+  data: { run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'] },
   memoryNotes: null, // run-memory note count, for the band
   memTiles: [], // the memory tab's blocks, parallel to its view lines
   memLines: [],
@@ -156,13 +155,13 @@ const MEMORY_TOOLS = [
   {
     name: 'project_wake',
     description:
-      "baton project memory (spans runs): decisions, criteria fixtures, what failed before. Fixed-budget view like memory_wake. A luminary passes namespace \"luminary-<name>\" to read its own memory of past reviews.",
+      "baton project memory (spans runs): decisions, criteria fixtures, what failed before. Fixed-budget view like memory_wake. An optional namespace selects a separate memory inside it (\"rulings\" holds the operator's standing rulings).",
     inputSchema: { type: 'object', properties: { namespace: { type: 'string' }, budget: { type: 'integer', minimum: 4, maximum: 400 } } },
   },
   {
     name: 'project_note',
     description:
-      'baton project memory (spans runs): append ONE line (≤280 bytes) worth knowing in the next run — a decision and its reason, a criterion that proved vacuous, a route that failed. A luminary passes namespace "luminary-<name>" for what it found, missed, or had overturned.',
+      'baton project memory (spans runs): append ONE line (≤280 bytes) worth knowing in the next run — a decision and its reason, a criterion that proved vacuous, a route that failed. Optional namespace as in project_wake.',
     inputSchema: { type: 'object', properties: { text: { type: 'string' }, namespace: { type: 'string' } }, required: ['text'] },
   },
   {
@@ -469,7 +468,7 @@ function makeRunId(mode, iso) {
   return String(mode).toLowerCase() + '-' + iso.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
 }
 
-const MODES = ['BUILD', 'CRAFT', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'POSITION', 'REVIEW', 'ROADMAP', 'TEST']
+const MODES = ['BUILD', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'REVIEW', 'ROADMAP', 'TEST']
 
 function kickoff(m) {
   return (
@@ -679,23 +678,6 @@ async function refreshPane($, paneRows) {
   } catch {}
   rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)))
   d.ledger = rows.length ? rows.slice(-15).map(ledgerLine) : ['no ledger rows yet']
-  // Luminaries: namespaces luminary-* of the project memory
-  try {
-    const args = await memoryArgs($, 'project')
-    const nsDir = args[1] + '/ns'
-    const lum = ((await listDir($, nsDir)) ?? []).filter((x) => x.kind === 'directory' && x.name.startsWith('luminary-')).map((x) => x.name).sort().slice(0, 12)
-    const out = []
-    for (const ns of lum) {
-      try {
-        const st = JSON.parse(await memoRun($, [...args, '--ns', ns, '--json', 'stats']))
-        const last = JSON.parse(await memoRun($, [...args, '--ns', ns, '--json', 'wake', '--budget', '1']))
-        out.push(ns.slice('luminary-'.length) + ' · ' + st.notes + ' notes', '  ' + (last.lines.at(-1) ?? ''))
-      } catch {}
-    }
-    d.luminaries = out.length ? out : ['no luminary has a memory yet (project memory ' + args[1] + ')']
-  } catch (err) {
-    d.luminaries = ['project memory unreadable: ' + err.message]
-  }
   pane.data = d
   pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
   $.ui.invalidate('ui.render')
@@ -918,7 +900,7 @@ async function serveMemoryTool($, e) {
       case 'project_wake':
         return { result: await memoRun($, [...(await memoryArgs($, 'project', e.namespace)), 'wake', '--budget', String(budget)]) }
       case 'project_note':
-        return { result: await appendNote($, 'project', String(e.text ?? ''), e.namespace ? 'luminary' : e.agentId ? 'agent' : 'prime', e.namespace) }
+        return { result: await appendNote($, 'project', String(e.text ?? ''), e.agentId ? 'agent' : 'prime', e.namespace) }
       case 'project_recall':
         return { result: await memoRun($, [...(await memoryArgs($, 'project', e.namespace)), 'recall', '--limit', String(e.limit ?? 20), '--', String(e.pattern ?? '')]) }
       default:

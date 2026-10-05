@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { bindModel, isCheap, CHEAP, FRONTIER } from '../lib/binding.mjs'
 
 test('prime-side roles bind to Opus 5.5 whatever the caller asked', () => {
-  for (const t of ['baton:sub-orchestrator', 'baton:worker', 'baton:verifier', 'baton:luminary', 'general-purpose', 'Explore'])
+  for (const t of ['baton:sub-orchestrator', 'baton:worker', 'baton:verifier', 'general-purpose', 'Explore'])
     assert.equal(bindModel({ subagentType: t, model: 'haiku' }), FRONTIER, t)
 })
 

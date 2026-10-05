@@ -5,7 +5,7 @@ description: Run baton v7 — a prime orchestrator that never reads. Use when th
 
 # baton v7 — the prime
 
-baton v7 runs as a Claude Code plugin with a mod. The mod makes the v5 rule "the prime never reads"
+baton v7 runs as a Claude Code plugin with a mod. The mod makes the router's standing order "the conductor never plays a note"
 mechanical: while a run is active, **this session (the prime) can only dispatch, ask, and use its
 memory**. Everything else is refused with the route. In exchange the prime gets a memory, so a run
 lasts as long as the work does, however small the prime's context stays.
@@ -16,8 +16,8 @@ lasts as long as the work does, however small the prime's context stays.
 /baton start <MODE> <TARGET>
 ```
 
-- `MODE` is one of v5's ten: `BUILD`, `CRAFT`, `DOGFOOD`, `GENERIC`, `IMPROVE`, `MIGRATE`,
-  `POSITION`, `REVIEW`, `ROADMAP`, `TEST` (`{BATON}/prompt/baton.md` §1.1 says which fits a goal).
+- `MODE` is one of the eight: `BUILD`, `DOGFOOD`, `GENERIC`, `IMPROVE`, `MIGRATE`, `REVIEW`,
+  `ROADMAP`, `TEST` (`{BATON}/prompt/baton.md` §1.1 says which fits a goal).
 - `TARGET` is a path, a spec file, a URL, or a one-line goal.
 
 The command writes `_orch/manifest.json` with `"prime": true` (run id, mode, target, the models
@@ -26,7 +26,7 @@ memory tools, notes the start in the run memory, and starts the prime's first tu
 
 | command | does |
 |---|---|
-| `/baton` | the run pane: Run (phases, nodes, status), Memory (the wake view, the tree), Ledger (last rows), Luminaries. Text where nothing draws (`claude -p`). |
+| `/baton` | the run pane: Run (phases, nodes, status), Agents (the live tree), Memory (a browser over the tree), Rulings, Ledger (last rows). Text where nothing draws (`claude -p`). |
 | `/baton status` | one block of text: run, context %, rotations, guard, memory size |
 | `/baton rotate` | rotate now: a handoff note, then a compaction, then `memory_wake` (see Rotation) |
 | `/baton rule <text>` | record a standing ruling by hand (rulings are also lifted from what the operator says during a run) |
@@ -70,7 +70,7 @@ run for any session started there.
    they run; a refusal comes back to you as a `BLOCKED` return.
 5. **After a rotation, call `memory_wake` before anything else.** The mod tells you when one
    happened; your context then holds only the compaction summary.
-6. **Batch the questions.** `AskUserQuestion` at a gate, never one at a time (v5 §4.4).
+6. **Batch the questions.** `AskUserQuestion` at a gate, never one at a time (router §4, step 4).
 
 ## Rotation
 
@@ -86,26 +86,25 @@ The band above the prompt shows the context gauge and the rotation count.
   handoff note and arms the rotation; **the driver then sends `/compact`**, which the mod counts
   as that rotation, and the prime is told to call `memory_wake` first.
 
-## Roles and rules: what carries over from v5
+## Roles and rules: what carries over from v6
 
 `{BATON}` is the manifest's `baton_base`: the checkout this plugin sits in, or
 `https://raw.githubusercontent.com/ckluis/baton/main`. Every locator handed to a spawn is expanded.
 
-| v5 | v7 |
+| v6 | v7 |
 |---|---|
-| the prime (`prompt/baton.md`) | this session, guarded: §3's "may never read" is now enforced, and §3's short list of things the prime *may* read is gone — the prime reads its memory instead |
-| phase runner (`prompt/roles/phase-runner.md`) | what a `baton:sub-orchestrator` follows for a phase |
-| casting, planner, plan verifier (`roles/casting.md`, `planner.md`, `plan-verifier.md`) | what the bootstrap sub-orchestrator follows (router §2.2) |
-| node orchestrator (`roles/node-orchestrator.md`) | what `baton:worker` / `baton:worker-cheap` follow |
-| verifier (`roles/verifier.md`) | `baton:verifier`: fresh, frontier, computed per-criterion verdict |
-| briefer, synthesizer | a sub-orchestrator for a gate or the final report |
-| panel seats, lenses (`roles/panel.md`) | `baton:luminary`, with its own project memory (`luminary-<name>`) — kept only if E2 says it earns its place |
-| tiers (`rules/rule-1-*`) | binding enforced by the mod: Opus 5.5 for every role, Sonnet 5.5 for an agent type or name ending `-cheap` |
-| the envelope, the digest (`rule-2`, `rule-3`) | unchanged on disk; what crosses to the prime is the one line |
-| computed verdicts, refutation triage, the criteria linter (`rule-9*`, `tools/lint-criteria.py`) | unchanged, in the sub-orchestrators and verifiers |
+| the dispatcher (`prompt/baton.md`) | this session, guarded: §3's "never do object-level work" is now enforced, and §3's short list of things the dispatcher *may* read is gone — the prime reads its memory instead |
+| the cycle for one phase (router §4: phase brief, dispatch, phase gate) | what a `baton:sub-orchestrator` does for a phase |
+| bootstrap: directive, planner, plan verifier (the router's *Bootstrap*, `roles/planner.md`, `plan-verifier.md`) | what the bootstrap sub-orchestrator does |
+| node orchestrator (`roles/node-orchestrator.md`) | what `baton:worker` / `baton:worker-cheap` follow, red then green then blue (§9.4) |
+| verifier (`roles/verifier.md`) | `baton:verifier`: fresh, frontier, computed per-criterion verdict, red/green/blue checks |
+| briefer, synthesizer, adjudicator, journey probe | what a sub-orchestrator spawns for a gate, the final report, a split verdict, a `surface: ui` node |
+| tiers (§1) | binding enforced by the mod: Opus 5.5 for every role, Sonnet 5.5 for an agent type or name ending `-cheap` |
+| the envelope (§2) | unchanged on disk; what crosses to the prime is the one line |
+| computed verdicts, refutation triage, red/green/blue, the criteria linter (§9, `tools/lint-criteria.py`) | unchanged, in the sub-orchestrators and verifiers |
 | escalation (§1.2): two moves, then a person | unchanged; the person is asked at the gate |
 | the ledger with `served:`, row files (§7, §6.3) | unchanged; the Ledger tab shows the last rows |
 | TEAM mode (§6.1, §10) | unchanged: a sub-orchestrator runs `tools/publish-run.sh` and `tools/inbox-gh.py` |
 | resume (§6) | a fresh session in the directory finds the manifest, arms the guard, and the prime calls `memory_wake` |
 
-What v7 does not bring back: lens cards, panels as a default, tier ladders, per-node effort.
+What v7 removes: the expert library (lens cards, luminaries, casting, panels, `CRAFT`, `POSITION`), which v6 had already taken off the default path. A memory-bearing luminary matched a plain reviewer in E2 (`docs/designs/v7-mods.md`).

@@ -19,8 +19,8 @@ The prime's prompt names: the run (`_orch/manifest.json` in the working director
 
 | you own | follow this role prompt |
 |---|---|
-| bootstrap | `{BATON}/prompt/baton.md` §2.2: write `_orch/directive.md` from `{BATON}/prompt/modes/<MODE>.md`, then cast (`roles/casting.md`), plan (`roles/planner.md`), and the plan gate (`roles/plan-verifier.md`, a fresh spawn) |
-| a phase `P<n>` | `{BATON}/prompt/roles/phase-runner.md` — write `_orch/phases/P<n>/brief.md` from `plan/graph.yaml` if the prime did not, dispatch each node, verify, route escalations |
+| bootstrap | `{BATON}/prompt/baton.md` §2 (*Bootstrap*): write `_orch/directive.md` from `{BATON}/prompt/modes/<MODE>.md`, plan (`roles/planner.md`), and the plan gate (`roles/plan-verifier.md`, a fresh spawn) |
+| a phase `P<n>` | `{BATON}/prompt/baton.md` §4 (*The cycle*), steps 1–3 for this one phase: write `_orch/phases/P<n>/brief.md` from `plan/graph.yaml`, dispatch each node by §4.1, verify each, route escalations, run the phase gate |
 | a gate's questions | `{BATON}/prompt/roles/briefer.md` |
 | the final report | `{BATON}/prompt/roles/synthesizer.md`, then the briefer for `_orch/brief/final.html` |
 

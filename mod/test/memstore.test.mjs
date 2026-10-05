@@ -110,9 +110,9 @@ test('CLI: note, wake, zoom, recall, pending, merge --summarize, stats', () => {
 
 test('CLI: --project and --ns pick the project memory and a namespace', () => {
   const root = tmp()
-  const r = spawnSync(process.execPath, [MEMO, '--project', '--root', root, '--ns', 'luminary-tufte', 'note', 'missed the axis label'], { encoding: 'utf8' })
+  const r = spawnSync(process.execPath, [MEMO, '--project', '--root', root, '--ns', 'rulings', 'note', 'never push to main'], { encoding: 'utf8' })
   assert.equal(r.status, 0, r.stderr)
-  assert.ok(fs.existsSync(path.join(root, '.baton', 'memory', 'ns', 'luminary-tufte', 'log.dat')))
+  assert.ok(fs.existsSync(path.join(root, '.baton', 'memory', 'ns', 'rulings', 'log.dat')))
 })
 
 test('concurrency: eight processes appending at once lose nothing and tear nothing', async () => {

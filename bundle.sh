@@ -53,8 +53,7 @@ for f in "$here"/prompt/roles/*.md; do emit "$f" "prompt/roles/$(basename "$f")"
 
 # Only the user archetypes the selected mode drives. A mode's User archetypes table
 # rows look like:  | `first-run` | user | PLAN, PROBE, VERIFY | ... |
-# Expert lenses, luminaries, casting and panels live in library/ and are never
-# bundled (library/README.md).
+# Expert lenses, luminaries, casting and panels were removed in v7.
 if [ "$mode" = "ALL" ]; then
   for f in "$here"/personas/users/*.md; do emit "$f" "personas/users/$(basename "$f")"; done
 else

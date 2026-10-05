@@ -27,8 +27,8 @@ write.
 | `lib/rulings.mjs` | ruling extraction prompt and parsing, retract and enforce, all pure |
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
-| `agents/` | `sub-orchestrator`, `worker`, `worker-cheap`, `verifier`, `luminary`. Plugin agents are `baton:<name>`. |
-| `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v5's roles and rules map onto v7 |
+| `agents/` | `sub-orchestrator`, `worker`, `worker-cheap`, `verifier`. Plugin agents are `baton:<name>`. |
+| `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
 | `tests/*.test.ts` | `claude plugin test` (44 tests) |
 | `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (43 tests, one of which runs `test/fixtures/hooks-smoke.mjs`: the real hooks module under a fake runtime) |
 
@@ -60,7 +60,7 @@ falls back to a deterministic merge so the tree never stalls. The CLI's `merge -
 summaries on stdin; without that flag it uses the fallback.
 
 The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives in
-`<project root>/<memoryDir>`, and a luminary's memory is the namespace `ns/luminary-<name>` inside it.
+`<project root>/<memoryDir>`, and the rulings are the namespace `ns/rulings` inside it.
 
 ### What a run looks like
 
@@ -108,7 +108,7 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   tool, then verdict and return line; ✉ on a running agent opens a field that messages it through
   `$.session.send`) · **Memory** (a browser: **+** opens a summary block into its range, **b** goes
   back, a search field runs recall) · **Rulings** (add, retract with **x**, enforcement shown) ·
-  Ledger · Luminaries. Switching tabs refreshes.
+  Ledger. Switching tabs refreshes.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call
@@ -118,8 +118,8 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Binding.** During a run, `agent.spawn` sets `claude-opus-5-5` for every agent type and
   `claude-sonnet-5-5` for a type or `name` ending in `-cheap`, whatever model the caller asked for.
   Forks are left alone.
-- **Interface.** `/baton` opens a pane with four tabs: Run, Memory, Ledger and Luminaries. Keys
-  1–4 switch tabs, `r` refreshes, and the pane also refreshes every 5 s while open. The band above
+- **Interface.** `/baton` opens a pane with five tabs: Run, Agents, Memory, Rulings and Ledger.
+  Keys 1–5 switch tabs, `r` refreshes, and the pane also refreshes every 5 s while open. The band above
   the prompt shows the context gauge, the threshold tick, the rotation count, the note count and
   the phase. The spinner suffix reads `· baton <phase> · <dispatched node>`. Where nothing draws
   (`claude -p`), `/baton` prints every tab as text. `/baton status`, `/baton rotate` and
@@ -189,8 +189,8 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
   instruction.
 - **The agentId runtime probe.** The mod logs a notice when a subagent finishes with no tool call
   carrying its id while prime-classified calls were being refused. This path was never triggered.
-- **Luminary memory in a real review, sub-orchestrator bootstrap of a full run, and TEAM mode under
-  v7.** None of these has been run.
+- **A sub-orchestrator bootstrap of a full run, a red/green/blue node checked by a verifier, and
+  TEAM mode under v7.** None of these has been run.
 
 ## Known risks
 

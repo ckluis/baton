@@ -1783,7 +1783,7 @@ below, and you do not ask the operator about a default that is already correct.
 | `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
 | `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, and gates. You never write a directive. |
 | `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` opts in to expert lenses, casting, panels and the `CRAFT` and `POSITION` modes: read `{BATON}/library/README.md` and follow it. Nothing on the default path needs it. |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` was v6's opt-in for expert lenses and panels; v7 removed it, so treat it as `builtin` and say so in the manifest. |
 | `CHEAP` | `claude-sonnet-5-5` | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
 | `FRONTIER` | `claude-opus-5-5` at `medium` effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |

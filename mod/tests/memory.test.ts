@@ -83,11 +83,11 @@ test('wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBud
   expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(-1)).toEqual(['40'])
 })
 
-test('project memory: memoryDir from config, a luminary namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
+test('project memory: memoryDir from config, a namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
   const w = world(on)
-  await $.tool.call({ tool: 'mcp__baton__project_note', text: 'missed: audit() in handlers', namespace: 'luminary-tufte' } as any)
-  expect(w.calls[0].argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', 'luminary-tufte'])
-  expect(w.calls[0].argv).toContain('luminary')
+  await $.tool.call({ tool: 'mcp__baton__project_note', text: 'never push to main', namespace: 'rulings' } as any)
+  expect(w.calls[0].argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', 'rulings'])
+  expect(w.calls[0].argv).toContain('prime')
   await $.tool.call({ tool: 'mcp__baton__project_wake', namespace: '../../etc' } as any)
   expect(w.calls[1].argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc'])
 })

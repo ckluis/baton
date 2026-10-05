@@ -19,7 +19,7 @@
 //
 // --dir defaults to $BATON_MEMORY_DIR, else _orch/memory under the cwd.
 // --project uses the project memory: <root>/<memoryDir> (default .baton/memory).
-// --ns NAME puts the memory under <dir>/ns/NAME (a luminary's own memory).
+// --ns NAME puts the memory under <dir>/ns/NAME (a separate memory, e.g. the rulings).
 
 import fs from 'node:fs'
 import path from 'node:path'

@@ -1,7 +1,7 @@
 // baton v7 model binding: which model a subagent of a run runs on. Pure.
 //
 // The binding is per role, not per call: Opus 5.5 for the prime-side roles
-// (sub-orchestrator, worker, verifier, luminary — and any other agent type a
+// (sub-orchestrator, worker, verifier — and any other agent type a
 // run spawns, because entry is frontier unless the work is a command, rule
 // 1.1), Sonnet 5.5 for cheap work. Cheap is declared by name — an agent type
 // or an Agent({ name }) ending in "-cheap" — never by the caller's `model`.

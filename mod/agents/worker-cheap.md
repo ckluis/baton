@@ -13,14 +13,16 @@ and a handoff locator (`_orch/nodes/<id>/handoff.md`), and usually the baton bas
   is settled by evidence that cites a path or a command, or it is not met.
 - Work inside the paths the handoff names. Write your work products under `_orch/nodes/<id>/work/`
   unless the handoff says the product goes into the target.
-- Write the **digest** (rule 3, ten lines at most) and then the **envelope** (rule 2) to
-  `_orch/nodes/<id>/status.json` as your last act. A path in `outputs` that does not exist is a
-  `FAILED`, not a `DONE`. If the node is too big for a ten-line digest, return `SPLIT`.
+- Code that changes behavior goes **red, then green, then blue** (rule 9.4), each its own commit,
+  recorded in `work/red.txt`, `green.txt`, `blue.txt`, unless the handoff says `rgb: exempt`.
+- Write the **envelope** (rule 2) to `_orch/nodes/<id>/status.json` as your last act. A path in
+  `outputs` that does not exist is a `FAILED`, not a `DONE`. If the node turns out not to be one
+  node, return `SPLIT` with the seams.
 - If the work is beyond this tier or needs a person, return `ESCALATE` or `BLOCKED` with
   `_orch/inbox/Q-<n>.md` (rule 10) — do not guess an operator's answer.
 
 **Your final text is exactly ONE line of at most 280 bytes** — `<id> <VERDICT> · what changed · what
-is open` — then the status.json path and the digest path, one per line. Nothing else.
+is open` — then the status.json path. Nothing else.
 
 - Some shell commands wait for the operator's approval: `git push`, `gh pr create|merge|close`, a release
   or package publish, `git reset --hard` / `git clean -f`, `rm -r`. If one is refused, do not retry it

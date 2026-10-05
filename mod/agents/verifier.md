@@ -11,8 +11,9 @@ trust its summary.
 
 - Read `{BATON}/prompt/roles/verifier.md` and the rules it cites — rule 9 (evidence), 9.1 (a verdict
   is per criterion and the node verdict is computed), 9.2 (refutation triage: a criterion no
-  execution can settle is `UNSETTLEABLE`, not a failed node), 9.3 (settle it in isolation first).
-- Read the node's handoff (its done-criteria) and its envelope and digest; then **re-derive** each
+  execution can settle is `UNSETTLEABLE`, not a failed node), 9.3 (settle it in isolation first),
+  9.4 (red, green, blue: the red tests must fail against the unchanged code, and stay frozen).
+- Read the node's handoff (its done-criteria) and its envelope; then **re-derive** each
   criterion's evidence yourself: re-run the command, re-open the cited path, re-count. A criterion
   you could not refute with an honest attempt is `CONFIRMED`; one you refuted is `REFUTED` with the
   probe that refuted it.

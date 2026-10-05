@@ -23,7 +23,6 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
         '_orch/phases': [{ name: 'P1', kind: 'directory' }, { name: 'P2', kind: 'directory' }],
         '_orch/nodes': [{ name: 'T1', kind: 'directory' }, { name: 'T2', kind: 'directory' }, { name: 'T3', kind: 'directory' }],
         '_orch/ledger': [{ name: '20261002T120500Z-T1-1.csv', kind: 'file' }],
-        '/work/.baton/memory/ns': [{ name: 'luminary-tufte', kind: 'directory' }],
       }
     : {}
   const find = (table: Record<string, any>, p: string) => Object.keys(table).find((k) => p === k || p.endsWith('/' + k))
@@ -57,7 +56,7 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
   on('tool.call', () => ({ result: 'ran' }))
 }
 
-test('/baton opens the pane; Run, Memory, Ledger and Luminaries tabs draw on terminal and desktop', async ($, on) => {
+test('/baton opens the pane; Run, Agents, Memory, Rulings and Ledger tabs draw on terminal and desktop', async ($, on) => {
   world(on)
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
@@ -71,8 +70,6 @@ test('/baton opens the pane; Run, Memory, Ledger and Luminaries tabs draw on ter
     await has(ui, /T2 BLOCKED on Q-1/)
     await ui.press({ key: 'tab-ledger' })
     await has(ui, /T1 · claude-opus-5-5 · DONE · 300s · wrote the parser, 4\/4/)
-    await ui.press({ key: 'tab-luminaries' })
-    await has(ui, /tufte · 9 notes/)
     await ui.press({ key: 'tab-run' })
     await ui.unmount()
   }

@@ -106,7 +106,7 @@ against that same base URL. Read it completely before you start any work.
 | `TARGET` | **asked for** | a path, a spec file, a running app URL, or a one-line goal |
 | `MODE` | **asked for** | `TEST` `BUILD` `IMPROVE` `REVIEW` `DOGFOOD` `MIGRATE` `ROADMAP` `GENERIC` |
 | `BATON` | the canonical raw URL | where baton lives — a base URL, or a local directory |
-| `PERSONAS` | `builtin` | `builtin`: the user archetypes journey probes drive. `library` opts in to expert lenses, casting and panels (`library/README.md`) |
+| `PERSONAS` | `builtin` | `builtin`: the user archetypes journey probes drive. (`library`, v6's expert opt-in, was removed in v7) |
 | `CHEAP` | `claude-sonnet-5-5` | tier 0 — mechanical work a verifier settles by re-running a command (CONTRACT §1) |
 | `FRONTIER` | `claude-opus-5-5` at `medium` effort | tier 1 — everything with judgment in it, the default; a second frontier failure is a question for a person (§1.2) |
 | `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run |

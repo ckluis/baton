@@ -17,9 +17,11 @@ its product.** Archetypes produce evidence from the running product, under the
 perception contract below; `{BATON}/prompt/roles/journey-probe.md` is the role
 that drives one.
 
-Expert lenses, named luminaries, casting and panels are not on this path. They
-live in `{BATON}/library/`, opt-in with `PERSONAS: library`
-(`{BATON}/library/README.md`).
+Expert lenses, named luminaries, casting and panels are gone. v6 moved them off the
+default path into an opt-in `library/` after a plain fresh reviewer matched them
+(`docs/experiments/personas-earn-their-place.md`); v7 removed the library after a memory-bearing
+luminary matched a plain reviewer as well (`docs/designs/v7-mods.md`, E2). The v5 and v6 pages
+and the git history keep them.
 
 ## How this contract is shaped
 
