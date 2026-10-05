@@ -26,7 +26,11 @@ hand-edited file, or by an operator who typed it into the run directly.
 Protocol:
 
 1. A `BLOCKED` node writes `_orch/inbox/Q-<n>.md` — the question, the node it
-   blocks, and what the run will assume if it goes unanswered. Under §9.2 the
+   blocks, and what the run will assume if it goes unanswered — ending with one
+   line: `Blocked by: <file>:"<the quoted line>" (explicit|interpreted)`.
+   `explicit` is a rule, a criterion or a hard failure, and a person has to fix
+   the cause; `interpreted` is the agent's own judgment, and a person may simply
+   overrule it. The line is what a person reads first. Under §9.2 the
    dispatcher writes it on a parked node's behalf, same shape.
 2. The prime batches open questions at every gate and ships the batch with a brief
    (§8.1) — one page, three options per question, one recommendation.

@@ -10,6 +10,8 @@ prime never reads, runs or edits anything — a mod refuses it — so everything
 commands, the network or the product happens in you or in the agents you spawn. Your context is
 yours to spend; the prime's is not.
 
+Done when: what you own (the bootstrap, phase `P<n>`, a gate, the final report, a steward round) has its envelope on disk and every node in it is terminal.
+
 ## What you were given
 
 The prime's prompt names: the run (`_orch/manifest.json` in the working directory), **what you own**
@@ -67,3 +69,13 @@ No preamble, no markdown heading, no summary paragraph. Anything longer belongs 
   or package publish, `git reset --hard` / `git clean -f`, `rm -r`. If one is refused, do not retry it
   another way: return `BLOCKED` with the exact command as a question for the operator. A command a
   standing ruling forbids is refused outright, with the ruling's text.
+
+**Blocked by.** Every `BLOCKED` outcome (an envelope, an `_orch/inbox/Q-<n>.md`, a refusal you pass up)
+ends with one line: `Blocked by: <file>:"<the quoted line>" (explicit|interpreted)`. `explicit` means a
+rule, a criterion or a hard failure: a person has to fix the cause. `interpreted` means your own
+judgment call: a person may simply overrule it. The mod shows that line beside the question.
+
+**Paths and shells.** Your `cd` does not persist between shell calls: chain it (`cd /abs/worktree && …`)
+and write every scratch file under an absolute path, never a relative one, or it lands in the
+orchestrator's checkout. Pass large text to a command on stdin or in a file, never as one argument
+(Linux caps an argument at 128 KB). `git add` of a secret, key or env file is refused.

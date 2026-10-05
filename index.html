@@ -216,7 +216,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <header class="hero" id="top">
   <div class="wrap">
-    <span class="status"><b>v7.1</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
+    <span class="status"><b>v7.2</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
     <h1>One thread that<br><em>never fills up.</em></h1>
     <p class="lede">The prime only dispatches. It never reads a file, runs a command or holds a work product: a mod
       refuses it. It hands goals to sub-orchestrators, which dispatch agents or do the work themselves and hand
@@ -373,10 +373,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
       the record, never claimed by an agent: a node is <b>red</b> when <code>work/red.txt</code> exists, <b>verified</b> when a
       fresh verifier's verdict says so. Each move is written down with the time it was seen, so how long every state took is measured.</p>
     <div class="trk">
-<div class="trow reveal"><div class="who"><b>goal</b>#12 CSV export ↗</div><div class="steps"><div class="st done"><i>✓</i><span>queued</span><em>2m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>planned</span><em>6m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>building</span><em>1h04</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>reviewing</span><em>18m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
+<div class="trow reveal"><div class="who"><b>goal</b>#12 CSV export ↗<br>1.2M of 2M tok</div><div class="steps"><div class="st done"><i>✓</i><span>queued</span><em>2m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>planned</span><em>6m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>building</span><em>1h04</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>reviewing</span><em>18m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
 <div class="trow reveal"><div class="who"><b>PR #47</b>draft ↗</div><div class="steps"><div class="st done"><i>✓</i><span>draft</span><em>1h10</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>checks</span><em>4m</em></div><span class="rail done"></span><div class="st bad"><i>✗</i><span>reviewed<br>changes</span><em>14m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
 <div class="trow reveal"><div class="who"><b>P4</b>fix round 1</div><div class="steps"><div class="st done"><i>✓</i><span>briefed</span><em>1m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>dispatched</span><em>11m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div><span class="rail"></span><div class="st "><i></i><span>approved</span></div></div></div>
-<div class="trow reveal"><div class="who"><b>T31</b>empty export</div><div class="steps"><div class="st done"><i>✓</i><span>red</span><em>3m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>green</span><em>6m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>blue</span><em>2m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div></div></div>
+<div class="trow reveal"><div class="who"><b>T31</b>empty export<br>41k tok</div><div class="steps"><div class="st done"><i>✓</i><span>red</span><em>3m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>green</span><em>6m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>blue</span><em>2m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div></div></div>
     </div>
     <div class="grid3" style="margin-top:36px">
       <div class="card reveal"><span class="tag">issue → PR</span><h3>A goal is an issue</h3><p><code>/baton start #12</code> makes the issue the goal.
@@ -389,6 +389,11 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
         every two minutes. Ready means every check green, the latest review <code>READY</code>, no open thread, mergeable, up to date.
         Haiku only condenses new comments to one line; <code>/approve P3</code> on the thread works from your phone.</p></div>
     </div>
+    <div class="callout reveal"><b>Hooks, not reminders.</b> Ideas from <a href="https://github.com/benmarte/talos">talos</a>, rebuilt so nothing has to be remembered.
+      Spend is metered from every model request (<code>turn.step</code>) by the agent that made it. A token budget refuses another fix round at the spawn.
+      A reviewer on a conflicting PR is refused until the base is merged in, and <code>git add .env</code> is refused from any agent.
+      The goal's state is mirrored as a <code>baton:&lt;state&gt;</code> label on the issue, and on a Projects board if you want one.
+      Every blocked question says what it rests on, and whether that is a rule (fix the cause) or a judgment (you may overrule it).</div>
     <p class="muted" style="margin-top:18px;font-size:14px">Whether the review loop earns its place is pre-registered: after ten merged goals,
       keep it, trim it to one round, or cut it, by the share of its findings you accepted.
       <a href="https://github.com/ckluis/baton/blob/main/docs/experiments/pr-review-loop-preregistration.md">The rule →</a></p>

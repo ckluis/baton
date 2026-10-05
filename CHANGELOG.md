@@ -1,5 +1,25 @@
 # Changelog
 
+## v7.2 — 2026-10-05
+
+The best of [talos](https://github.com/benmarte/talos) (Ben Marte's issue→PR pipeline; ideas only,
+it carries no license), rebuilt as hooks. talos's own lessons log shows the failure mode: the board
+went unupdated for a whole run because the orchestrator forgot a step. In the mod nothing has to be
+remembered.
+
+- **Spend, metered at `turn.step`** by the agent that made each request: per role, per phase, per
+  node, in `_orch/spend.json`; on the Track tab, the band, and one spend comment on the PR.
+- **A budget on review and fix rounds** (`tokensPerGoal`): `agent.spawn` refuses another round once
+  it is spent, with a note at 80%.
+- **The reviewer waits for a clean base:** a reviewer spawn on a conflicting PR is refused; a PR
+  with no checks and a conflict is diagnosed.
+- **Forbidden files** refused at `git add` from any agent, and a merge-ready row on the PR.
+- **Merge-ready gains** "closes the issue", "no other open PR claims it", "the main checkout is
+  clean".
+- **The goal on GitHub:** a `baton:<state>` label on the issue, and optionally a Projects board column.
+- **`Blocked by: <file>:"<line>" (explicit|interpreted)`** on every BLOCKED outcome (rule 10), shown
+  beside each open question; **`Done when:`** on every agent card.
+
 ## v7.1 — 2026-10-05
 
 GitHub as the mod's backbone, and a tracker for every level (#44).

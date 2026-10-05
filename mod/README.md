@@ -27,11 +27,12 @@ write.
 | `lib/rulings.mjs` | ruling extraction prompt and parsing, retract and enforce, all pure |
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
+| `lib/ledger.mjs` | spend and the budget, forbidden files, the goal's label and board column, `Blocked by`, pure |
 | `lib/track.mjs` | the tracker: each level's states computed from the record, measured transitions, steppers; the PR's merge-ready rows, the reviewer's comment, gate commands, pure |
 | `agents/` | `sub-orchestrator` (also the PR steward), `worker`, `worker-cheap`, `verifier`, `pr-reviewer`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
 | `tests/*.test.ts` | `claude plugin test` (44 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (53 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (61 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
 
 ### The memory
 
@@ -127,6 +128,25 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   (`$.model.complete`), the only model call here. From allowed answerers (assignees, `answerers:`,
   or the PR author), `/approve P3`, `/send-back P3 <reason>` and `/approve <gate>` act as the remote
   gate. A command the gate holds while nobody is at the terminal is asked on the PR instead.
+- **Hooks, not reminders** (ideas from [talos](https://github.com/benmarte/talos); no code used). In talos the
+  orchestrator has to remember to run a script for the board, the cost, the budget; its own lessons
+  log records a run where it forgot. Here each one is a hook:
+  - **Spend is metered.** A `turn.step` hook reads every model request's usage, attributes it to the
+    agent that made it (its role, and the node or phase in its name), and writes `_orch/spend.json`.
+    Track shows tokens beside each stepper; the band shows the goal's total; the PR carries one spend
+    comment, edited in place.
+  - **A budget on rounds.** With `tokensPerGoal` set, `agent.spawn` refuses another review or fix
+    round once the goal has spent it (a note at 80%), and tells the prime to brief the operator.
+  - **The reviewer waits for a clean base.** A `pr-reviewer` spawn on a PR that conflicts with its
+    base is refused: merge the base in first. A PR with no checks and a conflict is diagnosed as such.
+  - **Forbidden files.** `git add` naming a secret, key or env file is refused outright, from any
+    agent; a forbidden file in the PR fails merge-ready.
+  - **More merge-ready rows:** the PR closes the issue, no other open PR claims it, and the main
+    checkout is clean (a worktree's relative write leaking out shows here).
+  - **The goal on GitHub.** Each goal state change sets one `baton:<state>` label on the issue and,
+    with `boardProject`, moves the issue's card on a Projects board.
+  - **Blocked by.** Open questions show the line they rest on and whether it is `explicit` (fix the
+    cause) or `interpreted` (you may overrule it).
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's tabs.** **Track** (above) · **Agents** (the live tree: role, model, elapsed, tool count, current
@@ -184,7 +204,7 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
 |---|---|---|
 | the manifest and hooks validate | `claude plugin validate mod` | `✔ Validation passed` |
 | the mod's hooks behave | `claude plugin test mod` | `32 pass, 0 fail` before rulings. The 12 tests added since (`tests/rulings.test.ts`, `tests/approvals.test.ts`) are **not yet run**: on 2026-10-04 the mods rollout switch served off, and `claude plugin test` refuses to run. Their `ui.ask` mock follows the pattern of the other API mocks and is itself unverified. |
-| the GitHub goal flow and the tracker, without Claude Code or GitHub | `node --test mod/test/github-smoke.test.mjs` | 17 checks against a scripted `gh`: start from an issue, computed states and measured rows, PR polling, the reviewer's verdict, merge-ready, remote `/approve`, a non-answerer ignored, a headless push asked on the PR, Track links, the band, watch and next |
+| the GitHub goal flow and the tracker, without Claude Code or GitHub | `node --test mod/test/github-smoke.test.mjs` | 26 checks against a scripted `gh`: start from an issue, computed states and measured rows, PR polling, the reviewer's verdict, merge-ready, remote `/approve`, a non-answerer ignored, a headless push asked on the PR, Track links, the band, watch and next |
 | the hooks behave end to end, without Claude Code | `node --test mod/test/hooks-smoke.test.mjs` | 25 checks: the tree, the command gate (approve, reason, approve-for-run, headless refusal), the phase gate, enforce and retract, the Agents, Memory and Rulings tabs, the band, `-p` text |
 | the memory core, store, CLI, locking, guard, binding and rulings helpers are correct | `node --test mod/test/*.test.mjs` | `36 pass, 0 fail` |
 | the prime is denied `Read` during a run | headless `claude -p`, fake `_orch` | denied, with the route text |
