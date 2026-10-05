@@ -5,7 +5,9 @@
 - **Always there.** The band carries plan usage in every session (5h, week, a model's own week such as
   Fable, spend; reset times; the session's cost from `$.session.usage()`), and the pane opens by itself.
   Metering and the agent tree work outside runs too.
-- **The Agents tab is a table:** agent · context · budget · model · input · cache write · cache read ·
+- **Four tabs, not six.** Workspace (everything you watch: goal and PR, the agent table, what waits for
+  you, the newest rulings), Plan, Memory, Rulings. Ledger and Run are gone. The band is one line.
+- **The Agents table:** agent · context · budget · model · input · cache write · cache read ·
   output · cost · steps · state, columns dropped by usefulness on narrow panes; a cache-reuse flag.
 - **A built-in code index** (#48 D1): `code_search`, `code_fetch`, `code_refs`, `code_explore`,
   answered by the mod, refreshed before every query, nothing to set up; a pointer to `code_fetch` on

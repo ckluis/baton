@@ -180,15 +180,14 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   `/plugin install baton@baton`. Nothing else to install, initialize or update.
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
-- **The pane's tabs.** **Track** (above) · **Agents** (the live tree: role, model, elapsed, tool count, current
-  tool, then verdict and return line; each row carries its own meter — context against its own threshold (`ctx 57%/50%`: the prime's is
-  `rotateAtPercent`, a subagent's `agentContextWarnPercent`, at which the mod messages it once to finish or
-  split), fresh tokens, cache reads, and API-equivalent cost priced per model (`prices` adds models; an
-  unpriced one shows `$?`) — and ends with the compact steps of what that agent works on, `●─●─◉─○ blue`: a
-  worker its node, a sub-orchestrator its phase, the prime the goal; ✉ on a running agent opens a field that messages it through
-  `$.session.send`) · **Memory** (a browser: **+** opens a summary block into its range, **b** goes
-  back, a search field runs recall) · **Rulings** (add, retract with **x**, enforcement shown) ·
-  Ledger · Run. The issue and PR show as links at the top of Track and Agents. Switching tabs refreshes.
+- **The pane's tabs.** **Workspace** (1) is everything you watch: the goal and its PR as links,
+  their steps, the merge-ready rows as one line, the agent table, what waits for you (phases to
+  check, open questions with their Blocked-by line) and the newest rulings. **Plan** (2) is every
+  phase and node with measured durations and the full merge-ready rows; **Memory** (3) the browser;
+  **Rulings** (4) add, retract, enforce. The old Ledger and Run tabs are gone: the table's token and
+  cost columns replace the ledger rows, and Plan replaces Run. Switching tabs refreshes.
+- **The band is one line:** `5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% ·
+  ↻3 · $17.41 · #12 building · PR #47 5/6`. A second line appears only when something waits for you.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call

@@ -145,3 +145,61 @@ export function usageSegs(limits, cost, now = Date.now()) {
   if (!out.length) out.push({ text: 'plan usage: no reading yet (it arrives with the first response on a subscription)', color: undefined })
   return out
 }
+
+// ------------------------------------------------------------------ the one-line band
+
+const miniBar = (pct, w = 5, tick = null) => {
+  const p = Math.max(0, Math.min(100, Number(pct) || 0))
+  const fill = Math.round((p / 100) * w)
+  const t = tick == null ? -1 : Math.min(w - 1, Math.max(0, Math.round((tick / 100) * w)))
+  let s = ''
+  for (let i = 0; i < w; i++) s += i === t && i >= fill ? '┊' : i < fill ? '█' : '░'
+  return '▕' + s + '▏'
+}
+
+/** A short window name for the band: 5h, wk, Fable, spend. */
+export function shortLimit(kind) {
+  const k = String(kind ?? '')
+  if (k === 'five_hour') return '5h'
+  if (k === 'seven_day') return 'wk'
+  if (k === 'spend_limit') return 'spend'
+  const model = /(fable|opus|sonnet|haiku)/i.exec(k)
+  return model ? model[1][0].toUpperCase() + model[1].slice(1).toLowerCase() : k.replace(/_/g, ' ')
+}
+
+/**
+ * Everything on one line: each plan window, the context against its threshold, the session's
+ * cost, and (in a run) rotations, the goal and the PR. Segments: [{ text, color }].
+ */
+export function bandSegs({ limits = [], cost = null, ctx = null, threshold = null, rotations = null, goal = null, pr = null }) {
+  const order = (k) => (k === 'five_hour' ? 0 : k === 'seven_day' ? 1 : k === 'spend_limit' ? 9 : 5)
+  const out = []
+  const sep = () => out.length && out.push({ text: ' · ', color: undefined })
+  for (const l of [...limits].sort((a, b) => order(a.kind) - order(b.kind))) {
+    sep()
+    const pct = Math.round(Number(l.percentUsed))
+    out.push({ text: shortLimit(l.kind) + ' ' + miniBar(pct) + pct + '%', color: usageColor(pct) })
+  }
+  if (typeof ctx === 'number') {
+    sep()
+    out.push({ text: 'ctx ' + miniBar(ctx, 5, threshold) + ctx + '%' + (threshold != null ? '/' + threshold + '%' : ''), color: threshold != null ? gaugeColor(ctx, threshold) : undefined })
+  }
+  if (rotations) {
+    sep()
+    out.push({ text: '↻' + rotations, color: undefined })
+  }
+  if (cost && typeof cost.usd === 'number') {
+    sep()
+    out.push({ text: '$' + cost.usd.toFixed(2), color: undefined })
+  }
+  if (goal) {
+    sep()
+    out.push({ text: goal.text, color: goal.color })
+  }
+  if (pr) {
+    sep()
+    out.push({ text: pr.text, color: pr.color })
+  }
+  if (!out.length) out.push({ text: 'baton · plan usage arrives with the first response', color: undefined })
+  return out
+}

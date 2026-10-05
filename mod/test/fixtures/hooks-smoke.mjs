@@ -100,7 +100,7 @@ const flat = (n, out = []) => { if (!n || typeof n !== 'object') return out; if 
 const text = (tree) => flat(tree).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('\n')
 const byKey = (tree, k) => flat(tree).find((n) => n.props?.key === k)
 let t = await render()
-await byKey(t, 'tab-agents').props.onPress()
+await byKey(t, 'tab-workspace').props.onPress()
 t = await render()
 const at = text(t)
 ok(/agent\s+context\s+budget\s+model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+50%\s+opus/.test(at) && /✓ worker-cheap T7\s+—\s+50%\s+sonnet/.test(at), 'Agents tab draws the tree as a table')
@@ -141,12 +141,12 @@ ok(r.decision === 'allow', 'retracted ruling no longer enforced')
 // band
 await fire('turn.complete', { agentId: 's2', answer: 'P4 DONE 2/2', isAborted: false })
 const band = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 120 } })
-ok(/⚑ 1 phase waiting for your check \(P4\)/.test(text(band)), 'band flags the waiting phase')
+ok(/⚑ waiting for you: 1 phase to check \(P4\)/.test(text(band)), 'band flags the waiting phase')
 r = await fire('command.run', { command: 'baton', args: 'status' })
 ok(/approvals on · asked \d+ · approved \d+ · refused \d+ · approved for the run: rm · 1 phase\(s\) waiting/.test(r.text), 'status: ' + r.text.split('\n').find((l) => l.startsWith('approvals')))
 surfaces = []
 r = await fire('command.run', { command: 'baton', args: '' })
-ok(/## Agents[\s\S]*⚑ P4/.test(r.text) && /## Rulings/.test(r.text), '-p prints Agents and Rulings')
+ok(/## Workspace[\s\S]*⚑ P4/.test(r.text) && /## Plan/.test(r.text) && /## Rulings/.test(r.text) && !/## Ledger/.test(r.text), '-p prints Workspace, Plan and Rulings; no Ledger')
 
 // ---- the kit: code tools, the Read hint, quiet output, notifications
 fs.mkdirSync(W + '/src', { recursive: true })
@@ -174,6 +174,6 @@ ok(!stop2 || !stop2.terminalSequence, 'and only once')
 // ---- every session: the band carries plan usage
 await fire('session.measure', { context: { tokens: 240000, window: 1000000, percent: 24 }, rateLimits: [{ kind: 'five_hour', percentUsed: 42.5, resetsAt: '2026-10-05T14:20:00Z' }, { kind: 'seven_day', percentUsed: 18 }, { kind: 'seven_day_fable', percentUsed: 3 }], changed: ['context', 'rateLimits'] })
 const bandNow = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 160 } })
-const bandText = text(bandNow)
-ok(/5h ▕.*▏ 42\.5%/.test(bandText) && /week ▕.*▏ 18%/.test(bandText) && /Fable week ▕.*▏ 3%/.test(bandText), 'the band shows plan usage: 5h, week, Fable')
+const bandText = flat(bandNow).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('')
+ok(/5h ▕[█░]{5}▏4[23]% · wk ▕[█░]{5}▏18% · Fable ▕[█░]{5}▏3% · ctx ▕[█░┊]{5}▏24%\/35%/.test(bandText), 'the band is one line: 5h, week, Fable, context against its threshold: ' + bandText.split('\n')[0])
 

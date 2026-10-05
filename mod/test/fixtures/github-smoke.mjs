@@ -122,18 +122,23 @@ await poll()
 s = await status()
 ok(/◉ ready/.test(s) && toasts.some((t) => /PR #47 is ready for you to merge/.test(t)), 'merge-ready computed; toast says ready for you to merge')
 
-// the pane: Track tab with links and steppers
+// the pane: Workspace (links, steps, the merge line, the table), then Plan (every row)
 surfaces = ['terminal']
 await fire('command.run', { command: 'baton', args: '' })
 const render = async () => fire('ui.render', { component: 'Pane', requestId: 'baton', surface: 'terminal', props: { bodyColumns: 140, scroll: { bodyRows: 40 } } })
 const flat = (n, out = []) => { if (!n || typeof n !== 'object') return out; if (Array.isArray(n)) { n.forEach((c) => flat(c, out)); return out } out.push(n); flat(n.props?.children, out); return out }
 let t = await render()
 const links = flat(t).filter((n) => n.type === 'Link').map((n) => n.props.href)
-ok(links.includes('https://github.com/o/r/issues/12') && links.includes('https://github.com/o/r/pull/47'), 'Track tab links the issue and the PR')
+ok(links.includes('https://github.com/o/r/issues/12') && links.includes('https://github.com/o/r/pull/47'), 'Workspace links the issue and the PR')
+const wsTexts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
+ok(wsTexts.some((x) => /merge-ready (\d+)\/\1 · waiting for you to merge/.test(x)), 'Workspace: the merge rows as one line')
+await flat(t).find((n) => n.props?.key === 'tab-plan').props.onPress()
+t = await render()
 const texts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
-ok(texts.some((x) => /✓ every check green/.test(x)) && texts.some((x) => x.trim() === 'T2'), 'merge-ready rows and node steppers drawn')
+ok(texts.some((x) => /✓ every check green/.test(x)) && texts.some((x) => x.trim() === 'T2'), 'Plan: merge-ready rows and node steppers drawn')
 const band = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 140 } })
-ok(flat(band).some((n) => n.type === 'Text' && /#12 ready · PR #47 ready · checks 2\/2 · ready for you to merge/.test(n.props.children.join(''))), 'band: goal and PR state')
+const bandLine = flat(band).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('')
+ok(/#12 ready · PR #47 2\/2 ready to merge/.test(bandLine), 'band, one line: goal and PR state: ' + bandLine)
 
 // measured rows on disk
 const rows = fs.readdirSync(path.join(W, '_orch/track')).map((f) => JSON.parse(fs.readFileSync(path.join(W, '_orch/track', f), 'utf8')))
@@ -159,7 +164,7 @@ await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tok
 await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 610000, model: 'claude-opus-5-5' })
 ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its window.*SPLIT/.test(sentMsgs[0].text), 'a subagent past its threshold is told once to finish or split')
 surfaces = []
-const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Agents')[1] || ''
+const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Workspace')[1] || ''
 const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
 ok(/worker T10 big parser\s+61%\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
 const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
@@ -189,7 +194,7 @@ s = await status()
 await poll()
 surfaces = []
 const tl = (await fire('command.run', { command: 'baton', args: '' })).text
-ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Agents')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
+ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Workspace')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 

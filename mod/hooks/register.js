@@ -22,7 +22,7 @@ import { shortModel } from '../lib/agents.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { usageSegs } from '../lib/view.mjs'
+import { bandSegs, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -102,20 +102,19 @@ const COMPACT_INSTRUCTIONS =
 
 // The pane: which tab, and what the last refresh read (render hooks do no I/O).
 const PANE = 'baton'
+// Workspace is everything you watch; the other three are things you open to use.
 const TABS = [
-  { id: 'track', label: 'Track', hotkey: '1' },
-  { id: 'agents', label: 'Agents', hotkey: '2' },
+  { id: 'workspace', label: 'Workspace', hotkey: '1' },
+  { id: 'plan', label: 'Plan', hotkey: '2' },
   { id: 'memory', label: 'Memory', hotkey: '3' },
   { id: 'rulings', label: 'Rulings', hotkey: '4' },
-  { id: 'ledger', label: 'Ledger', hotkey: '5' },
-  { id: 'run', label: 'Run', hotkey: '6' },
 ]
 const pane = {
   open: false,
-  tab: 'track',
+  tab: 'workspace',
   timer: null,
   refreshedAt: null,
-  data: { track: ['(not read yet)'], run: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], ledger: ['(not read yet)'] },
+  data: { plan: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'] },
   memoryNotes: null, // run-memory note count, for the band
   memTiles: [], // the memory tab's blocks, parallel to its view lines
   memLines: [],
@@ -311,7 +310,7 @@ async function readUsage($) {
 /** Open the pane by itself (unfocused): in every interactive session, the mod is simply there. */
 async function autoOpenPane($) {
   if (pane.open || !config.autoPane || !(await interactive($))) return
-  pane.tab = (await runActive($)) ? 'track' : 'agents'
+  pane.tab = 'workspace'
   try {
     const r = await $.ui.open({ id: PANE, title: 'baton', focus: false, closeOnEscape: true })
     pane.open = !r || r.isPlaced !== false
@@ -837,34 +836,6 @@ async function listDir($, path) {
 async function refreshPane($, paneRows) {
   const budget = Math.max(8, Math.min(200, (paneRows ?? 30) - 4))
   const d = {}
-  // Run
-  const m = await readJson($, '_orch/manifest.json')
-  if (!m) {
-    d.run = ['no _orch/ here — /baton start <MODE> <TARGET> begins a run']
-  } else {
-    const lines = [
-      (m.prime ? (m.closed ? 'closed' : 'active') : 'v5 run (no prime guard)') + ' · ' + (m.run_id ?? '?') + ' · ' + (m.mode ?? '?') + ' · ' + (m.target ?? ''),
-      'phase ' + (m.phase ?? '?') + ' · rotations ' + rotation.count + ' · context ' + (rotation.lastPercent ?? '—') + '%' + ' · guard ' + (run.active || run.startedHere ? 'armed' : 'off'),
-    ]
-    if (live.size) lines.push('dispatched now: ' + [...live.values()].join(', '))
-    const phases = (await listDir($, '_orch/phases')) ?? []
-    const phaseRows = []
-    for (const p of phases.filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(-12)) {
-      const env = await readJson($, '_orch/phases/' + p + '/envelope.json')
-      phaseRows.push(p + ' ' + (env ? env.verdict ?? '?' : 'open') + (env && env.summary ? ' — ' + env.summary : ''))
-    }
-    if (phaseRows.length) lines.push('', 'phases:', ...phaseRows.map((x) => '  ' + x))
-    const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(0, 300)
-    const nodes = []
-    for (const id of nodeDirs) {
-      const st = await readJson($, '_orch/nodes/' + id + '/status.json')
-      nodes.push({ id, verdict: st ? st.verdict ?? '?' : 'pending' })
-    }
-    const sum = summarizeNodes(nodes)
-    lines.push('', sum.line)
-    for (const n of sum.open.slice(0, 20)) lines.push('  ' + n.id + ' ' + n.verdict)
-    d.run = lines
-  }
   // Memory: the wake view, a zoomed range from the browse stack, or a search
   try {
     const args = await memoryArgs($, 'run')
@@ -888,24 +859,11 @@ async function refreshPane($, paneRows) {
     pane.memTiles = []
     pane.memLines = []
   }
-  // Track
-  d.track = trackLines(await observe($))
+  // Plan
+  d.plan = trackLines(await observe($))
   // Rulings
   pane.rulings = await loadRulings($, true)
   d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
-  // Ledger: row files (rule 6.3), then the v4/v5 single file
-  const rows = []
-  const files = ((await listDir($, '_orch/ledger')) ?? []).filter((x) => x.kind === 'file' && x.name.endsWith('.csv')).map((x) => x.name).sort().slice(-15)
-  for (const f of files) {
-    try {
-      rows.push(...parseLedger(await $.fs.read('_orch/ledger/' + f)))
-    } catch {}
-  }
-  try {
-    rows.push(...parseLedger(await $.fs.read('_orch/ledger.csv')).slice(-15))
-  } catch {}
-  rows.sort((a, b) => String(a.ts).localeCompare(String(b.ts)))
-  d.ledger = rows.length ? rows.slice(-15).map(ledgerLine) : ['no ledger rows yet']
   pane.data = d
   pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
   $.ui.invalidate('ui.render')
@@ -946,6 +904,61 @@ function goalLinks({ Box, Text, Link }, key) {
 }
 
 /** Track: the goal, the PR (with the merge-ready rows), every phase and its nodes, each as measured steps. */
+/** The merge-ready rows as one line: "merge-ready 4/6 · ✗ every check green · ✗ READY". */
+function mergeLine(v) {
+  if (!v || !v.pr || !v.pr.ready) return null
+  const rows = v.pr.ready.rows
+  const okN = rows.filter((r) => r.ok).length
+  if (okN === rows.length) return { text: 'merge-ready ' + okN + '/' + rows.length + ' · waiting for you to merge', color: 'green' }
+  return { text: 'merge-ready ' + okN + '/' + rows.length + ' · ' + rows.filter((r) => !r.ok).map((r) => '✗ ' + r.row.replace(/ \(.*\)$/, '')).slice(0, 3).join(' · '), color: undefined }
+}
+
+/**
+ * Workspace: everything you watch in one view. The goal and its PR (links, steps, the merge
+ * line), the agent table, what waits for you, and the newest rulings.
+ */
+function workspaceBody($, ui) {
+  const { Box, Text, Link, line } = ui
+  const v = track.view
+  const out = []
+  if (v) {
+    out.push(...goalLinks(ui, 'w-links'))
+    out.push(stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget)))
+    if (v.pr) out.push(stepperRow(ui, 'w-pr', 'PR', v.pr, v.pr.tl))
+    const ml = mergeLine(v)
+    if (ml) out.push(line('w-merge', '         ' + ml.text, ml.color ? { color: ml.color } : { dimColor: true }))
+    if (v.pr && v.pr.ready && v.pr.ready.diagnosis) out.push(line('w-diag', '         ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
+    out.push(Text({ key: 'w-sp1', children: [' '] }))
+  }
+  out.push(...agentsBody($, ui))
+  if (v && (v.questions || []).length) {
+    out.push(Text({ key: 'w-sp2', children: [' '] }))
+    v.questions.forEach((q, i) => out.push(line('w-q' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
+  }
+  if (pane.rulings.length) {
+    out.push(Text({ key: 'w-sp3', children: [' '] }))
+    pane.rulings.slice(0, 3).forEach((r, i) => out.push(line('w-r' + i, 'ruling ' + rulingLine(r), { color: 'magenta' })))
+    if (pane.rulings.length > 3) out.push(line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Rulings (4)', { dimColor: true }))
+  }
+  return out
+}
+
+function workspaceLines() {
+  const v = track.view
+  const out = []
+  if (v) {
+    out.push(...trackLines(v).slice(0, 2))
+    if (v.pr) out.push('PR #' + v.pr.number + ' ' + v.pr.url + '  ' + stepperText(v.pr, v.pr.tl))
+    const ml = mergeLine(v)
+    if (ml) out.push('         ' + ml.text)
+    out.push('')
+  }
+  out.push(...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)))
+  if (v) for (const q of v.questions || []) out.push('? ' + questionLine(q))
+  for (const r of pane.rulings.slice(0, 3)) out.push('ruling ' + rulingLine(r))
+  return out
+}
+
 function usageRow({ Box, Text }, key) {
   return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: key + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
 }
@@ -954,7 +967,7 @@ function trackBody($, ui) {
   const { Box, Text, line } = ui
   const v = track.view
   if (!v) return [line('t-none', pane.data.track[0] ?? 'no run is active here', { dimColor: true })]
-  const out = [usageRow(ui, 't-use'), ...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
+  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
   if (v.pr) {
     out.push(stepperRow(ui, 't-pr', 'PR', v.pr, v.pr.tl))
     if (v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '           ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
@@ -1017,7 +1030,7 @@ function agentRow(r) {
 
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
 function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
-  const out = [usageRow({ Box, Text }, 'a-use'), ...goalLinks({ Box, Text, Link }, 'a-links')]
+  const out = []
   approvals.queue.forEach((q, i) => {
     out.push(
       Box({
@@ -1217,8 +1230,9 @@ function paneText() {
 
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
-  if (id === 'track') return trackLines(track.view)
-  if (id === 'agents') return [usageSegs(usage.limits, usage.cost).map((x) => x.text).join(''), ...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160))]
+  if (id === 'plan') return trackLines(track.view)
+  if (id === 'workspace') return workspaceLines()
+  if (id === 'agents') return [...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160))]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }
@@ -2415,7 +2429,7 @@ export function register(on, options) {
     const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     const body =
-      pane.tab === 'track' ? trackBody($, ui) : pane.tab === 'agents' ? agentsBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
+      pane.tab === 'workspace' ? workspaceBody($, ui) : pane.tab === 'plan' ? trackBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
     return Box({
       flexDirection: 'column',
       children: [
@@ -2430,29 +2444,27 @@ export function register(on, options) {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const { Box, Text } = $.ui.resolve(e)
     const theirs = await next(e)
-    // Every session: plan usage. Then, in a run, the gauge, the goal and what waits for you.
-    const use = Box({ key: 'usage', flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: 'u' + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
-    if (!(run.active || run.startedHere)) {
-      const ctx = typeof rotation.lastPercent === 'number' ? Text({ key: 'ctx', dimColor: true, children: ['context ' + rotation.lastPercent + '%' + (tree.nodes.size > 1 ? ' · ' + (tree.nodes.size - 1) + ' agents · /baton for the table' : '')] }) : null
-      return Box({ flexDirection: 'column', children: [use, ...(ctx ? [ctx] : []), ...(theirs ? [theirs] : [])] })
-    }
-    const line = gaugeLine({
-      percent: rotation.lastPercent,
-      threshold: config.rotateAtPercent,
-      rotations: rotation.count,
-      notes: pane.memoryNotes,
-      phase: run.manifest && run.manifest.phase,
-      width: e.props.bodyColumns,
+    // One line in every session: each plan window, the context against its threshold, the cost;
+    // in a run, rotations, the goal and the PR. A second line only when something waits for you.
+    const inRun = run.active || run.startedHere
+    const v = inRun ? track.view : null
+    const goal = v ? { text: (v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : ''), color: v.goal.flag ? 'red' : undefined } : null
+    const pr = v && v.pr ? { text: 'PR #' + v.pr.number + ' ' + v.pr.checks.replace('checks ', '') + (v.pr.ready && v.pr.ready.ok ? ' ready to merge' : ''), color: v.pr.ready && v.pr.ready.ok ? 'green' : v.pr.flag ? 'red' : undefined } : null
+    const segs = bandSegs({
+      limits: usage.limits,
+      cost: usage.cost,
+      ctx: typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null,
+      threshold: inRun ? config.rotateAtPercent : null,
+      rotations: inRun ? rotation.count : null,
+      goal,
+      pr,
     })
-    const color = gaugeColor(rotation.lastPercent, config.rotateAtPercent)
-    const flag = approvals.queue.length
-      ? [Text({ key: 'queue', wrap: 'truncate-end', color: 'yellow', children: ['baton ⚑ ' + approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' waiting for your check (' + approvals.queue.map((q) => q.label).join(', ') + ') — asked before the next dispatch · /baton → Agents'] })]
-      : []
-    const v = track.view
-    const goal = v
-      ? [Text({ key: 'goal', wrap: 'truncate-end', dimColor: true, children: [(v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : '') + spendTail(v.spend.total, v.spend.budget) + (v.pr ? ' · PR #' + v.pr.number + ' ' + v.pr.state + (v.pr.flag ? ' (' + v.pr.flag + ')' : '') + ' · ' + v.pr.checks : '') + (v.pr && v.pr.ready && v.pr.ready.ok ? ' · ready for you to merge' : '')] })]
-      : []
-    return Box({ flexDirection: 'column', children: [use, Text({ key: 'gauge', wrap: 'truncate-end', ...(color ? { color } : {}), children: [line] }), ...goal, ...flag, ...(theirs ? [theirs] : [])] })
+    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x, i) => Text({ key: 'b' + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+    const waiting = []
+    if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
+    if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
+    const flag = waiting.length ? [Text({ key: 'wait', wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Workspace (1)'] })] : []
+    return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
   })
 
   // The spinner: which phase and node the prime is waiting on.

@@ -89,3 +89,14 @@ test('plan usage: labels, resets, colors, the line', async () => {
   assert.match(line, /^5h ▕.*▏ 42\.5% resets 14:20Z {2}· {2}week ▕.*▏ 18% {2}· {2}Fable week ▕.*▏ 3% {2}· {2}session \$4\.20$/)
   assert.match(usageSegs([], null).map((x) => x.text).join(''), /no reading yet/)
 })
+
+test('the band is one line: plan windows, context against its threshold, cost, goal, PR', async () => {
+  const { bandSegs } = await import('../lib/view.mjs')
+  const line = bandSegs({
+    limits: [{ kind: 'seven_day', percentUsed: 18 }, { kind: 'five_hour', percentUsed: 42.4 }, { kind: 'seven_day_fable', percentUsed: 3 }],
+    cost: { usd: 17.41 }, ctx: 24, threshold: 35, rotations: 3,
+    goal: { text: '#12 building' }, pr: { text: 'PR #47 5/6' },
+  }).map((x) => x.text).join('')
+  assert.equal(line, '5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% · ↻3 · $17.41 · #12 building · PR #47 5/6')
+  assert.equal(bandSegs({ ctx: 12 }).map((x) => x.text).join(''), 'ctx ▕█░░░░▏12%')
+})
