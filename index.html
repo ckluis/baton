@@ -144,6 +144,34 @@ ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);fon
 .rail.done{background:var(--green)}
 @media(max-width:760px){.trow{grid-template-columns:1fr}.st{width:62px}.st span{font-size:11px}.steps{overflow-x:auto;padding-bottom:4px}}
 
+/* inside the mod */
+.purp{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 8px}
+.purp button{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--hair-2);background:var(--soft);color:var(--body);cursor:pointer}
+.purp button[aria-pressed="true"]{background:var(--raised);color:var(--ink);border-color:var(--muted)}
+.purp button i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--k)}
+.k-guard{--k:var(--red)} .k-mem{--k:var(--magenta)} .k-measure{--k:var(--green)} .k-gh{--k:var(--blue)} .k-ui{--k:var(--cyan)} .k-run{--k:var(--yellow)}
+.life{margin-top:18px;border-left:2px solid var(--hair-2);padding-left:22px;display:grid;gap:26px}
+.moment{position:relative}
+.moment::before{content:"";position:absolute;left:-29px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--canvas);border:2px solid var(--muted)}
+.moment h3{font-size:15px;color:var(--ink);margin-bottom:10px}
+.moment h3 span{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:8px;font-weight:400}
+.hooks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.hook{background:var(--card);border:1px solid var(--hair);border-left:3px solid var(--k);border-radius:10px;padding:13px 15px;transition:opacity .2s ease}
+.hook code.ev{background:none;padding:0;color:var(--k);font-size:12.5px}
+.hook p{font-size:14px;margin-top:6px;line-height:1.5}
+.hook.dim{opacity:.18}
+.walk{display:grid;gap:10px;margin-top:22px;counter-reset:w}
+.walk li{list-style:none;counter-increment:w;display:grid;grid-template-columns:28px 1fr auto;gap:14px;align-items:baseline;background:var(--soft);border:1px solid var(--hair);border-radius:10px;padding:12px 14px;font-size:14.5px}
+.walk li::before{content:counter(w);font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:right}
+.walk li code.ev{font-size:11.5px;color:var(--muted);background:none;padding:0;white-space:nowrap}
+@media(max-width:760px){.walk li{grid-template-columns:22px 1fr}.walk li code.ev{grid-column:2;white-space:normal}}
+.ref{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+@media(max-width:900px){.ref{grid-template-columns:1fr}}
+.ref .card{padding:18px 18px 8px;overflow-x:auto}
+.ref table{margin-top:8px;font-size:13.5px}
+.ref td,.ref th{padding:8px 8px}
+.ref td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
+
 /* rgb */
 .rgb .card{border-top-width:3px}
 .rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
@@ -202,6 +230,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     <a class="brand" href="#top">baton<i>.</i>v7</a>
     <div class="navlinks">
       <a href="#shape">The shape</a>
+      <a href="#inside">Inside the mod</a>
       <a href="#memory">Memory</a>
       <a href="#see" class="opt">What you see</a>
       <a href="#track">Track</a>
@@ -273,9 +302,52 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   </div>
 </section>
 
-<section id="memory">
+<section id="inside">
   <div class="wrap">
     <div class="secnum">02</div>
+    <h2>Inside the mod.</h2>
+    <p class="lede">A mod is a JavaScript module Claude Code runs inside its own loop. It sees every prompt, model request, tool call,
+      spawn and redraw, and can answer, change or refuse each one. baton’s registers <b>19 hooks</b>, <b>10 commands</b>, <b>7 tools</b>
+      and <b>11 settings</b>. None of it depends on an agent remembering to do something: each piece runs where its event happens.</p>
+    <div class="purp" role="group" aria-label="Filter the hooks by purpose">
+      <button type="button" class="k-guard" data-f="guard" aria-pressed="false"><i></i>guard</button>
+      <button type="button" class="k-mem" data-f="mem" aria-pressed="false"><i></i>memory</button>
+      <button type="button" class="k-measure" data-f="measure" aria-pressed="false"><i></i>measure</button>
+      <button type="button" class="k-gh" data-f="gh" aria-pressed="false"><i></i>GitHub</button>
+      <button type="button" class="k-ui" data-f="ui" aria-pressed="false"><i></i>interface</button>
+      <button type="button" class="k-run" data-f="run" aria-pressed="false"><i></i>run</button>
+    </div>
+    <div class="life">
+<div class="moment reveal"><h3>When the session starts<span>once</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">session.start</code><p>Reads the engine version. The guard tells the prime from a subagent by <code>agentId</code>, verified on 2.1.287; on any other version it says so and fails closed.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Registers <code>/baton</code>, and in a run directory the seven memory tools. Starts a 150&nbsp;ms ticker for owed rotations and the kickoff, and the PR poller.</p></div></div></div>
+<div class="moment reveal"><h3>When you send a prompt<span>every prompt</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>Your words become a run note. In the background, Sonnet reads them for a standing rule; one it finds becomes a ruling in the project memory.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>After a rotation, the prompt carries the instruction to call <code>memory_wake</code> first.</p></div></div></div>
+<div class="moment reveal"><h3>Every model request<span>every step, every agent</span></h3><div class="hooks"><div class="hook k-measure" data-k="measure"><code class="ev">turn.step</code><p>Reads the request’s usage and the agent that made it: fresh tokens and cache reads, by role, phase and node, into <code>_orch/spend.json</code>. The response streams on untouched.</p></div></div></div>
+<div class="moment reveal"><h3>Every tool call<span>before it runs</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">tool.call</code><p><b>The prime guard.</b> A call with no <code>agentId</code> is the prime’s: only <code>Agent</code>, <code>AskUserQuestion</code>, <code>SendMessage</code>, <code>ToolSearch</code>, the prime skill and <code>mcp__baton__*</code> pass. Anything else is refused with the route. If the guard throws, the call is refused.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">tool.call · mcp__baton__*</code><p>Serves <code>memory_wake</code>, <code>_note</code>, <code>_zoom</code>, <code>_recall</code> and the three <code>project_*</code> tools from the log and tree on disk. Wake leads with your rulings.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>Forbidden files.</b> A <code>git add</code> naming <code>.env</code>, a key or credentials is refused from any agent, run or no run.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>The command gate.</b> Push, PR create/merge/close, publish, <code>reset --hard</code> and <code>rm -r</code> from any depth wait on a dialog naming the chain. With nobody at the terminal, it is asked on the PR instead.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Agent</code><p><b>The phase gate.</b> After a sub-orchestrator reports DONE, the prime’s next dispatch waits until you approve the phase or send it back with a reason.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.check · Bash</code><p><b>Enforced rulings.</b> After the permission rules decide, a command matching an enforced ruling’s pattern is refused, quoting the ruling.</p></div></div></div>
+<div class="moment reveal"><h3>Every spawn<span>before a subagent starts</span></h3><div class="hooks"><div class="hook k-run" data-k="run"><code class="ev">agent.spawn</code><p><b>The binding.</b> Opus 5.5 for every role, Sonnet 5.5 for a type or name ending <code>-cheap</code>, whatever the caller asked for. The spawn joins the agent tree under its parent.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">agent.spawn</code><p><b>The budget.</b> Another review or fix round is refused once the goal has spent <code>tokensPerGoal</code>, with a note at 80%.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">agent.spawn</code><p><b>A clean base first.</b> A PR reviewer on a PR that conflicts with its base is refused: merge the base in, then review.</p></div></div></div>
+<div class="moment reveal"><h3>Every finished turn<span>prime or subagent</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">turn.complete</code><p>A subagent the prime dispatched: its one-line return becomes a run note, tagged with its role. The prime’s own reply: its first line becomes one too.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">turn.complete</code><p>A sub-orchestrator whose return leads with DONE joins the phase-gate queue, and the band flags it.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">turn.complete</code><p>Writes the spend down and re-reads the record: every computed state that moved becomes a row in <code>_orch/track/</code>.</p></div></div></div>
+<div class="moment reveal"><h3>As the context grows<span>after each turn</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">session.measure</code><p>The context gauge. At <code>rotateAtPercent</code> (35%): a one-line handoff from a fork of the prime, then a compaction off the clock.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">session.compact · SessionStart</code><p>Every compaction in a run counts as a rotation and arms the wake, delivered by whichever comes first: SessionStart, the next prompt, or the next allowed tool result.</p></div></div></div>
+<div class="moment reveal"><h3>Every two minutes<span>on the clock, during a run</span></h3><div class="hooks"><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → gh pr view</code><p>The PR as data, no model: state, checks, mergeability, files, closing issues, comments. Merge-ready is computed row by row; the reviewer’s verdict is parsed from its comment.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → comments</code><p>From allowed answerers, <code>/approve P3</code>, <code>/send-back P3 …</code> and <code>/approve push</code> act as the gate. Other remarks become one line each, condensed by Haiku 4.5.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → the issue</code><p>The goal’s state as a <code>baton:&lt;state&gt;</code> label, and optionally a Projects board column. One spend comment on the PR, edited in place.</p></div></div></div>
+<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p><code>/baton</code>: Track, Agents, Memory, Rulings, Ledger, Run. Buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>The band: the context gauge with its rotation tick, the goal and PR state with spend, and phases waiting for you.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · rotate · status · watch · next · rule · rulings · retract · enforce. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
+    </div>
+
+    <h3 style="margin-top:64px;font-size:22px">One goal, end to end</h3>
+    <p class="muted" style="font-size:15px;margin-top:6px">What fires, in order, when you hand it an issue.</p>
+    <ol class="walk"><li><span><code>/baton start #12</code> reads the issue with <code>gh</code>, writes the manifest (<code>"prime": true</code>, the run branch), notes the start, and starts the prime’s first turn with the issue verbatim and your rulings.</span><code class="ev">command.run</code></li><li><span>The prime tries to <code>Read</code> the codebase. Refused: <i>dispatch a sub-orchestrator</i>. It dispatches one for the bootstrap.</span><code class="ev">tool.call</code></li><li><span>The spawn is bound to Opus 5.5 and joins the tree. Every request it makes is metered from here on.</span><code class="ev">agent.spawn · turn.step</code></li><li><span>The bootstrap writes the directive and the plan, has it checked by a fresh spawn, and opens the branch and a draft PR that closes #12. It returns one line, which becomes a run note.</span><code class="ev">turn.complete</code></li><li><span>Phases run: workers go red, green, blue; verifiers re-run red against the unchanged code. Each move lands as a tracker row, and the issue’s label goes <code>baton:building</code>.</span><code class="ev">turn.complete · $.clock</code></li><li><span>A worker three levels down runs <code>git push</code>. You get a dialog: <i>prime › P3 › T7 wants to git push</i>. You approve it for the run.</span><code class="ev">tool.call</code></li><li><span>P3 returns DONE. The band flags it, and the prime’s next dispatch waits for your check. You send it back: <i>the empty case is untested</i>.</span><code class="ev">turn.complete · tool.call</code></li><li><span>At 35% context the prime rotates: a handoff line, a compaction, and its next act is <code>memory_wake</code>. Your rulings come first in what it sees.</span><code class="ev">session.measure · session.compact</code></li><li><span>After the last phase, the prime dispatches the PR reviewer. Its comment says <code>CHANGES</code>, 1 high. The poller notes it, and a steward runs a fix round.</span><code class="ev">agent.spawn · $.clock</code></li><li><span>Round 2: <code>READY</code>. Every merge row holds. The PR is marked ready, the label goes <code>baton:ready</code>, and the band says it is waiting for you.</span><code class="ev">$.clock</code></li><li><span>You merge on GitHub. The poller sees it and the goal goes <code>merged</code>. <code>/baton next</code> archives the run and starts the next issue in the queue.</span><code class="ev">$.clock · command.run</code></li></ol>
+
+    <div class="ref">
+      <div class="card reveal"><span class="tag">/baton …</span><table><thead><tr><th>command</th><th>does</th></tr></thead><tbody><tr><td>start &lt;MODE&gt; &lt;TARGET|#n&gt;</td><td>arm the guard, write the manifest, start the prime</td></tr><tr><td>stop</td><td>close the run; the guard comes off; <code>_orch/</code> stays</td></tr><tr><td>rotate</td><td>handoff, compaction and wake, now</td></tr><tr><td>status</td><td>run, context, rotations, guard, approvals, the tracker</td></tr><tr><td>watch [label]</td><td>the issue queue</td></tr><tr><td>next [#n]</td><td>archive a finished run and start the next goal</td></tr><tr><td>rule &lt;text&gt;</td><td>a standing ruling, by hand</td></tr><tr><td>rulings</td><td>list them, newest first</td></tr><tr><td>retract &lt;#&gt;</td><td>withdraw one; the log keeps it</td></tr><tr><td>enforce &lt;#&gt; &lt;regex&gt;</td><td>make one refuse matching commands</td></tr></tbody></table></div>
+      <div class="card reveal"><span class="tag">tools its agents get · mcp__baton__*</span><table><thead><tr><th>tool</th><th>does</th></tr></thead><tbody><tr><td>memory_wake</td><td>the run in a fixed budget of lines, rulings first</td></tr><tr><td>memory_note</td><td>one line, at most 280 bytes</td></tr><tr><td>memory_zoom</td><td>open a block back up to its notes</td></tr><tr><td>memory_recall</td><td>regex over notes and summaries</td></tr><tr><td>project_wake</td><td>the memory that spans runs</td></tr><tr><td>project_note</td><td>what the next run should know</td></tr><tr><td>project_recall</td><td>search it; <code>namespace</code> selects one inside it</td></tr></tbody></table></div>
+      <div class="card reveal"><span class="tag">settings · userConfig</span><table><thead><tr><th>setting</th><th>default</th></tr></thead><tbody><tr><td>rotateAtPercent</td><td>35</td></tr><tr><td>wakeBudgetLines</td><td>96</td></tr><tr><td>memoryDir</td><td>.baton/memory</td></tr><tr><td>approvals</td><td>on</td></tr><tr><td>phaseGate</td><td>on</td></tr><tr><td>prPollSeconds</td><td>120</td></tr><tr><td>tokensPerGoal</td><td>0 (off)</td></tr><tr><td>labels</td><td>on</td></tr><tr><td>boardProject</td><td>0 (off)</td></tr><tr><td>boardOwner</td><td>you</td></tr><tr><td>forbiddenFiles</td><td>added to the defaults</td></tr></tbody></table><p class="muted" style="font-size:13px;margin:8px 0 10px"><code>BATON_APPROVALS=0</code> turns both gates off for unattended runs; <code>BATON_AUTOROTATE=0</code> leaves rotation to <code>/baton rotate</code>.</p></div>
+      <div class="card reveal"><span class="tag">what it writes</span><table><thead><tr><th>path</th><th>holds</th></tr></thead><tbody><tr><td>_orch/manifest.json</td><td>the run: <code>"prime": true</code>, mode, goal, branch</td></tr><tr><td>_orch/memory/</td><td>the run memory: the log and the merge tree</td></tr><tr><td>.baton/memory/</td><td>the project memory; <code>ns/rulings</code> inside it</td></tr><tr><td>_orch/track/</td><td>one row per state change, measured</td></tr><tr><td>_orch/spend.json</td><td>tokens by role, phase and node</td></tr><tr><td>_orch/github/pr.json</td><td>the goal’s PR, written by the bootstrap</td></tr><tr><td>.baton/runs/&lt;id&gt;/</td><td>finished runs, archived by <code>/baton next</code></td></tr></tbody></table></div>
+    </div>
+    <p class="muted" style="margin-top:20px;font-size:14px">Tested: 61 node tests, including two end-to-end fixtures that run the real hooks module and
+      memory store under a fake mods runtime and a scripted <code>gh</code>. Not yet tested: the live terminal UI and real GitHub. Mods are early access in Claude Code.
+      <a href="https://github.com/ckluis/baton/blob/main/mod/README.md">The mod’s README →</a></p>
+  </div>
+</section>
+
+<section id="memory">
+  <div class="wrap">
+    <div class="secnum">03</div>
     <h2>A memory instead of a growing context.</h2>
     <div class="grid2">
       <div>
@@ -330,7 +402,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <section id="see">
   <div class="wrap">
-    <div class="secnum">03</div>
+    <div class="secnum">04</div>
     <h2>See the tree. Browse the memory.</h2>
     <p class="lede">Claude Code mods can draw panes, bands and dialogs. <code>/baton</code> opens a pane with five tabs: Run, Agents,
       Memory, Rulings and Ledger. The band above the prompt shows the prime's context gauge, and the spinner shows the phase.</p>
@@ -340,19 +412,21 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <pre><span class="c-y">⚑ P5 export: P5 DONE+CONFIRMED 9/9</span>   <span class="c-d">[approve]</span>
 <span class="c-d">Send back P5: what is wrong ⏎</span>
 
-◆ prime · 3h12m · 96 tools · now Agent
-  <span class="c-g">✓ sub-orchestrator P5 · opus · 41m · 212 tools · DONE+CONFIRMED</span>
-    <span class="c-g">✓ worker T22 · opus · 9m · 37 tools · DONE</span>
-    <span class="c-r">✗ worker-cheap T23 · sonnet · 2m · 8 tools · ESCALATE</span>
-  <span class="c-c">● sub-orchestrator P6 · opus · 12m · 64 tools · now Bash</span>  <span class="c-d">✉</span>
-    <span class="c-c">● worker T29 · opus · 4m · 19 tools · now Edit</span>        <span class="c-d">✉</span>
-    <span class="c-c">● verifier T27 · opus · 1m · 6 tools · now Bash</span>      <span class="c-d">✉</span>
+◆ prime · 3h12m · 96 tools          <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">building</span>
+<span class="c-g">  ✓ sub-orch P5 · opus · 41m</span>        <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">approved</span>
+<span class="c-g">    ✓ worker T22 · opus · 9m</span>        <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">verified</span>
+<span class="c-r">    ✗ worker T23 · sonnet · 2m</span>      <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-r">green (refuted)</span>
+<span class="c-c">  ● sub-orch P6 · opus · 12m</span>     <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">dispatched</span>
+<span class="c-c">    ● worker T29 · opus · 4m</span>     <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">blue</span>
+<span class="c-c">    ● verifier T27 · opus · 1m</span>   <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span> <span class="c-c">verified</span>
 
-<span class="c-d">baton ▕██████░░┊░░░░░░░░░░░░░▏ 24% · rotate at 35% · rotations 3 · 214 notes · P6</span></pre>
+<span class="c-d">baton ▕██████░░┊░░░░░░░░▏ 24% · rotations 3 · P6</span>
+<span class="c-d">#12 building · PR #47 draft · 1.2M of 2M (60%)</span></pre>
       </div>
       <div>
-        <div class="card reveal"><span class="tag">agents</span><h3>The live tree</h3><p>Prime → sub-orchestrators → workers and verifiers, from
-          every spawn's parent, every tool call's agent and every turn's end. <b>✉</b> on a running agent opens a field that
+        <div class="card reveal"><span class="tag">agents</span><h3>The live tree, with its parcel steps</h3><p>Prime → sub-orchestrators → workers and verifiers, from
+          every spawn's parent, every tool call's agent and every turn's end. Each row ends with the steps of what that agent is working on:
+          a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal. <b>✉</b> on a running agent opens a field that
           messages it directly: steer one phase without going through the prime.</p></div>
         <div class="card reveal" style="margin-top:16px"><span class="tag">memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
           summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>
@@ -367,7 +441,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <section id="track">
   <div class="wrap">
-    <div class="secnum">04</div>
+    <div class="secnum">05</div>
     <h2>Track every level, like a parcel.</h2>
     <p class="lede">The goal, its PR, each phase and each node move through a fixed row of states. Every state is computed from
       the record, never claimed by an agent: a node is <b>red</b> when <code>work/red.txt</code> exists, <b>verified</b> when a
@@ -402,7 +476,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <section id="approve">
   <div class="wrap">
-    <div class="secnum">05</div>
+    <div class="secnum">06</div>
     <h2>Approve from anywhere in the tree.</h2>
     <p class="lede">A mod can hold any tool call, from any agent at any depth, and ask you first. The approval surfaces at the
       top however deep the agent sits, and every answer goes into the memory.</p>
@@ -436,7 +510,7 @@ Your rulings:
 
 <section id="rgb">
   <div class="wrap">
-    <div class="secnum">06</div>
+    <div class="secnum">07</div>
     <h2>Red, green, blue.</h2>
     <p class="lede">A test written after the code passes by construction. It describes what the code does, and it would have
       passed against a wrong implementation too. Rule 9.4 forces the order for every node that changes behavior.</p>
@@ -457,7 +531,7 @@ Your rulings:
 
 <section id="evidence">
   <div class="wrap">
-    <div class="secnum">07</div>
+    <div class="secnum">08</div>
     <h2>What we measured before building it.</h2>
     <p class="lede">v7 was built as an experiment: decision rules committed before any run, blind scoring, answer keys audited.
       The result was not what we set out to show, and the page says so.</p>
@@ -483,7 +557,7 @@ Your rulings:
 
 <section id="install">
   <div class="wrap">
-    <div class="secnum">08</div>
+    <div class="secnum">09</div>
     <h2>Install it, or paste it.</h2>
     <div class="grid2" style="margin-top:20px">
       <div>
@@ -873,7 +947,7 @@ contracts, the rules they index and your mode file (step 1 above), create `_orch
 
 <section id="versions">
   <div class="wrap">
-    <div class="secnum">09</div>
+    <div class="secnum">10</div>
     <h2>How it got here.</h2>
     <p class="lede">Seven versions, each a response to what the one before measured. Every earlier page is kept as it shipped.</p>
     <div class="vers">
@@ -960,6 +1034,15 @@ contracts, the rules they index and your mode file (step 1 above), create `_orch
       setTimeout(function(){ btn.textContent = label; btn.classList.remove('ok'); }, 2400);
     });
   }
+  // Inside the mod: filter the hook cards by purpose (all of them show without JS).
+  var fbtns = document.querySelectorAll('.purp button'), active = null;
+  fbtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      active = active === b.dataset.f ? null : b.dataset.f;
+      fbtns.forEach(function(x){ x.setAttribute('aria-pressed', String(x.dataset.f === active)); });
+      document.querySelectorAll('.hook').forEach(function(h){ h.classList.toggle('dim', !!active && h.dataset.k !== active); });
+    });
+  });
   wireCopy('copybtn', 'psrc', 'Copy it');
   wireCopy('rcopybtn', 'rsrc', 'Copy the router');
 </script>

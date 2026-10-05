@@ -234,3 +234,24 @@ export function stepper({ ladder, state, flag }, tl = []) {
 }
 
 export const stepperText = (st, tl) => stepper(st, tl).map((x) => x.text).join('')
+
+/**
+ * The same states, compact enough to sit at the end of a tree row:
+ * `●─●─◉─○ blue` (dots in ladder order, then the current state and any flag).
+ * Segments: [{ text, tone }] as stepper().
+ */
+export function stepperMini({ ladder, state, flag }) {
+  const states = LADDERS[ladder]
+  const at = flag === 'pending' ? -1 : states.indexOf(state)
+  const last = states.length - 1
+  const segs = []
+  states.forEach((s, i) => {
+    if (i) segs.push({ text: '─', tone: i <= at ? 'done' : 'rail' })
+    const finished = i < at || (i === at && i === last)
+    segs.push({ text: finished ? '●' : i === at ? (flag ? '✗' : '◉') : '○', tone: finished ? 'done' : i === at ? (flag ? 'flagged' : 'current') : 'future' })
+  })
+  segs.push({ text: ' ' + (at < 0 ? 'not started' : state) + (flag && flag !== 'pending' ? ' (' + flag + ')' : ''), tone: at < 0 ? 'future' : flag ? 'flagged' : at === last ? 'done' : 'current' })
+  return segs
+}
+
+export const stepperMiniText = (st) => stepperMini(st).map((x) => x.text).join('')

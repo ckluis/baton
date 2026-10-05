@@ -178,6 +178,7 @@ s = await status()
 await poll()
 surfaces = []
 const tl = (await fire('command.run', { command: 'baton', args: '' })).text
+ok(/worker T2 .*●─●─●─● verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Agents')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 

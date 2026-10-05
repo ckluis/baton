@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Each Agents row carries its parcel steps:** a worker shows its node's red → green → blue → verified, a
+  sub-orchestrator its phase, the prime its goal (`stepperMini`, also in the `-p` text).
+- **Page: "Inside the mod".** Every hook by moment (session, prompt, model request, tool call, spawn,
+  finished turn, context, the clock, the interface), filterable by purpose; one goal end to end with the
+  hook at each step; reference tables for commands, tools, settings and the files it writes.
+
 ## v7.2 — 2026-10-05
 
 The best of [talos](https://github.com/benmarte/talos) (Ben Marte's issue→PR pipeline; ideas only,
