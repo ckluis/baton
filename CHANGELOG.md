@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **A meter on every agent.** Each Agents row shows that agent's context against its own threshold (the prime's
+  rotation point; `agentContextWarnPercent`, 50, for a subagent), its fresh tokens and cache reads, and its
+  API-equivalent cost priced per model from verified prices (`prices` adds more; an unpriced model shows `$?`,
+  never a guess). A subagent crossing its threshold gets one message from the mod: finish now, or return SPLIT.
 - **Each Agents row carries its parcel steps:** a worker shows its node's red → green → blue → verified, a
   sub-orchestrator its phase, the prime its goal (`stepperMini`, also in the `-p` text).
 - **Page: "Inside the mod".** Every hook by moment (session, prompt, model request, tool call, spawn,

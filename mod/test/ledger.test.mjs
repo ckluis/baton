@@ -10,7 +10,9 @@ test('usage: fresh tokens and cache reads apart; accounts add up', () => {
   const acc = {}
   addUsage(acc, u)
   addUsage(acc, { ...u, model: 'claude-sonnet-5-5' })
-  assert.deepEqual(acc, { fresh: 10000, cacheRead: 180000, requests: 2, models: ['claude-opus-5-5', 'claude-sonnet-5-5'] })
+  const { byModel, ...rest } = acc
+  assert.deepEqual(rest, { fresh: 10000, cacheRead: 180000, requests: 2, models: ['claude-opus-5-5', 'claude-sonnet-5-5'] })
+  assert.deepEqual(byModel['claude-opus-5-5'], { input: 1200, output: 800, cacheWrite: 3000, cacheRead: 90000 })
   assert.deepEqual(usageTokens(null), { fresh: 0, cacheRead: 0 })
   assert.equal(shortTokens(950), '950')
   assert.equal(shortTokens(41234), '41k')
@@ -69,4 +71,24 @@ test('merge-ready: the issue, other PRs, forbidden files, a clean checkout; a co
   assert.equal(mergeReady(pr, ready, { clean: false }).ok, false)
   assert.equal(mergeReady(pr, ready).rows.length, 6)
   assert.match(mergeReady({ mergeable: 'CONFLICTING', statusCheckRollup: [] }, ready).diagnosis, /merge the base into it/)
+})
+
+test('cost per model from the verified prices; an unpriced model is unknown, never guessed', async () => {
+  const { addUsage: add, costOf, shortUsd, priceFor, windowFor, contextOf, ctxTone, contextNudge } = await import('../lib/ledger.mjs')
+  const acc = {}
+  add(acc, { model: 'claude-opus-5-5', input_tokens: 1e6, output_tokens: 1e5, cache_creation_input_tokens: 1e5, cache_read_input_tokens: 1e6 })
+  // 4 + 2 + 0.5 + 0.2
+  assert.equal(costOf(acc).usd.toFixed(2), '6.70')
+  assert.equal(shortUsd(costOf(acc)), '$6.70')
+  add(acc, { model: 'claude-sonnet-5-5', input_tokens: 1000, output_tokens: 10 })
+  assert.deepEqual(costOf(acc).unpriced, ['claude-sonnet-5-5'])
+  assert.equal(shortUsd(costOf(acc)), '$6.70+?')
+  assert.equal(shortUsd(costOf(acc, { 'claude-sonnet-5-5': { input: 3, output: 15, cacheRead: 0.3 } })), '$6.70')
+  assert.ok(priceFor('claude-haiku-4-5-20251001'))
+  assert.equal(windowFor('claude-opus-5-5'), 1e6)
+  assert.equal(windowFor('claude-sonnet-5-5', 400000), 400000)
+  assert.equal(windowFor('claude-sonnet-5-5[1m]'), 1e6)
+  assert.equal(contextOf({ input_tokens: 10, cache_read_input_tokens: 300000, cache_creation_input_tokens: 2000 }), 302010)
+  assert.deepEqual([ctxTone(10, 50), ctxTone(40, 50), ctxTone(55, 50), ctxTone(null, 50)], ['green', 'yellow', 'red', undefined])
+  assert.match(contextNudge(57), /57% of its window.*SPLIT/)
 })

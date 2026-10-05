@@ -406,31 +406,35 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     <h2>See the tree. Browse the memory.</h2>
     <p class="lede">Claude Code mods can draw panes, bands and dialogs. <code>/baton</code> opens a pane with five tabs: Run, Agents,
       Memory, Rulings and Ledger. The band above the prompt shows the prime's context gauge, and the spinner shows the phase.</p>
-    <div class="grid2" style="margin-top:30px">
+    <div class="grid2" style="margin-top:30px;grid-template-columns:1fr">
       <div class="term reveal">
         <div class="bar"><i></i><i></i><i></i>&nbsp; /baton → Agents</div>
 <pre><span class="c-y">⚑ P5 export: P5 DONE+CONFIRMED 9/9</span>   <span class="c-d">[approve]</span>
 <span class="c-d">Send back P5: what is wrong ⏎</span>
 
-◆ prime · 3h12m · 96 tools          <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">building</span>
-<span class="c-g">  ✓ sub-orch P5 · opus · 41m</span>        <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">approved</span>
-<span class="c-g">    ✓ worker T22 · opus · 9m</span>        <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">verified</span>
-<span class="c-r">    ✗ worker T23 · sonnet · 2m</span>      <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-r">green (refuted)</span>
-<span class="c-c">  ● sub-orch P6 · opus · 12m</span>     <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">dispatched</span>
-<span class="c-c">    ● worker T29 · opus · 4m</span>     <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">blue</span>
-<span class="c-c">    ● verifier T27 · opus · 1m</span>   <span class="c-d">✉</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span> <span class="c-c">verified</span>
+◆ prime                   <span class="c-g">ctx 24%/35%</span>  <span class="c-d"> 310k  $2.10</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">building</span>
+<span class="c-g">  ✓ sub-orch P5           </span><span class="c-g">ctx 18%/50%</span>  <span class="c-d"> 1.1M  $7.40</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">approved</span>
+<span class="c-g">    ✓ worker T22          </span><span class="c-y">ctx 31%/50%</span>  <span class="c-d"> 402k  $2.71</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span> <span class="c-g">verified</span>
+<span class="c-r">    ✗ worker-cheap T23    </span><span class="c-g">ctx  9%/50%</span>  <span class="c-d">  88k  $?   </span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-r">green (refuted)</span>
+<span class="c-c">  ● sub-orch P6 ✉         </span><span class="c-g">ctx 12%/50%</span>  <span class="c-d"> 240k  $1.62</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">dispatched</span>
+<span class="c-c">    ● worker T29 ✉        </span><span class="c-r">ctx 57%/50%</span>  <span class="c-d"> 512k  $3.30</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span> <span class="c-c">blue</span>
+<span class="c-c">    ● verifier T27 ✉      </span><span class="c-g">ctx  6%/50%</span>  <span class="c-d">  41k  $0.28</span>  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span> <span class="c-c">verified</span>
+
+<span class="c-d">    T29 crossed 50%: the mod told it to finish or split</span>
 
 <span class="c-d">baton ▕██████░░┊░░░░░░░░▏ 24% · rotations 3 · P6</span>
-<span class="c-d">#12 building · PR #47 draft · 1.2M of 2M (60%)</span></pre>
+<span class="c-d">#12 building · PR #47 draft · 2.7M · $17.41+?</span></pre>
       </div>
-      <div>
+      <div class="grid3">
         <div class="card reveal"><span class="tag">agents</span><h3>The live tree, with its parcel steps</h3><p>Prime → sub-orchestrators → workers and verifiers, from
           every spawn's parent, every tool call's agent and every turn's end. Each row ends with the steps of what that agent is working on:
-          a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal. <b>✉</b> on a running agent opens a field that
+          a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal.
+          Every row also carries its own meter: its context against <i>its own</i> threshold (the prime rotates at 35%; a subagent is told
+          to finish or split at 50%), its fresh tokens, and its cost, priced per model (API-equivalent; a model without a verified price shows <code>$?</code>). <b>✉</b> on a running agent opens a field that
           messages it directly: steer one phase without going through the prime.</p></div>
-        <div class="card reveal" style="margin-top:16px"><span class="tag">memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
+        <div class="card reveal"><span class="tag">memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
           summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>
-        <div class="card reveal" style="margin-top:16px"><span class="tag">rulings</span><h3>Add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
+        <div class="card reveal"><span class="tag">rulings</span><h3>Add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
           Enforced rulings show their pattern. The rulings log is append-only, so the history stays.</p></div>
       </div>
     </div>

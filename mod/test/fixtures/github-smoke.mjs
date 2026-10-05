@@ -43,14 +43,14 @@ function fakeGh(args, stdin) {
   if (args[0] === 'api' && args[1] === '-X' && args[2] === 'PATCH') { G.patched.push(args[3]); return '{}' }
   throw new Error('fake gh: unexpected ' + args.join(' '))
 }
-let surfaces = [], answers = [], toasts = [], models = []
+let surfaces = [], answers = [], toasts = [], models = [], sentMsgs = []
 const timers = [], every = []
 const $ = {
   plugin: { root: MOD },
   env: { get: async () => undefined },
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(path.resolve(W, p)),
         list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
-  session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async () => ({ isDelivered: true }) },
+  session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sentMsgs.push(x), { isDelivered: true }) },
   process: { run: async (argv, o) => {
     if (argv[0] === 'gh') { try { return { exitCode: 0, stdout: fakeGh(argv.slice(1), o?.stdin), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: err.message } } }
     try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
@@ -148,11 +148,22 @@ ok(G.posted.some((b) => /<!-- baton:spend -->/.test(b)) || G.patched.length > 0,
 const step = async (agentId, usage) => { const gen = hooks['turn.step'][0].f($, { agentId }, async function* () { return { usage } }); let r = await gen.next(); while (!r.done) r = await gen.next(); return r.value }
 await fire('agent.spawn', { _id: 'w9', subagentType: 'baton:worker', description: 'T9 export header' })
 await step('w9', { input_tokens: 4000, output_tokens: 1000, cache_read_input_tokens: 50000, model: 'claude-opus-5-5' })
-await step('w9', { input_tokens: 2000, output_tokens: 500 })
-await step(undefined, { input_tokens: 300, output_tokens: 200 })
+await step('w9', { input_tokens: 2000, output_tokens: 500, model: 'claude-opus-5-5' })
+await step(undefined, { input_tokens: 300, output_tokens: 200, model: 'claude-opus-5-5' })
 await fire('turn.complete', { agentId: 'w9', answer: 'T9 DONE', isAborted: false })
 const sp = JSON.parse(fs.readFileSync(path.join(W, '_orch/spend.json'), 'utf8'))
 ok(sp.total.fresh === 8000 && sp.byNode.T9.fresh === 7500 && sp.byRole.prime.fresh === 500 && sp.total.cacheRead === 50000, 'turn.step meters spend by agent, node and role')
+// a running worker whose request fills 60% of Opus's 1M window crosses the 50% subagent threshold: one message, once
+await fire('agent.spawn', { _id: 'w10', subagentType: 'baton:worker', description: 'T10 big parser' })
+await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 600000, model: 'claude-opus-5-5' })
+await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 610000, model: 'claude-opus-5-5' })
+ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its window.*SPLIT/.test(sentMsgs[0].text), 'a subagent past its threshold is told once to finish or split')
+surfaces = []
+const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Agents')[1] || ''
+const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
+ok(/ctx 61%\/50%/.test(w9row) && /\$\d+\.\d\d(?!\+)/.test(w9row) && /cached/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
+const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
+ok(/\/35%/.test(primeRow) || !/ctx/.test(primeRow), 'the prime row measures against the rotation threshold: ' + primeRow.trim())
 // the budget refuses another round once spent
 let deny = await fire('agent.spawn', { _id: 'rv', subagentType: 'baton:pr-reviewer', description: 'review round 3' })
 ok(!deny.deny, 'no budget set: the reviewer may spawn')

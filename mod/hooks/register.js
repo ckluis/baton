@@ -12,6 +12,7 @@ import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION }
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { contextNudge, contextOf, costOf, ctxTone, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
@@ -45,7 +46,7 @@ const MANIFEST_TTL_MS = 1500
 
 // The plugin's userConfig, with defaults (register() fills it).
 const config = { rotateAtPercent: 35, wakeBudgetLines: 96, memoryDir: '.baton/memory', autoRotate: true, approvals: true, phaseGate: true, prPollSeconds: 120,
-  tokensPerGoal: 0, forbiddenFiles: FORBIDDEN_DEFAULT, labels: true, boardProject: 0, boardOwner: '', boardStatusMap: {} }
+  tokensPerGoal: 0, agentContextWarnPercent: 50, prices: {}, forbiddenFiles: FORBIDDEN_DEFAULT, labels: true, boardProject: 0, boardOwner: '', boardStatusMap: {} }
 
 // The cheap tier: merges are compressed here, never by a subagent.
 const CHEAP_MODEL = CHEAP
@@ -869,6 +870,8 @@ function agentsBody($, { Box, Text, Button, Input, Link, line }) {
     const children = []
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: '✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     children.push(line('a' + i, r.text, r.color ? { color: r.color } : {}))
+    // This agent's own meter: its context against its own threshold, its tokens, its cost.
+    meterSegs(r.id ? tree.nodes.get(r.id) : null).forEach((m, j) => children.push(Text({ key: 'a' + i + 'm' + j, ...(m.color ? { color: m.color } : { dimColor: true }), children: [m.text] })))
     // The parcel steps of what this agent works on (its node, else its phase; the goal for the prime), at the end of its row.
     const st = workState(r.id)
     if (st) children.push(Box({ key: 'a' + i + 'st', flexDirection: 'row', children: stepperMini(st).map((x, j) => Text({ key: 'a' + i + 's' + j, ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }), children: [x.text] })) }))
@@ -1037,7 +1040,15 @@ function paneText() {
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
   if (id === 'track') return trackLines(track.view)
-  if (id === 'agents') return [...queueLines(), ...treeRows(tree).map((r) => { const st = workState(r.id); return r.text + (st ? '  ' + stepperMiniText(st) : '') })]
+  if (id === 'agents')
+    return [
+      ...queueLines(),
+      ...treeRows(tree).map((r) => {
+        const st = workState(r.id)
+        const m = meterSegs(r.id ? tree.nodes.get(r.id) : null).map((x) => x.text).join(' · ')
+        return r.text + (m ? ' · ' + m : '') + (st ? '  ' + stepperMiniText(st) : '')
+      }),
+    ]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }
@@ -1373,11 +1384,54 @@ async function saveSpend($, force = false) {
 function meter(agentId, usage) {
   addUsage(spend.total, usage)
   const n = agentId ? tree.nodes.get(agentId) : tree.nodes.get(PRIME)
+  if (n) {
+    // Each agent's own meter: its spend, and how full its context was on its last request.
+    addUsage((n.spend ??= {}), usage)
+    n.ctx = contextOf(usage)
+    if (usage.model) n.served = usage.model // the model that answered; n.model stays the short name for the row
+    n.window = n.id === PRIME && rotation.window ? rotation.window : windowFor(n.served, rotation.window || 200_000)
+  }
   const role = n ? n.role : 'agent'
   addUsage((spend.byRole[role] ??= {}), usage)
   const w = workOf(n ? n.label : '')
   if (w.node) addUsage((spend.byNode[w.node] ??= {}), usage)
   if (w.phase) addUsage((spend.byPhase[w.phase] ??= {}), usage)
+}
+
+/** An agent's context as a percent of its window, or null before its first request. */
+function ctxPct(n) {
+  return n && n.ctx && n.window ? Math.round((n.ctx / n.window) * 100) : null
+}
+
+/** Each row's own threshold: the prime rotates at rotateAtPercent; a subagent is nudged at agentContextWarnPercent. */
+function thresholdFor(n) {
+  return n && n.id === PRIME ? config.rotateAtPercent : config.agentContextWarnPercent
+}
+
+/** A subagent past its threshold gets one message from the mod: finish, or split. */
+async function maybeNudge($, agentId) {
+  const n = agentId && tree.nodes.get(agentId)
+  if (!n || n.nudged || n.endedAt != null) return
+  const pct = ctxPct(n)
+  if (pct == null || pct < config.agentContextWarnPercent) return
+  n.nudged = true
+  let sent = null
+  try {
+    sent = await $.session.send({ to: { agentId }, text: contextNudge(pct) })
+  } catch {}
+  await noteQuietly($, (n.label || n.role) + ' reached ' + pct + '% context; ' + (sent && sent.isDelivered ? 'told to finish or split' : 'could not be messaged'), 'budget')
+}
+
+/** "ctx 38% · 412k · $1.84" for one agent's row, with the context tone. */
+function meterSegs(n) {
+  if (!n || !n.spend) return []
+  const pct = ctxPct(n)
+  const out = []
+  if (pct != null) out.push({ text: 'ctx ' + pct + '%/' + thresholdFor(n) + '%', color: ctxTone(pct, thresholdFor(n)) })
+  out.push({ text: shortTokens(n.spend.fresh) + (n.spend.cacheRead ? ' +' + shortTokens(n.spend.cacheRead) + ' cached' : ''), color: undefined })
+  const c = shortUsd(costOf(n.spend, config.prices))
+  if (c) out.push({ text: c, color: undefined })
+  return out
 }
 
 function budgetNow() {
@@ -1618,7 +1672,8 @@ async function observe($, force = false) {
 /** " · 41k" (and the budget on the goal line). */
 function spendTail(acc, budget) {
   if (!acc || !acc.fresh) return ''
-  return ' · ' + shortTokens(acc.fresh) + (budget && budget.status !== 'off' ? ' of ' + shortTokens(budget.limit) + ' (' + budget.pct + '%)' : '')
+  const c = shortUsd(costOf(acc, config.prices))
+  return ' · ' + shortTokens(acc.fresh) + (budget && budget.status !== 'off' ? ' of ' + shortTokens(budget.limit) + ' (' + budget.pct + '%)' : '') + (c ? ' · ' + c : '')
 }
 
 function questionLine(q) {
@@ -1652,6 +1707,12 @@ export function register(on, options) {
     if (options.memoryDir) config.memoryDir = String(options.memoryDir)
     if (Number.isFinite(Number(options.prPollSeconds))) config.prPollSeconds = Number(options.prPollSeconds)
     if (Number.isFinite(Number(options.tokensPerGoal))) config.tokensPerGoal = Number(options.tokensPerGoal)
+    if (Number.isFinite(Number(options.agentContextWarnPercent)) && Number(options.agentContextWarnPercent) > 0) config.agentContextWarnPercent = Number(options.agentContextWarnPercent)
+    if (options.prices) {
+      try {
+        config.prices = typeof options.prices === 'string' ? JSON.parse(options.prices) : options.prices
+      } catch {}
+    }
     if (options.labels === false || options.labels === 'false') config.labels = false
     if (Number.isFinite(Number(options.boardProject))) config.boardProject = Number(options.boardProject)
     if (options.boardOwner) config.boardOwner = String(options.boardOwner)
@@ -2201,6 +2262,7 @@ export function register(on, options) {
       if (result && result.usage && (run.active || run.startedHere)) {
         await loadSpend($)
         meter(e.agentId, result.usage)
+        if (e.agentId) await maybeNudge($, e.agentId)
         const b = budgetNow()
         if (b.status === 'warn' && !spend.warned) {
           spend.warned = true

@@ -73,6 +73,18 @@
       "title": "More forbidden files",
       "description": "Comma-separated globs added to the defaults (.env, .env.*, *.pem, *.key, id_rsa, credentials.json, \u2026): refused at git add, and a merge-ready row on the PR",
       "default": ""
+    },
+    "agentContextWarnPercent": {
+      "type": "number",
+      "title": "Subagent context threshold (%)",
+      "description": "When a subagent's context reaches this percent of its window, the mod messages it once: finish now, or return SPLIT. The prime's threshold is rotateAtPercent.",
+      "default": 50
+    },
+    "prices": {
+      "type": "string",
+      "title": "Model prices (JSON)",
+      "description": "Add or override $ per million tokens, e.g. {\"claude-sonnet-5-5\": {\"input\": 3, \"output\": 15, \"cacheRead\": 0.3}}. Models without a price show their cost as unknown.",
+      "default": ""
     }
   }
 }
