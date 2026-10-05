@@ -203,3 +203,28 @@ export function bandSegs({ limits = [], cost = null, ctx = null, threshold = nul
   if (!out.length) out.push({ text: 'baton · plan usage arrives with the first response', color: undefined })
   return out
 }
+
+// ------------------------------------------------------------------ updates
+
+/** Compare dotted versions (7.10.0 > 7.9.2; a -suffix sorts before the plain release). */
+export function compareVersions(a, b) {
+  const parse = (v) => {
+    const [core, pre] = String(v ?? '').replace(/^v/, '').split('-')
+    return { nums: core.split('.').map((x) => Number(x) || 0), pre: pre ?? null }
+  }
+  const x = parse(a)
+  const y = parse(b)
+  for (let i = 0; i < Math.max(x.nums.length, y.nums.length); i++) {
+    const d = (x.nums[i] || 0) - (y.nums[i] || 0)
+    if (d) return Math.sign(d)
+  }
+  if (x.pre === y.pre) return 0
+  if (x.pre === null) return 1
+  if (y.pre === null) return -1
+  return x.pre < y.pre ? -1 : 1
+}
+
+/** Is the plugin running from an installed copy (a marketplace cache) rather than a checkout? */
+export function installedCopy(pluginRoot) {
+  return /\/\.claude\/plugins\/(cache|marketplaces)\//.test(String(pluginRoot ?? ''))
+}

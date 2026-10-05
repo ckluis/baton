@@ -28,6 +28,7 @@ write.
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
 | `lib/ledger.mjs` | spend and the budget, forbidden files, the goal's label and board column, `Blocked by`, pure |
+| `lib/detail.mjs` | the views Enter opens on an agent, a phase, a node or a ruling, pure |
 | `lib/lessons.mjs` | lessons: from refuted rows to code areas, relevance to a spawn's prompt, pure |
 | `lib/table.mjs` | the agent table: columns, widths, the drop order for narrow panes, pure |
 | `lib/codeidx.mjs`, `bin/code.mjs` | the code index: symbol extraction per language, end lines, ranking; the CLI the code tools run |
@@ -205,6 +206,17 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   no note was written; a message is sent to Sonnet for rulings only when it could state one.
 - **One file, by design.** The validator follows `$` only into functions declared in the same file,
   so the hooks module stays one `register.js`; pure logic lives in `lib/`.
+- **Drill in.** In Work, every agent, phase and node row has a `›`: `↑`/`↓` moves over them, `Enter`
+  opens a view in place, `b` goes back. An agent shows where it sits in the tree, its model and meter,
+  the task it was given (the lessons the mod added shown apart), its last ten tool calls and what it
+  returned; a phase its steps, brief, nodes and envelope; a node its done-criteria, its red, green
+  and blue records, the verifier's row for each criterion and the lessons it left. In Memory, a
+  ruling opens to the message it was lifted from and its enforcement; `+` opens a memory block. The
+  views are `lib/detail.mjs`; `/baton show <P3 | T12 | an agent>` prints the same thing.
+- **Updates.** Claude Code auto-updates a third-party marketplace only when you turn that on. So an
+  installed baton checks for itself, at most every six hours: when a newer version is published,
+  the band says so and `9` runs `claude plugin update baton@baton` (then `/reload-plugins`).
+  `/baton doctor` reports the version. A checkout (`--plugin-dir`) updates with `git pull`.
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's two tabs.** **Work** (1) is everything happening: the goal and its PR as links,

@@ -116,3 +116,13 @@ test('sparkline: a fixed 0–100 scale, newest last', async () => {
   assert.equal(sparkline([0, 12, 25, 50, 75, 99, 100]), '▁▁▃▅▇██')
   assert.equal(sparkline(Array.from({ length: 20 }, (_, i) => i * 5)).length, 8)
 })
+
+test('versions compare numerically; an installed copy is told from a checkout', async () => {
+  const { compareVersions, installedCopy } = await import('../lib/view.mjs')
+  assert.equal(compareVersions('7.10.0', '7.9.2'), 1)
+  assert.equal(compareVersions('7.5.0', '7.5.0'), 0)
+  assert.equal(compareVersions('7.5.0-dev', '7.5.0'), -1)
+  assert.equal(compareVersions('v7.6', '7.5.9'), 1)
+  assert.equal(installedCopy('/Users/x/.claude/plugins/cache/baton/baton/7.5.0'), true)
+  assert.equal(installedCopy('/Users/x/Desktop/projects/baton/mod'), false)
+})

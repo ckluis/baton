@@ -18,6 +18,8 @@ const hooks = {}
 register((ev, a, b) => { const [m, f] = typeof a === 'function' ? [null, a] : [a, b]; (hooks[ev] ??= []).push({ m, f }); return { catch() {} } })
 const match = (m, e) => !m || Object.entries(m).every(([k, v]) => v instanceof RegExp ? v.test(e[k]) : e[k] === v)
 const spawnPrompts = []
+const updates = []
+let FAKE_REMOTE = '0.0.1'
 const BIG = (n, mark) => Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? mark : 'line ' + i)).join('\n')
 const terminal = { 'tool.call': (e) => (e.tool === 'Read' && /big\.ts$/.test(e.file_path) ? { result: BIG(700, 'x') } : e.tool === 'Bash' && e.command === 'make test' ? { result: BIG(1200, 'FAIL cart.test.ts > empty cart') } : { result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => (spawnPrompts.push(e.prompt || ''), { agentId: e._id, model: e.model }) }
 async function fire(ev, e) {
@@ -33,7 +35,7 @@ const $ = {
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(p),
         list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sent.push(x), { isDelivered: true }) },
-  process: { run: async (argv, o) => { try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
+  process: { run: async (argv, o) => { if (argv[0] === 'curl') return { exitCode: 0, stdout: JSON.stringify({ version: FAKE_REMOTE }), stderr: '' }; if (argv[0] === 'claude' && argv[1] === 'plugin' && argv[2] === 'update') return (updates.push(argv.join(' ')), { exitCode: 0, stdout: 'updated', stderr: '' }); try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
   model: { complete: async () => ({ isAnswered: true, text: 'NONE' }) },
   clock: { after: (ms, f) => timers.push(f), every: () => ({ cancel() {} }) },
   ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async (x) => (opened.push(x), { isPlaced: true }),
@@ -134,6 +136,12 @@ t = await render()
 await byKey(t, 'ruling-add').props.onSubmit('PRs target main directly')
 t = await render()
 ok(/PRs target main directly/.test(text(t)), 'rulings tab adds')
+const rOpen = flat(t).find((n) => n.type === 'Button' && /^open-r-/.test(n.props.key))
+await rOpen.props.onPress()
+t = await render()
+ok(/^ruling #\d+/m.test(text(t)) && /by hand/.test(text(t)) && !!flat(t).find((n) => n.props?.key === 'md-back'), 'Enter on a ruling opens its view: where it came from, b back')
+await flat(t).find((n) => n.props?.key === 'md-back').props.onPress()
+t = await render()
 await byKey(t, 'retract-0').props.onPress()
 t = await render()
 ok(!/never push to main/.test(text(t)), 'retract removes the ruling')
@@ -214,4 +222,21 @@ ok(new RegExp(cpId + '\\s+baton checkpoint: prime › w1|' + cpId).test(lst.text
 const rs = await fire('command.run', { command: 'baton', args: 'restore ' + cpId })
 ok(/files restored to checkpoint/.test(rs.text) && fs.readFileSync(W + '/keep.txt', 'utf8') === 'precious', 'restore puts the files back: ' + rs.text.slice(0, 160))
 ok(execFileSync('git', ['status', '--short'], { cwd: W, encoding: 'utf8' }).split('\n').every((l) => !/refs\/baton/.test(l)), 'the branch and index never moved')
+
+// ---- updates: an installed copy hears about a newer baton and updates with 9
+const fakeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'h-')) + '/.claude/plugins/cache/baton/baton/7.4.0'
+fs.mkdirSync(fakeRoot + '/.claude-plugin', { recursive: true })
+fs.writeFileSync(fakeRoot + '/.claude-plugin/plugin.json', JSON.stringify({ name: 'baton', version: '7.4.0' }))
+const realRoot = $.plugin.root
+$.plugin.root = fakeRoot
+FAKE_REMOTE = '7.6.0'
+const dr = await fire('command.run', { command: 'baton', args: 'doctor' })
+ok(/✗ baton version — 7\.4\.0 installed, 7\.6\.0 published/.test(dr.text), 'doctor: a newer baton is published')
+const bandU = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 160 } })
+const updBtn = flat(bandU).find((n) => n.type === 'Button' && n.props.hotkey === '9')
+ok(/baton 7\.6\.0 is out \(you have 7\.4\.0\)/.test(text(bandU)) && !!updBtn, 'the band says so, with 9 to update')
+await updBtn.props.onPress()
+const bandU2 = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 160 } })
+ok(updates[0] === 'claude plugin update baton@baton' && /baton 7\.6\.0 installed: \/reload-plugins/.test(text(bandU2)), '9 runs claude plugin update, then says /reload-plugins')
+$.plugin.root = realRoot
 

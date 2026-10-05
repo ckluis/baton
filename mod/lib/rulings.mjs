@@ -72,7 +72,7 @@ export function activeRulings(notes) {
   }
   return (notes ?? [])
     .filter((x) => (x.tag === 'ruling' || x.tag === 'ruling-hand') && !retracted.has(x.index))
-    .map((x) => ({ n: x.index, ts: String(x.ts ?? '').slice(0, 10), text: x.text, enforce: enforce.get(x.index) ?? null }))
+    .map((x) => ({ n: x.index, ts: String(x.ts ?? '').slice(0, 10), text: x.text, hand: x.tag === 'ruling-hand', enforce: enforce.get(x.index) ?? null }))
     .reverse()
 }
 

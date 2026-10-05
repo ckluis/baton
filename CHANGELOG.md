@@ -1,5 +1,16 @@
 # Changelog
 
+## v7.5 — 2026-10-05
+
+- **Drill in:** `↑`/`↓` and `Enter` on any agent, phase or node in Work opens its view (the task, the
+  lessons added to it, its last ten tool calls, its meter; a phase's brief and nodes; a node's
+  criteria, red/green/blue records and the verifier's rows); `b` goes back. In Memory a ruling opens
+  to the message it came from. `/baton show <id>` prints the same views.
+- **Updates:** an installed baton checks for a newer version and offers `9` to update; doctor
+  reports the version. The plugin is versioned (7.5.0) instead of 7.0.0-dev.
+- **Page:** section 4's window is live in both tabs: click a row, or `↑`/`↓` `Enter` `b` `p` `1` `2`.
+- **Fixed:** long tool names ran into their detail in the agent view.
+
 ## Unreleased
 
 - **Two tabs: Work and Memory.** Work folds in the plan (one line per phase; `p` for every node and the
