@@ -43,14 +43,14 @@ function fakeGh(args, stdin) {
   if (args[0] === 'api' && args[1] === '-X' && args[2] === 'PATCH') { G.patched.push(args[3]); return '{}' }
   throw new Error('fake gh: unexpected ' + args.join(' '))
 }
-let surfaces = [], answers = [], toasts = [], models = []
+let surfaces = [], answers = [], toasts = [], models = [], sentMsgs = []
 const timers = [], every = []
 const $ = {
   plugin: { root: MOD },
   env: { get: async () => undefined },
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(path.resolve(W, p)),
         list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
-  session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async () => ({ isDelivered: true }) },
+  session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sentMsgs.push(x), { isDelivered: true }) },
   process: { run: async (argv, o) => {
     if (argv[0] === 'gh') { try { return { exitCode: 0, stdout: fakeGh(argv.slice(1), o?.stdin), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: err.message } } }
     try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
@@ -67,7 +67,7 @@ const $ = {
 const ok = (c, msg) => { if (!c) { console.log('FAIL', msg); process.exitCode = 1 } else console.log('ok  ', msg) }
 const put = (p, t) => { fs.mkdirSync(path.dirname(path.join(W, p)), { recursive: true }); fs.writeFileSync(path.join(W, p), t) }
 const drain = async () => { while (timers.length) await timers.shift()() }
-const poll = async () => { for (const f of every.slice(0, 1)) await f() } // the first every() is the PR poll (the ticker is second)
+const poll = async () => { for (const f of every) await f() } // every clock job: plan usage, the PR poll, the ticker
 const status = async () => (await fire('command.run', { command: 'baton', args: 'status' })).text
 await fire('session.start', { cwd: W })
 
@@ -122,18 +122,23 @@ await poll()
 s = await status()
 ok(/◉ ready/.test(s) && toasts.some((t) => /PR #47 is ready for you to merge/.test(t)), 'merge-ready computed; toast says ready for you to merge')
 
-// the pane: Track tab with links and steppers
+// the pane: Workspace (links, steps, the merge line, the table), then Plan (every row)
 surfaces = ['terminal']
 await fire('command.run', { command: 'baton', args: '' })
 const render = async () => fire('ui.render', { component: 'Pane', requestId: 'baton', surface: 'terminal', props: { bodyColumns: 140, scroll: { bodyRows: 40 } } })
 const flat = (n, out = []) => { if (!n || typeof n !== 'object') return out; if (Array.isArray(n)) { n.forEach((c) => flat(c, out)); return out } out.push(n); flat(n.props?.children, out); return out }
 let t = await render()
 const links = flat(t).filter((n) => n.type === 'Link').map((n) => n.props.href)
-ok(links.includes('https://github.com/o/r/issues/12') && links.includes('https://github.com/o/r/pull/47'), 'Track tab links the issue and the PR')
+ok(links.includes('https://github.com/o/r/issues/12') && links.includes('https://github.com/o/r/pull/47'), 'Workspace links the issue and the PR')
+const wsTexts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
+ok(wsTexts.some((x) => /merge-ready (\d+)\/\1 · waiting for you to merge/.test(x)), 'Workspace: the merge rows as one line')
+await flat(t).find((n) => n.props?.key === 'tab-plan').props.onPress()
+t = await render()
 const texts = flat(t).filter((n) => n.type === 'Text').map((n) => n.props.children.join(''))
-ok(texts.some((x) => /✓ every check green/.test(x)) && texts.some((x) => x.trim() === 'T2'), 'merge-ready rows and node steppers drawn')
+ok(texts.some((x) => /✓ every check green/.test(x)) && texts.some((x) => x.trim() === 'T2'), 'Plan: merge-ready rows and node steppers drawn')
 const band = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 140 } })
-ok(flat(band).some((n) => n.type === 'Text' && /#12 ready · PR #47 ready · checks 2\/2 · ready for you to merge/.test(n.props.children.join(''))), 'band: goal and PR state')
+const bandLine = flat(band).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('')
+ok(/#12 ready · PR #47 2\/2 ready to merge/.test(bandLine), 'band, one line: goal and PR state: ' + bandLine)
 
 // measured rows on disk
 const rows = fs.readdirSync(path.join(W, '_orch/track')).map((f) => JSON.parse(fs.readFileSync(path.join(W, '_orch/track', f), 'utf8')))
@@ -148,11 +153,22 @@ ok(G.posted.some((b) => /<!-- baton:spend -->/.test(b)) || G.patched.length > 0,
 const step = async (agentId, usage) => { const gen = hooks['turn.step'][0].f($, { agentId }, async function* () { return { usage } }); let r = await gen.next(); while (!r.done) r = await gen.next(); return r.value }
 await fire('agent.spawn', { _id: 'w9', subagentType: 'baton:worker', description: 'T9 export header' })
 await step('w9', { input_tokens: 4000, output_tokens: 1000, cache_read_input_tokens: 50000, model: 'claude-opus-5-5' })
-await step('w9', { input_tokens: 2000, output_tokens: 500 })
-await step(undefined, { input_tokens: 300, output_tokens: 200 })
+await step('w9', { input_tokens: 2000, output_tokens: 500, model: 'claude-opus-5-5' })
+await step(undefined, { input_tokens: 300, output_tokens: 200, model: 'claude-opus-5-5' })
 await fire('turn.complete', { agentId: 'w9', answer: 'T9 DONE', isAborted: false })
 const sp = JSON.parse(fs.readFileSync(path.join(W, '_orch/spend.json'), 'utf8'))
 ok(sp.total.fresh === 8000 && sp.byNode.T9.fresh === 7500 && sp.byRole.prime.fresh === 500 && sp.total.cacheRead === 50000, 'turn.step meters spend by agent, node and role')
+// a running worker whose request fills 60% of Opus's 1M window crosses the 50% subagent threshold: one message, once
+await fire('agent.spawn', { _id: 'w10', subagentType: 'baton:worker', description: 'T10 big parser' })
+await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 600000, model: 'claude-opus-5-5' })
+await step('w10', { input_tokens: 1000, output_tokens: 200, cache_read_input_tokens: 610000, model: 'claude-opus-5-5' })
+ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its window.*SPLIT/.test(sentMsgs[0].text), 'a subagent past its threshold is told once to finish or split')
+surfaces = []
+const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Workspace')[1] || ''
+const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
+ok(/worker T10 big parser\s+61%\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
+const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
+ok(/\/35%/.test(primeRow) || !/ctx/.test(primeRow), 'the prime row measures against the rotation threshold: ' + primeRow.trim())
 // the budget refuses another round once spent
 let deny = await fire('agent.spawn', { _id: 'rv', subagentType: 'baton:pr-reviewer', description: 'review round 3' })
 ok(!deny.deny, 'no budget set: the reviewer may spawn')
@@ -178,7 +194,7 @@ s = await status()
 await poll()
 surfaces = []
 const tl = (await fire('command.run', { command: 'baton', args: '' })).text
-ok(/worker T2 .*●─●─●─● verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Agents')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
+ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Workspace')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 

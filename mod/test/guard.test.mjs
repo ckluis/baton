@@ -39,3 +39,9 @@ test('manifest arming', () => {
   assert.equal(manifestIsPrime(''), false)
   assert.equal(manifestIsPrime('nope'), false)
 })
+
+test('the code tools read code, so they are not the prime\'s', async () => {
+  const { primeMayUse } = await import('../lib/guard.mjs')
+  assert.equal(primeMayUse('mcp__baton__memory_wake'), true)
+  assert.equal(primeMayUse('mcp__baton__code_fetch'), false)
+})

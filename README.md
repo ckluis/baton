@@ -7,8 +7,10 @@ of a growing context, rulings that stick, the agent tree in a pane, and approval
 the tree. Underneath, baton is still a router prompt that works in any harness.
 
 ```bash
-claude --plugin-dir ./mod        # from a clone of this repo
-/baton start BUILD ./app         # in the session
+/plugin marketplace add ckluis/baton     # once, in Claude Code
+/plugin install baton@baton              # that is the whole setup
+# or, from a clone: claude --plugin-dir ./mod
+/baton start BUILD ./app                 # a run; the band, the pane and the code tools need nothing
 ```
 
 baton is a router prompt. You paste it into a fresh session, fill eight lines, and

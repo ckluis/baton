@@ -56,41 +56,42 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
   on('tool.call', () => ({ result: 'ran' }))
 }
 
-test('/baton opens the pane; Run, Agents, Memory, Rulings and Ledger tabs draw on terminal and desktop', async ($, on) => {
+test('/baton opens the pane; Workspace, Plan, Memory and Rulings draw on terminal and desktop', async ($, on) => {
   world(on)
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 100, placement: 'dock', scroll: { bodyRows: 30 } } as any })
-    await has(ui, /build-20261002T120000Z/)
-    await has(ui, /3 nodes: 1 DONE, 1 BLOCKED, 1 pending/)
-    await has(ui, /P1 DONE — bootstrap and plan/)
+    const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 140, placement: 'dock', scroll: { bodyRows: 30 } } as any })
+    await has(ui, /agent\s+context\s+budget/)
+    await has(ui, /◆ prime/)
+    await ui.press({ key: 'tab-plan' })
+    await has(ui, /goal/)
     await ui.press({ key: 'tab-memory' })
     await has(ui, /9 notes · 7\/7 summaries/)
     await has(ui, /T2 BLOCKED on Q-1/)
-    await ui.press({ key: 'tab-ledger' })
-    await has(ui, /T1 · claude-opus-5-5 · DONE · 300s · wrote the parser, 4\/4/)
-    await ui.press({ key: 'tab-run' })
+    await ui.press({ key: 'tab-rulings' })
+    await ui.press({ key: 'tab-workspace' })
     await ui.unmount()
   }
 })
 
-test('with no _orch the pane says how to start, and nothing throws', async ($, on) => {
+test('with no _orch every tab draws, and nothing throws', async ($, on) => {
   world(on, { orch: false })
   await $.command.run({ command: 'baton', args: '' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 80, placement: 'inline', scroll: { bodyRows: 10 } } as any })
-  await has(ui, /no _orch\/ here — \/baton start/)
-  await ui.press({ key: 'tab-ledger' })
-  await has(ui, /no ledger rows yet/)
+  await has(ui, /◆ prime/)
+  await ui.press({ key: 'tab-plan' })
+  await has(ui, /no run is active here/)
 })
 
 test('claude -p (no surface): /baton prints every tab as text', async ($, on) => {
   world(on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text).toContain('baton run build-20261002T120000Z')
+  expect(r.text).toContain('## Workspace')
+  expect(r.text).toContain('## Plan')
   expect(r.text).toContain('## Memory')
-  expect(r.text).toContain('## Ledger')
-  expect(r.text).toContain('T2 BLOCKED')
+  expect(r.text).not.toContain('## Ledger')
 })
 
 test('the band shows the context gauge and rotations during a run, and nothing otherwise', async ($, on) => {

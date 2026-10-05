@@ -1,0 +1,12 @@
+{
+  "name": "baton",
+  "owner": { "name": "Chris Kluis" },
+  "metadata": { "description": "baton: a prime orchestrator that only dispatches, with memory, a tracker, approvals and a code index — one install, nothing to set up" },
+  "plugins": [
+    {
+      "name": "baton",
+      "source": "./mod",
+      "description": "The baton mod for Claude Code: prime guard, memory, rulings, the Track and Agents tabs with per-agent meters, approvals, GitHub goals, a built-in code index, quiet output and notifications"
+    }
+  ]
+}

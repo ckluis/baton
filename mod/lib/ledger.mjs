@@ -23,7 +23,87 @@ export function addUsage(acc, u) {
   acc.cacheRead = (acc.cacheRead || 0) + t.cacheRead
   acc.requests = (acc.requests || 0) + 1
   if (u && u.model) acc.models = Array.from(new Set([...(acc.models || []), String(u.model)]))
+  // Per model, the four components a price needs.
+  if (u) {
+    const m = String(u.model || 'unknown')
+    const k = ((acc.byModel ??= {})[m] ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 })
+    const n = (x) => (Number.isFinite(Number(u[x])) ? Number(u[x]) : 0)
+    k.input += n('input_tokens')
+    k.output += n('output_tokens')
+    k.cacheWrite += n('cache_creation_input_tokens')
+    k.cacheRead += n('cache_read_input_tokens')
+  }
   return acc
+}
+
+// ------------------------------------------------------------------ cost and context
+
+/**
+ * $ per million tokens: input, output, cache read. Cache writes are 1.25 x input.
+ * Verified against Anthropic's pricing page on 2026-09-23. A model not listed
+ * (Sonnet 5.5 among them, until verified) has no price: its cost shows as unknown,
+ * never a guess. The `prices` setting adds or overrides entries.
+ */
+export const PRICES = {
+  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
+  'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5 },
+  'claude-fable-5-1': { input: 10, output: 50, cacheRead: 0.25 },
+  'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2 },
+  'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1 },
+}
+
+/** The price entry for a model id, ignoring a date suffix and a [1m] tag. */
+export function priceFor(model, extra = {}) {
+  const id = String(model || '').replace(/\[.*\]$/, '').replace(/-\d{8}$/, '')
+  return extra[id] || extra[model] || PRICES[id] || null
+}
+
+/** API-equivalent cost of an account in $, and the models that had no price. */
+export function costOf(acc, extra = {}) {
+  let usd = 0
+  const unpriced = []
+  for (const [m, k] of Object.entries((acc && acc.byModel) || {})) {
+    const p = priceFor(m, extra)
+    if (!p) {
+      if (k.input + k.output + k.cacheWrite + k.cacheRead > 0) unpriced.push(m)
+      continue
+    }
+    usd += (k.input * p.input + k.output * p.output + k.cacheWrite * p.input * 1.25 + k.cacheRead * p.cacheRead) / 1e6
+  }
+  return { usd, unpriced }
+}
+
+export function shortUsd(c) {
+  if (!c) return ''
+  const v = c.usd
+  const s = v < 0.01 && v > 0 ? '<$0.01' : '$' + (v < 10 ? v.toFixed(2) : v.toFixed(1))
+  return c.unpriced.length ? (v > 0 ? s + '+?' : '$?') : s
+}
+
+/** Context windows by model; anything else falls back to the session's measured window or 200K. */
+export const WINDOWS = { 'claude-opus-5-5': 1_000_000 }
+
+export function windowFor(model, fallback = 200_000) {
+  const id = String(model || '')
+  if (/\[1m\]/.test(id)) return 1_000_000
+  return WINDOWS[id.replace(/-\d{8}$/, '')] || fallback
+}
+
+/** How full one request's prompt was: input + cache reads + cache writes. */
+export function contextOf(u) {
+  const n = (x) => (u && Number.isFinite(Number(u[x])) ? Number(u[x]) : 0)
+  return n('input_tokens') + n('cache_read_input_tokens') + n('cache_creation_input_tokens')
+}
+
+/** green under 70% of the threshold, yellow up to it, red past it. */
+export function ctxTone(pct, threshold) {
+  if (pct == null) return undefined
+  return pct >= threshold ? 'red' : pct >= threshold * 0.7 ? 'yellow' : 'green'
+}
+
+/** The message the mod sends a subagent that crossed its context threshold. */
+export function contextNudge(pct) {
+  return 'baton: your context is at ' + pct + '% of its window. Finish the node you have now: write your envelope and return your one line. If the work is bigger than one node, return SPLIT with the seams you found instead of pushing on.'
 }
 
 export function shortTokens(n) {
