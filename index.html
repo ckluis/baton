@@ -359,7 +359,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <div class="moment reveal"><h3>Every finished turn<span>prime or subagent</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">turn.complete</code><p>A subagent the prime dispatched: its one-line return becomes a run note, tagged with its role. The prime’s own reply: its first line becomes one too.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">turn.complete</code><p>A sub-orchestrator whose return leads with DONE joins the phase-gate queue, and the band flags it.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">turn.complete</code><p>Writes the spend down and re-reads the record: every computed state that moved becomes a row in <code>_orch/track/</code>.</p></div></div></div>
 <div class="moment reveal"><h3>As the context grows<span>after each turn</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">session.measure</code><p>The context gauge. At <code>rotateAtPercent</code> (35%): a one-line handoff from a fork of the prime, then a compaction off the clock.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">session.compact · SessionStart</code><p>Every compaction in a run counts as a rotation and arms the wake, delivered by whichever comes first: SessionStart, the next prompt, or the next allowed tool result.</p></div></div></div>
 <div class="moment reveal"><h3>Every two minutes<span>on the clock, during a run</span></h3><div class="hooks"><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → gh pr view</code><p>The PR as data, no model: state, checks, mergeability, files, closing issues, comments. Merge-ready is computed row by row; the reviewer’s verdict is parsed from its comment.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → comments</code><p>From allowed answerers, <code>/approve P3</code>, <code>/send-back P3 …</code> and <code>/approve push</code> act as the gate. Other remarks become one line each, condensed by Haiku 4.5.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → the issue</code><p>The goal’s state as a <code>baton:&lt;state&gt;</code> label, and optionally a Projects board column. One spend comment on the PR, edited in place.</p></div></div></div>
-<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p>Opens by itself: Workspace (the goal, the PR and its review findings linked to their lines, the agent table with a trend column, what waits for you), Plan, Memory, Rulings. Buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>One line: plan usage, the context against its threshold, the cost, the goal and the PR. With a phase waiting, <code>1</code> typed into an empty prompt approves it.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · rotate · status · watch · next · rule · rulings · retract · enforce. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
+<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p>Opens by itself, with two tabs: Work (the goal, the PR and its review findings linked to their lines, the agent table with a trend column, the plan one line per phase with <code>p</code> for every node, what waits for you) and Memory (your rulings, then the memory browser). Buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>One line: plan usage, the context against its threshold, the cost, the goal and the PR. With a phase waiting, <code>1</code> typed into an empty prompt approves it.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · pause · resume · rotate · status · doctor · watch · next · rule · rulings · retract · enforce · checkpoints · restore. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
     </div>
 
     <h3 style="margin-top:64px;font-size:22px">One goal, end to end</h3>
@@ -439,8 +439,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     <h2>It is just there.</h2>
     <p class="lede">There is nothing to open. In any Claude Code session with baton loaded, one line above the prompt carries your plan usage
       (5 hours, the week, Fable), the context against its threshold and the session's cost, and the pane opens by itself as soon as there are
-      agents to show. Its first tab is everything you watch: the goal and its PR, a table of every agent, what waits for you, your newest rulings.
-      The other three are things you open to use. This is what a run looks like; the tabs are live.</p>
+      agents to show. It has two tabs. <b>Work</b> is everything happening: the goal and its PR, a table of every agent, the plan one line per phase, what waits for you.
+      <b>Memory</b> is everything the run remembers: your rulings, then the memory itself. This is what a run looks like; the tabs are live.</p>
     <div class="cc reveal" role="img" aria-label="A Claude Code session running baton: the conversation, the baton pane with the agent table, the usage band and the input box">
       <div class="title"><i></i><i></i><i></i>&nbsp; ~/shop — claude --plugin-dir ~/baton/mod</div>
       <div class="who">the conversation</div>
@@ -462,8 +462,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · P6 import) <span class="c-d">running</span>
 <span class="c-c">✻ Coordinating… · baton · P6 · P6 import</span></pre>
       <div class="pane">
-        <input type="radio" name="cc-tab" id="cc-w" checked><input type="radio" name="cc-tab" id="cc-p"><input type="radio" name="cc-tab" id="cc-m"><input type="radio" name="cc-tab" id="cc-r">
-        <div class="tabs"><label for="cc-w">1 Workspace</label><label for="cc-p">2 Plan</label><label for="cc-m">3 Memory</label><label for="cc-r">4 Rulings</label><span class="x">baton · opened by itself · click a tab</span></div>
+        <input type="radio" name="cc-tab" id="cc-w" checked><input type="radio" name="cc-tab" id="cc-m">
+        <div class="tabs"><label for="cc-w">1 Work</label><label for="cc-m">2 Memory</label><span class="x">baton · opened by itself · click a tab</span></div>
         <div class="panels">
           <div class="panel p-w"><pre><span class="c-b">#12 CSV export ↗</span> <span class="c-d">·</span> <span class="c-b">PR #47 ↗</span> <span class="c-d">checks 5/6 · review CHANGES (1 high, 0 med)</span>
 <b class="c-i">goal    </b> <span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span><span class="c-d"> · 2.7M · $17.41+?</span>
@@ -480,22 +480,23 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <span class="c-c">    ● verifier T27          </span>  <span class="c-g">     6%</span>  <span class="c-g">▁▁      </span>  <span class="c-d">   50%</span>  opus         9k  <span class="c-d">    31k</span>  <span class="c-d">   220k</span>      4k    $0.32  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span>
 <span class="c-d">    T29 crossed its 50% budget: the mod told it to finish or split.   ✉ on a running row messages it.</span>
 
+<b class="c-i">plan</b>  <span class="c-d">p every node</span>
+<b class="c-i">P5      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span><span class="c-d"> · 9/9 verified · 1.4M · $8.12</span>
+<b class="c-i">P6      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span><span class="c-d"> · 2/5 verified · T31 blocked · 410k · $4.65</span>
+<b class="c-i">P7      </b> <span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
+
 <span class="c-r">? Q-4 Which vendor key does the import use?  — blocked by _orch/nodes/T31/handoff.md:"use the vendor API" (explicit: fix the cause)</span>
 <span class="c-m">ruling #3 2026-10-05 Hold the database migration until the operator releases it.</span>
 <span class="c-m">ruling #1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span></pre></div>
-          <div class="panel p-p"><pre><b class="c-i">goal    </b> <span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span><span class="c-d"> · 2.7M · $17.41+?</span>
-<b class="c-i">PR      </b> <span class="c-g">● draft 1h10</span><span class="c-g"> ─ </span><span class="c-g">● checks 4m</span><span class="c-g"> ─ </span><span class="c-r">✗ reviewed 14m (changes)</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span>
-<span class="c-g">           ✓ mergeable (no conflict with the base)   ✓ closes issue #12   ✓ no forbidden file   ✓ the main checkout is clean</span>
-<span class="c-d">           ✗ every check green   ✗ the reviewer’s latest verdict is READY   ✗ no high finding open</span>
-<b class="c-i">P5      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span><span class="c-d"> · 1.4M · $8.12</span>
-<b class="c-i">  T22   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-d"> · 233k · $2.43</span>
-<b class="c-i">  T23   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> · 49k · $?</span>
-<b class="c-i">P6      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span><span class="c-d"> · 410k · $4.65</span>
-<b class="c-i">  T29   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> · 273k · $3.05</span>
-<b class="c-i">  T31   </b> <span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-<b class="c-i">P7      </b> <span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
-<span class="c-d">states are computed from _orch/ and the PR; each change is a row in _orch/track/ · PR read 10:42:07</span></pre></div>
-          <div class="panel p-m"><pre><span class="c-d">tree: 214 notes · 213/213 summaries · 8 levels · 0 merges pending</span>
+          <div class="panel p-m"><pre><b class="c-i">rulings</b>
+<span class="c-d">New ruling: </span><span class="c-d">a standing instruction; the newest wins ⏎ add</span>
+<span class="c-d">[x]</span> <span class="c-m">#3 2026-10-05 Hold the database migration until the operator releases it.</span>
+<span class="c-d">[x]</span> <span class="c-m">#1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span>
+<span class="c-d">[x]</span> <span class="c-m">#0 2026-10-02 Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span>
+<span class="c-d">x retracts · /baton enforce &lt;#&gt; &lt;regex&gt; makes a ruling refuse matching shell commands</span>
+
+<b class="c-i">memory</b>
+<span class="c-d">tree: 214 notes · 213/213 summaries · 8 levels · 0 merges pending</span>
 <span class="c-d">[b] back   Search: </span><span class="c-i">migration</span><span class="c-d"> ⏎ search</span>
 <span class="c-c">[+]</span> #0-127 (128 notes) bootstrap BUILD ./shop; 41 nodes / 6 phases; P1–P3 CONFIRMED; Q-1 vendor key answered
 <span class="c-c">[+]</span> #128-191 (64 notes) P4 parser: T14 refuted twice, escalated; a red test passed pre-change and was refuted (9.4)
@@ -506,30 +507,25 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
     #211 2026-10-05T10:39:12Z [budget] worker T29 reached 57% context; told to finish or split
     #212 2026-10-05T10:41:55Z [review] PR #47 review round 1: CHANGES (1 high, 0 med, 2 low)
     #213 2026-10-05T10:42:07Z [github] PR #47 chris: asks to also export archived orders</pre></div>
-          <div class="panel p-r"><pre><span class="c-d">New ruling: </span><span class="c-d">a standing instruction; the newest wins ⏎ add</span>
-<span class="c-d">[x]</span> <span class="c-m">#3 2026-10-05 Hold the database migration until the operator releases it.</span>
-<span class="c-d">[x]</span> <span class="c-m">#1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span>
-<span class="c-d">[x]</span> <span class="c-m">#0 2026-10-02 Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span>
-<span class="c-d">x retracts · /baton enforce &lt;#&gt; &lt;regex&gt; makes a ruling refuse matching shell commands</span></pre></div>
         </div>
       </div>
       <div class="band"><pre><span class="c-g">5h ▕██░░░▏42%</span><span class="c-d"> · </span><span class="c-g">wk ▕█░░░░▏18%</span><span class="c-d"> · </span><span class="c-g">Fable ▕░░░░░▏3%</span><span class="c-d"> · </span><span class="c-g">ctx ▕█░┊░░▏24%/35%</span><span class="c-d"> · </span><span class="c-d">↻3</span><span class="c-d"> · </span><span class="c-d">$17.41</span><span class="c-d"> · </span><span class="c-d">#12 building</span><span class="c-d"> · </span><span class="c-r">PR #47 5/6</span>
-<span class="c-y">⚑ waiting for you: 1 question — Workspace (1)</span></pre></div>
+<span class="c-y">⚑ waiting for you: 1 question — Work (1)</span></pre></div>
       <div class="input"><span class="p">&gt;</span><span>also export the archived orders</span><span class="caret" aria-hidden="true"></span></div>
       <div class="hint"><span>? for shortcuts</span><span>opus · /baton for commands</span></div>
     </div>
     <div style="margin-top:26px"></div>
     <div class="grid3">
-        <div class="card reveal"><span class="tag">1 · workspace</span><h3>Everything you watch, in one view</h3><p>Prime → sub-orchestrators → workers and verifiers, from
+        <div class="card reveal"><span class="tag">1 · work</span><h3>Everything happening, in one view</h3><p>Prime → sub-orchestrators → workers and verifiers, from
           every spawn's parent, every tool call's agent and every turn's end. Each row ends with the steps of what that agent is working on:
           a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal.
           Every row is a line of a table: the agent, its context against <i>its own</i> budget (the prime rotates at 35%;
           a subagent is told to finish or split at 50%), its model, its input, cache writes, cache reads and output, its cost priced per model
           (API-equivalent; a model without a verified price shows <code>$?</code>), its steps and its state. On a narrow terminal the least useful columns go first. <b>✉</b> on a running agent opens a field that
           messages it directly: steer one phase without going through the prime.</p></div>
-        <div class="card reveal"><span class="tag">3 · memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
+        <div class="card reveal"><span class="tag">2 · memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
           summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>
-        <div class="card reveal"><span class="tag">4 · rulings</span><h3>Add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
+        <div class="card reveal"><span class="tag">2 · memory</span><h3>Rulings first: add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
           Enforced rulings show their pattern. The rulings log is append-only, so the history stays.</p></div>
       </div>
     </div>
