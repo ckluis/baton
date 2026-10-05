@@ -12,6 +12,7 @@ import { shortTokens } from './ledger.mjs'
 export const COLUMNS = [
   { id: 'agent', title: 'agent', w: 28 },
   { id: 'ctx', title: 'context', w: 7, right: true },
+  { id: 'trend', title: 'trend', w: 8 },
   { id: 'budget', title: 'budget', w: 6, right: true },
   { id: 'model', title: 'model', w: 7 },
   { id: 'input', title: 'input', w: 6, right: true },
@@ -24,7 +25,7 @@ export const COLUMNS = [
 ]
 
 // What goes first when the pane is too narrow for everything.
-export const DROP_ORDER = ['cacheWrite', 'input', 'budget', 'output', 'model', 'cacheRead', 'steps']
+export const DROP_ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'model', 'cacheRead', 'steps']
 
 const GAP = 2
 
@@ -71,6 +72,7 @@ export function agentTable(rows, width = 140) {
     const cells = {
       agent: [{ text: r.label, tone: r.tone }],
       ctx: [{ text: r.ctxPct == null ? '—' : r.ctxPct + '%', tone: r.ctxTone }],
+      trend: [{ text: sparkline(r.ctxHist || []), tone: r.ctxTone }],
       budget: [{ text: r.threshold == null ? '' : r.threshold + '%', tone: 'rail' }],
       model: [{ text: r.model || '', tone: undefined }],
       input: [{ text: r.acc ? shortTokens(k.input) : '', tone: undefined }],
@@ -104,6 +106,14 @@ export function agentTable(rows, width = 140) {
     return segs
   })
   return { header, lines, cols: cols.map((c) => c.id) }
+}
+
+const SPARK = '▁▂▃▄▅▆▇█'
+
+/** A context-percent history as a sparkline, newest last (0–100 on a fixed scale). */
+export function sparkline(values, width = 8) {
+  const v = (values || []).slice(-width)
+  return v.map((x) => SPARK[Math.max(0, Math.min(7, Math.floor((Number(x) || 0) / 12.5)))]).join('')
 }
 
 export const tableText = (t) => [t.header.map((x) => x.text).join('').trimEnd(), ...t.lines.map((l) => l.map((x) => x.text).join('').trimEnd())]

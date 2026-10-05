@@ -13,5 +13,5 @@ test('hooks smoke: hierarchy, approvals, rulings, pane tabs', () => {
     assert.fail(String(err.stdout) + String(err.stderr))
   }
   assert.doesNotMatch(out, /^FAIL/m)
-  assert.ok((out.match(/^ok /gm) ?? []).length >= 36, out)
+  assert.ok((out.match(/^ok /gm) ?? []).length >= 47, out)
 })

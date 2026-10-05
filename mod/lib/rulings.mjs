@@ -97,3 +97,14 @@ export function parseEnforce(args) {
   }
   return { n: Number(m[1]), source: m[2] }
 }
+
+// Words a standing rule nearly always carries. A message with none of them ("yes", "merged",
+// "try it", a question) is not worth a model call; one with any of them is asked about.
+const RULE_SIGNS = /\b(always|never|from now on|going forward|by default|every time|each time|until|stop|don'?t|do not|no more|avoid|prefer|instead|should|must|make sure|rule|only|ever)\b/i
+
+/** Could this message state a standing rule? Cheap, and errs toward asking. */
+export function mightBeRuling(text) {
+  const t = String(text ?? '').trim()
+  if (t.length < 12) return false
+  return RULE_SIGNS.test(t)
+}

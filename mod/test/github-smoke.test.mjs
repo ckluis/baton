@@ -13,5 +13,5 @@ test('github smoke: issue goal, PR polling, review, remote gate, tracker', () =>
     assert.fail(String(err.stdout) + String(err.stderr))
   }
   assert.doesNotMatch(out, /^FAIL/m)
-  assert.ok((out.match(/^ok /gm) ?? []).length >= 26, out)
+  assert.ok((out.match(/^ok /gm) ?? []).length >= 32, out)
 })
