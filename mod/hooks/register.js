@@ -10,6 +10,8 @@
 
 import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
+import { mightBeRuling } from '../lib/rulings.mjs'
+import { lessonBlock, lessonNote, lessonsFromVerdict, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
 import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
@@ -165,7 +167,7 @@ const SPEND_SAVE_MS = 5000
 const mirror = { label: null, labelsEnsured: false, board: null, boardWarned: false, column: null }
 
 // The tracker: the last computed state of every entity, and the rows measured so far.
-const track = { snap: {}, rows: [], loadedFor: null, at: 0, view: null }
+const track = { snap: {}, rows: [], loadedFor: null, at: 0, view: null, dirty: true }
 const TRACK_TTL_MS = 10000
 
 const MEMORY_TOOLS = [
@@ -324,7 +326,7 @@ async function autoOpenPane($) {
 }
 
 // What the code tools and quiet output did, for /baton status and the experiment (#48).
-const kit = { codeCalls: 0, codeOut: 0, bigReads: 0, bigReadLines: 0, quieted: 0, quietLinesKept: 0, quietLinesTotal: 0, toolsRegistered: false }
+const kit = { checkpoints: 0, codeCalls: 0, codeOut: 0, bigReads: 0, bigReadLines: 0, quieted: 0, quietLinesKept: 0, quietLinesTotal: 0, toolsRegistered: false }
 
 async function codeRun($, args) {
   const root = await $.session.root()
@@ -397,6 +399,154 @@ async function terminalSequence($) {
   if (/iterm|wezterm|windows|conemu/.test(t)) return '\x1b]9;baton: ' + text + '\x07'
   return '\x07'
 }
+
+// ------------------------------------------------------------------ doctor and pause
+//
+// /baton doctor, also run once in the background when a session starts: everything the mod
+// leans on, checked, so a missing gh or an expired login says so instead of failing quietly.
+
+const doctor = { checks: null, at: null }
+
+async function runQuiet($, argv, timeoutMs = 10000) {
+  try {
+    const r = await $.process.run(argv, { timeoutMs })
+    return { ok: r.exitCode === 0, out: String(r.stdout || r.stderr || '').trim().split('\n')[0] }
+  } catch (err) {
+    return { ok: false, out: err && err.message ? err.message : String(err) }
+  }
+}
+
+async function runDoctor($) {
+  const checks = []
+  const add = (name, ok, detail, fix) => checks.push({ name, ok, detail, fix })
+  const node = await runQuiet($, ['node', '--version'])
+  add('node', node.ok, node.out, 'install Node 18 or later: the memory, the code index and the tests run on it')
+  const git = await runQuiet($, ['git', 'rev-parse', '--show-toplevel'])
+  add('git repository', git.ok, git.ok ? git.out : 'not a git repository here', 'the code index, checkpoints and the clean-checkout row want one')
+  const ghv = await runQuiet($, ['gh', '--version'])
+  add('gh', ghv.ok, ghv.out, 'install the GitHub CLI for issue goals, PR polling and labels (brew install gh)')
+  if (ghv.ok) {
+    const auth = await runQuiet($, ['gh', 'auth', 'status'], 15000)
+    add('gh login', auth.ok, auth.ok ? 'logged in' : auth.out, 'run gh auth login')
+  }
+  const rg = await runQuiet($, ['rg', '--version'])
+  add('ripgrep', rg.ok, rg.ok ? rg.out : 'not found (code_refs falls back to a slower scan)', 'optional: brew install ripgrep')
+  const verified = String(probe.version || '').startsWith(VERIFIED_AGENTID_VERSION)
+  add('Claude Code version', verified, String(probe.version || 'unknown'), 'the prime guard is verified on ' + VERIFIED_AGENTID_VERSION + '; on another version it fails closed')
+  let memOk = true
+  try {
+    await memoRun($, [...(await memoryArgs($, 'project')), '--json', 'stats'])
+  } catch {
+    memOk = false
+  }
+  add('project memory', memOk, memOk ? config.memoryDir : 'unreadable', 'check that ' + config.memoryDir + ' is writable')
+  doctor.checks = checks
+  doctor.at = Date.now()
+  $.ui.invalidate('ui.render')
+  return checks
+}
+
+function doctorText(checks) {
+  return ['baton doctor:', ...checks.map((c) => (c.ok ? '  ✓ ' : '  ✗ ') + c.name + ' — ' + c.detail + (c.ok ? '' : '  → ' + c.fix))].join('\n')
+}
+
+/** The one band line a failed check earns (the optional ones never do). */
+function doctorWarning() {
+  const bad = (doctor.checks || []).filter((c) => !c.ok && c.name !== 'ripgrep' && c.name !== 'git repository')
+  return bad.length ? 'baton doctor: ' + bad.map((c) => c.name).join(', ') + ' — /baton doctor' : null
+}
+
+// ------------------------------------------------------------------ lessons
+//
+// A refuted criterion becomes a lesson in the project memory's `lessons` namespace (lib/lessons.mjs),
+// and a worker or sub-orchestrator later spawned on the same part of the code gets the relevant
+// ones in its prompt. Recorded by the tracker as it reads verdicts; injected at agent.spawn.
+
+const LESSONS_NS = 'lessons'
+const lessons = { seen: null, notes: [], at: 0, recorded: 0, injected: 0, spawnsTaught: 0 }
+
+async function lessonsSeen($) {
+  if (lessons.seen) return lessons.seen
+  let keys = []
+  try {
+    keys = (await $.store.get('lessons-seen')) || []
+  } catch {}
+  lessons.seen = new Set(keys)
+  return lessons.seen
+}
+
+async function recordLessons($, node, verdict, handoff) {
+  const found = lessonsFromVerdict(node, verdict, handoff)
+  if (!found.length) return
+  const seen = await lessonsSeen($)
+  let added = 0
+  for (const l of found) {
+    if (seen.has(l.key)) continue
+    seen.add(l.key)
+    try {
+      await appendNote($, 'project', lessonNote(l), 'lesson', LESSONS_NS)
+      lessons.recorded++
+      added++
+    } catch {}
+  }
+  if (added) {
+    lessons.at = 0
+    try {
+      await $.store.set('lessons-seen', [...seen].slice(-2000))
+    } catch {}
+  }
+}
+
+async function loadLessons($) {
+  if (Date.now() - lessons.at < 15000) return lessons.notes
+  lessons.at = Date.now()
+  try {
+    const r = JSON.parse(await memoRun($, [...(await memoryArgs($, 'project', LESSONS_NS)), '--json', 'recall', '--limit', '500', '--', '.']))
+    lessons.notes = r.notes || []
+  } catch {
+    lessons.notes = []
+  }
+  return lessons.notes
+}
+
+// ------------------------------------------------------------------ checkpoints
+//
+// Before a command that discards work (reset --hard, clean -f, rm -r) runs, the whole working
+// tree (tracked and untracked, ignored files aside) is committed to a hidden ref through a
+// temporary index, so neither the branch, the index nor the files move. /baton restore <id>
+// puts the files back.
+
+const CHECKPOINT_REF = 'refs/baton/checkpoints/'
+
+async function checkpoint($, why) {
+  // Milliseconds in the id, and update-ref told the ref must not exist: two checkpoints in one
+  // second (the one taken before a restore, and the one restored) never overwrite each other.
+  const id = new Date(Date.now()).toISOString().replace(/[-:.]/g, '')
+  const script =
+    'set -e; git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 3; ' +
+    // a path that does not exist yet: git rejects an empty file as an index
+    'tmp=$(mktemp -u); trap "rm -f $tmp" EXIT; export GIT_INDEX_FILE=$tmp; ' +
+    'git add -A . >/dev/null 2>&1; tree=$(git write-tree); ' +
+    'parent=$(git rev-parse -q --verify HEAD || true); ' +
+    'c=$(git -c user.name=baton -c user.email=baton@localhost commit-tree $tree ${parent:+-p $parent} -m "$1"); ' +
+    'git update-ref "$2" "$c" ""; echo "$c"'
+  try {
+    const r = await $.process.run(['sh', '-c', script, 'sh', 'baton checkpoint: ' + String(why).slice(0, 200), CHECKPOINT_REF + id], { timeoutMs: 60000 })
+    if (r.exitCode !== 0) return null
+    kit.checkpoints++
+    return id
+  } catch {
+    return null
+  }
+}
+
+async function listCheckpoints($) {
+  const r = await $.process.run(['git', 'for-each-ref', '--sort=-refname', '--format=%(refname:lstrip=3)\t%(subject)', CHECKPOINT_REF], { timeoutMs: 15000 })
+  return r.exitCode === 0 ? r.stdout.split('\n').filter(Boolean).map((l) => l.split('\t')) : []
+}
+
+// Pause: hold every new spawn and every gated command until /baton resume.
+const pause = { on: false, since: null, held: 0 }
 
 /** Stop and Notification: emit what is waiting as a desktop notification. */
 async function withNotice($, e, next) {
@@ -793,8 +943,9 @@ async function statusText($) {
   )
   lines.push('guard ' + (active ? 'armed' : 'off') + ' · prime denials ' + probe.denied + ' · agentId ' + (probe.verified ? 'verified' : 'unverified') + (probe.notice ? ' — ' + probe.notice : ''))
   lines.push(usageSegs(usage.limits, usage.cost).map((x) => x.text).join(''))
+  lines.push('lessons ' + lessons.recorded + ' recorded this session · ' + lessons.injected + ' carried into ' + lessons.spawnsTaught + ' spawn' + (lessons.spawnsTaught === 1 ? '' : 's') + (pause.on ? ' · PAUSED since ' + pause.since : ''))
   lines.push(
-    'code tools ' + kit.codeCalls + ' calls · large reads ' + kit.bigReads + ' (' + kit.bigReadLines + ' lines) · quieted ' + kit.quieted + ' outputs (' + kit.quietLinesTotal + ' → ' + kit.quietLinesKept + ' lines)',
+    'checkpoints ' + kit.checkpoints + ' this session (/baton checkpoints) · code tools ' + kit.codeCalls + ' calls · large reads ' + kit.bigReads + ' (' + kit.bigReadLines + ' lines) · quieted ' + kit.quieted + ' outputs (' + kit.quietLinesTotal + ' → ' + kit.quietLinesKept + ' lines)',
   )
   lines.push(
     'approvals ' + (config.approvals ? 'on' : 'off (BATON_APPROVALS=0)') + ' · asked ' + approvals.asked + ' · approved ' + approvals.approved + ' · refused ' + approvals.refused +
@@ -836,8 +987,13 @@ async function listDir($, path) {
 async function refreshPane($, paneRows) {
   const budget = Math.max(8, Math.min(200, (paneRows ?? 30) - 4))
   const d = {}
-  // Memory: the wake view, a zoomed range from the browse stack, or a search
-  try {
+  // Memory: the wake view, a zoomed range from the browse stack, or a search. Skipped when no note
+  // was written and the browse state is the same (the pane refreshes every five seconds).
+  const memKey = memory.notes + '|' + browse.stack.join(',') + '|' + (browse.search || '') + '|' + budget
+  if (pane.memKey === memKey && pane.memAt && Date.now() - pane.memAt < 60000) d.memory = pane.data.memory
+  else try {
+    pane.memKey = memKey
+    pane.memAt = Date.now()
     const args = await memoryArgs($, 'run')
     const s = JSON.parse(await memoRun($, [...args, '--json', 'stats']))
     pane.memoryNotes = s.notes
@@ -862,7 +1018,7 @@ async function refreshPane($, paneRows) {
   // Plan
   d.plan = trackLines(await observe($))
   // Rulings
-  pane.rulings = await loadRulings($, true)
+  pane.rulings = await loadRulings($)
   d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
   pane.data = d
   pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
@@ -928,6 +1084,28 @@ function workspaceBody($, ui) {
     const ml = mergeLine(v)
     if (ml) out.push(line('w-merge', '         ' + ml.text, ml.color ? { color: ml.color } : { dimColor: true }))
     if (v.pr && v.pr.ready && v.pr.ready.diagnosis) out.push(line('w-diag', '         ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
+    // The reviewer's findings, each a link to its line on GitHub.
+    const rv = v.pr && v.pr.review
+    if (rv && rv.verdict === 'CHANGES' && (rv.findings || []).length) {
+      const repo = /github\.com\/([^/]+\/[^/]+)\/pull\//.exec(v.pr.url || '')
+      const head = gh.pr && gh.pr.headRefName
+      rv.findings.slice(0, 6).forEach((f, i) => {
+        const m = /^(.+):(\d+)$/.exec(f.at)
+        const href = repo && head && m ? 'https://github.com/' + repo[1] + '/blob/' + encodeURIComponent(head) + '/' + m[1] + '#L' + m[2] : null
+        out.push(
+          Box({
+            key: 'w-f' + i,
+            flexDirection: 'row',
+            columnGap: 1,
+            children: [
+              Text({ key: 'w-fs' + i, color: f.severity === 'high' ? 'red' : f.severity === 'med' ? 'yellow' : undefined, ...(f.severity === 'low' ? { dimColor: true } : {}), children: ['         ' + f.severity.padEnd(4)] }),
+              href ? Link({ key: 'w-fl' + i, href, label: f.at + ' ↗' }) : Text({ key: 'w-fa' + i, children: [f.at] }),
+              Text({ key: 'w-ft' + i, wrap: 'truncate-end', dimColor: true, children: [f.text] }),
+            ],
+          }),
+        )
+      })
+    }
     out.push(Text({ key: 'w-sp1', children: [' '] }))
   }
   out.push(...agentsBody($, ui))
@@ -1017,6 +1195,7 @@ function agentRow(r) {
     label: '  '.repeat(r.depth) + glyph + ' ' + name,
     tone: r.color,
     ctxPct: pct,
+    ctxHist: n.ctxHist || [],
     ctxTone: ctxTone(pct, thr),
     threshold: thr,
     model: shortModel(n.served || n.model) || '',
@@ -1102,6 +1281,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols }) {
 async function resolveQueued($, i, how, who = 'operator') {
   const item = approvals.queue[i]
   if (!item) return
+  track.dirty = true
   approvals.queue.splice(i, 1)
   $.ui.invalidate('ui.render')
   const phase = phaseOf(item.label)
@@ -1570,8 +1750,10 @@ function meter(agentId, usage) {
     // Each agent's own meter: its spend, and how full its context was on its last request.
     addUsage((n.spend ??= {}), usage)
     n.ctx = contextOf(usage)
+    n.ctxHist = [...(n.ctxHist || []), null].slice(-8) // filled below once the window is known
     if (usage.model) n.served = usage.model // the model that answered; n.model stays the short name for the row
     n.window = n.id === PRIME && rotation.window ? rotation.window : windowFor(n.served, rotation.window || 200_000)
+    n.ctxHist[n.ctxHist.length - 1] = Math.round((n.ctx / n.window) * 100)
   }
   const role = n ? n.role : 'agent'
   addUsage((spend.byRole[role] ??= {}), usage)
@@ -1749,7 +1931,11 @@ async function loadTrackRows($) {
  * 10-second cadence: a handful of reads per node.
  */
 async function observe($, force = false) {
-  if (!force && Date.now() - track.at < TRACK_TTL_MS) return track.view
+  // Re-read the record only when something could have moved it (an agent's turn or tool call,
+  // a poll, an approval), and at most every TRACK_TTL_MS; otherwise once a minute regardless.
+  const age = Date.now() - track.at
+  if (!force && (age < TRACK_TTL_MS || (!track.dirty && age < 60000))) return track.view
+  track.dirty = false
   track.at = Date.now()
   if (!(await runActive($))) return (track.view = null)
   await loadTrackRows($)
@@ -1772,6 +1958,7 @@ async function observe($, force = false) {
     try {
       handoff = await $.fs.read(base + '/handoff.md')
     } catch {}
+    if (vd && Array.isArray(vd.criteria) && vd.criteria.some((r) => String(r.verdict).toUpperCase() === 'REFUTED')) await recordLessons($, id, vd, handoff)
     const facts = {
       exempt: /\brgb:\s*exempt\b/i.test(handoff),
       red: await exists($, base + '/work/red.txt'),
@@ -1967,6 +2154,8 @@ export function register(on, options) {
     // The ticker: runs what a command hook may not — the compaction /baton
     // rotate owes, the kickoff prompt /baton start owes — from outside any
     // command's frame. Cheap when idle: two flag checks.
+    // The doctor runs once, in the background; a failed check shows in the band.
+    $.clock.after(1500, () => runDoctor($).catch(() => {}))
     // The pane opens by itself, and plan usage refreshes on the clock: no /baton needed.
     $.clock.after(500, () => autoOpenPane($).catch(() => {}))
     try {
@@ -2001,8 +2190,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | rotate | status | watch | next | rule | rulings | retract | enforce — or no argument for the run pane',
-        argumentHint: '[start <MODE> <TARGET|#issue> | stop | rotate | status | watch [label] | next [#issue] | rule <text> | rulings | retract <#> | enforce <#> <regex>]',
+        description: 'baton v7: start | stop | pause | resume | rotate | status | doctor | watch | next | rule | rulings | retract | enforce | checkpoints | restore — or no argument for the pane',
+        argumentHint: '[start <MODE> <TARGET|#issue> | stop | pause | resume | rotate | status | doctor | watch | next | rule <text> | rulings | retract <#> | enforce <#> <regex> | checkpoints | restore <id>]',
         immediate: true,
       })
     } catch (err) {
@@ -2015,6 +2204,7 @@ export function register(on, options) {
 
   on('tool.call', async ($, e, next) => {
     addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool)
+    if (!isPrimeCall(e)) track.dirty = true
     if (pane.open && pane.tab === 'agents') $.ui.invalidate('ui.render')
     if (!isPrimeCall(e)) {
       if (!probe.seen.has(e.agentId)) {
@@ -2068,6 +2258,13 @@ export function register(on, options) {
     return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
   })
 
+  // Pause holds gated commands too, from any agent.
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    if (!pause.on || !gateFor(e.command)) return next(e)
+    pause.held++
+    return { deny: 'baton is paused by the operator. This command waits: return BLOCKED with it, and it is re-dispatched after /baton resume.' }
+  })
+
   // The command gate: an irreversible shell command from any agent, at any
   // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -2104,6 +2301,16 @@ export function register(on, options) {
       }
     }
     return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
+  })
+
+  // Checkpoints: a command that discards work snapshots the tree first (after the gate let it through).
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
+    const g = gateFor(e.command)
+    if (!g || (g.id !== 'reset' && g.id !== 'rm')) return next(e)
+    const id = await checkpoint($, (e.agentId ? chain(tree, e.agentId) : 'session') + ': ' + String(e.command).slice(0, 160))
+    const r = await next(e)
+    if (id && r && !r.deny && typeof r.result === 'string') return { ...r, result: r.result + '\n(baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back)' }
+    return r
   })
 
   // The phase gate: once a sub-orchestrator reports DONE, the prime's next
@@ -2252,6 +2459,23 @@ export function register(on, options) {
 
   // After a compaction the engine raises SessionStart with source "compact":
   // hand the prime the wake instruction there.
+  // A new session (or a resumed one) in a directory with an active run is the prime of that run,
+  // picking up where another session left off: it must wake from the memory before anything else.
+  on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
+    const r = await next(e)
+    forgetRunCache()
+    if (!(await runActive($))) return r
+    try {
+      await registerMemoryTools($)
+    } catch {}
+    const m = run.manifest || {}
+    const text =
+      'baton: this session is the prime of run ' + (m.run_id || '?') + ' (MODE ' + (m.mode || '?') + ', TARGET ' + (m.target || '?') + '), which an earlier session started. ' +
+      'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
+    await noteQuietly($, 'a new session picked the run up (' + e.source + ')', 'handoff')
+    return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), text] }
+  })
+
   on('classic.SessionStart', { source: 'compact' }, async ($, e, next) => {
     const r = await next(e)
     const wake = (await runActive($)) ? takeWake() : null
@@ -2271,6 +2495,8 @@ export function register(on, options) {
         $.ui.log('baton: could not note the operator prompt: ' + err.message)
       }
       $.clock.after(0, async () => {
+        // Only a message that could state a rule costs a model call.
+        if (!mightBeRuling(text)) return
         const rule = await extractRuling($, text)
         if (!rule) return
         try {
@@ -2327,6 +2553,39 @@ export function register(on, options) {
       }
       case 'status':
         return { text: await statusText($) }
+      case 'checkpoints': {
+        let cps = []
+        try {
+          cps = await listCheckpoints($)
+        } catch {}
+        return { text: cps.length ? 'baton checkpoints, newest first (/baton restore <id>):\n' + cps.slice(0, 30).map(([id, subj]) => '  ' + id + '  ' + subj).join('\n') : 'no checkpoints yet: one is taken before every reset --hard, clean -f or rm -r' }
+      }
+      case 'restore': {
+        const id = String(rest[0] || '').trim()
+        if (!/^\d{8}T\d{9}Z$/.test(id)) return { text: 'usage: /baton restore <id> — /baton checkpoints lists them' }
+        const before = await checkpoint($, 'before restoring ' + id)
+        const r = await $.process.run(['git', 'restore', '--source=' + CHECKPOINT_REF + id, '--worktree', '--', '.'], { timeoutMs: 60000 })
+        if (r.exitCode !== 0) return { text: 'could not restore ' + id + ': ' + (r.stderr || r.stdout).trim() }
+        if (await runActive($)) await noteQuietly($, 'operator restored the files to checkpoint ' + id, 'operator')
+        return { text: 'baton: files restored to checkpoint ' + id + ' (files created since are left alone).' + (before ? ' The state just before is checkpoint ' + before + '.' : '') }
+      }
+      case 'doctor':
+        return { text: doctorText(await runDoctor($)) }
+      case 'pause': {
+        pause.on = true
+        pause.since = new Date(Date.now()).toISOString().slice(11, 19) + 'Z'
+        pause.held = 0
+        if (await runActive($)) await noteQuietly($, 'operator paused the run', 'operator')
+        $.ui.invalidate('ui.render')
+        return { text: 'baton: paused. New spawns and gated commands are held; agents already running finish what they are doing. /baton resume lets it go on.' }
+      }
+      case 'resume': {
+        if (!pause.on) return { text: 'baton is not paused' }
+        pause.on = false
+        if (await runActive($)) await noteQuietly($, 'operator resumed the run (' + pause.held + ' spawn' + (pause.held === 1 ? '' : 's') + ' held while paused)', 'operator')
+        $.ui.invalidate('ui.render')
+        return { text: 'baton: resumed (' + pause.held + ' held while paused; the prime re-dispatches them).' }
+      }
       case 'rule': {
         const text = rest.join(' ').trim()
         if (!text) return { text: 'usage: /baton rule <a standing instruction> — recorded in the project memory; the newest ruling wins' }
@@ -2464,6 +2723,36 @@ export function register(on, options) {
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
     const flag = waiting.length ? [Text({ key: 'wait', wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Workspace (1)'] })] : []
+    // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
+    if (approvals.queue.length) {
+      const { Button } = $.ui.resolve(e)
+      const q0 = approvals.queue[0]
+      flag.push(
+        Box({
+          key: 'keys',
+          flexDirection: 'row',
+          columnGap: 2,
+          children: [
+            Button({ key: 'band-approve', label: 'approve ' + q0.label, hotkey: '1', plain: true, onPress: () => resolveQueued($, 0, 'approve') }),
+            Button({
+              key: 'band-sendback',
+              label: 'send back…',
+              hotkey: '2',
+              plain: true,
+              onPress: async () => {
+                pane.tab = 'workspace'
+                await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
+                pane.open = true
+                $.ui.invalidate('ui.render')
+              },
+            }),
+          ],
+        }),
+      )
+    }
+    if (pause.on) flag.unshift(Text({ key: 'pause', wrap: 'truncate-end', color: 'yellow', children: ['⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume'] }))
+    const dw = doctorWarning()
+    if (dw) flag.push(Text({ key: 'doctor', wrap: 'truncate-end', color: 'red', children: [dw] }))
     return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
   })
 
@@ -2479,6 +2768,7 @@ export function register(on, options) {
   // prime-classified calls were being refused, is the signature of agentId
   // having gone missing: say so loudly (the guard stays closed).
   on('turn.complete', async ($, e, next) => {
+    track.dirty = true
     if (e.agentId) {
       finishAgent(tree, e.agentId, { line: firstLine(e.answer), aborted: e.isAborted })
       const who = spawnedByPrime.get(e.agentId)
@@ -2546,6 +2836,10 @@ export function register(on, options) {
 
   on('agent.spawn', async ($, e, next) => {
     let input = e
+    if (pause.on) {
+      pause.held++
+      return { deny: 'baton is paused by the operator (/baton pause, since ' + pause.since + '). Do not start new work: say what you were about to dispatch and wait for /baton resume.' }
+    }
     if (await runActive($)) {
       // The budget guards another round of reviewing or fixing (talos: "may it start another fix round?").
       if (isRoundSpawn(e)) {
@@ -2557,13 +2851,23 @@ export function register(on, options) {
           return { deny: 'baton: the goal budget is spent (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + ' fresh tokens). Do not start another review or fix round: brief the operator with the open findings and ask whether to raise tokensPerGoal.' }
         }
       }
+      // Lessons: a producer spawned on code that earlier refutations touched gets them in its prompt.
+      const role = String(e.subagentType || '').replace(/^.*:/, '')
+      if (['worker', 'worker-cheap', 'sub-orchestrator'].includes(role) && e.prompt) {
+        const rel = relevantLessons(await loadLessons($), e.prompt)
+        if (rel.length) {
+          input = { ...input, prompt: e.prompt + lessonBlock(rel) }
+          lessons.injected += rel.length
+          lessons.spawnsTaught++
+        }
+      }
       // A reviewer on a PR that conflicts with its base reviews code that will change; resolve first.
       if (String(e.subagentType || '').replace(/^.*:/, '') === 'pr-reviewer' && gh.pr && gh.pr.mergeable === 'CONFLICTING') {
         return { deny: 'baton: PR #' + gh.pr.number + ' conflicts with its base. Dispatch a sub-orchestrator to merge the base into the branch (never rebase) and re-run the checks, then the reviewer.' }
       }
       const model = bindModel(e)
       if (model && e.model !== model) {
-        input = { ...e, model }
+        input = { ...input, model }
         if (e.model) $.ui.log('baton: ' + (e.subagentType || 'agent') + ' bound to ' + model + ' (asked for ' + e.model + ')')
       }
     }

@@ -37,3 +37,16 @@ test('rulingPrompt fences the message and bounds it', () => {
   assert.ok(p.startsWith('Operator message:\n<<<\n'))
   assert.ok(p.length < 6100)
 })
+
+test('mightBeRuling skips the obvious one-offs and keeps every real rule we saw', async () => {
+  const { mightBeRuling } = await import('../lib/rulings.mjs')
+  // the ten real operator messages from 2026-10-04: the five Sonnet called rules must all pass through
+  for (const t of [
+    'Every PR targets main directly. Do not stack a PR on another feature branch.',
+    "Don't publish artifacts, just write local html and open it with cmux",
+    'Fan-outs should go on sonnet or haiku; keep opus for synthesis and verification.',
+    'I still like the approach of the prime orchestrator never reading files and always dispatching to a sub-orchestrator who can then dispatch or do work as appropriate.',
+    "Let's shrink it. Issues & PRs and Opus 5.5 & Sonnet 5.5 (no fable until a smarter version comes out).",
+  ]) assert.equal(mightBeRuling(t), true, t)
+  for (const t of ['Yeah try it', 'merged fix everything up', 'Merged.', 'yes']) assert.equal(mightBeRuling(t), false, t)
+})

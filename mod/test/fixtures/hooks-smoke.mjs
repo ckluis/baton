@@ -17,8 +17,9 @@ fs.writeFileSync(W + '/_orch/manifest.json', JSON.stringify({ prime: true, run_i
 const hooks = {}
 register((ev, a, b) => { const [m, f] = typeof a === 'function' ? [null, a] : [a, b]; (hooks[ev] ??= []).push({ m, f }); return { catch() {} } })
 const match = (m, e) => !m || Object.entries(m).every(([k, v]) => v instanceof RegExp ? v.test(e[k]) : e[k] === v)
+const spawnPrompts = []
 const BIG = (n, mark) => Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? mark : 'line ' + i)).join('\n')
-const terminal = { 'tool.call': (e) => (e.tool === 'Read' && /big\.ts$/.test(e.file_path) ? { result: BIG(700, 'x') } : e.tool === 'Bash' && e.command === 'make test' ? { result: BIG(1200, 'FAIL cart.test.ts > empty cart') } : { result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => ({ agentId: e._id, model: e.model }) }
+const terminal = { 'tool.call': (e) => (e.tool === 'Read' && /big\.ts$/.test(e.file_path) ? { result: BIG(700, 'x') } : e.tool === 'Bash' && e.command === 'make test' ? { result: BIG(1200, 'FAIL cart.test.ts > empty cart') } : { result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => (spawnPrompts.push(e.prompt || ''), { agentId: e._id, model: e.model }) }
 async function fire(ev, e) {
   const hs = hooks[ev] ?? []
   const go = async (i, x) => { for (; i < hs.length; i++) if (match(hs[i].m, x)) return hs[i].f($, x, (y) => go(i + 1, y)); return terminal[ev] ? terminal[ev](x) : x }
@@ -32,7 +33,7 @@ const $ = {
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(p),
         list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sent.push(x), { isDelivered: true }) },
-  process: { run: async (argv, o) => { try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '' }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
+  process: { run: async (argv, o) => { try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
   model: { complete: async () => ({ isAnswered: true, text: 'NONE' }) },
   clock: { after: (ms, f) => timers.push(f), every: () => ({ cancel() {} }) },
   ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async (x) => (opened.push(x), { isPlaced: true }),
@@ -142,6 +143,8 @@ ok(r.decision === 'allow', 'retracted ruling no longer enforced')
 await fire('turn.complete', { agentId: 's2', answer: 'P4 DONE 2/2', isAborted: false })
 const band = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 120 } })
 ok(/⚑ waiting for you: 1 phase to check \(P4\)/.test(text(band)), 'band flags the waiting phase')
+const keyBtn = flat(band).find((n) => n.type === 'Button' && n.props.hotkey === '1')
+ok(!!keyBtn && /approve P4/.test(keyBtn.props.label), 'the band offers 1 to approve P4 from an empty prompt')
 r = await fire('command.run', { command: 'baton', args: 'status' })
 ok(/approvals on · asked \d+ · approved \d+ · refused \d+ · approved for the run: rm · 1 phase\(s\) waiting/.test(r.text), 'status: ' + r.text.split('\n').find((l) => l.startsWith('approvals')))
 surfaces = []
@@ -176,4 +179,39 @@ await fire('session.measure', { context: { tokens: 240000, window: 1000000, perc
 const bandNow = await fire('ui.render', { component: 'AbovePrompt', surface: 'terminal', props: { bodyColumns: 160 } })
 const bandText = flat(bandNow).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('')
 ok(/5h ▕[█░]{5}▏4[23]% · wk ▕[█░]{5}▏18% · Fable ▕[█░]{5}▏3% · ctx ▕[█░┊]{5}▏24%\/35%/.test(bandText), 'the band is one line: 5h, week, Fable, context against its threshold: ' + bandText.split('\n')[0])
+
+// ---- v7.4: doctor, pause, a new session resuming the run, lessons that stick
+let d = await fire('command.run', { command: 'baton', args: 'doctor' })
+ok(/^baton doctor:/.test(d.text) && /✓ node — v\d+/.test(d.text) && /(✓|✗) gh/.test(d.text), 'doctor checks what the mod leans on')
+d = await fire('command.run', { command: 'baton', args: 'pause' })
+let sp = await fire('agent.spawn', { _id: 'px', subagentType: 'baton:worker', description: 'T8', prompt: 'x' })
+let gp = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'git push' })
+ok(/paused/.test(sp.deny || '') && /paused/.test(gp.deny || ''), 'pause holds spawns and gated commands')
+d = await fire('command.run', { command: 'baton', args: 'resume' })
+sp = await fire('agent.spawn', { _id: 'py', subagentType: 'baton:worker', description: 'T8', prompt: 'x' })
+ok(/resumed \(2 held/.test(d.text) && sp.agentId === 'py', 'resume lets it go on, and says what was held')
+const ss = await fire('classic.SessionStart', { source: 'startup' })
+ok((ss.additionalContext || []).some((c) => /prime of run build-x/.test(c) && /memory_wake before anything else/.test(c)), 'a new session in an active run is told to wake from the memory first')
+fs.mkdirSync(W + '/_orch/nodes/T5', { recursive: true })
+fs.writeFileSync(W + '/_orch/nodes/T5/handoff.md', 'Add removeItem to src/cart.ts')
+fs.mkdirSync(W + '/_orch/verify', { recursive: true })
+fs.writeFileSync(W + '/_orch/verify/T5-verdict.json', JSON.stringify({ verdict: 'REFUTED', criteria: [{ criterion: 'removing an absent item leaves the cart unchanged', verdict: 'REFUTED', probe: 'removeItem([a], b) threw in src/cart.ts', evidence: [] }] }))
+await fire('command.run', { command: 'baton', args: 'status' })
+await fire('agent.spawn', { _id: 'lz', subagentType: 'baton:worker', description: 'T9 cart totals', prompt: 'Add totals to src/cart.ts' })
+ok(/lessons from earlier refutations[\s\S]*T5: "removing an absent item leaves the cart unchanged" was refuted — removeItem\(\[a\], b\) threw/.test(spawnPrompts.at(-1)), 'a worker on the same code gets the lesson in its prompt')
+await fire('agent.spawn', { _id: 'lq', subagentType: 'baton:worker', description: 'T10 docs', prompt: 'Write docs/guide.md' })
+ok(!/lessons from earlier/.test(spawnPrompts.at(-1)), 'and a worker elsewhere does not')
+
+// ---- checkpoints before work is discarded, and a restore
+execFileSync('git', ['init', '-q'], { cwd: W })
+fs.writeFileSync(W + '/keep.txt', 'precious')
+const cp = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf build' })
+const cpId = (/baton checkpoint (\d{8}T\d{9}Z) taken first/.exec(cp.result || '') || [])[1]
+ok(!!cpId, 'a checkpoint is taken before rm -r runs: ' + cpId)
+fs.writeFileSync(W + '/keep.txt', 'clobbered')
+const lst = await fire('command.run', { command: 'baton', args: 'checkpoints' })
+ok(new RegExp(cpId + '\\s+baton checkpoint: prime › w1|' + cpId).test(lst.text), 'checkpoints are listed')
+const rs = await fire('command.run', { command: 'baton', args: 'restore ' + cpId })
+ok(/files restored to checkpoint/.test(rs.text) && fs.readFileSync(W + '/keep.txt', 'utf8') === 'precious', 'restore puts the files back: ' + rs.text.slice(0, 160))
+ok(execFileSync('git', ['status', '--short'], { cwd: W, encoding: 'utf8' }).split('\n').every((l) => !/refs\/baton/.test(l)), 'the branch and index never moved')
 

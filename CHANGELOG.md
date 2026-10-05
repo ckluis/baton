@@ -1,5 +1,20 @@
 # Changelog
 
+## v7.4 — 2026-10-05
+
+- **`/baton doctor`**, run in the background at session start; a failed check shows in the band.
+- **Pause and resume:** `/baton pause` holds spawns and gated commands from any agent.
+- **A new session picks the run up:** startup or resume in an active run tells the prime to wake first.
+- **Lessons that stick:** refuted criteria become lessons by code area and ride in later producers' prompts.
+- **Checkpoints:** the tree is snapshotted to a hidden ref before reset/clean/rm; `/baton restore <id>`.
+- **One key:** `1` approves a waiting phase from an empty prompt; `2` opens the Workspace to send it back.
+- **Review findings linked** to their lines on GitHub; a **trend** column of context per agent.
+- **Cheaper:** the tracker re-reads only when something moved; the pane caches memory reads; ruling
+  extraction runs only when a message could state a rule.
+- **Fixed:** an index written before it ignored itself now gets its `.gitignore`; checkpoint ids have
+  milliseconds and never overwrite (found when a restore restored the wrong state).
+- **Kept in one file, on purpose:** the validator follows `$` only within one file.
+
 ## Unreleased
 
 - **Always there.** The band carries plan usage in every session (5h, week, a model's own week such as

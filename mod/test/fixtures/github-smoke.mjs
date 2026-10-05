@@ -102,6 +102,13 @@ G.pr.comments = [
 ]
 await poll()
 await drain()
+G.pr.headRefName = 'baton/run'
+await poll()
+surfaces = ['terminal']
+const wsF = await fire('ui.render', { component: 'Pane', requestId: 'baton', surface: 'terminal', props: { bodyColumns: 140, scroll: { bodyRows: 40 } } })
+const flatF = (n, out = []) => { if (!n || typeof n !== 'object') return out; if (Array.isArray(n)) { n.forEach((c) => flatF(c, out)); return out } out.push(n); flatF(n.props?.children, out); return out }
+ok(flatF(wsF).some((n) => n.type === 'Link' && n.props.href === 'https://github.com/o/r/blob/baton%2Frun/src/csv.ts#L9'), 'Workspace links each review finding to its line on GitHub')
+surfaces = []
 r = await fire('tool.call', { agentId: 'w2', tool: 'Bash', command: 'git push origin baton/x' })
 ok(r.result === 'ran', 'after /approve push on the thread, push runs')
 r = await fire('tool.call', { agentId: 'w2', tool: 'Bash', command: 'rm -rf build' })
@@ -166,7 +173,7 @@ ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its wind
 surfaces = []
 const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Workspace')[1] || ''
 const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
-ok(/worker T10 big parser\s+61%\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
+ok(/worker T10 big parser\s+61%\s+▅▅\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
 const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
 ok(/\/35%/.test(primeRow) || !/ctx/.test(primeRow), 'the prime row measures against the rotation threshold: ' + primeRow.trim())
 // the budget refuses another round once spent

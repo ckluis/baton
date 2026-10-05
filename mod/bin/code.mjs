@@ -79,12 +79,17 @@ function load(root) {
   return { version: INDEX_VERSION, files: {} }
 }
 
+/** The index is a cache: keep it out of every git status without touching the repo's .gitignore. */
+function ensureIgnored(root) {
+  const dir = path.dirname(indexPath(root))
+  const gi = path.join(dir, '.gitignore')
+  if (fs.existsSync(dir) && !fs.existsSync(gi)) fs.writeFileSync(gi, '*\n')
+}
+
 function save(root, idx) {
   const p = indexPath(root)
   fs.mkdirSync(path.dirname(p), { recursive: true })
-  // The index is a cache: keep it out of every git status without touching the repo's .gitignore.
-  const gi = path.join(path.dirname(p), '.gitignore')
-  if (!fs.existsSync(gi)) fs.writeFileSync(gi, '*\n')
+  ensureIgnored(root)
   const tmp = p + '.' + process.pid + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(idx))
   fs.renameSync(tmp, p)
@@ -121,7 +126,7 @@ function refresh(root) {
   if (parsed || dropped || !idx.builtAt) {
     idx.builtAt = new Date().toISOString()
     save(root, idx)
-  }
+  } else ensureIgnored(root) // an index written before it ignored itself
   return { idx, parsed, dropped }
 }
 

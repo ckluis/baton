@@ -28,6 +28,7 @@ write.
 | `lib/agents.mjs` | the agent tree (prime → sub-orchestrators → workers) and its pane rows, pure |
 | `lib/approve.mjs` | the command gates, the phase gate, and how answers read, pure |
 | `lib/ledger.mjs` | spend and the budget, forbidden files, the goal's label and board column, `Blocked by`, pure |
+| `lib/lessons.mjs` | lessons: from refuted rows to code areas, relevance to a spawn's prompt, pure |
 | `lib/table.mjs` | the agent table: columns, widths, the drop order for narrow panes, pure |
 | `lib/codeidx.mjs`, `bin/code.mjs` | the code index: symbol extraction per language, end lines, ranking; the CLI the code tools run |
 | `lib/quiet.mjs` | quiet output: head, failures, tail, pure |
@@ -178,6 +179,32 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   the next Stop or Notification, once each.
 - **One install.** The repository is a marketplace: `/plugin marketplace add ckluis/baton`, then
   `/plugin install baton@baton`. Nothing else to install, initialize or update.
+- **`/baton doctor`**, also run in the background when a session starts: node, the git repository,
+  `gh` and its login, ripgrep, the Claude Code version the guard is verified on, the project
+  memory. A failed check that matters puts one red line in the band.
+- **Pause.** `/baton pause` holds every new spawn and every gated command, from any agent, until
+  `/baton resume`; running agents finish what they are doing. The band says so.
+- **A new session picks the run up.** A session started or resumed in a directory with an active run
+  is told it is that run's prime: load the skill, call `memory_wake` first, dispatch.
+- **Lessons that stick** (`lib/lessons.mjs`). A verifier's REFUTED row becomes a lesson in the project
+  memory's `lessons` namespace, tagged with the code areas it concerns. A worker or sub-orchestrator
+  later spawned with a prompt touching those areas (or naming the node) gets the newest relevant
+  lessons appended to its prompt at `agent.spawn`. Rulings are the operator's lessons for the prime;
+  these are the verifiers' lessons for the agents.
+- **Checkpoints.** Before `reset --hard`, `clean -f` or `rm -r` runs, the whole working tree
+  (untracked files included) is committed to `refs/baton/checkpoints/<id>` through a temporary index:
+  the branch, the index and the files do not move. `/baton checkpoints` lists them; `/baton restore
+  <id>` puts the files back, after checkpointing the state it replaces.
+- **One key.** With a phase waiting, typing `1` into an empty prompt approves it; `2` opens the
+  Workspace to send it back with a reason.
+- **Review findings, linked.** A `CHANGES` review's findings are listed in the Workspace, each a link
+  to its line on the PR's branch.
+- **Trend.** The agent table's `trend` column is each agent's context over its last eight requests.
+- **Cheaper to run.** The tracker re-reads the record only when an agent's turn or tool call, a
+  poll or an approval could have moved it (else once a minute); the pane skips the memory reads when
+  no note was written; a message is sent to Sonnet for rulings only when it could state one.
+- **One file, by design.** The validator follows `$` only into functions declared in the same file,
+  so the hooks module stays one `register.js`; pure logic lives in `lib/`.
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's tabs.** **Workspace** (1) is everything you watch: the goal and its PR as links,

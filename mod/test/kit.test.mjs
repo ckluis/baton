@@ -69,13 +69,13 @@ test('quiet output keeps head, failures and tail, and says where the rest is', (
 
 test('the agent table: every column when wide, the least useful dropped when narrow', async () => {
   const { agentTable, fitColumns, tableText } = await import('../lib/table.mjs')
-  assert.deepEqual(fitColumns(200).map((c) => c.id), ['agent', 'ctx', 'budget', 'model', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost', 'steps', 'state'])
+  assert.deepEqual(fitColumns(210).map((c) => c.id), ['agent', 'ctx', 'trend', 'budget', 'model', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost', 'steps', 'state'])
   assert.deepEqual(fitColumns(90).map((c) => c.id), ['agent', 'ctx', 'cacheRead', 'cost', 'steps', 'state'])
   const acc = { byModel: { 'claude-opus-5-5': { input: 2000, output: 400, cacheWrite: 0, cacheRead: 1210000 } } }
-  const t = agentTable([{ label: '● worker T10', ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 200)
+  const t = agentTable([{ label: '● worker T10', ctxHist: [10, 30, 61], ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 210)
   const [head, row] = tableText(t)
-  assert.match(head, /^agent\s+context\s+budget\s+model\s+input\s+c\.write\s+c\.read\s+output\s+cost\s+steps\s+state$/)
-  assert.match(row, /^● worker T10\s+61%\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26\s+●─●─◉─○\s+blue$/)
+  assert.match(head, /^agent\s+context\s+trend\s+budget\s+model\s+input\s+c\.write\s+c\.read\s+output\s+cost\s+steps\s+state$/)
+  assert.match(row, /^● worker T10\s+61%\s+▁▃▅\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26\s+●─●─◉─○\s+blue$/)
 })
 
 test('plan usage: labels, resets, colors, the line', async () => {
@@ -99,4 +99,20 @@ test('the band is one line: plan windows, context against its threshold, cost, g
   }).map((x) => x.text).join('')
   assert.equal(line, '5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% · ↻3 · $17.41 · #12 building · PR #47 5/6')
   assert.equal(bandSegs({ ctx: 12 }).map((x) => x.text).join(''), 'ctx ▕█░░░░▏12%')
+})
+
+test('an index written before it ignored itself gets its .gitignore on the next run', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codeidx-old-'))
+  execFileSync('git', ['init', '-q'], { cwd: root })
+  fs.writeFileSync(path.join(root, 'a.ts'), 'export function a() {\n}\n')
+  execFileSync(process.execPath, [CLI, '--root', root, 'stats'])
+  fs.rmSync(path.join(root, '.baton/code/.gitignore'))
+  execFileSync(process.execPath, [CLI, '--root', root, 'stats'])
+  assert.equal(execFileSync('git', ['status', '--short'], { cwd: root, encoding: 'utf8' }).trim(), '?? a.ts')
+})
+
+test('sparkline: a fixed 0–100 scale, newest last', async () => {
+  const { sparkline } = await import('../lib/table.mjs')
+  assert.equal(sparkline([0, 12, 25, 50, 75, 99, 100]), '▁▁▃▅▇██')
+  assert.equal(sparkline(Array.from({ length: 20 }, (_, i) => i * 5)).length, 8)
 })
