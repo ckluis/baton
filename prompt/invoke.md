@@ -14,10 +14,10 @@ read, not for you to carry. The invocation just says where it lives.
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.5/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -45,7 +45,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
