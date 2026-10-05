@@ -1,6 +1,6 @@
 # baton
 
-**v7.0** · Agents do the work. baton keeps the record.
+**v7.5** · Agents do the work. baton keeps the record.
 
 **v7 is a Claude Code mod** (`mod/`): a prime orchestrator that only dispatches, a memory instead
 of a growing context, rulings that stick, the agent tree in a pane, and approvals from anywhere in
@@ -442,10 +442,10 @@ its past reviews found 6.00 of 6 per task, and so did a plain reviewer
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v6.0/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.5/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -469,7 +469,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v6.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```

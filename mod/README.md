@@ -18,7 +18,7 @@ write.
 
 | path | what |
 |---|---|
-| `.claude-plugin/plugin.json` | `baton` 7.0.0-dev. The `userConfig` fields are `rotateAtPercent` (35), `wakeBudgetLines` (96) and `memoryDir` (`.baton/memory`). |
+| `.claude-plugin/plugin.json` | `baton` 7.5.0. The `userConfig` fields are `rotateAtPercent` (35), `wakeBudgetLines` (96) and `memoryDir` (`.baton/memory`). |
 | `hooks/register.js` | the hooks module: guard, memory tools, return notes, merges, rotation, binding, `/baton`, pane, band, spinner |
 | `lib/memcore.mjs` | the memory core, pure (no Node): records, tree math, wake tiling, zoom, recall, merge prompt |
 | `lib/memstore.mjs` | the core on disk (Node): fixed-width files, the lockfile, merges, views |

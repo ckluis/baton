@@ -18,7 +18,7 @@ Stop pasting the prompt. Paste this instead:
 <what you want, in your own words>
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v4.0/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
