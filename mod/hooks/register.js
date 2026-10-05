@@ -104,19 +104,19 @@ const COMPACT_INSTRUCTIONS =
 
 // The pane: which tab, and what the last refresh read (render hooks do no I/O).
 const PANE = 'baton'
-// Workspace is everything you watch; the other three are things you open to use.
+// Two tabs: Work is everything happening (the goal, the PR, the agents, the plan, what waits for
+// you); Memory is everything the run remembers (your rulings, then the memory itself).
 const TABS = [
-  { id: 'workspace', label: 'Workspace', hotkey: '1' },
-  { id: 'plan', label: 'Plan', hotkey: '2' },
-  { id: 'memory', label: 'Memory', hotkey: '3' },
-  { id: 'rulings', label: 'Rulings', hotkey: '4' },
+  { id: 'work', label: 'Work', hotkey: '1' },
+  { id: 'memory', label: 'Memory', hotkey: '2' },
 ]
 const pane = {
   open: false,
-  tab: 'workspace',
+  tab: 'work',
+  planOpen: false, // Work: every node of every phase, not just one line per phase
   timer: null,
   refreshedAt: null,
-  data: { plan: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'] },
+  data: { plan: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], track: ['no run is active here'] },
   memoryNotes: null, // run-memory note count, for the band
   memTiles: [], // the memory tab's blocks, parallel to its view lines
   memLines: [],
@@ -312,7 +312,7 @@ async function readUsage($) {
 /** Open the pane by itself (unfocused): in every interactive session, the mod is simply there. */
 async function autoOpenPane($) {
   if (pane.open || !config.autoPane || !(await interactive($))) return
-  pane.tab = 'workspace'
+  pane.tab = 'work'
   try {
     const r = await $.ui.open({ id: PANE, title: 'baton', focus: false, closeOnEscape: true })
     pane.open = !r || r.isPlaced !== false
@@ -1109,6 +1109,7 @@ function workspaceBody($, ui) {
     out.push(Text({ key: 'w-sp1', children: [' '] }))
   }
   out.push(...agentsBody($, ui))
+  if (v) out.push(Text({ key: 'w-sp4', children: [' '] }), ...planSection($, ui, v))
   if (v && (v.questions || []).length) {
     out.push(Text({ key: 'w-sp2', children: [' '] }))
     v.questions.forEach((q, i) => out.push(line('w-q' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
@@ -1116,7 +1117,7 @@ function workspaceBody($, ui) {
   if (pane.rulings.length) {
     out.push(Text({ key: 'w-sp3', children: [' '] }))
     pane.rulings.slice(0, 3).forEach((r, i) => out.push(line('w-r' + i, 'ruling ' + rulingLine(r), { color: 'magenta' })))
-    if (pane.rulings.length > 3) out.push(line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Rulings (4)', { dimColor: true }))
+    if (pane.rulings.length > 3) out.push(line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Memory (2)', { dimColor: true }))
   }
   return out
 }
@@ -1141,25 +1142,44 @@ function usageRow({ Box, Text }, key) {
   return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: key + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
 }
 
-function trackBody($, ui) {
-  const { Box, Text, line } = ui
-  const v = track.view
-  if (!v) return [line('t-none', pane.data.track[0] ?? 'no run is active here', { dimColor: true })]
-  const out = [...goalLinks(ui, 't-links'), stepperRow(ui, 't-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget))]
-  if (v.pr) {
-    out.push(stepperRow(ui, 't-pr', 'PR', v.pr, v.pr.tl))
-    if (v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '           ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
-    if (v.pr.ready && v.pr.ready.diagnosis) out.push(line('t-diag', '           ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
-  } else out.push(line('t-nopr', 'PR       none yet' + (gh.error ? ' — ' + gh.error : ''), { dimColor: true }))
+/**
+ * The plan inside Work: one line per phase (its steps, durations, spend, how many nodes are
+ * verified, which are blocked); `p` opens every node with its own steps and the full merge rows.
+ */
+function planSection($, ui, v) {
+  const { Box, Text, Button, line } = ui
+  const out = [
+    Box({
+      key: 'plan-h',
+      flexDirection: 'row',
+      columnGap: 2,
+      children: [
+        Text({ key: 'plan-t', bold: true, children: ['plan'] }),
+        Button({ key: 'plan-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }),
+      ],
+    }),
+  ]
   for (const p of v.phases) {
-    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl, spendTail(v.spend.byPhase[p.id])))
-    p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))))
-    if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
+    const ver = p.nodes.filter((x) => x.state === 'verified').length
+    const stuck = p.nodes.filter((x) => x.flag && x.flag !== 'pending').map((x) => x.id + ' ' + x.flag)
+    const tail = (p.nodes.length ? ' · ' + ver + '/' + p.nodes.length + ' verified' : '') + (stuck.length ? ' · ' + stuck.slice(0, 3).join(', ') : '') + spendTail(v.spend.byPhase[p.id])
+    out.push(stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail))
+    if (pane.planOpen) {
+      p.nodes.slice(0, 12).forEach((x) => out.push(stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))))
+      if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
+    }
   }
-  ;(v.questions || []).forEach((q, i) => out.push(line('t-qq' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
+  if (!v.phases.length) out.push(line('t-nophase', '  no phases yet: the bootstrap writes the plan', { dimColor: true }))
+  if (pane.planOpen && v.pr && v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '  ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
   if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
-  out.push(line('t-foot', 'states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet'), { dimColor: true }))
+  if (pane.planOpen) out.push(line('t-foot', 'states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet'), { dimColor: true }))
   return out
+}
+
+/** Memory: your rulings first (what governs the run), then the memory itself (what happened). */
+function memoryTabBody($, ui) {
+  const { Text } = ui
+  return [Text({ key: 'mt-r', bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ key: 'mt-sp', children: [' '] }), Text({ key: 'mt-m', bold: true, children: ['memory'] }), ...memoryBody($, ui)]
 }
 
 /** The computed state an agent's row shows: its node's, else its phase's; the goal's for the prime. */
@@ -1410,8 +1430,8 @@ function paneText() {
 
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
-  if (id === 'plan') return trackLines(track.view)
-  if (id === 'workspace') return workspaceLines()
+  if (id === 'work') return [...workspaceLines(), ...(track.view ? ['', 'plan:', ...trackLines(track.view).filter((l) => /^P\d|^    \S|^ {11}[✓✗]/.test(l))] : [])]
+  if (id === 'memory') return ['rulings:', ...(pane.data.rulings ?? []), '', ...(pane.data.memory ?? []), ...pane.memLines]
   if (id === 'agents') return [...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160))]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
@@ -2688,7 +2708,7 @@ export function register(on, options) {
     const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     const body =
-      pane.tab === 'workspace' ? workspaceBody($, ui) : pane.tab === 'plan' ? trackBody($, ui) : pane.tab === 'memory' ? memoryBody($, ui) : pane.tab === 'rulings' ? rulingsBody($, ui) : (pane.data[pane.tab] ?? []).map((l, i) => line('l' + i, l))
+      pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui)
     return Box({
       flexDirection: 'column',
       children: [
@@ -2722,7 +2742,7 @@ export function register(on, options) {
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
-    const flag = waiting.length ? [Text({ key: 'wait', wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Workspace (1)'] })] : []
+    const flag = waiting.length ? [Text({ key: 'wait', wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Work (1)'] })] : []
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
       const { Button } = $.ui.resolve(e)
@@ -2740,7 +2760,7 @@ export function register(on, options) {
               hotkey: '2',
               plain: true,
               onPress: async () => {
-                pane.tab = 'workspace'
+                pane.tab = 'work'
                 await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
                 pane.open = true
                 $.ui.invalidate('ui.render')

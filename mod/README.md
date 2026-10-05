@@ -207,12 +207,12 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   so the hooks module stays one `register.js`; pure logic lives in `lib/`.
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
-- **The pane's tabs.** **Workspace** (1) is everything you watch: the goal and its PR as links,
-  their steps, the merge-ready rows as one line, the agent table, what waits for you (phases to
-  check, open questions with their Blocked-by line) and the newest rulings. **Plan** (2) is every
-  phase and node with measured durations and the full merge-ready rows; **Memory** (3) the browser;
-  **Rulings** (4) add, retract, enforce. The old Ledger and Run tabs are gone: the table's token and
-  cost columns replace the ledger rows, and Plan replaces Run. Switching tabs refreshes.
+- **The pane's two tabs.** **Work** (1) is everything happening: the goal and its PR as links,
+  their steps, the merge-ready rows as one line, the review's findings linked to their lines, the
+  agent table, the plan as one line per phase (its steps, durations, how many nodes are verified,
+  which are stuck, its spend; `p` opens every node and the full merge rows), what waits for you,
+  and the newest rulings. **Memory** (2) is everything the run remembers: your rulings first (add,
+  retract with **x**, enforcement shown), then the memory browser. Switching tabs refreshes.
 - **The band is one line:** `5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% ·
   ↻3 · $17.41 · #12 building · PR #47 5/6`. A second line appears only when something waits for you.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod

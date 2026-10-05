@@ -56,7 +56,7 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
   on('tool.call', () => ({ result: 'ran' }))
 }
 
-test('/baton opens the pane; Workspace, Plan, Memory and Rulings draw on terminal and desktop', async ($, on) => {
+test('/baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
   world(on)
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
@@ -64,13 +64,12 @@ test('/baton opens the pane; Workspace, Plan, Memory and Rulings draw on termina
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 140, placement: 'dock', scroll: { bodyRows: 30 } } as any })
     await has(ui, /agent\s+context\s+budget/)
     await has(ui, /◆ prime/)
-    await ui.press({ key: 'tab-plan' })
-    await has(ui, /goal/)
+    await ui.press({ key: 'plan-toggle' })
     await ui.press({ key: 'tab-memory' })
     await has(ui, /9 notes · 7\/7 summaries/)
     await has(ui, /T2 BLOCKED on Q-1/)
-    await ui.press({ key: 'tab-rulings' })
-    await ui.press({ key: 'tab-workspace' })
+    await has(ui, /rulings/)
+    await ui.press({ key: 'tab-work' })
     await ui.unmount()
   }
 })
@@ -80,17 +79,17 @@ test('with no _orch every tab draws, and nothing throws', async ($, on) => {
   await $.command.run({ command: 'baton', args: '' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 80, placement: 'inline', scroll: { bodyRows: 10 } } as any })
   await has(ui, /◆ prime/)
-  await ui.press({ key: 'tab-plan' })
-  await has(ui, /no run is active here/)
+  await ui.press({ key: 'tab-memory' })
+  await has(ui, /rulings/)
 })
 
 test('claude -p (no surface): /baton prints every tab as text', async ($, on) => {
   world(on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text).toContain('baton run build-20261002T120000Z')
-  expect(r.text).toContain('## Workspace')
-  expect(r.text).toContain('## Plan')
+  expect(r.text).toContain('## Work')
   expect(r.text).toContain('## Memory')
+  expect(r.text).not.toContain('## Plan')
   expect(r.text).not.toContain('## Ledger')
 })
 

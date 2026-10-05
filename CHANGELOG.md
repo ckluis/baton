@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Two tabs: Work and Memory.** Work folds in the plan (one line per phase; `p` for every node and the
+  full merge rows); Memory puts the rulings above the memory browser.
+
 ## v7.4 — 2026-10-05
 
 - **`/baton doctor`**, run in the background at session start; a failed check shows in the band.

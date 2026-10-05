@@ -101,7 +101,7 @@ const flat = (n, out = []) => { if (!n || typeof n !== 'object') return out; if 
 const text = (tree) => flat(tree).filter((n) => n.type === 'Text').map((n) => n.props.children.join('')).join('\n')
 const byKey = (tree, k) => flat(tree).find((n) => n.props?.key === k)
 let t = await render()
-await byKey(t, 'tab-workspace').props.onPress()
+await byKey(t, 'tab-work').props.onPress()
 t = await render()
 const at = text(t)
 ok(/agent\s+context\s+budget\s+model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+50%\s+opus/.test(at) && /✓ worker-cheap T7\s+—\s+50%\s+sonnet/.test(at), 'Agents tab draws the tree as a table')
@@ -129,7 +129,7 @@ await byKey(t, 'mem-search').props.onSubmit('refused')
 t = await render()
 ok(/search \/refused\/i: [1-9]/.test(text(t)), 'search: ' + text(t).split('\n')[1])
 // rulings tab
-await byKey(t, 'tab-rulings').props.onPress()
+await byKey(t, 'tab-memory').props.onPress()
 t = await render()
 await byKey(t, 'ruling-add').props.onSubmit('PRs target main directly')
 t = await render()
@@ -149,7 +149,7 @@ r = await fire('command.run', { command: 'baton', args: 'status' })
 ok(/approvals on · asked \d+ · approved \d+ · refused \d+ · approved for the run: rm · 1 phase\(s\) waiting/.test(r.text), 'status: ' + r.text.split('\n').find((l) => l.startsWith('approvals')))
 surfaces = []
 r = await fire('command.run', { command: 'baton', args: '' })
-ok(/## Workspace[\s\S]*⚑ P4/.test(r.text) && /## Plan/.test(r.text) && /## Rulings/.test(r.text) && !/## Ledger/.test(r.text), '-p prints Workspace, Plan and Rulings; no Ledger')
+ok(/## Work\n[\s\S]*⚑ P4/.test(r.text) && /## Memory\nrulings:/.test(r.text) && !/## (Plan|Rulings|Ledger|Workspace)/.test(r.text), '-p prints two tabs: Work, and Memory with the rulings first')
 
 // ---- the kit: code tools, the Read hint, quiet output, notifications
 fs.mkdirSync(W + '/src', { recursive: true })
