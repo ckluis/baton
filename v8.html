@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>baton v8 — workflows that remember</title>
+<link rel="canonical" href="https://ckluis.github.io/baton/v8.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ckluis / baton">
+<meta property="og:url" content="https://ckluis.github.io/baton/v8.html">
+<meta property="og:title" content="baton v8 — workflows that remember">
+<meta property="og:description" content="A Claude Code mod for Claude Workflows: it watches every agent, shows the model that really ran, and keeps a graph memory entered through catalogs, so each agent gets exactly what it needs.">
+<meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ckluis">
+<meta name="twitter:creator" content="@ckluis">
+<meta name="twitter:title" content="baton v8 — workflows that remember">
+<meta name="twitter:description" content="Claude Workflows run the work. baton watches every agent, remembers through catalogs, and guides without managing.">
+<meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
+<meta name="description" content="baton v8 is a Claude Code mod for Claude Workflows: a live watcher pane, model truth on every agent, a graph memory entered through catalogs, close and resume, learned preflight, templates and rulings every agent hears.">
+<meta name="theme-color" content="#07070a">
+<script>document.documentElement.classList.add('js')</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#07070a; --soft:#0d0d11; --card:#121217; --raised:#1a1a21; --raised-2:#22222b;
+  --hair:#25252e; --hair-2:#34343f;
+  --ink:#ffffff; --body:#c9c9d1; --muted:#8b8b96; --muted-2:#5b5b66;
+  --yellow:#faff69; --on-yellow:#0a0a0a;
+  --cyan:#5eead4; --magenta:#e879f9; --red:#f87171; --green:#4ade80; --blue:#60a5fa; --orange:#fb923c; --violet:#a78bfa;
+  --accent:var(--yellow);
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,monospace;
+  --maxw:1240px;
+  --ease:cubic-bezier(.2,.7,.1,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;background:var(--canvas);overflow-x:clip}
+body{background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.86em;color:var(--ink);background:var(--raised);padding:1px 6px;border-radius:5px}
+::selection{background:var(--yellow);color:var(--on-yellow)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,5vw,48px)}
+.mono{font-family:var(--mono)}
+body::before{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E")}
+
+/* ---------- nav ---------- */
+nav.top{position:sticky;top:0;z-index:40;background:rgba(7,7,10,.78);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--hair)}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
+.brand{font-family:var(--mono);font-weight:700;color:var(--ink);letter-spacing:.02em;white-space:nowrap}
+.brand i{font-style:normal;color:var(--yellow)}
+.navlinks{display:flex;gap:20px;font-size:13.5px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto;justify-content:flex-end}
+@media (max-width:620px){.navlinks{justify-content:flex-start;gap:16px;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent)}}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{color:var(--muted);white-space:nowrap}
+.navlinks a:hover{color:var(--ink);text-decoration:none}
+.navlinks a.gh{color:var(--ink)}
+@media (max-width:860px){.navlinks a.opt{display:none}}
+
+/* ---------- buttons, pills ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;font:600 14px/1 var(--sans);padding:13px 18px;border-radius:999px;border:1px solid var(--hair-2);color:var(--ink);background:rgba(255,255,255,.02);transition:border-color .2s,background .2s,transform .2s var(--ease)}
+.btn:hover{text-decoration:none;border-color:var(--muted);transform:translateY(-1px)}
+.btn.y{background:var(--yellow);border-color:var(--yellow);color:var(--on-yellow)}
+.btn.y:hover{background:#fdffa3}
+.btn .ar{transition:transform .2s var(--ease)}
+.btn:hover .ar{transform:translateX(3px)}
+.pill{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 var(--mono);color:var(--muted);border:1px solid var(--hair-2);border-radius:999px;padding:7px 12px;background:rgba(255,255,255,.02)}
+.pill b{color:var(--on-yellow);background:var(--yellow);border-radius:999px;padding:3px 7px;font-weight:700}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 10px var(--orange)}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.eyebrow .n{color:var(--muted-2);margin-right:10px}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:clamp(56px,9vw,110px) 0 40px;overflow:hidden;isolation:isolate}
+.hero .aura{position:absolute;inset:-20% -10% auto -10%;height:120%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 40% at 70% 35%,rgba(250,255,105,.13),transparent 70%),radial-gradient(35% 35% at 20% 30%,rgba(94,234,212,.12),transparent 70%),radial-gradient(40% 40% at 50% 90%,rgba(232,121,249,.08),transparent 70%)}
+.hero h1{font-size:clamp(44px,6.3vw,96px);line-height:.95;letter-spacing:-.045em;color:var(--ink);font-weight:800;margin:22px 0 22px;max-width:12ch}
+.hero h1 em{font-style:normal;background:linear-gradient(92deg,var(--yellow),#d8ff8a 45%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lede{font-size:clamp(17px,1.6vw,21px);color:var(--body);max-width:640px}
+.hero .lede b{color:var(--ink);font-weight:600}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 0}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(24px,4vw,56px);align-items:center}
+.hero-obj{position:relative;border-radius:22px;background:linear-gradient(180deg,#0f0f15,#0a0a0e);border:1px solid var(--hair);box-shadow:0 40px 120px -30px rgba(250,255,105,.18),0 0 0 1px rgba(255,255,255,.02) inset;overflow:hidden}
+.hero-obj::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 30%)}
+.hero-obj svg{display:block;width:100%;height:auto}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:18px;overflow:hidden;margin-top:clamp(40px,6vw,72px)}
+.stat{background:var(--soft);padding:22px 22px 24px}
+.stat .n{font:800 clamp(34px,4.2vw,54px)/1 var(--sans);letter-spacing:-.04em;color:var(--ink)}
+.stat .n small{font-size:.45em;color:var(--muted);letter-spacing:0;font-weight:600;margin-left:4px}
+.stat .l{font-size:13.5px;color:var(--muted);margin-top:10px}
+.stat .src{display:block;font:500 11px/1.4 var(--mono);color:var(--muted-2);margin-top:8px}
+.stat.y .n{color:var(--yellow)}.stat.c .n{color:var(--cyan)}.stat.r .n{color:var(--red)}.stat.m .n{color:var(--magenta)}
+@media (max-width:980px){.hero-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- section scaffolding ---------- */
+section.band{position:relative;padding:clamp(80px,11vw,150px) 0;border-top:1px solid var(--hair);isolation:isolate;overflow:hidden}
+section.band .glow{position:absolute;z-index:-1;pointer-events:none;width:900px;height:900px;border-radius:50%;filter:blur(40px);opacity:.55;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 22%,transparent),transparent)}
+.vh{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,72px);align-items:start}
+@media (min-width:981px){.vh .stage{position:sticky;top:96px}.vh .copy{padding-top:12px}}
+.vh.flip{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr)}
+.vh.flip .copy{order:2}
+.vh h2{font-size:clamp(38px,5.2vw,74px);line-height:.98;letter-spacing:-.04em;color:var(--ink);font-weight:800;margin:18px 0 18px}
+.vh h2 em{font-style:normal;color:var(--accent)}
+.vh .punch{font-size:clamp(16.5px,1.45vw,19px);color:var(--body);max-width:560px}
+.vh .punch b{color:var(--ink);font-weight:600}
+.big{display:flex;align-items:baseline;gap:14px;margin:30px 0 8px;flex-wrap:wrap}
+.big .n{font:800 clamp(64px,9vw,128px)/.9 var(--sans);letter-spacing:-.05em;color:var(--accent);text-shadow:0 0 60px color-mix(in srgb,var(--accent) 35%,transparent)}
+.big .l{font-size:14.5px;color:var(--muted);max-width:280px;line-height:1.45}
+.big .l b{color:var(--ink)}
+.tag{display:inline-block;font:600 10.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:5px;vertical-align:middle;margin-left:6px}
+.tag.meas{color:var(--green);background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25)}
+.tag.goal{color:var(--orange);background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.25)}
+.ticks{list-style:none;margin:22px 0 28px;display:grid;gap:9px}
+.ticks li{position:relative;padding-left:26px;font-size:15px;color:var(--body)}
+.ticks li::before{content:"";position:absolute;left:0;top:.55em;width:12px;height:12px;border-radius:3px;border:1.5px solid var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 50%,transparent)}
+.ticks li b{color:var(--ink);font-weight:600}
+.more{display:flex;gap:10px;flex-wrap:wrap}
+.more .btn{font-size:13.5px;padding:11px 16px}
+.more .btn.a{border-color:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--accent)}
+.stage{position:relative;padding-top:30px;border-radius:22px;background:linear-gradient(180deg,#101016,#0a0a0e);border:1px solid var(--hair);box-shadow:0 50px 120px -40px color-mix(in srgb,var(--accent) 30%,transparent);overflow:hidden}
+.stage::before{content:attr(data-label);position:absolute;left:18px;top:14px;font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);z-index:2}
+.stage svg{display:block;width:100%;height:auto}
+@media (max-width:980px){.vh,.vh.flip{grid-template-columns:1fr}.vh.flip .copy{order:0}}
+
+/* accents per value area */
+#watch{--accent:var(--cyan)} #models{--accent:var(--red)} #memory{--accent:var(--yellow)} #catalogs{--accent:var(--violet)}
+#resume{--accent:var(--green)} #preflight{--accent:var(--orange)} #loop{--accent:var(--blue)} #rulings{--accent:var(--magenta)}
+#uicheck{--accent:var(--cyan)} #meter{--accent:var(--yellow)} #files{--accent:var(--green)}
+
+/* ---------- svg vocabulary ---------- */
+svg text{font-family:var(--sans)}
+svg .t-mono{font-family:var(--mono)}
+svg .t-ink{fill:var(--ink)} svg .t-body{fill:var(--body)} svg .t-mute{fill:var(--muted)} svg .t-mute2{fill:var(--muted-2)}
+svg .s-hair{stroke:var(--hair-2)} svg .f-card{fill:var(--card)} svg .f-raised{fill:var(--raised)}
+.flow{stroke-dasharray:4 7;animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-22}}
+.pulse{animation:pulse 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.blink{animation:blink 1.1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+
+/* ---------- the mod (CLI) ---------- */
+#mod{--accent:var(--yellow)}
+.cc{position:relative;margin-top:44px;border-radius:16px;border:1px solid var(--hair-2);background:#0b0b0f;box-shadow:0 60px 160px -40px rgba(250,255,105,.22),0 0 0 1px rgba(255,255,255,.02) inset;overflow:hidden;font:12.5px/1.55 var(--mono);color:#d6d6de}
+.cc .chrome{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-bottom:1px solid var(--hair);background:#101015;color:var(--muted);font-size:12px}
+.cc .chrome i{width:11px;height:11px;border-radius:50%;background:#2c2c35;display:inline-block}
+.cc .chrome i:nth-child(1){background:#ff5f57}.cc .chrome i:nth-child(2){background:#febc2e}.cc .chrome i:nth-child(3){background:#28c840}
+.cc .chrome span{margin-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc .body{display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);min-height:560px}
+.cc .convo{padding:16px 18px;border-right:1px solid var(--hair);white-space:pre-wrap;word-break:break-word;overflow:hidden}
+.cc .convo .u{color:var(--ink)} .cc .convo .d{color:var(--muted)} .cc .convo .k{color:var(--cyan)} .cc .convo .y{color:var(--yellow)} .cc .convo .g{color:var(--green)} .cc .convo .r{color:var(--red)} .cc .convo .m{color:var(--magenta)}
+.cc .side{display:flex;flex-direction:column;min-width:0}
+.cc .tabs{display:flex;align-items:center;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--hair);background:#0e0e13}
+.cc .tabs label{cursor:pointer;padding:7px 12px 8px;border-radius:8px 8px 0 0;color:var(--muted);border:1px solid transparent;border-bottom:none;white-space:nowrap}
+.cc .tabs label b{color:var(--muted-2);font-weight:600;margin-right:6px}
+.cc .tabs label:hover{color:var(--ink)}
+.cc .tabs .hint{margin-left:auto;color:var(--muted-2);font-size:11px;padding-right:4px;white-space:nowrap}
+.cc .tabs .hint kbd{font:inherit;border:1px solid var(--hair-2);border-radius:4px;padding:0 4px;color:var(--muted)}
+.cc input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.cc .views{position:relative;flex:1;min-height:0}
+.cc .view{display:none;padding:12px 14px 14px;overflow:auto;max-height:720px}
+#t-watch:checked ~ .side .views .v-watch,#t-mem:checked ~ .side .views .v-mem,#t-sess:checked ~ .side .views .v-sess,#t-env:checked ~ .side .views .v-env{display:block}
+#t-watch:checked ~ .side .tabs label[for=t-watch],#t-mem:checked ~ .side .tabs label[for=t-mem],#t-sess:checked ~ .side .tabs label[for=t-sess],#t-env:checked ~ .side .tabs label[for=t-env]{color:var(--ink);background:#0b0b0f;border-color:var(--hair)}
+#t-watch:focus-visible ~ .side .tabs label[for=t-watch],#t-mem:focus-visible ~ .side .tabs label[for=t-mem],#t-sess:focus-visible ~ .side .tabs label[for=t-sess],#t-env:focus-visible ~ .side .tabs label[for=t-env]{outline:2px solid var(--yellow);outline-offset:-2px}
+.cc .hdr{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-bottom:8px}
+.cc .hdr .nm{color:var(--ink);font-weight:700}
+.cc .hdr .id{color:var(--muted-2)}
+.cc .lane{display:flex;flex-wrap:wrap;gap:4px 8px;margin:2px 0 10px;color:var(--muted)}
+.cc .lane .ok{color:var(--green)} .cc .lane .on{color:var(--cyan)} .cc .lane .off{color:var(--muted-2)}
+.cc .lane .on::before{content:"◉ "} .cc .lane .ok::before{content:"● "} .cc .lane .off::before{content:"○ "}
+.cc .th,.cc summary.rw{display:grid;grid-template-columns:2ch minmax(0,17ch) minmax(0,1fr) 9ch 7ch 6ch;gap:0 10px;align-items:baseline}
+.cc .th{color:var(--muted-2);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 4px}
+.cc details.agent{border-radius:6px}
+.cc summary.rw{list-style:none;cursor:pointer;padding:2px 4px;border-radius:6px;white-space:nowrap}
+.cc summary.rw::-webkit-details-marker{display:none}
+.cc summary.rw > span{overflow:hidden;text-overflow:ellipsis}
+.cc summary.rw:hover,.cc details.agent.sel > summary{background:#17171f}
+.cc details.agent.sel > summary{box-shadow:inset 2px 0 0 var(--yellow)}
+.cc .caret{color:var(--muted-2)} .cc details[open] .caret{color:var(--yellow)}
+.cc .st-ok{color:var(--green)} .cc .st-on{color:var(--cyan)} .cc .st-bad{color:var(--red)} .cc .st-q{color:var(--muted-2)}
+.cc .mdl{color:#b9b9c6} .cc .mdl.bad{color:var(--red)} .cc .mdl s{color:var(--muted-2)}
+.cc .num{text-align:right;color:var(--muted)}
+.cc .dv{margin:4px 0 8px 2.6ch;padding:9px 12px;border-left:2px solid var(--hair-2);background:#0f0f15;border-radius:0 8px 8px 0;white-space:pre-wrap;color:var(--body)}
+.cc .dv .k{color:var(--muted)} .cc .dv .add{color:var(--green)} .cc .dv .del{color:var(--red)} .cc .dv .y{color:var(--yellow)} .cc .dv .c{color:var(--cyan)}
+.cc .sub{margin:14px 0 6px;color:var(--muted-2);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}
+.cc .feed{display:grid;gap:1px}
+.cc .fe{display:grid;grid-template-columns:9ch minmax(0,15ch) minmax(0,1fr);gap:0 10px;padding:2px 4px;border-radius:5px;white-space:nowrap;cursor:default}
+.cc .fe > span{overflow:hidden;text-overflow:ellipsis}
+.cc .fe .ts{color:var(--muted-2)} .cc .fe .who{color:var(--violet)}
+.cc .fe.new{background:rgba(94,234,212,.07)}
+.cc .warn{margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#fecaca;white-space:normal}
+.cc .crumb{color:var(--muted);margin-bottom:8px}
+.cc .crumb b{color:var(--ink)}
+.cc .cat{display:grid;grid-template-columns:2ch minmax(0,22ch) minmax(0,1fr) 7ch;gap:0 10px;padding:2px 4px;border-radius:6px;white-space:nowrap}
+.cc .cat > span{overflow:hidden;text-overflow:ellipsis}
+.cc .cat:hover{background:#17171f}
+.cc .cat .ic{color:var(--yellow)} .cc .cat .nm{color:var(--ink)} .cc .cat .hk{color:var(--muted)} .cc .cat .sz{color:var(--muted-2);text-align:right}
+.cc .cat.lit{background:rgba(250,255,105,.06)} .cc .cat.lit .ic{text-shadow:0 0 8px var(--yellow)}
+.cc .cat.stale .hk::after{content:"  stale";color:var(--orange)}
+.cc .meter{display:flex;align-items:center;gap:10px;margin:12px 0 2px;color:var(--muted)}
+.cc .meter .bar{flex:1;height:7px;border-radius:99px;background:#1d1d25;position:relative;overflow:hidden}
+.cc .meter .bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:linear-gradient(90deg,var(--yellow),var(--cyan))}
+.cc .meter .bar u{position:absolute;inset:0 auto 0 0;border-right:2px dashed var(--red);text-decoration:none}
+.cc .kv{display:grid;grid-template-columns:14ch minmax(0,1fr);gap:2px 12px}
+.cc .kv .k{color:var(--muted)}
+.cc .chk{display:grid;grid-template-columns:2ch minmax(0,24ch) minmax(0,1fr);gap:0 10px;padding:2px 4px;white-space:nowrap}
+.cc .chk > span{overflow:hidden;text-overflow:ellipsis}
+.cc .chk .why{color:var(--muted)}
+.cc .chk.learn{background:rgba(251,146,60,.07);border-radius:6px}
+.cc .chk.learn .why{color:#fdba74}
+.cc .bandrow{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;padding:8px 16px;border-top:1px solid var(--hair);background:#0e0e13;color:var(--muted);font-size:12px}
+.cc .bandrow b{color:var(--ink);font-weight:600}
+.cc .bandrow .y{color:var(--yellow)} .cc .bandrow .c{color:var(--cyan)} .cc .bandrow .g{color:var(--green)}
+.cc .bandrow .sp{color:var(--muted-2)}
+.cc .prompt{display:flex;gap:10px;align-items:center;padding:12px 16px 14px;border-top:1px solid var(--hair);color:var(--ink)}
+.cc .prompt .caret{color:var(--yellow)}
+.cc .prompt .cursor{display:inline-block;width:8px;height:16px;background:var(--ink);vertical-align:-3px}
+.cc-note{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:18px;color:var(--muted);font-size:13.5px}
+.cc-note b{color:var(--ink);font-weight:600}
+.cc-note kbd{font:12px var(--mono);border:1px solid var(--hair-2);border-radius:5px;padding:1px 6px;color:var(--ink)}
+@media (max-width:980px){
+  .cc .body{grid-template-columns:1fr}
+  .cc .convo{border-right:none;border-bottom:1px solid var(--hair);max-height:260px;overflow:auto}
+  .cc .tabs .hint{display:none}
+}
+@media (max-width:640px){
+  .cc{font-size:11px}
+  .cc .th,.cc summary.rw{grid-template-columns:2ch minmax(0,13ch) minmax(0,1fr) 8ch}
+  .cc .th > :nth-child(5),.cc .th > :nth-child(6),.cc summary.rw > :nth-child(5),.cc summary.rw > :nth-child(6){display:none}
+  .cc .fe{grid-template-columns:minmax(0,12ch) minmax(0,1fr)} .cc .fe .ts{display:none}
+  .cc .cat{grid-template-columns:2ch minmax(0,16ch) minmax(0,1fr)} .cc .cat .sz{display:none}
+  .cc .chk{grid-template-columns:2ch minmax(0,1fr)} .cc .chk .why{display:none}
+  .cc .tabs label{padding:7px 8px 8px}
+}
+
+/* ---------- side panels (no-JS :target; JS enhances) ---------- */
+.panel{position:fixed;inset:0 0 0 auto;z-index:80;width:min(600px,100vw);background:#0c0c11;border-left:1px solid var(--hair-2);box-shadow:-40px 0 120px rgba(0,0,0,.6);transform:translateX(104%);transition:transform .45s var(--ease),visibility 0s linear .45s;visibility:hidden;overflow-y:auto;overscroll-behavior:contain}
+.panel:target,.panel.open{transform:none;visibility:visible;transition:transform .45s var(--ease),visibility 0s}
+.scrim{position:fixed;inset:0;z-index:79;background:rgba(3,3,6,.62);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .35s}
+.panel:target + .scrim,.panel.open + .scrim{opacity:1;pointer-events:auto}
+.panel .ph{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;background:rgba(12,12,17,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--hair)}
+.panel .ph .eyebrow{font-size:11px}
+.panel .x{font:600 13px/1 var(--mono);color:var(--muted);border:1px solid var(--hair-2);border-radius:999px;padding:8px 12px}
+.panel .x:hover{color:var(--ink);text-decoration:none;border-color:var(--muted)}
+.panel .pb{padding:26px 24px 60px}
+.panel h3{font-size:30px;line-height:1.08;letter-spacing:-.03em;color:var(--ink);margin:0 0 14px}
+.panel h4{font:600 11.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:28px 0 12px}
+.panel p{margin:0 0 12px;font-size:15px}
+.panel p b,.panel li b{color:var(--ink);font-weight:600}
+.panel ul,.panel ol{margin:0 0 12px;padding-left:20px;font-size:14.5px}
+.panel li{margin:5px 0}
+.panel table{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0 12px}
+.panel th,.panel td{text-align:left;vertical-align:top;padding:8px 8px;border-bottom:1px solid var(--hair)}
+.panel th{font:600 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.panel td:first-child{color:var(--ink)}
+.panel .src{font:12px/1.6 var(--mono);color:var(--muted);background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:12px 14px;word-break:break-word}
+.panel .status{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin:6px 0 12px}
+.panel pre{font:12.5px/1.6 var(--mono);color:var(--body);background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:12px 14px;overflow-x:auto;margin:0 0 12px}
+#p-watch{--accent:var(--cyan)} #p-models{--accent:var(--red)} #p-memory{--accent:var(--yellow)} #p-catalogs{--accent:var(--violet)} #p-resume{--accent:var(--green)}
+#p-preflight{--accent:var(--orange)} #p-loop{--accent:var(--blue)} #p-rulings{--accent:var(--magenta)} #p-uicheck{--accent:var(--cyan)} #p-meter{--accent:var(--yellow)} #p-files{--accent:var(--green)} #p-evidence{--accent:var(--yellow)}
+
+/* ---------- files-first, install, versions ---------- */
+.layers{display:grid;gap:14px;margin-top:40px}
+.layer{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:20px;align-items:center;padding:22px 24px;border-radius:16px;border:1px solid var(--hair);background:var(--card)}
+.layer h3{font-size:19px;color:var(--ink);letter-spacing:-.01em}
+.layer h3 small{display:block;font:500 11.5px/1.4 var(--mono);color:var(--muted);letter-spacing:.04em;margin-top:4px}
+.layer p{font-size:14.5px}
+.layer.hot{border-color:color-mix(in srgb,var(--green) 40%,var(--hair));background:linear-gradient(90deg,rgba(74,222,128,.06),var(--card) 60%)}
+@media (max-width:760px){.layer{grid-template-columns:1fr}}
+.install{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:36px}
+.box{border:1px solid var(--hair);background:var(--card);border-radius:16px;padding:22px 24px}
+.box h3{color:var(--ink);font-size:18px;margin-bottom:8px}
+.box pre{font:13px/1.7 var(--mono);color:var(--body);background:#0b0b0f;border:1px solid var(--hair);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:10px 0}
+.box pre .c{color:var(--muted-2)}
+@media (max-width:860px){.install{grid-template-columns:minmax(0,1fr)}}
+.box{min-width:0}
+.vers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:34px}
+.ver{display:block;border:1px solid var(--hair);background:var(--card);border-radius:14px;padding:16px 18px;color:var(--body);transition:border-color .2s,transform .2s var(--ease)}
+.ver:hover{text-decoration:none;border-color:var(--hair-2);transform:translateY(-2px)}
+.ver b{display:block;font:700 15px/1.2 var(--mono);color:var(--ink);margin-bottom:6px}
+.ver span{font-size:13.5px;color:var(--muted)}
+.ver.now{border-color:color-mix(in srgb,var(--yellow) 50%,var(--hair))}
+.ver.now b{color:var(--yellow)}
+@media (max-width:860px){.vers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+section.plain{padding:clamp(70px,9vw,120px) 0;border-top:1px solid var(--hair)}
+section.plain h2{font-size:clamp(34px,5vw,64px);line-height:1;letter-spacing:-.035em;color:var(--ink);font-weight:800;margin:16px 0 14px}
+section.plain .lede{max-width:700px;font-size:17px}
+footer{border-top:1px solid var(--hair);padding:40px 0 60px;color:var(--muted);font-size:13.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+
+/* ---------- reveal (visible by default; JS enhances) ---------- */
+.js .rv{opacity:0;transform:translateY(26px)}
+.js .rv.in{opacity:1;transform:none;transition:opacity .9s var(--ease),transform .9s var(--ease)}
+@media (prefers-reduced-motion:reduce){
+  .js .rv{opacity:1;transform:none}
+  .flow,.pulse,.blink{animation:none}
+  html{scroll-behavior:auto}
+  .panel,.scrim{transition:none}
+}
+:focus-visible{outline:2px solid var(--yellow);outline-offset:3px;border-radius:6px}
+.panel:focus,.panel:focus-visible,.cc:focus{outline:none}
+.cc:focus-visible{outline:2px solid var(--yellow);outline-offset:4px}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#top">baton<i>/</i>v8</a>
+    <div class="navlinks">
+      <a href="#mod">The mod</a>
+      <a href="#watch">Watch</a>
+      <a href="#models" class="opt">Models</a>
+      <a href="#memory">Memory</a>
+      <a href="#catalogs" class="opt">Catalogs</a>
+      <a href="#resume">Resume</a>
+      <a href="#preflight" class="opt">Preflight</a>
+      <a href="#loop" class="opt">Unit loop</a>
+      <a href="#rulings" class="opt">Rulings</a>
+      <a href="#uicheck" class="opt">UI check</a>
+      <a href="#files">Files first</a>
+      <a href="#install">Install</a>
+      <a class="gh" href="https://github.com/ckluis/baton">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="aura" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="rv">
+        <span class="pill"><b>v8</b><span class="dot"></span>design preview · not released yet</span>
+        <h1>Workflows that <em>remember.</em></h1>
+        <p class="lede">Claude Workflows run the work. <b>baton watches every agent, remembers through catalogs, and guides without managing</b>: each agent gets exactly the knowledge it needs and nothing else, and you never have to ask "status?" again.</p>
+        <div class="ctas">
+          <a class="btn y" href="#mod">See the mod <span class="ar">→</span></a>
+          <a class="btn" href="#memory">The memory <span class="ar">→</span></a>
+          <a class="btn" href="#p-evidence" data-panel>Where the numbers come from</a>
+        </div>
+      </div>
+      <div class="hero-obj rv" role="img" aria-label="A Claude Workflow on the left streams what its agents learn into a graph memory on the right; the memory streams back only what each agent needs.">
+<svg viewBox="0 0 640 520" id="sv-hero" aria-hidden="true">
+<defs><radialGradient id="hg-root"><stop offset="0" stop-color="#faff69"/><stop offset="1" stop-color="#faff69" stop-opacity="0"/></radialGradient>
+<filter id="hg-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+<rect x="20" y="20" width="250" height="416" rx="16" fill="#0e0e14" stroke="#25252e"/>
+<text x="38" y="48" class="t-mono t-mute2" font-size="10" letter-spacing="1.4">WORKFLOW · csv-import-units</text>
+<text x="38" y="78" class="t-mono t-mute2" font-size="9.5" letter-spacing="1.4">BUILD</text>
+<g class="hchip" data-st="ok"><rect x="34" y="88" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="102" r="4" fill="#4ade80" stroke="#4ade80" stroke-width="1.4"/><text x="61" y="106" font-size="12" class="t-ink">build:parser</text><text x="246" y="106" text-anchor="end" font-size="9.5" class="t-mono t-mute2">sonnet-5-5</text></g>
+<g class="hchip" data-st="ok"><rect x="34" y="124" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="138" r="4" fill="#4ade80" stroke="#4ade80" stroke-width="1.4"/><text x="61" y="142" font-size="12" class="t-ink">build:importer</text><text x="246" y="142" text-anchor="end" font-size="9.5" class="t-mono t-mute2">sonnet-5-5</text></g>
+<g class="hchip" data-st="ok"><rect x="34" y="160" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="174" r="4" fill="#4ade80" stroke="#4ade80" stroke-width="1.4"/><text x="61" y="178" font-size="12" class="t-ink">build:cli</text><text x="246" y="178" text-anchor="end" font-size="9.5" class="t-mono t-mute2">sonnet-5-5</text></g>
+<text x="38" y="216" class="t-mono t-mute2" font-size="9.5" letter-spacing="1.4">VERIFY</text>
+<g class="hchip" data-st="on"><rect x="34" y="226" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="240" r="4" fill="#5eead4" stroke="#5eead4" stroke-width="1.4" class="pulse"/><text x="61" y="244" font-size="12" class="t-ink">verify:parser</text><text x="246" y="244" text-anchor="end" font-size="9.5" class="t-mono t-mute2">opus-5-5</text></g>
+<g class="hchip" data-st="on"><rect x="34" y="262" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="276" r="4" fill="#5eead4" stroke="#5eead4" stroke-width="1.4" class="pulse"/><text x="61" y="280" font-size="12" class="t-ink">verify:importer</text><text x="246" y="280" text-anchor="end" font-size="9.5" class="t-mono t-mute2">opus-5-5</text></g>
+<text x="38" y="316" class="t-mono t-mute2" font-size="9.5" letter-spacing="1.4">FIX</text>
+<g class="hchip" data-st="q"><rect x="34" y="326" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="340" r="4" fill="none" stroke="#5b5b66" stroke-width="1.4"/><text x="61" y="344" font-size="12" class="t-mute">fix:round1</text><text x="246" y="344" text-anchor="end" font-size="9.5" class="t-mono t-mute2">sonnet-5-5</text></g>
+<text x="38" y="372" class="t-mono t-mute2" font-size="9.5" letter-spacing="1.4">RUN</text>
+<g class="hchip" data-st="q"><rect x="34" y="382" width="222" height="28" rx="8" fill="#17171f" stroke="#26262f"/><circle cx="49" cy="396" r="4" fill="none" stroke="#5b5b66" stroke-width="1.4"/><text x="61" y="400" font-size="12" class="t-mute">run:bench</text><text x="246" y="400" text-anchor="end" font-size="9.5" class="t-mono t-mute2">haiku-5-5</text></g>
+<g><line x1="482" y1="212" x2="449.8" y2="132.3" stroke="#3a3a46" stroke-width="1.3"/><line x1="449.8" y1="132.3" x2="394.1" y2="95.4" stroke="#2c2c36" stroke-width="1"/><line x1="449.8" y1="132.3" x2="430.3" y2="84" stroke="#2c2c36" stroke-width="1"/><line x1="449.8" y1="132.3" x2="464.2" y2="67.1" stroke="#2c2c36" stroke-width="1"/><line x1="482" y1="212" x2="534.9" y2="144.2" stroke="#3a3a46" stroke-width="1.3"/><line x1="534.9" y1="144.2" x2="539" y2="77.6" stroke="#2c2c36" stroke-width="1"/><line x1="534.9" y1="144.2" x2="567" y2="103.3" stroke="#2c2c36" stroke-width="1"/><line x1="534.9" y1="144.2" x2="598.6" y2="124.1" stroke="#2c2c36" stroke-width="1"/><line x1="482" y1="212" x2="567.2" y2="224" stroke="#3a3a46" stroke-width="1.3"/><line x1="567.2" y1="224" x2="626" y2="194.2" stroke="#2c2c36" stroke-width="1"/><line x1="567.2" y1="224" x2="618.7" y2="231.2" stroke="#2c2c36" stroke-width="1"/><line x1="567.2" y1="224" x2="616.4" y2="269" stroke="#2c2c36" stroke-width="1"/><line x1="482" y1="212" x2="514.2" y2="291.7" stroke="#3a3a46" stroke-width="1.3"/><line x1="514.2" y1="291.7" x2="569.9" y2="328.6" stroke="#2c2c36" stroke-width="1"/><line x1="514.2" y1="291.7" x2="533.7" y2="340" stroke="#2c2c36" stroke-width="1"/><line x1="514.2" y1="291.7" x2="499.8" y2="356.9" stroke="#2c2c36" stroke-width="1"/><line x1="482" y1="212" x2="429.1" y2="279.8" stroke="#3a3a46" stroke-width="1.3"/><line x1="429.1" y1="279.8" x2="425" y2="346.4" stroke="#2c2c36" stroke-width="1"/><line x1="429.1" y1="279.8" x2="397" y2="320.7" stroke="#2c2c36" stroke-width="1"/><line x1="429.1" y1="279.8" x2="365.4" y2="299.9" stroke="#2c2c36" stroke-width="1"/><line x1="464.2" y1="67.1" x2="539" y2="77.6" stroke="#3a3a46" stroke-width="1" stroke-dasharray="2 4"/><line x1="598.6" y1="124.1" x2="626" y2="194.2" stroke="#3a3a46" stroke-width="1" stroke-dasharray="2 4"/><line x1="616.4" y1="269" x2="569.9" y2="328.6" stroke="#3a3a46" stroke-width="1" stroke-dasharray="2 4"/><line x1="499.8" y1="356.9" x2="425" y2="346.4" stroke="#3a3a46" stroke-width="1" stroke-dasharray="2 4"/></g>
+<circle class="hleaf" data-c="0" cx="394.1" cy="95.4" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="0" cx="430.3" cy="84" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="0" cx="464.2" cy="67.1" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="1" cx="539" cy="77.6" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="1" cx="567" cy="103.3" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="1" cx="598.6" cy="124.1" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="2" cx="626" cy="194.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="2" cx="618.7" cy="231.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="2" cx="616.4" cy="269" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="3" cx="569.9" cy="328.6" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="3" cx="533.7" cy="340" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="3" cx="499.8" cy="356.9" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="4" cx="425" cy="346.4" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="4" cx="397" cy="320.7" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<circle class="hleaf" data-c="4" cx="365.4" cy="299.9" r="4.5" fill="#2a2a35" stroke="#4a4a58"/>
+<g class="hcat" data-i="0"><circle cx="449.8" cy="132.3" r="11" fill="#1a1a10" stroke="#faff69" stroke-width="1.6"/><text x="449.8" y="157.3" text-anchor="middle" class="t-mono t-mute" font-size="9.5">user</text></g><g class="hcat" data-i="1"><circle cx="534.9" cy="144.2" r="11" fill="#1a1a10" stroke="#faff69" stroke-width="1.6"/><text x="534.9" y="169.2" text-anchor="middle" class="t-mono t-mute" font-size="9.5">project:shop</text></g><g class="hcat" data-i="2"><circle cx="567.2" cy="224" r="11" fill="#1a1a10" stroke="#faff69" stroke-width="1.6"/><text x="567.2" y="249" text-anchor="middle" class="t-mono t-mute" font-size="9.5">tech:ts</text></g><g class="hcat" data-i="3"><circle cx="514.2" cy="291.7" r="11" fill="#1a1a10" stroke="#faff69" stroke-width="1.6"/><text x="514.2" y="316.7" text-anchor="middle" class="t-mono t-mute" font-size="9.5">tool:cmux</text></g><g class="hcat" data-i="4"><circle cx="429.1" cy="279.8" r="11" fill="#1a1a10" stroke="#faff69" stroke-width="1.6"/><text x="429.1" y="304.8" text-anchor="middle" class="t-mono t-mute" font-size="9.5">tool:wf</text></g>
+<circle cx="482" cy="212" r="46" fill="url(#hg-root)" opacity=".35" class="pulse"/><circle cx="482" cy="212" r="21" fill="#faff69"/><text x="482" y="216" text-anchor="middle" font-size="10" font-weight="800" fill="#0a0a0a" class="t-mono">root</text>
+<text x="330" y="48" class="t-mono t-mute2" font-size="10" letter-spacing="1.4">MEMORY · catalogs → nodes</text>
+<g fill="none">
+<path id="hc0" d="M256 102 C 330 102, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc1" d="M256 138 C 330 138, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc2" d="M256 174 C 330 174, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc3" d="M256 240 C 330 240, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc4" d="M256 276 C 330 276, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc5" d="M256 340 C 330 340, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+<path id="hc6" d="M256 396 C 330 396, 380 212, 460 212" stroke="#faff69" stroke-opacity=".16" stroke-width="1.2"/>
+</g><g id="hg-particles">
+<circle r="2.6" fill="#faff69" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#5eead4" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#faff69" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#5eead4" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#faff69" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#5eead4" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#faff69" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+<circle r="2.6" fill="#5eead4" cx="-10" cy="-10" filter="url(#hg-blur)" class="hp"/><circle r="1.6" fill="#fff" cx="-10" cy="-10" class="hp2"/>
+</g>
+<g transform="translate(20,452)"><rect width="600" height="48" rx="12" fill="#0e0e13" stroke="#25252e"/><text x="16" y="30" class="t-mono" font-size="11.5" fill="#faff69">baton</text><text x="66" y="30" class="t-mono t-body" font-size="10.5">◉ <tspan class="t-ink" font-weight="700">csv-import-units</tspan> <tspan id="hb-n">9</tspan>/14 · ETA 38m · $<tspan id="hb-usd">3.84</tspan></text><text x="584" y="30" text-anchor="end" class="t-mono" font-size="10.5" fill="#4ade80">✓ opus-5-5 · sonnet-5-5 · haiku-5-5</text></g>
+</svg>
+      </div>
+    </div>
+
+    <div class="stats rv">
+      <div class="stat c"><div class="n" data-count="37">37</div><div class="l">times you typed a bare "Status" in two Workflow-heavy sessions. The pane answers instead.</div><span class="src">measured · taal + F# Campfire</span></div>
+      <div class="stat r"><div class="n" data-count="405">405</div><div class="l">turns that asked for <code>haiku</code> and ran on Haiku 4.5. Every row now shows the model that served.</div><span class="src">measured · onCrack round 4</span></div>
+      <div class="stat y"><div class="n"><span data-count="13.9" data-dec="1">13.9</span><small>KB</small></div><div class="l">of flat memory loaded into every session, mostly about other projects. Catalogs load only what applies.</div><span class="src">measured · MEMORY.md, 2026-10-10</span></div>
+      <div class="stat m"><div class="n"><span data-count="38.2" data-dec="1">38.2</span><small>M</small></div><div class="l">tokens across 20 Workflow runs that rebuilt baton's verify loop by hand in every script.</div><span class="src">measured · 206 agents, ≈95 h</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= THE MOD ======================= -->
+<section class="band" id="mod">
+  <div class="glow" style="left:-300px;top:-200px" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">00</span>The mod</div>
+      <h2 style="font-size:clamp(38px,6vw,84px);line-height:.98;letter-spacing:-.04em;color:var(--ink);font-weight:800;margin:18px 0 18px;max-width:16ch">Everything, one keystroke away.</h2>
+      <p style="max-width:720px;font-size:clamp(16.5px,1.45vw,19px)">A pane beside your conversation and one line above the prompt. <b style="color:var(--ink)">Watch</b> streams every agent's changes, <b style="color:var(--ink)">Memory</b> walks the catalogs, <b style="color:var(--ink)">Session</b> is what resume will pick up, <b style="color:var(--ink)">Env</b> is the preflight. The same pane draws in the terminal, the desktop app, VS Code and on your phone. Try it: the tabs and rows below are live.</p>
+    </div>
+
+    <div class="cc rv" id="cc" tabindex="0" aria-label="A Claude Code session with the baton v8 pane: conversation on the left, the pane on the right with four tabs, the status band and the prompt">
+      <div class="chrome"><i></i><i></i><i></i><span>~/shop — claude · baton 8.0 · claude-opus-5-5</span></div>
+      <div class="body">
+        <input type="radio" name="cc-tab" id="t-watch" checked>
+        <input type="radio" name="cc-tab" id="t-mem">
+        <input type="radio" name="cc-tab" id="t-sess">
+        <input type="radio" name="cc-tab" id="t-env">
+<div class="convo"><span class="u">&gt; run the csv import units with the unit loop. opus verifies, haiku runs the bench</span>
+
+<span class="k">⏺</span> Workflow(<span class="y">unit-loop</span> · csv-import-units)
+  <span class="d">⎿ wf_8c1e2a started · 14 agents · preflight first</span>
+  <span class="g">baton: preflight 6/6 ✓ (1 learned: disk ≥ 20 GB)</span>
+
+<span class="k">⏺</span> While that runs I'll read the old parser.
+<span class="k">⏺</span> Read(src/import/legacy.ts)
+  <span class="d">⎿ 214 lines — the mod watches, it doesn't wall</span>
+
+<span class="u">&gt; decisions go in issues, never in PRs</span>
+  <span class="m">baton: ruling → user catalog · every agent reads it from rulings.md</span>
+
+<span class="k">⏺</span> verify:parser found a major: a quoted newline splits the row.
+  <span class="d">⎿ fix:round1 queued · round 1 of 3</span>
+  <span class="r">baton: run:bench asked haiku → served claude-haiku-4-5-20251001</span>
+  <span class="d">  flagged in Watch · enforce with /baton models enforce</span>
+
+<span class="y">✻ Watching… · wf csv-import-units · 9/14 · ETA 38m</span></div>
+        <div class="side">
+          <div class="tabs" role="tablist">
+            <label for="t-watch"><b>1</b>Watch</label>
+            <label for="t-mem"><b>2</b>Memory</label>
+            <label for="t-sess"><b>3</b>Session</label>
+            <label for="t-env"><b>4</b>Env</label>
+            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> <kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>4</kbd> tabs</span>
+          </div>
+          <div class="views">
+            <!-- WATCH -->
+            <div class="view v-watch">
+              <div class="hdr"><span class="nm">csv-import-units</span><span class="id">wf_8c1e2a · unit-loop</span><span class="st-on">◉ running 1h12m</span><span><span id="cc-n">9</span>/14 agents</span><span>$<span id="cc-usd">3.84</span></span><span class="st-ok">ETA <span id="cc-eta">38</span>m</span></div>
+              <div class="lane"><span class="ok">Preflight</span>─<span class="ok">Build</span>─<span class="on">Verify</span>─<span class="off">Fix</span>─<span class="off">Re-verify</span>─<span class="off">Merge queue</span></div>
+              <div class="th"><span></span><span>agent</span><span>model · served</span><span>state</span><span class="num">tokens</span><span class="num">$</span></div>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ preflight</span><span class="mdl">claude-haiku-5-5</span><span class="st-ok">done</span><span class="num">3.1k</span><span class="num">&lt;.01</span></summary>
+<div class="dv"><span class="k">asked    </span>claude-haiku-5-5 → served claude-haiku-5-5 <span class="add">✓</span>
+<span class="k">ran      </span>6 checks from project:shop/env in 19 s
+<span class="k">learned  </span>disk ≥ 20 GB <span class="k">(added 2026-10-09 after ENOSPC)</span></div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:parser</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">182k</span><span class="num">0.61</span></summary>
+<div class="dv"><span class="k">changed  </span>src/import/parse.ts   <span class="add">+88</span> <span class="del">−31</span>
+<span class="k">         </span>test/parse.test.ts    <span class="add">+52</span>
+<span class="k">commit   </span><span class="y">a41c07e</span> parse RFC 4180 fields
+<span class="k">tests    </span>npm test -- parse  <span class="add">38/38</span></div></details>
+              <details class="agent" open><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:importer</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">240k</span><span class="num">0.84</span></summary>
+<div class="dv"><span class="k">changed  </span>src/import/csv.ts     <span class="add">+42</span> <span class="del">−7</span>
+<span class="k">         </span>src/import/types.ts   <span class="add">+11</span>
+<span class="k">         </span>test/import.test.ts   <span class="add">+64</span>
+<span class="k">commit   </span><span class="y">3f9a2c1</span> stream rows into the importer
+<span class="k">tests    </span>npm test  <span class="y">51/54</span> → handed to verify
+<span class="k">open     </span><span class="c">diff ↗</span>  <span class="c">transcript ↗</span>  <span class="c">result ↗</span></div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:cli</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">97k</span><span class="num">0.33</span></summary>
+<div class="dv"><span class="k">changed  </span>src/cli/import.ts     <span class="add">+29</span> <span class="del">−4</span>
+<span class="k">commit   </span><span class="y">9be12d0</span> shop import --csv</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-on">◉ verify:parser</span><span class="mdl">claude-opus-5-5</span><span class="st-on">running</span><span class="num">61k</span><span class="num">0.38</span></summary>
+<div class="dv"><span class="k">asked    </span>claude-opus-5-5 → served claude-opus-5-5 <span class="add">✓</span>
+<span class="k">doing    </span>Bash  npm test -- parse --fuzz  <span class="k">(12 s ago)</span>
+<span class="k">found    </span><span class="del">⚑ major</span>  src/import/csv.ts:88  a quoted newline splits the row
+<span class="k">changed  </span>nothing — verifiers never edit</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-on">◉ verify:importer</span><span class="mdl">claude-opus-5-5</span><span class="st-on">running</span><span class="num">44k</span><span class="num">0.27</span></summary>
+<div class="dv"><span class="k">doing    </span>Read  test/import.test.ts
+<span class="k">found    </span>nothing yet</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-bad">✗ run:bench</span><span class="mdl bad"><s>haiku</s> → claude-haiku-4-5-20251001</span><span class="st-bad">flagged</span><span class="num">18k</span><span class="num">0.02</span></summary>
+<div class="dv"><span class="k">asked    </span>haiku  →  served <span class="del">claude-haiku-4-5-20251001 ✗</span>
+<span class="k">why      </span>this Claude Code resolves the alias to Haiku 4.5
+<span class="k">costs    </span>$1 / $5 per MTok instead of $0.10 / $0.50
+<span class="k">fix      </span>name models by full ID: the template's model map does
+<span class="k">enforce  </span><span class="y">/baton models enforce</span> → the mod denies the spawn</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-q">○ fix:round1</span><span class="mdl">claude-sonnet-5-5</span><span class="st-q">queued</span><span class="num">—</span><span class="num">—</span></summary>
+<div class="dv"><span class="k">waits on </span>verify:parser, verify:importer
+<span class="k">round    </span>1 of 3 · a finding seen in 2 rounds spawns a design unit</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-q">○ re-verify</span><span class="mdl">claude-opus-5-5</span><span class="st-q">queued</span><span class="num">—</span><span class="num">—</span></summary>
+<div class="dv"><span class="k">fresh    </span>a new verifier, never the one that found it</div></details>
+              <div class="sub"><span>what changed · live</span><span>Enter opens a row</span></div>
+              <div class="feed" id="feed">
+                <div class="fe"><span class="ts">12:41:07</span><span class="who">build:importer</span><span>✎ src/import/csv.ts <span class="st-ok">+42</span> <span class="st-bad">−7</span></span></div>
+                <div class="fe"><span class="ts">12:41:31</span><span class="who">build:importer</span><span>✓ npm test 51/54</span></div>
+                <div class="fe"><span class="ts">12:41:44</span><span class="who">build:importer</span><span>⎇ commit 3f9a2c1</span></div>
+                <div class="fe"><span class="ts">12:42:02</span><span class="who">verify:parser</span><span><span class="st-bad">⚑ major</span> quoted newline splits the row</span></div>
+              </div>
+            </div>
+            <!-- MEMORY -->
+            <div class="view v-mem">
+              <div class="crumb"><b>root</b> › catalogs loaded for <b>~/shop</b> · the rest is one hop away</div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">user</span><span class="hk">how you work · 14 nodes</span><span class="sz">0.4k</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">project:shop</span><span class="hk">picked by cwd · 23 nodes</span><span class="sz">0.5k</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  session</span><span class="hk">wf_8c1e2a at agent 10/14 · 2 PRs</span><span class="sz">live</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  env</span><span class="hk">6 checks · 1 learned</span><span class="sz">90b</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  how-to-test</span><span class="hk">npm test · e2e needs pg on :5433</span><span class="sz">120b</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  rulings</span><span class="hk">4 active · newest: decisions → issues</span><span class="sz">260b</span></div>
+              <div class="cat stale"><span class="ic">●</span><span class="nm">  csv-quirks</span><span class="hk">quoted newlines, BOM, ; separators</span><span class="sz">210b</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">tech:typescript</span><span class="hk">picked by package.json · 9 nodes</span><span class="sz">0.2k</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">tool:cmux</span><span class="hk">picked by doctor · 6 nodes</span><span class="sz">0.1k</span></div>
+              <div class="cat" style="opacity:.55"><span class="ic">◇</span><span class="nm">tech:rust</span><span class="hk">not here: no Cargo.toml</span><span class="sz">—</span></div>
+              <div class="cat" style="opacity:.55"><span class="ic">◇</span><span class="nm">project:tinker</span><span class="hk">not here: other repo</span><span class="sz">—</span></div>
+              <div class="meter"><span>wake</span><span class="bar"><u style="width:100%"></u><i style="width:34%" id="wakebar"></i></span><span><b style="color:var(--ink)">1.2k</b> vs 3.5k flat</span></div>
+              <div class="sub" style="margin-top:14px"><span>node · project:shop/csv-quirks</span><span>stale: csv.ts changed 3f9a2c1</span></div>
+<div class="dv" style="margin-left:0">Quoted fields may hold newlines; a BOM can lead the file; EU exports use ";".
+<span class="k">source   </span>src/import/csv.ts @ a41c07e  <span class="y">← newer commit exists: re-check</span>
+<span class="k">links    </span>[[how-to-test]] [[tech:typescript/streams]] <span class="k">supersedes</span> [[csv-quirks@09-30]]</div>
+            </div>
+            <!-- SESSION -->
+            <div class="view v-sess">
+              <div class="hdr"><span class="nm">project:shop/session</span><span class="id">rewritten 12:42:07 · after agent 9 returned</span></div>
+              <div class="kv">
+                <span class="k">run</span><span>wf_8c1e2a · unit-loop · csv-import-units</span>
+                <span class="k">resume at</span><span>agent 10 of 14 (fix:round1) · 9 cached in the journal</span>
+                <span class="k">in flight</span><span class="st-on">verify:parser, verify:importer — close waits for them</span>
+                <span class="k">PRs</span><span>#84 open · #85 draft</span>
+                <span class="k">decisions</span><span class="st-bad">D3 which vendor key does the import use? (asked 11:58)</span>
+                <span class="k">rulings +</span><span>decisions go in issues, never in PRs</span>
+                <span class="k">next</span><span>fix:round1 → re-verify → merge queue</span>
+              </div>
+              <div class="sub"><span>next morning</span><span>07:02</span></div>
+<div class="dv" style="margin-left:0"><span class="y">&gt; /baton resume</span>
+<span class="add">✓</span> PR #84 merged since close → unit 7 unblocked
+<span class="add">✓</span> main moved 3 commits → re-baseline queued
+<span class="del">✗</span> disk 14 GB &lt; 20 GB (learned check) → cleaned dist/, 31 GB free
+<span class="add">✓</span> resuming wf_8c1e2a at agent 10 · 9 agents replayed from the journal</div>
+            </div>
+            <!-- ENV -->
+            <div class="view v-env">
+              <div class="hdr"><span class="nm">project:shop/env</span><span class="id">preflight · 19 s · before agent 1</span></div>
+              <div class="chk learn"><span class="st-ok">✓</span><span>disk free ≥ 20 GB</span><span class="why">31 GB · learned 2026-10-09 (ENOSPC mid-build)</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>node ≥ 22</span><span class="why">v25.9.0</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>pg_isready -p 5433</span><span class="why">accepting connections</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>port 44100 free or ours</span><span class="why">npm run dev · pid 8812</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>git clean</span><span class="why">main @ 7367f72</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>gh auth</span><span class="why">signed in</span></div>
+              <div class="sub"><span>learned from failures</span><span>/baton env add "&lt;cmd&gt;"</span></div>
+<div class="dv" style="margin-left:0"><span class="k">2026-10-09 </span>build:importer died: <span class="del">ld: write() failed, errno=28 (No space left on device)</span>
+<span class="k">           </span>→ added <span class="y">disk free ≥ 20 GB</span> with the cleanup that fixed it</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bandrow"><span class="y">baton</span><span>◉ <b>csv-import-units</b> <span id="cc-n2">9</span>/14 · ETA <span id="cc-eta2">38</span>m · $<span id="cc-usd2">3.84</span></span><span class="sp">│</span><span>main thread <b>6</b> calls since dispatch</span><span class="sp">│</span><span>5h <b>41%</b> · week <b>18%</b></span><span class="sp">│</span><span>ctx <b>22%</b></span><span class="sp">│</span><span style="color:var(--red)">1 model flagged</span></div>
+      <div class="prompt"><span class="caret">&gt;</span><span class="cursor blink"></span></div>
+    </div>
+    <div class="cc-note rv"><span><kbd>1</kbd>–<kbd>4</kbd> switch tabs</span><span><kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>Enter</kbd> opens a row</span><span>Rows and tabs work without JavaScript too.</span><span><b>Sample data.</b> v8 is a design; the run is illustrative.</span></div>
+  </div>
+</section>
+
+<!-- ======================= 01 WATCH ======================= -->
+<section class="band" id="watch">
+  <div class="glow" style="right:-320px;top:-160px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">01</span>Watch</div>
+      <h2>Stop typing <em>"Status."</em></h2>
+      <p class="punch">Every Workflow agent appears in the pane the moment it starts: its phase, <b>the model that actually served it</b>, its tokens and cost. Each edit, commit, test run and finding lands as a row you can open.</p>
+      <div class="big"><span class="n" data-count="37">37</span><span class="l">bare <b>"Status"</b> prompts in two sessions, plus ETA and "next data point?" asks. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>A live feed per agent</b>: ✎ edits with +/−, ⎇ commits, ✓ test runs, ⚑ findings</li>
+        <li><b>Enter opens anything</b>: the diff, the transcript, the result</li>
+        <li><b>An ETA</b> from the durations of finished agents, not a guess</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-watch" data-panel>How it sees Workflow agents <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-watch">Try it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="watch · wf_8c1e2a" role="img" aria-label="A phase lane, agent rows filling with progress, and a live feed of changes sliding in; a typed 'status' is struck out.">
+<svg viewBox="0 0 640 460" id="sv-watch" aria-hidden="true">
+  <defs>
+    <linearGradient id="wg" x1="0" x2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#60a5fa"/></linearGradient>
+  </defs>
+  <g transform="translate(0,6)">
+    <path d="M60 50 H460" stroke="#2f2f3a" stroke-width="2"/>
+    <path d="M60 50 H260" stroke="url(#wg)" stroke-width="2" id="w-lanefill"/>
+    <g class="t-mono" font-size="11">
+      <circle cx="60" cy="50" r="7" fill="#4ade80"/><text x="60" y="76" text-anchor="middle" class="t-mute">Preflight</text>
+      <circle cx="160" cy="50" r="7" fill="#4ade80"/><text x="160" y="76" text-anchor="middle" class="t-mute">Build</text>
+      <circle cx="260" cy="50" r="13" fill="none" stroke="#5eead4" stroke-width="2" class="pulse"/><circle cx="260" cy="50" r="7" fill="#5eead4"/><text x="260" y="76" text-anchor="middle" class="t-ink">Verify</text>
+      <circle cx="360" cy="50" r="7" fill="#2a2a33"/><text x="360" y="76" text-anchor="middle" class="t-mute2">Fix</text>
+      <circle cx="460" cy="50" r="7" fill="#2a2a33"/><text x="460" y="76" text-anchor="middle" class="t-mute2">Re-verify</text>
+    </g>
+  </g>
+  <g id="w-rows" font-size="12.5">
+    <g transform="translate(24,104)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#4ade80"/><text x="30" y="22" class="t-ink">build:parser</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-sonnet-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="66" height="6" rx="3" fill="#4ade80" class="wbar" data-w="66"/></g>
+    <g transform="translate(24,148)"><rect width="364" height="36" rx="8" class="f-raised"/><rect x="0" y="0" width="3" height="36" rx="1.5" fill="#faff69" id="w-sel"/><circle cx="16" cy="18" r="4.5" fill="#4ade80"/><text x="30" y="22" class="t-ink">build:importer</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-sonnet-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="66" height="6" rx="3" fill="#4ade80" class="wbar" data-w="66"/></g>
+    <g transform="translate(24,192)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#5eead4" class="pulse"/><text x="30" y="22" class="t-ink">verify:parser</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-opus-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="40" height="6" rx="3" fill="#5eead4" class="wbar" data-w="40"/></g>
+    <g transform="translate(24,236)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#5eead4" class="pulse"/><text x="30" y="22" class="t-ink">verify:importer</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-opus-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="28" height="6" rx="3" fill="#5eead4" class="wbar" data-w="28"/></g>
+    <g transform="translate(24,280)" opacity=".55"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="none" stroke="#5b5b66" stroke-width="1.5"/><text x="30" y="22" class="t-body">fix:round1</text><text x="152" y="22" class="t-mono t-mute2" font-size="10.5">claude-sonnet-5-5</text><text x="350" y="22" text-anchor="end" class="t-mono t-mute2" font-size="10.5">queued</text></g>
+  </g>
+  <g id="w-feed" font-size="12">
+    <text x="410" y="118" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">WHAT CHANGED</text>
+    <g class="fcard" transform="translate(410,130)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">✎ csv.ts <tspan fill="#4ade80">+42</tspan> <tspan fill="#f87171">−7</tspan></text></g>
+    <g class="fcard" transform="translate(410,184)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">✓ npm test <tspan fill="#faff69">51/54</tspan></text></g>
+    <g class="fcard" transform="translate(410,238)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">⎇ commit <tspan class="t-mono" fill="#faff69">3f9a2c1</tspan></text></g>
+    <g class="fcard" transform="translate(410,292)"><rect width="206" height="46" rx="9" fill="#1a1216" stroke="#5a2a2f"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">verify:parser</text><text x="12" y="36" class="t-ink"><tspan fill="#f87171">⚑ major</tspan> quoted newline</text></g>
+  </g>
+  <g transform="translate(24,356)">
+    <rect width="592" height="72" rx="12" fill="#0f0f15" stroke="#25252e"/>
+    <text x="20" y="31" class="t-mono t-ink" font-size="15">&gt; status</text>
+    <path d="M18 26 H96" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" id="w-strike"/>
+    <text x="20" y="55" class="t-mono t-mute" font-size="11.5">answered by the pane · 9/14 agents · ETA 38m · $3.84</text>
+    <text x="572" y="31" text-anchor="end" class="t-mono" fill="#5eead4" font-size="11">no prompt needed</text>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-watch" role="dialog" aria-labelledby="h-watch" tabindex="-1">
+  <div class="ph"><span class="eyebrow">01 · Watch</span><a class="x" href="#watch">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-watch">How the mod sees every Workflow agent</h3>
+    <p>Claude Code tells a mod about every agent a Workflow script starts, and about every tool call those agents make. baton listens to both. It never steers the agents; it only watches, records and shows.</p>
+    <h4>What the mod receives</h4>
+    <table>
+      <tr><th>event</th><th>gives baton</th></tr>
+      <tr><td><code>agent.spawn</code></td><td><code>e.workflow = { runId, agentIndex }</code>: which run, which agent. Fires for every <code>agent()</code> a script starts.</td></tr>
+      <tr><td><code>tool.call</code></td><td>Each call carries the agent's <code>agentId</code>, so an Edit, a Bash test run or a commit lands in that agent's feed.</td></tr>
+      <tr><td><code>wf_*.json</code> + <code>journal.jsonl</code></td><td>Phases, labels, state, tokens, and what each agent returned. These files are already written for every run.</td></tr>
+      <tr><td>agent transcripts</td><td><code>.message.model</code>, the model that really served each turn</td></tr>
+    </table>
+    <h4>What it can't do, on purpose</h4>
+    <p>For Workflow agents the mod can only <b>refuse</b> a spawn: their prompt and model can't be rewritten. So guidance travels through files every agent reads (rulings, catalogs) and through templates, never through the mod reaching into a running script.</p>
+    <h4>Why it matters</h4>
+    <ul>
+      <li>F# Campfire: <b>29</b> bare "Status" prompts out of about 100. taal: <b>8</b> of 19.</li>
+      <li>Hand-made <code>Monitor</code> watchers on <code>journal.jsonl</code> to learn when a unit finished.</li>
+      <li>"when could I expect the next data point?", "ETA?"</li>
+      <li>No sign that <code>/workflows</code> was ever opened. The view has to come to you.</li>
+    </ul>
+    <h4>Status</h4>
+    <div class="status"><span class="tag meas">v7.5</span><span>Pane, agent table and drill-down exist for Agent-tool agents</span><span class="tag goal">v8</span><span>Workflow agents, the per-agent change feed, ETA, served model per row</span></div>
+    <div class="src">source · Claude Code 2.1.296 mod types: AgentSpawnInput.workflow, AgentLoop.agentId · session logs 5229f514, fea4ed62</div>
+  </div>
+</aside>
+<a class="scrim" href="#watch" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 02 MODELS ======================= -->
+<section class="band" id="models">
+  <div class="glow" style="left:-360px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">02</span>Model truth</div>
+      <h2>The model you asked for. <em>Or a red row.</em></h2>
+      <p class="punch">Every agent shows the model ID that <b>served</b> it next to its name, and turns red when that isn't what was asked for. Prices are per request, so Haiku 5.5's 100k-token cliff is visible too.</p>
+      <div class="big"><span class="n" data-count="405">405</span><span class="l">turns asked for <b>haiku</b> and got <b>claude-haiku-4-5</b>, at 10× the price. Nothing said so. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Full model IDs</b> in every template's model map</li>
+        <li><b>Requested vs served</b> on every row, red on mismatch</li>
+        <li><b><code>/baton models enforce</code></b>: refuse a spawn that would run on the wrong model</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-models" data-panel>The Haiku 5.5 story <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-watch" data-row="6">See the red row</a></div>
+    </div>
+    <div class="stage rv" data-label="asked → served" role="img" aria-label="Three agents with asked and served models; the third flips red. Below, input prices per million tokens: Opus 5.5 $4, Sonnet 5.5 $2, Haiku 4.5 $1, Haiku 5.5 $0.10 under 100k tokens.">
+<svg viewBox="0 0 640 440" id="sv-models" aria-hidden="true">
+  <g font-size="12.5">
+    <g transform="translate(24,46)"><rect width="592" height="44" rx="10" class="f-raised"/><text x="18" y="27" class="t-ink">verify:parser</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked claude-opus-5-5</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono t-ink" font-size="11">claude-opus-5-5</text><text x="572" y="28" text-anchor="end" fill="#4ade80" font-size="16">✓</text></g>
+    <g transform="translate(24,100)"><rect width="592" height="44" rx="10" class="f-raised"/><text x="18" y="27" class="t-ink">build:importer</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked claude-sonnet-5-5</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono t-ink" font-size="11">claude-sonnet-5-5</text><text x="572" y="28" text-anchor="end" fill="#4ade80" font-size="16">✓</text></g>
+    <g transform="translate(24,154)" id="m-bad"><rect width="592" height="44" rx="10" fill="#1d1416" stroke="#f87171" stroke-opacity=".9" id="m-badrect"/><text x="18" y="27" class="t-ink">run:bench</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked haiku</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono" font-size="11" fill="#f87171" id="m-served">claude-haiku-4-5-20251001</text><text x="572" y="28" text-anchor="end" fill="#f87171" font-size="16" id="m-x">✗</text></g>
+  </g>
+  <text x="24" y="246" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">INPUT $ PER MILLION TOKENS</text>
+  <g font-size="12.5" id="m-bars">
+    <text x="24" y="281" class="t-body">Opus 5.5</text><rect x="170" y="268" width="380" height="18" rx="4" fill="#fb923c" class="mbar" data-w="380"/><text x="558" y="282" class="t-mono t-ink" font-size="12">$4.00</text>
+    <text x="24" y="317" class="t-body">Sonnet 5.5</text><rect x="170" y="304" width="190" height="18" rx="4" fill="#fdba74" class="mbar" data-w="190"/><text x="370" y="318" class="t-mono t-ink" font-size="12">$2.00</text>
+    <text x="24" y="353" class="t-body">Haiku 4.5</text><rect x="170" y="340" width="95" height="18" rx="4" fill="#f87171" class="mbar" data-w="95"/><text x="275" y="354" class="t-mono t-ink" font-size="12">$1.00</text>
+    <text x="24" y="389" class="t-body">Haiku 5.5</text><rect x="170" y="376" width="48" height="18" rx="4" fill="#4ade80" fill-opacity=".25" stroke="#4ade80" stroke-dasharray="3 3" class="mbar" data-w="48"/><rect x="170" y="376" width="10" height="18" rx="4" fill="#4ade80" class="mbar" data-w="10"/><text x="228" y="390" class="t-mono t-ink" font-size="12">$0.10 <tspan class="t-mute" font-size="11">≤100k prompt · $0.50 above</tspan></text>
+  </g>
+  <path d="M218 372 V398" stroke="#4ade80" stroke-dasharray="2 3" stroke-width="1.2"/>
+  <text x="24" y="424" class="t-mono t-mute2" font-size="10.5">prices verified 2026-10-10 · Haiku 4.5 = what the 405 turns actually cost</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-models" role="dialog" aria-labelledby="h-models" tabindex="-1">
+  <div class="ph"><span class="eyebrow">02 · Model truth</span><a class="x" href="#models">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-models">The Haiku 5.5 story, and why IDs beat aliases</h3>
+    <p>onCrack round 4 planned Haiku 5.5 for its measuring and final-run units. All three ran on <b>claude-haiku-4-5-20251001</b>: 405 turns. The session was on Claude Code 2.1.287, where the <code>haiku</code> alias still pointed at 4.5. On 2.1.296 it resolves to 5.5. The script, the logs and the summary all said "Haiku"; only the transcripts' <code>.message.model</code> told the truth.</p>
+    <h4>Prices (per million tokens)</h4>
+    <table>
+      <tr><th>model</th><th>input</th><th>output</th><th>cache read</th></tr>
+      <tr><td>claude-opus-5-5</td><td>$4</td><td>$20</td><td>$0.20</td></tr>
+      <tr><td>claude-sonnet-5-5</td><td>$2</td><td>$10</td><td>$0.10</td></tr>
+      <tr><td>claude-haiku-4-5</td><td>$1</td><td>$5</td><td>$0.10</td></tr>
+      <tr><td>claude-haiku-5-5 (≤100k prompt)</td><td>$0.10</td><td>$0.50</td><td>$0.01</td></tr>
+      <tr><td>claude-haiku-5-5 (&gt;100k prompt)</td><td>$0.50</td><td>$2.50</td><td>$0.05</td></tr>
+    </table>
+    <h4>What v8 changes</h4>
+    <ul>
+      <li>The ledger prices <b>per request</b>, because Haiku 5.5's price depends on that request's prompt size. The pane shows the share of a Haiku agent's turns above 100k.</li>
+      <li>v7.5's price table had no Sonnet 5.5 row, so the cheap tier's cost read <code>$?</code>. It also had no Haiku 5.5 row. Both are fixed.</li>
+      <li>The mod's own small calls (memory merges, ruling extraction, PR-comment summaries) move to Haiku 5.5: prompts under 1k tokens, well under the cliff.</li>
+      <li><code>/baton doctor</code> prints what each alias resolves to on this Claude Code.</li>
+    </ul>
+    <h4>Next: a measured tier</h4>
+    <p>A pre-registered test runs Haiku 5.5 against Sonnet 5.5 as the worker on the existing conformance suites and on command-settled work (run the suite, bench, measure), with the verifier held on Opus 5.5. Haiku becomes the command tier only if it scores within 0.03 and stays under 100k in at least 90% of turns.</p>
+    <div class="src">source · onCrack wf_c8dd6822 agent transcripts: 198 + 142 + 65 turns on claude-haiku-4-5-20251001 · CLI 2.1.287 in those transcripts · baton mod/lib/ledger.mjs PRICES</div>
+  </div>
+</aside>
+<a class="scrim" href="#models" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 03 MEMORY ======================= -->
+<section class="band" id="memory">
+  <div class="glow" style="right:-300px;top:-100px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">03</span>Graph memory</div>
+      <h2>Catalogs all <em>the way down.</em></h2>
+      <p class="punch">Memory is a graph of small facts. <b>Catalogs are the doors in</b>: a root that lists catalogs, catalogs that list nodes, nodes that link to nodes. An agent walks two hops and reads only what it lands on.</p>
+      <div class="big"><span class="n"><span data-count="1.2" data-dec="1">1.2</span>k</span><span class="l">tokens at wake for the catalogs that apply, against <b>3.5k</b> for today's flat MEMORY.md, which is mostly other projects. <span class="tag goal">design target</span></span></div>
+      <ul class="ticks">
+        <li><b>One fact per node</b>; logs split into "now" and dated history</li>
+        <li><b>Every node cites its source</b> and is marked stale when the source moves</li>
+        <li><b>Newest wins</b> through <code>supersedes</code> links, not deletion</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-memory" data-panel>The graph, node by node <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-mem">Walk it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="root → catalogs → nodes" role="img" aria-label="A root node, a ring of catalogs and an outer ring of memory nodes. A question travels from an agent through the root and one catalog to a single node; a meter shows how few tokens that path loads.">
+<svg viewBox="0 0 640 540" id="sv-mem" aria-hidden="true">
+<defs><radialGradient id="mg-root"><stop offset="0" stop-color="#faff69" stop-opacity=".7"/><stop offset="1" stop-color="#faff69" stop-opacity="0"/></radialGradient></defs>
+<g><line x1="360" y1="222" x2="264.9" y2="191.1" stroke="#3a3a46" stroke-width="1.4"/><line x1="264.9" y1="191.1" x2="194.1" y2="216.2" stroke="#2c2c36" stroke-width="1"/><line x1="264.9" y1="191.1" x2="202.1" y2="170.7" stroke="#2c2c36" stroke-width="1"/><line x1="264.9" y1="191.1" x2="222.4" y2="129.2" stroke="#2c2c36" stroke-width="1"/><line x1="360" y1="222" x2="342.6" y2="123.5" stroke="#3a3a46" stroke-width="1.4"/><line x1="342.6" y1="123.5" x2="253.3" y2="94.8" stroke="#2c2c36" stroke-width="1"/><line x1="342.6" y1="123.5" x2="303.2" y2="66" stroke="#2c2c36" stroke-width="1"/><line x1="342.6" y1="123.5" x2="360" y2="56" stroke="#2c2c36" stroke-width="1"/><line x1="342.6" y1="123.5" x2="416.8" y2="66" stroke="#2c2c36" stroke-width="1"/><line x1="360" y1="222" x2="440.9" y2="163.2" stroke="#3a3a46" stroke-width="1.4"/><line x1="440.9" y1="163.2" x2="462.2" y2="91.2" stroke="#2c2c36" stroke-width="1"/><line x1="440.9" y1="163.2" x2="494.3" y2="124.4" stroke="#2c2c36" stroke-width="1"/><line x1="440.9" y1="163.2" x2="516" y2="165.2" stroke="#2c2c36" stroke-width="1"/><line x1="360" y1="222" x2="452.7" y2="259.5" stroke="#3a3a46" stroke-width="1.4"/><line x1="452.7" y1="259.5" x2="521.7" y2="259.3" stroke="#2c2c36" stroke-width="1"/><line x1="452.7" y1="259.5" x2="502.3" y2="307.5" stroke="#2c2c36" stroke-width="1"/><line x1="360" y1="222" x2="356.5" y2="321.9" stroke="#3a3a46" stroke-width="1.4" opacity=".34"/><line x1="356.5" y1="321.9" x2="380.2" y2="386.8" stroke="#2c2c36" stroke-width="1" opacity=".34"/><line x1="356.5" y1="321.9" x2="328.3" y2="385" stroke="#2c2c36" stroke-width="1" opacity=".34"/><line x1="360" y1="222" x2="275.2" y2="275" stroke="#3a3a46" stroke-width="1.4" opacity=".34"/><line x1="275.2" y1="275" x2="234.7" y2="330.9" stroke="#2c2c36" stroke-width="1" opacity=".34"/><line x1="275.2" y1="275" x2="207.2" y2="286.9" stroke="#2c2c36" stroke-width="1" opacity=".34"/></g>
+<path id="mq-e1" d="M254 462 C 318 462, 318 312, 352 243" fill="none" stroke="#faff69" stroke-width="2.2"/>
+<path id="mq-e2" d="M360 222 L342.6 123.5" fill="none" stroke="#faff69" stroke-width="2.6"/>
+<path id="mq-e3" d="M342.6 123.5 L360 56" fill="none" stroke="#faff69" stroke-width="2.6"/>
+<circle class="mleaf" cx="194.1" cy="216.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="202.1" cy="170.7" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="222.4" cy="129.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><g><circle cx="264.9" cy="191.1" r="13" fill="#1a1a10" stroke="#faff69" stroke-width="1.8"/></g><circle class="mleaf" cx="253.3" cy="94.8" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="303.2" cy="66" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle id="mq-leaf" class="mleaf" cx="360" cy="56" r="6" fill="#faff69" stroke="#faff69"/><circle class="mleaf" cx="416.8" cy="66" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><g><circle id="mq-proj" cx="342.6" cy="123.5" r="13" fill="#1a1a10" stroke="#faff69" stroke-width="1.8"/></g><circle class="mleaf" cx="462.2" cy="91.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="494.3" cy="124.4" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="516" cy="165.2" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><g><circle cx="440.9" cy="163.2" r="13" fill="#1a1a10" stroke="#faff69" stroke-width="1.8"/></g><circle class="mleaf" cx="521.7" cy="259.3" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><circle class="mleaf" cx="502.3" cy="307.5" r="4.5" fill="#2a2a35" stroke="#4a4a58"/><g><circle cx="452.7" cy="259.5" r="13" fill="#1a1a10" stroke="#faff69" stroke-width="1.8"/></g><circle class="mleaf" cx="380.2" cy="386.8" r="4.5" fill="#2a2a35" stroke="#4a4a58" opacity=".34"/><circle class="mleaf" cx="328.3" cy="385" r="4.5" fill="#2a2a35" stroke="#4a4a58" opacity=".34"/><g opacity=".34"><circle cx="356.5" cy="321.9" r="13" fill="#141419" stroke="#4a4a58" stroke-width="1.8"/></g><circle class="mleaf" cx="234.7" cy="330.9" r="4.5" fill="#2a2a35" stroke="#4a4a58" opacity=".34"/><circle class="mleaf" cx="207.2" cy="286.9" r="4.5" fill="#2a2a35" stroke="#4a4a58" opacity=".34"/><g opacity=".34"><circle cx="275.2" cy="275" r="13" fill="#141419" stroke="#4a4a58" stroke-width="1.8"/></g>
+<circle cx="360" cy="222" r="52" fill="url(#mg-root)" class="pulse"/><circle cx="360" cy="222" r="22" fill="#faff69"/><text x="360" y="226" text-anchor="middle" font-size="10" font-weight="800" fill="#0a0a0a" class="t-mono">root</text>
+<text x="178.1" y="218.6" text-anchor="end" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">decision tables</text><text x="186.9" y="168.8" text-anchor="end" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">PRs → main</text><text x="209.1" y="123.2" text-anchor="end" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">fan-outs</text><text x="264.9" y="171.1" text-anchor="middle" font-size="10.5" class="t-mono t-body" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">user</text><text x="243" y="85.6" text-anchor="end" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">session</text><text x="297.8" y="54" text-anchor="end" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">env</text><text id="mq-leaflabel" x="360" y="39" text-anchor="middle" font-size="11" class="t-mono t-ink" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">how-to-test</text><text x="422.2" y="54" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">rulings</text><text x="342.6" y="103.5" text-anchor="middle" font-size="10.5" class="t-mono t-body" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">project:shop</text><text x="472.1" y="81.6" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">streams</text><text x="507.2" y="118" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">tsconfig</text><text x="531" y="162.8" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">vitest</text><text x="440.9" y="143.2" text-anchor="middle" font-size="10.5" class="t-mono t-body" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">tech:typescript</text><text x="537.3" y="265.9" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">screenshot</text><text x="516" y="318.7" text-anchor="start" font-size="9.5" class="t-mono t-mute2" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">tabs not splits</text><text x="452.7" y="287.5" text-anchor="middle" font-size="10.5" class="t-mono t-body" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">tool:cmux</text><text x="382.2" y="415.6" text-anchor="middle" font-size="9.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">target dir</text><text x="325.3" y="413.7" text-anchor="middle" font-size="9.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">ENOSPC</text><text x="356.5" y="349.9" text-anchor="middle" font-size="10.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">tech:rust</text><text x="222.6" y="344.4" text-anchor="end" font-size="9.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">PII keys</text><text x="192.5" y="296.1" text-anchor="end" font-size="9.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">RLS</text><text x="275.2" y="303" text-anchor="middle" font-size="10.5" class="t-mono t-mute2" opacity=".34" style="paint-order:stroke;stroke:#0d0d12;stroke-width:5px;stroke-linejoin:round">project:tinker</text>
+<g transform="translate(24,440)"><rect width="230" height="44" rx="10" fill="#141419" stroke="#2a2a35"/><text x="14" y="18" class="t-mono" fill="#a78bfa" font-size="10">wf · verify:importer asks</text><text x="14" y="35" class="t-ink" font-size="12.5">"how is e2e run here?"</text></g>
+<g id="mq-ans" transform="translate(24,494)"><rect width="270" height="30" rx="8" fill="#18180f" stroke="#faff69"/><text x="12" y="20" class="t-mono" fill="#faff69" font-size="11">→ npm run e2e · needs pg on :5433</text></g>
+<g transform="translate(330,468)"><text x="0" y="0" class="t-mono t-mute2" font-size="10" letter-spacing="1.2">LOADED FOR THIS ANSWER</text><rect x="0" y="12" width="286" height="10" rx="5" fill="#1d1d25"/><rect x="285" y="9" width="2" height="16" fill="#f87171"/><rect id="mq-bar" x="0" y="12" width="98" height="10" rx="5" fill="#faff69"/><text x="0" y="44" class="t-mono t-ink" font-size="11.5"><tspan id="mq-tok">1.2k</tspan> <tspan class="t-mute">tokens · flat MEMORY.md</tspan> <tspan fill="#f87171">3.5k</tspan></text></g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-memory" role="dialog" aria-labelledby="h-memory" tabindex="-1">
+  <div class="ph"><span class="eyebrow">03 · Graph memory</span><a class="x" href="#memory">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-memory">A graph of small facts, entered through catalogs</h3>
+    <p>v7's memory is a <b>timeline</b>: an append-only log of notes of at most 280 bytes, with a tree of summaries over it. It answers "what happened lately" well and "what do we know about X" badly. v8 keeps the timeline and adds the second axis: <b>things</b>.</p>
+    <h4>Three kinds of node</h4>
+    <table>
+      <tr><th>kind</th><th>body</th><th>example</th></tr>
+      <tr><td>root</td><td>one row per catalog</td><td><code>MEMORY.md</code>, about 1 KB, always loaded</td></tr>
+      <tr><td>catalog</td><td>rows "name: hook → [[link]]", capped near 40; overflow becomes a sub-catalog</td><td><code>project:shop</code>, <code>tech:rust</code></td></tr>
+      <tr><td>node</td><td>one fact, links, source + commit, <code>supersedes</code></td><td><code>project:shop/how-to-test</code></td></tr>
+    </table>
+    <h4>Rules that keep it healthy</h4>
+    <ul>
+      <li><b>Every node is reachable from a catalog.</b> Orphans are flagged.</li>
+      <li><b>Stale is shown, never hidden.</b> A node whose source has a newer commit says so until someone re-checks it.</li>
+      <li><b>Agents append notes; a Haiku 5.5 curator folds them into nodes</b> at boundaries. That is v7's merge job, retargeted.</li>
+      <li><b>Plain Markdown files.</b> Any agent can Read them, with or without the mod.</li>
+    </ul>
+    <h4>Your memory today, measured</h4>
+    <ul>
+      <li>64 memory files, <b>112 links</b> between them, 3 broken, 2 with no links: already a graph.</li>
+      <li><code>MEMORY.md</code> is 13.9 KB (≈3.5k tokens), loaded in every session; 32 of its rows are projects, and usually one applies.</li>
+      <li>The four largest "memories" are logs of 29–37 KB each, to be split into "now" and history nodes.</li>
+    </ul>
+    <h4>Migration</h4>
+    <p>Build the graph from a copy. Replay 10 real session openers against old and new, comparing tokens loaded and facts found, and swap only if the new graph finds at least as much. The originals stay archived. A rule in <code>~/.claude/CLAUDE.md</code>, plus a mod hook, keeps sessions from flattening the root again.</p>
+    <div class="src">source · /Users/clank/.claude/projects/-Users-clank-Desktop-projects/memory (64 files, 345,740 bytes) · baton mod/lib/memcore.mjs</div>
+  </div>
+</aside>
+<a class="scrim" href="#memory" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 04 CATALOGS ======================= -->
+<section class="band" id="catalogs">
+  <div class="glow" style="left:-340px;top:-140px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">04</span>Catalogs</div>
+      <h2>Your repo picks <em>its own memory.</em></h2>
+      <p class="punch">A catalog per <b>project</b>, per <b>technology</b>, per <b>tool</b>, and one for <b>you</b>. The folder you're in picks the project, marker files pick the tech, and <code>doctor</code> picks the tools. No model call is needed to decide what to load.</p>
+      <div class="big"><span class="n" data-count="112">112</span><span class="l">links already connect your <b>64</b> memories. They needed doors, not a rewrite. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>project:</b> session, env, how to test, rulings, open PRs</li>
+        <li><b>tech:</b> "Rust targets fill the disk" lives once, for every Rust repo</li>
+        <li><b>user:</b> decision tables, PRs to main, cheap models for fan-outs</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-catalogs" data-panel>What goes where <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="~/shop picks" role="img" aria-label="A repository's files on the left; package.json, docker-compose.yml and the folder itself light up lines to the catalogs they select. Rust and other projects stay dim.">
+<svg viewBox="0 0 640 440" id="sv-cat" aria-hidden="true">
+  <g transform="translate(24,40)">
+    <rect width="238" height="364" rx="14" fill="#0f0f15" stroke="#25252e"/>
+    <text x="18" y="32" class="t-mono t-ink" font-size="13">~/shop <tspan class="t-mute2">$</tspan></text>
+    <g class="t-mono" font-size="12">
+      <text x="18" y="70" class="t-body" id="cf-cwd">📁 .  <tspan class="t-mute2">(the repo)</tspan></text>
+      <text x="34" y="104" class="t-body" id="cf-pkg">package.json</text>
+      <text x="34" y="134" class="t-mute">tsconfig.json</text>
+      <text x="34" y="164" class="t-body" id="cf-dock">docker-compose.yml</text>
+      <text x="34" y="194" class="t-mute">src/</text>
+      <text x="34" y="224" class="t-mute">test/</text>
+      <text x="34" y="254" class="t-mute">.claude/</text>
+      <text x="34" y="300" class="t-mute2"><tspan text-decoration="line-through">Cargo.toml</tspan></text>
+      <text x="34" y="330" class="t-mute2"><tspan text-decoration="line-through">mix.exs</tspan></text>
+    </g>
+  </g>
+  <g fill="none" stroke-width="1.6">
+    <path class="cl" d="M190 106 C 300 106, 300 74, 382 74" stroke="#a78bfa"/>
+    <path class="cl" d="M146 140 C 300 140, 300 136, 382 136" stroke="#a78bfa"/>
+    <path class="cl" d="M206 200 C 300 200, 300 198, 382 198" stroke="#a78bfa"/>
+    <path class="cl" d="M262 260 C 320 260, 330 260, 382 260" stroke="#a78bfa" stroke-dasharray="3 4"/>
+  </g>
+  <g font-size="12.5">
+    <g transform="translate(382,52)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">project:shop</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">cwd</text></g>
+    <g transform="translate(382,114)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tech:typescript</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">package.json</text></g>
+    <g transform="translate(382,176)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tool:docker</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">compose file</text></g>
+    <g transform="translate(382,238)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tool:cmux</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">doctor</text></g>
+    <g transform="translate(382,300)"><rect width="234" height="40" rx="10" fill="#121217" stroke="#2a2a33"/><text x="14" y="25" class="t-mute" font-weight="600">user</text><text x="220" y="25" text-anchor="end" class="t-mono t-mute2" font-size="10.5">always</text></g>
+    <g transform="translate(382,350)" opacity=".38"><rect width="112" height="34" rx="9" fill="none" stroke="#34343f" stroke-dasharray="3 3"/><text x="12" y="22" class="t-mute" font-size="11.5">tech:rust</text></g>
+    <g transform="translate(504,350)" opacity=".38"><rect width="112" height="34" rx="9" fill="none" stroke="#34343f" stroke-dasharray="3 3"/><text x="12" y="22" class="t-mute" font-size="11.5">project:tinker</text></g>
+  </g>
+  <text x="382" y="30" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">LOADED FOR THIS FOLDER</text>
+  <text x="382" y="410" class="t-mono t-mute2" font-size="10.5">dim = one hop away, never loaded</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-catalogs" role="dialog" aria-labelledby="h-catalogs" tabindex="-1">
+  <div class="ph"><span class="eyebrow">04 · Catalogs</span><a class="x" href="#catalogs">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-catalogs">What goes where</h3>
+    <table>
+      <tr><th>catalog</th><th>picked by</th><th>holds</th></tr>
+      <tr><td>root</td><td>always</td><td>one row per catalog: the catalog of catalogs</td></tr>
+      <tr><td>user</td><td>always (small)</td><td>how you work: decision-table shape, decisions are issues, PRs target main, never push after handoff, cheap models for fan-outs</td></tr>
+      <tr><td>project:&lt;repo&gt;</td><td>the repo under cwd, not the folder you launched from</td><td><code>session</code>, <code>env</code>, how to test, dev ports, rulings, open PRs, ADR state</td></tr>
+      <tr><td>tech:&lt;stack&gt;</td><td>marker files: <code>Cargo.toml</code>, <code>mix.exs</code>, <code>*.fsproj</code>, <code>go.mod</code>, <code>package.json</code></td><td>cross-project lessons: shared <code>CARGO_TARGET_DIR</code>, PLTs never committed, …</td></tr>
+      <tr><td>tool:&lt;tool&gt;</td><td><code>doctor</code> finds it installed</td><td>cmux recipes, Workflow resume, gh, colima memory cap, plus the plugin skill to load</td></tr>
+    </table>
+    <h4>Seeding from what you have</h4>
+    <ul>
+      <li>22 <code>feedback_*</code> files → mostly <b>user</b>; a few move to tool or tech (cmux screenshots → tool:cmux, clean Rust builds → tech:rust)</li>
+      <li>32 <code>project_*</code> files → one <b>project</b> catalog each, plus a session and an env node</li>
+      <li>6 <code>reference_*</code> files → <b>tech</b> and <b>tool</b> catalogs</li>
+    </ul>
+    <h4>Where project catalogs live</h4>
+    <p>On a hidden git ref in the repo (<code>refs/baton/catalog</code>): they travel with the repo, any machine can resume, and nothing shows up in branches or PRs. A folder that isn't a git repo falls back to <code>~/.claude/baton/projects/&lt;name&gt;/</code>.</p>
+    <div class="src">source · memory folder prefix counts (feedback 22, project 32, reference 6) · v5 quiet team mode used refs/baton/run/&lt;id&gt; the same way</div>
+  </div>
+</aside>
+<a class="scrim" href="#catalogs" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 05 RESUME ======================= -->
+<section class="band" id="resume">
+  <div class="glow" style="right:-320px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">05</span>Close &amp; resume</div>
+      <h2>Session limit at 2 a.m.? <em>Resume at 7.</em></h2>
+      <p class="punch">The project catalog's <b>session node is rewritten every time an agent finishes</b>, not only when you close. A limit, a crash or a compaction leaves a resumable state. <code>/baton resume</code> checks what drifted overnight, then continues from the exact agent.</p>
+      <div class="big"><span class="n" data-count="8">8</span><span class="l"><b>resumeFromRunId</b> relaunches by hand in one port, plus results pasted into scripts and a stop that killed a running agent. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Drift check</b>: merged PRs, moved branches, failed env checks</li>
+        <li><b>Journal replay</b>: finished agents return instantly</li>
+        <li><b>Warns before a stop</b> that would kill an agent mid-flight</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-resume" data-panel>What the session node holds <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-sess">See it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="project:shop/session" role="img" aria-label="A run of fourteen agents on a timeline; a red session-limit wall stops it at agent nine; the session node pulses after every agent; the next morning a resume checks drift and continues from agent ten.">
+<svg viewBox="0 0 640 440" id="sv-resume" aria-hidden="true">
+  <text x="24" y="44" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">wf_8c1e2a · 14 AGENTS</text>
+  <g id="r-ticks"><g class="rt" data-i="0"><circle cx="40" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="40" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">1</text></g><g class="rt" data-i="1"><circle cx="83.1" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="83.1" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">2</text></g><g class="rt" data-i="2"><circle cx="126.2" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="126.2" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">3</text></g><g class="rt" data-i="3"><circle cx="169.2" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="169.2" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">4</text></g><g class="rt" data-i="4"><circle cx="212.3" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="212.3" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">5</text></g><g class="rt" data-i="5"><circle cx="255.4" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="255.4" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">6</text></g><g class="rt" data-i="6"><circle cx="298.5" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="298.5" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">7</text></g><g class="rt" data-i="7"><circle cx="341.5" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="341.5" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">8</text></g><g class="rt" data-i="8"><circle cx="384.6" cy="120" r="7" fill="#0a0a0a" stroke="#4ade80" stroke-width="2"/><text x="384.6" y="152" text-anchor="middle" class="t-mono t-body" font-size="10">9</text></g><g class="rt" data-i="9"><circle cx="427.7" cy="120" r="6" fill="#121217" stroke="#3a3a46" stroke-width="2"/><text x="427.7" y="152" text-anchor="middle" class="t-mono t-mute2" font-size="10">10</text></g><g class="rt" data-i="10"><circle cx="470.8" cy="120" r="6" fill="#121217" stroke="#3a3a46" stroke-width="2"/><text x="470.8" y="152" text-anchor="middle" class="t-mono t-mute2" font-size="10">11</text></g><g class="rt" data-i="11"><circle cx="513.8" cy="120" r="6" fill="#121217" stroke="#3a3a46" stroke-width="2"/><text x="513.8" y="152" text-anchor="middle" class="t-mono t-mute2" font-size="10">12</text></g><g class="rt" data-i="12"><circle cx="556.9" cy="120" r="6" fill="#121217" stroke="#3a3a46" stroke-width="2"/><text x="556.9" y="152" text-anchor="middle" class="t-mono t-mute2" font-size="10">13</text></g><g class="rt" data-i="13"><circle cx="600" cy="120" r="6" fill="#121217" stroke="#3a3a46" stroke-width="2"/><text x="600" y="152" text-anchor="middle" class="t-mono t-mute2" font-size="10">14</text></g></g>
+  <path d="M40 120 H600" stroke="#24242d" stroke-width="10" stroke-linecap="round"/>
+  <path d="M40 120 H600" stroke="#4ade80" stroke-width="10" stroke-linecap="round" id="r-fill" stroke-dasharray="560" stroke-dashoffset="215"/>
+  <g id="r-wall">
+    <rect x="392" y="84" width="6" height="72" rx="3" fill="#f87171"/>
+    <text x="395" y="74" text-anchor="middle" class="t-mono" fill="#f87171" font-size="11">session limit · 01:52</text>
+  </g>
+  <g transform="translate(24,196)">
+    <rect width="290" height="200" rx="14" fill="#0f0f15" stroke="#25252e"/>
+    <circle cx="26" cy="30" r="7" fill="#4ade80" id="r-node" class="pulse"/>
+    <text x="42" y="35" class="t-ink" font-size="13" font-weight="600">session node</text>
+    <text x="276" y="35" text-anchor="end" class="t-mono t-mute2" font-size="10" id="r-saved">saved after agent 9</text>
+    <g class="t-mono" font-size="11">
+      <text x="20" y="70" class="t-mute">resume at</text><text x="104" y="70" class="t-ink">agent 10 · fix:round1</text>
+      <text x="20" y="96" class="t-mute">cached</text><text x="104" y="96" class="t-ink">9 in the journal</text>
+      <text x="20" y="122" class="t-mute">PRs</text><text x="104" y="122" class="t-ink">#84 open · #85 draft</text>
+      <text x="20" y="148" class="t-mute">decision</text><text x="104" y="148" fill="#f87171">D3 vendor key?</text>
+      <text x="20" y="174" class="t-mute">next</text><text x="104" y="174" class="t-ink">fix → re-verify → merge</text>
+    </g>
+  </g>
+  <g transform="translate(330,196)" id="r-morning">
+    <rect width="286" height="200" rx="14" fill="#0f1712" stroke="#2a4a35"/>
+    <text x="18" y="35" class="t-mono" fill="#faff69" font-size="12.5">&gt; /baton resume <tspan class="t-mute2">07:02</tspan></text>
+    <g class="t-mono" font-size="11">
+      <text x="18" y="70" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">PR #84 merged since close</tspan></text>
+      <text x="18" y="96" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">main moved 3 → re-baseline</tspan></text>
+      <text x="18" y="122" class="rline"><tspan fill="#f87171">✗</tspan> <tspan class="t-ink">disk 14 GB → cleaned, 31 GB</tspan></text>
+      <text x="18" y="148" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">9 agents replayed instantly</tspan></text>
+      <text x="18" y="174" class="rline"><tspan fill="#4ade80">▶</tspan> <tspan class="t-ink">continuing at agent 10</tspan></text>
+    </g>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-resume" role="dialog" aria-labelledby="h-resume" tabindex="-1">
+  <div class="ph"><span class="eyebrow">05 · Close &amp; resume</span><a class="x" href="#resume">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-resume">The session node: continuous, checked, portable</h3>
+    <h4>What it holds</h4>
+    <table>
+      <tr><th>field</th><th>from</th></tr>
+      <tr><td>open runs</td><td>run ID, script path, the next unfinished <code>agentIndex</code>, any agent in flight</td></tr>
+      <tr><td>PRs + merge queue</td><td><code>gh</code>, at write time</td></tr>
+      <tr><td>decisions pending</td><td>questions you haven't answered</td></tr>
+      <tr><td>rulings added</td><td>this session's new rulings, already in the user/project catalogs</td></tr>
+      <tr><td>next</td><td>what the run will do after resume</td></tr>
+    </table>
+    <h4>Three properties make it bulletproof</h4>
+    <ul>
+      <li><b>Continuous.</b> It's rewritten at every agent completion (the watcher sees each one). <code>/baton close</code> is just the final save. A session limit, crash or compaction writes the same row.</li>
+      <li><b>Checked.</b> Resume re-reads <code>gh</code>, <code>git</code> and the env checks before trusting the row: merged PRs unblock units, moved branches queue a re-baseline.</li>
+      <li><b>Portable.</b> It lives in the project catalog on a hidden git ref, so another machine can resume.</li>
+    </ul>
+    <h4>It fits your handoff habit</h4>
+    <p><code>/baton close</code> can also write the session-prompt file and print the single line <code>Read @/abs/path and execute</code>. That file's body is "run /baton resume".</p>
+    <h4>Evidence</h4>
+    <ul>
+      <li>Campfire/onCrack: about 8 <code>resumeFromRunId</code> relaunches; round 4 alone had about 6 resumes and 4 stops.</li>
+      <li>A stop killed a cable-suite agent two-thirds of the way through.</li>
+      <li>taal and onCrack both died on session limits mid-run.</li>
+      <li>"I'm saddened you didn't continue last night": with clear goals, resume continues on its own.</li>
+    </ul>
+    <div class="src">source · session fea4ed62 (workflows/wf_*.json: 14 runs, 2 killed) · session 5229f514 (6 runs, 1 killed)</div>
+  </div>
+</aside>
+<a class="scrim" href="#resume" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 06 PREFLIGHT ======================= -->
+<section class="band" id="preflight">
+  <div class="glow" style="left:-340px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">06</span>Preflight</div>
+      <h2>Fail in 20 seconds, <em>not three hours in.</em></h2>
+      <p class="punch">Before agent 1 starts, the project's <b>env node</b> runs its checks: disk, toolchains, databases, ports, git, auth. Plain shell commands, no model calls. When a run dies on something environmental, <b>that check is learned</b> for next time.</p>
+      <div class="big"><span class="n">×<span data-count="8">8</span></span><span class="l"><b>No space left on device</b>, mid-build, in one tinker session. Plus Rust off PATH, Postgres down, and a stale process holding :44100. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Learned, not configured</b>: ENOSPC → a disk check, together with the cleanup that fixed it</li>
+        <li><b>Seconds, not tokens</b>: shell only</li>
+        <li><b>Universal</b>: per-project commands; the shipped defaults are only disk and git</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-preflight" data-panel>What it would have caught <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-env">See the env tab</a></div>
+    </div>
+    <div class="stage rv" data-label="project:shop/env" role="img" aria-label="Two runs on a timeline: without preflight the run fails after three hours on a full disk; with preflight a twenty-second check passes and the run completes. A checklist ticks through six checks, one of them learned.">
+<svg viewBox="0 0 640 440" id="sv-pre" aria-hidden="true">
+  <text x="24" y="42" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">WITHOUT</text>
+  <path d="M24 64 H616" stroke="#1d1d25" stroke-width="12" stroke-linecap="round"/>
+  <path d="M24 64 H420" stroke="#fb923c" stroke-opacity=".55" stroke-width="12" stroke-linecap="round" id="p-bad" stroke-dasharray="396" stroke-dashoffset="0"/>
+  <g id="p-boom"><circle cx="426" cy="64" r="15" fill="#f87171"/><text x="426" y="69" text-anchor="middle" font-size="14" fill="#0a0a0a" font-weight="800">✕</text><text x="452" y="69" class="t-mono" fill="#f87171" font-size="11">3h 04m · ENOSPC</text></g>
+  <text x="24" y="112" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">WITH PREFLIGHT</text>
+  <path d="M24 134 H616" stroke="#1d1d25" stroke-width="12" stroke-linecap="round"/>
+  <path d="M24 134 H52" stroke="#faff69" stroke-width="12" stroke-linecap="round" id="p-check" stroke-dasharray="28" stroke-dashoffset="0"/>
+  <path d="M58 134 H616" stroke="#4ade80" stroke-width="12" stroke-linecap="round" id="p-good" stroke-dasharray="558" stroke-dashoffset="0"/>
+  <text x="38" y="160" class="t-mono" fill="#faff69" font-size="10.5">20 s</text>
+  <g transform="translate(24,190)">
+    <rect width="592" height="228" rx="14" fill="#0f0f15" stroke="#25252e"/>
+    <g class="t-mono" font-size="12">
+      <g class="pchk" transform="translate(20,36)"><rect x="-8" y="-20" width="560" height="30" rx="7" fill="#fb923c" fill-opacity=".09"/><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">disk free ≥ 20 GB</text><text x="250" class="t-mute">31 GB</text><text x="548" text-anchor="end" fill="#fdba74" font-size="10.5">learned · ENOSPC</text></g>
+      <g class="pchk" transform="translate(20,70)"><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">cargo --version</text><text x="250" class="t-mute">PATH has rustup</text></g>
+      <g class="pchk" transform="translate(20,104)"><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">pg_isready -p 5433</text><text x="250" class="t-mute">accepting</text></g>
+      <g class="pchk" transform="translate(20,138)"><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">docker info</text><text x="250" class="t-mute">VM up · 6 GiB cap</text></g>
+      <g class="pchk" transform="translate(20,172)"><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">port 44100 free or ours</text><text x="250" class="t-mute">npm run dev</text></g>
+      <g class="pchk" transform="translate(20,206)"><text class="ck" fill="#4ade80">✓</text><text x="26" class="t-ink">git clean · gh auth</text><text x="250" class="t-mute">main @ 7367f72</text></g>
+    </g>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-preflight" role="dialog" aria-labelledby="h-preflight" tabindex="-1">
+  <div class="ph"><span class="eyebrow">06 · Preflight</span><a class="x" href="#preflight">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-preflight">What it would have caught</h3>
+    <table>
+      <tr><th>seen in your sessions</th><th>check</th></tr>
+      <tr><td>tinker: <code>No space left on device</code> ×8 mid-build</td><td>free disk ≥ threshold, with the known cleanup offered (<code>cargo clean</code>, old targets)</td></tr>
+      <tr><td>tinker: Rust not on PATH</td><td><code>cargo --version</code></td></tr>
+      <tr><td>tinker: Postgres failed to start</td><td><code>pg_isready</code></td></tr>
+      <tr><td>Campfire: colima disk 15 GB, VM memory</td><td><code>docker info</code>, VM disk free</td></tr>
+      <tr><td>itsjusthtml: a stale process held :44100</td><td>port free, or owned by our dev server</td></tr>
+    </table>
+    <h4>How a check is learned</h4>
+    <ol>
+      <li>An agent fails with an environmental signature: <code>ENOSPC</code>, <code>command not found</code>, <code>EADDRINUSE</code>, connection refused.</li>
+      <li>baton writes a candidate check to the project's <code>env</code> node, with why and when, plus the command that fixed it, if one ran.</li>
+      <li>The next run checks it before agent 1. A check that never fires for 30 runs is marked dormant and is never silently deleted.</li>
+    </ol>
+    <h4>Where it runs</h4>
+    <p>As the first stage of every baton template, in <code>/baton doctor</code>, and on <code>/baton resume</code>. Shell only: no model call, seconds per run.</p>
+    <div class="src">source · session 6a53bf29 (tinker): "ld: write() failed, errno=28" ×8 · session fea4ed62 (colima cleanup) · session 287d6957 (:44100, exit 7)</div>
+  </div>
+</aside>
+<a class="scrim" href="#preflight" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 07 UNIT LOOP ======================= -->
+<section class="band" id="loop">
+  <div class="glow" style="right:-320px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">07</span>Templates</div>
+      <h2>Build. Verify. Fix. <em>Written once.</em></h2>
+      <p class="punch">The <code>unit-loop</code> template is the shape every one of your Workflow scripts rebuilt by hand: <b>a builder, a fresh verifier that never edits, a fix round, a re-verify</b>. It breaks on the first failure, logs its round cap, and spawns a <b>design unit</b> when the same finding comes back.</p>
+      <div class="big"><span class="n" data-count="12">12</span><span class="l">or more scripts across three sessions with this exact shape, each written from scratch. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Recurring finding → design unit</b>: taal's lock-order whack-a-mole ended only with one</li>
+        <li><b>Merge queue</b>: independent units keep going behind an open PR</li>
+        <li><b>Model map + rulings</b> passed in, with full IDs</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-loop" data-panel>Inside the template <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="unit-loop · round 2 of 3" role="img" aria-label="A loop of build, verify, fix and re-verify with a token travelling around it; a finding that appears twice branches out to a design unit; a merge-queue lane keeps independent units moving past an open pull request.">
+<svg viewBox="0 0 640 440" id="sv-loop" aria-hidden="true">
+  <circle cx="200" cy="200" r="120" fill="none" stroke="#24242d" stroke-width="2"/>
+  <path id="l-ring" d="M200 80 A120 120 0 1 1 199.9 80" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="5 7" class="flow"/>
+  <g font-size="12.5" text-anchor="middle">
+    <g transform="translate(200,80)"><rect x="-62" y="-20" width="124" height="40" rx="11" fill="#121a26" stroke="#60a5fa"/><text y="-2" class="t-ink" font-weight="600">Build</text><text y="13" class="t-mono t-mute" font-size="9.5">sonnet-5-5</text></g>
+    <g transform="translate(320,200)"><rect x="-62" y="-20" width="124" height="40" rx="11" fill="#121a26" stroke="#60a5fa"/><text y="-2" class="t-ink" font-weight="600">Verify</text><text y="13" class="t-mono t-mute" font-size="9.5">opus-5-5 · fresh</text></g>
+    <g transform="translate(200,320)"><rect x="-62" y="-20" width="124" height="40" rx="11" fill="#121a26" stroke="#60a5fa"/><text y="-2" class="t-ink" font-weight="600">Fix</text><text y="13" class="t-mono t-mute" font-size="9.5">sonnet-5-5</text></g>
+    <g transform="translate(80,200)"><rect x="-62" y="-20" width="124" height="40" rx="11" fill="#121a26" stroke="#60a5fa"/><text y="-2" class="t-ink" font-weight="600">Re-verify</text><text y="13" class="t-mono t-mute" font-size="9.5">opus-5-5 · new</text></g>
+  </g>
+  <circle r="7" fill="#faff69" id="l-token" cx="200" cy="80" style="filter:drop-shadow(0 0 8px #faff69)"/>
+  <text x="200" y="196" text-anchor="middle" class="t-mono t-mute2" font-size="10.5">ROUND</text>
+  <text x="200" y="226" text-anchor="middle" class="t-ink" font-size="30" font-weight="800" id="l-round">2/3</text>
+  <g id="l-find">
+    <rect x="352" y="246" width="150" height="32" rx="8" fill="#1d1416" stroke="#f87171"/>
+    <text x="366" y="266" class="t-mono" fill="#fecaca" font-size="11">⚑ lock order ×2</text>
+    <path d="M502 262 C 540 262, 540 300, 560 300" stroke="#60a5fa" fill="none" stroke-width="1.6" id="l-branch" stroke-dasharray="80" stroke-dashoffset="0"/>
+  </g>
+  <g id="l-design" transform="translate(470,300)">
+    <rect width="150" height="48" rx="11" fill="#60a5fa"/><text x="75" y="21" text-anchor="middle" fill="#0a0a0a" font-weight="700" font-size="13">design unit</text><text x="75" y="37" text-anchor="middle" fill="#0a0a0a" font-size="10" class="t-mono">opus · fix the cause</text>
+  </g>
+  <text x="24" y="392" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">MERGE QUEUE</text>
+  <path d="M24 414 H616" stroke="#24242d" stroke-width="2"/>
+  <g id="l-q"><circle class="lq" cx="40" cy="414" r="6" fill="#60a5fa"/><circle class="lq" cx="40" cy="414" r="6" fill="#60a5fa"/><circle class="lq" cx="40" cy="414" r="6" fill="#60a5fa"/></g>
+  <g transform="translate(250,400)"><rect width="104" height="28" rx="8" fill="#1a1a21" stroke="#faff69" stroke-dasharray="3 3"/><text x="52" y="18" text-anchor="middle" class="t-mono" fill="#faff69" font-size="10.5">PR #84 · you</text></g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-loop" role="dialog" aria-labelledby="h-loop" tabindex="-1">
+  <div class="ph"><span class="eyebrow">07 · Templates</span><a class="x" href="#loop">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-loop">Inside <code>unit-loop</code></h3>
+    <pre>export const meta = { name: 'unit-loop', phases: [
+  {title:'Preflight'}, {title:'Build'}, {title:'Verify'},
+  {title:'Fix'}, {title:'Re-verify'} ] }
+// args: { units, models, rulings, cap: 3 }
+for (const u of args.units) {
+  const b = await agent(build(u), {model: args.models.build, schema: BUILD})
+  if (!b) break                       // never `continue` past a failure
+  let v = await agent(verify(u, b), {model: args.models.verify, schema: FINDINGS})
+  for (let r = 1; open(v) &amp;&amp; r &lt;= args.cap; r++) {
+    if (recurs(v, seen)) { await agent(design(u, v), …); break }
+    await agent(fix(u, v), {model: args.models.build})
+    v = await agent(verify(u), {model: args.models.verify})  // a new verifier
+  }
+  log(`${u.id}: rounds=${r} open=${count(v)}`)   // the cap is logged, never silent
+}</pre>
+    <h4>What each script re-invented</h4>
+    <table>
+      <tr><th>baton part</th><th>re-invented as</th></tr>
+      <tr><td>fresh verifier</td><td>Opus "adversarial verify, do not modify source" in every phase</td></tr>
+      <tr><td>rulings</td><td>a <code>COMMON</code> block pasted into every script</td></tr>
+      <tr><td>tiers</td><td>a per-unit <code>model:</code> in <code>args</code></td></tr>
+      <tr><td>ledger</td><td><code>STATUS.md</code>, <code>spec/reviews/&lt;unit&gt;.md</code></td></tr>
+      <tr><td>budgets</td><td>3 fix rounds; <code>break</code> after run 1 used <code>continue</code> and wasted later units</td></tr>
+    </table>
+    <h4>Merge queue</h4>
+    <p>A unit whose PR waits on you parks in the queue. Units that don't depend on it keep going. When <code>gh</code> shows the merge, the parked unit resumes on its own. "I am not at a place where I can do the merges. Is there nothing else you can complete first?" stops being a question.</p>
+    <div class="src">source · taal build-units.js (6 runs, 123 agents) · campfire-fs-phase1–7c, oncrack-round1–4 scripts · samen d1d8639e (16 hand-launched agents, same shape)</div>
+  </div>
+</aside>
+<a class="scrim" href="#loop" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 08 RULINGS ======================= -->
+<section class="band" id="rulings">
+  <div class="glow" style="left:-340px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">08</span>Rulings</div>
+      <h2>Say it once. <em>Every agent hears it.</em></h2>
+      <p class="punch">When you state a standing rule, baton lifts it into the <b>user or project catalog</b> and writes the active rulings to <code>rulings.md</code>, which CLAUDE.md imports. Every agent loads that file, <b>Workflow agents included</b>, because the mod can't reach into their prompts.</p>
+      <div class="big"><span class="n" data-count="7">7</span><span class="l">rules you stated more than once across sessions: decision tables, decisions are issues, cheap models, cmux screenshots, one subagent at a time… <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Newest wins</b>; a ruling can <code>supersede</code> an older one</li>
+        <li><b><code>/baton enforce</code></b> turns a ruling into a refusal</li>
+        <li><b>Scoped</b>: yours everywhere, or this project only</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-rulings" data-panel>How a ruling travels <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="ruling R-12 · user" role="img" aria-label="A chat line becomes a ruling card, is written to rulings.md imported by CLAUDE.md, and fans out to every agent, Workflow agents included.">
+<svg viewBox="0 0 640 440" id="sv-rul" aria-hidden="true">
+  <g transform="translate(24,40)">
+    <rect width="300" height="54" rx="14" fill="#1a1a21"/>
+    <text x="18" y="33" class="t-mono t-ink" font-size="13">&gt; decisions go in issues, never PRs</text>
+  </g>
+  <path d="M174 94 V 128" stroke="#e879f9" stroke-width="1.6" id="ru-a" stroke-dasharray="34" stroke-dashoffset="0"/>
+  <g transform="translate(24,130)" id="ru-card">
+    <rect width="300" height="74" rx="12" fill="#1f1424" stroke="#e879f9"/>
+    <text x="16" y="24" class="t-mono" fill="#e879f9" font-size="10.5" letter-spacing="1">RULING R-12 · USER · 2026-10-10</text>
+    <text x="16" y="50" class="t-ink" font-size="13.5" font-weight="600">Decision-only docs go in an issue</text>
+    <text x="16" y="66" class="t-mute" font-size="11.5">with a D-table, never in a PR.</text>
+  </g>
+  <path d="M174 204 V 236" stroke="#e879f9" stroke-width="1.6" id="ru-b" stroke-dasharray="32" stroke-dashoffset="0"/>
+  <g transform="translate(64,238)" id="ru-file">
+    <rect width="220" height="56" rx="12" fill="#121217" stroke="#34343f"/>
+    <text x="16" y="24" class="t-mono t-ink" font-size="12.5">.claude/baton/rulings.md</text>
+    <text x="16" y="42" class="t-mono t-mute" font-size="10.5">@imported by CLAUDE.md</text>
+  </g>
+  <g id="ru-lines" fill="none" stroke="#e879f9" stroke-width="1.3" stroke-opacity=".7">
+    <path d="M284 266 C 380 266, 380 70, 452 70"/>
+    <path d="M284 266 C 380 266, 380 118, 452 118"/>
+    <path d="M284 266 C 380 266, 380 166, 452 166"/>
+    <path d="M284 266 C 380 266, 380 214, 452 214"/>
+    <path d="M284 266 C 380 266, 380 262, 452 262"/>
+    <path d="M284 266 C 380 266, 380 310, 452 310"/>
+    <path d="M284 266 C 380 266, 380 358, 452 358"/>
+  </g>
+  <g font-size="12" id="ru-agents">
+    <g transform="translate(452,54)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">main session</text></g>
+    <g transform="translate(452,102)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">Agent: reviewer</text></g>
+    <g transform="translate(452,150)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">wf: build:parser</text></g>
+    <g transform="translate(452,198)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">wf: verify:parser</text></g>
+    <g transform="translate(452,246)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">wf: fix:round1</text></g>
+    <g transform="translate(452,294)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">wf: run:bench</text></g>
+    <g transform="translate(452,342)"><rect width="164" height="32" rx="9" fill="#141419" stroke="#2a2a35"/><circle cx="16" cy="16" r="5" fill="#e879f9" class="ra"/><text x="30" y="20" class="t-body">next session</text></g>
+  </g>
+  <text x="24" y="412" class="t-mono t-mute2" font-size="10.5">no prompt rewriting · a file every agent already loads</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-rulings" role="dialog" aria-labelledby="h-rulings" tabindex="-1">
+  <div class="ph"><span class="eyebrow">08 · Rulings</span><a class="x" href="#rulings">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-rulings">How a ruling travels</h3>
+    <ol>
+      <li><b>You say it.</b> A quick filter on keywords (always, never, from now on, don't) decides whether to ask a model. If so, Haiku 5.5 extracts one standing rule, or none.</li>
+      <li><b>It becomes a node</b> in the user catalog (everywhere) or the project catalog (this repo). It is newest-first, and it can supersede an older ruling.</li>
+      <li><b>The mod writes the active set</b> to <code>.claude/baton/rulings.md</code> (and <code>~/.claude/baton/rulings.md</code> for user scope), which CLAUDE.md imports.</li>
+      <li><b>Every agent loads it</b>: the main session, Agent-tool agents, Workflow agents, and the next session.</li>
+      <li><b>Optional enforcement</b>: <code>/baton enforce R-12</code> turns a ruling into a refusal the mod applies to matching tool calls.</li>
+    </ol>
+    <h4>Why a file and not the prompt</h4>
+    <p>For a Workflow agent, a mod can refuse the spawn but not change its prompt or model. Files every agent already loads are the one channel that reaches all of them, and they keep working when the mod isn't installed.</p>
+    <h4>Rules you repeated</h4>
+    <ul>
+      <li>The decision-table shape <code>| # | question | 1. … Recommended |</code>, and raise decisions as disposable HTML</li>
+      <li>Decisions are issues, never PRs (PR #54)</li>
+      <li>Cheap models for long and mechanical work; Haiku for test runs</li>
+      <li>Screenshot via cmux; one tab in the right pane, never a new split</li>
+      <li>One active subagent at a time</li>
+      <li>Keep going when the goals are clear</li>
+      <li>No session links in commits or PRs</li>
+    </ul>
+    <div class="src">source · sessions 45e0c5ef, e9f5e45b, 6a53bf29, fea4ed62, d1d8639e, 287d6957 · v7 mod/lib/rulings.mjs (extraction, newest-wins, enforce)</div>
+  </div>
+</aside>
+<a class="scrim" href="#rulings" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 09 UI CHECK ======================= -->
+<section class="band" id="uicheck">
+  <div class="glow" style="right:-320px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">09</span>UI check</div>
+      <h2>Catch the empty page <em>before you do.</em></h2>
+      <p class="punch">A verifier stage that <b>uses the page</b>: screenshots at desktop and phone width, hover, click, enter and exit fullscreen, close the panel, read the console, fetch the live URL. One interface, many drivers: <b>cmux first</b>, then Playwright, Chrome, or plain HTTP when there's no browser.</p>
+      <div class="big"><span class="n" data-count="5">5</span><span class="l">UI regressions you found yourself: mobile taps, fullscreen exit, a panel that wouldn't close, <b>"shellOS is an empty page"</b>, "fonts REALLY small". <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Drivers are plugin skills</b>, found through the tool catalog, never loaded into every agent</li>
+        <li><b>No driver? Still checked</b>: HTTP + structure, and the verdict says "no visual check"</li>
+        <li><b>Proof bar</b>: must catch the recorded regressions on their old commits</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-uicheck" data-panel>Drivers and the proof bar <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="ui-check · driver: cmux" role="img" aria-label="A desktop browser frame and a phone frame are scanned; the phone shows an empty page flagged red and the desktop shows text smaller than 14 pixels flagged. Driver chips below: cmux selected, Playwright, Chrome, HTTP.">
+<svg viewBox="0 0 640 440" id="sv-ui" aria-hidden="true">
+  <g transform="translate(24,30)">
+    <rect width="400" height="280" rx="12" fill="#0f0f15" stroke="#34343f"/>
+    <rect width="400" height="28" rx="12" fill="#17171f"/><rect y="16" width="400" height="12" fill="#17171f"/>
+    <circle cx="16" cy="14" r="4" fill="#ff5f57"/><circle cx="30" cy="14" r="4" fill="#febc2e"/><circle cx="44" cy="14" r="4" fill="#28c840"/>
+    <rect x="70" y="7" width="250" height="14" rx="7" fill="#0b0b0f"/><text x="82" y="18" class="t-mono t-mute" font-size="9.5">ckluis.github.io/shellOS</text>
+    <rect x="28" y="52" width="210" height="22" rx="4" fill="#2a2a35"/>
+    <rect x="28" y="86" width="320" height="8" rx="4" fill="#24242d"/><rect x="28" y="102" width="290" height="8" rx="4" fill="#24242d"/>
+    <rect x="28" y="130" width="160" height="96" rx="8" fill="#1a1a21"/><rect x="200" y="130" width="160" height="96" rx="8" fill="#1a1a21"/>
+    <g id="ui-font"><rect x="24" y="238" width="190" height="26" rx="6" fill="none" stroke="#fb923c" stroke-width="1.5"/><text x="30" y="255" class="t-mono" fill="#fb923c" font-size="10">body 11px · min 14px</text></g>
+    <text x="230" y="256" font-size="8.5" class="t-mute">tiny footer text tiny footer text</text>
+    <rect id="ui-scan" x="0" y="28" width="400" height="3" fill="#5eead4" opacity=".85" style="filter:drop-shadow(0 0 6px #5eead4)"/>
+  </g>
+  <g transform="translate(456,30)">
+    <rect width="160" height="280" rx="22" fill="#0f0f15" stroke="#34343f"/>
+    <rect x="58" y="10" width="44" height="6" rx="3" fill="#24242d"/>
+    <rect x="12" y="28" width="136" height="236" rx="8" fill="#0b0b0f"/>
+    <g id="ui-empty"><rect x="12" y="28" width="136" height="236" rx="8" fill="#f87171" fill-opacity=".1" stroke="#f87171" stroke-width="1.5"/><text x="80" y="140" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">empty page</text><text x="80" y="158" text-anchor="middle" class="t-mono" fill="#fecaca" font-size="9.5">0 visible text nodes</text></g>
+  </g>
+  <g font-size="12" class="t-mono">
+    <g transform="translate(24,340)"><rect width="128" height="34" rx="17" fill="#5eead4"/><text x="64" y="22" text-anchor="middle" fill="#0a0a0a" font-weight="700">cmux</text></g>
+    <g transform="translate(164,340)"><rect width="128" height="34" rx="17" fill="none" stroke="#34343f"/><text x="64" y="22" text-anchor="middle" class="t-body">Playwright</text></g>
+    <g transform="translate(304,340)"><rect width="128" height="34" rx="17" fill="none" stroke="#34343f"/><text x="64" y="22" text-anchor="middle" class="t-body">Chrome</text></g>
+    <g transform="translate(444,340)"><rect width="128" height="34" rx="17" fill="none" stroke="#34343f"/><text x="64" y="22" text-anchor="middle" class="t-body">HTTP only</text></g>
+  </g>
+  <text x="24" y="404" class="t-mono t-mute2" font-size="10.5">desktop + phone · hover · click · fullscreen in/out · console · live URL non-empty</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-uicheck" role="dialog" aria-labelledby="h-uicheck" tabindex="-1">
+  <div class="ph"><span class="eyebrow">09 · UI check</span><a class="x" href="#uicheck">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-uicheck">One interface, many drivers</h3>
+    <table>
+      <tr><th>driver</th><th>for</th><th>ships as</th></tr>
+      <tr><td>cmux</td><td><code>cmux browser open/goto/click/eval/screenshot</code>, in a tab of the existing pane, never a new split</td><td>skill <code>baton:ui-cmux</code></td></tr>
+      <tr><td>Playwright</td><td>CI, and anyone without cmux</td><td>skill <code>baton:ui-playwright</code></td></tr>
+      <tr><td>Claude in Chrome / built-in browser</td><td>desktop-app users</td><td>defers to those tools' own skills</td></tr>
+      <tr><td>HTTP only</td><td>headless servers</td><td>fetch + structure checks; the verdict says "no visual check"</td></tr>
+    </table>
+    <h4>What the verifier asks for, whatever the driver</h4>
+    <ul>
+      <li>Screenshots at desktop and phone width; no horizontal overflow</li>
+      <li>Scripted interactions: hover, click, fullscreen enter and exit, close-on-outside-click</li>
+      <li>Console errors; text at least 14px; the live URL fetched and non-empty</li>
+    </ul>
+    <h4>The proof bar</h4>
+    <p>It ships when it catches the regressions you found yourself, on their old commits: itsjusthtml's mobile taps, fullscreen exit and side panel, and shellOS's empty page.</p>
+    <div class="src">source · session 287d6957 (mobile 09-27, panel 09-27, fullscreen ×3 09-28) · sessions 853ed584, f7dff8df ("shellOS is an empty page", "fonts are REALLY small") · 520a781f (hover)</div>
+  </div>
+</aside>
+<a class="scrim" href="#uicheck" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 10 METER ======================= -->
+<section class="band" id="meter">
+  <div class="glow" style="left:-340px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">10</span>Watcher, not manager</div>
+      <h2>Scout freely. <em>Get nudged, not blocked.</em></h2>
+      <p class="punch">Workflows want a main session that looks around first and then launches. So v8's prime is a <b>meter</b>: reads and searches are free, and real grunt work in the main thread counts. Past a threshold you get one quiet offer to dispatch, or to close and resume. The strict v7 wall is still there with <code>/baton prime</code>.</p>
+      <div class="big"><span class="n"><span data-count="4557">4,557</span></span><span class="l">Bash calls in one main thread, 10 compactions, <b>5.9B</b> cache-read tokens. A cost problem, not a quality one. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Read / Grep / Glob</b> never count: that's scouting</li>
+        <li><b>Bash / Edit / Write</b> count since the last dispatch</li>
+        <li><b>One nudge</b>, then quiet. You decide.</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-meter" data-panel>Why a meter, not a wall <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="main thread" role="img" aria-label="A stream of tool calls: reads and greps pass grey without counting, Bash and Edit calls tick a meter up to twenty-five, and a quiet toast offers to dispatch or to close and resume.">
+<svg viewBox="0 0 640 440" id="sv-meter" aria-hidden="true">
+  <text x="24" y="42" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">TOOL CALLS · MAIN THREAD</text>
+  <g id="mt-chips" class="t-mono" font-size="11.5"><g class="mc" data-c="0" transform="translate(24,62)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Read</text></g><g class="mc" data-c="0" transform="translate(90,62)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Grep</text></g><g class="mc" data-c="0" transform="translate(156,62)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Read</text></g><g class="mc" data-c="0" transform="translate(222,62)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Glob</text></g><g class="mc" data-c="1" transform="translate(288,62)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(354,62)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(420,62)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="0" transform="translate(486,62)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Read</text></g><g class="mc" data-c="1" transform="translate(552,62)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(24,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(90,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Write</text></g><g class="mc" data-c="1" transform="translate(156,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="0" transform="translate(222,108)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Grep</text></g><g class="mc" data-c="1" transform="translate(288,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(354,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(420,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(486,108)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="0" transform="translate(552,108)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Read</text></g><g class="mc" data-c="1" transform="translate(24,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(90,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(156,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(222,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Write</text></g><g class="mc" data-c="1" transform="translate(288,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(354,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(420,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="0" transform="translate(486,154)"><rect width="58" height="32" rx="8" fill="#16161c" stroke="#2a2a35"/><text x="29" y="20.5" text-anchor="middle" fill="#6b6b76">Read</text></g><g class="mc" data-c="1" transform="translate(552,154)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(24,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(90,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(156,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g><g class="mc" data-c="1" transform="translate(222,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(288,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Bash</text></g><g class="mc" data-c="1" transform="translate(354,200)"><rect width="58" height="32" rx="8" fill="#26260f" stroke="#faff69"/><text x="29" y="20.5" text-anchor="middle" fill="#faff69">Edit</text></g></g>
+  <g transform="translate(24,262)">
+    <rect width="592" height="44" rx="10" fill="#0e0e13" stroke="#25252e"/>
+    <text x="16" y="27" class="t-mono" fill="#faff69" font-size="12">baton</text>
+    <text x="70" y="27" class="t-mono t-body" font-size="12">main thread</text>
+    <rect x="172" y="17" width="260" height="10" rx="5" fill="#1d1d25"/>
+    <rect x="172" y="17" width="260" height="10" rx="5" fill="#faff69" id="mt-bar"/>
+    <text x="448" y="27" class="t-mono t-ink" font-size="12"><tspan id="mt-n">25</tspan><tspan class="t-mute"> / 25 since dispatch</tspan></text>
+  </g>
+  <g transform="translate(120,330)" id="mt-toast">
+    <rect width="400" height="76" rx="14" fill="#18180f" stroke="#faff69"/>
+    <text x="18" y="30" class="t-ink" font-size="13.5" font-weight="600">25 calls in the main thread since the last dispatch.</text>
+    <text x="18" y="54" class="t-mono t-mute" font-size="11.5"><tspan fill="#faff69">d</tspan> dispatch this  ·  <tspan fill="#faff69">c</tspan> close + resume  ·  <tspan fill="#faff69">esc</tspan> keep going</text>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-meter" role="dialog" aria-labelledby="h-meter" tabindex="-1">
+  <div class="ph"><span class="eyebrow">10 · Watcher, not manager</span><a class="x" href="#meter">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-meter">Why a meter, not a wall</h3>
+    <p>v7 made the prime mechanical: during a run, anything but dispatching, asking and memory was refused. That fights the pattern Claude Workflows are built for, which is to scout inline (list files, read the diff, scope the work) and then orchestrate.</p>
+    <p>v7's own experiments say what the prime is for: on Opus 5.5 there was <b>no context rot</b> to fix (831K tokens, 29 compactions, same score). A lean prime cost <b>$14.78 vs $20.40</b>. So the value is cost and continuity, and a meter keeps most of the saving without blocking anything.</p>
+    <h4>The rules</h4>
+    <ul>
+      <li>Counts Bash, Edit and Write in the main thread since the last Agent or Workflow dispatch.</li>
+      <li>Reads and searches never count.</li>
+      <li>Starting thresholds, both tunable: 25 counted calls, or context past 300k.</li>
+      <li>One nudge per stretch: dispatch, close + resume, or keep going.</li>
+      <li><code>/baton prime</code> turns on v7's strict wall for a session.</li>
+    </ul>
+    <h4>Evidence</h4>
+    <ul>
+      <li>itsjusthtml: 4,557 Bash calls, 10 compactions at about 970k tokens, 5.9B cache-read tokens in the main thread</li>
+      <li>samen: 463 and 381 Bash calls in two sessions, with 0 agents</li>
+      <li>baton v7's own build: 800 Bash calls in the prime</li>
+    </ul>
+    <div class="src">source · session 287d6957 usage sums · sessions 45e0c5ef, e9f5e45b, c15f7856 · v7 docs/designs/v7-mods.md (E1, E1b)</div>
+  </div>
+</aside>
+<a class="scrim" href="#meter" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= FILES FIRST ======================= -->
+<section class="plain" id="files" style="--accent:var(--green)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">11</span>Files first</div>
+      <h2>Works before you install anything.</h2>
+      <p class="lede">The memory, rulings, templates and preflight are <b style="color:var(--ink)">plain files</b>. Any agent can read them and any Workflow script can use them. The mod is the accelerator: it watches, keeps the files current, draws the pane and nudges. If the mod can't load (mods are still early access), nothing breaks; you just lose the live view.</p>
+    </div>
+    <div class="layers">
+      <div class="layer hot rv"><h3>Files <small>no install · any harness</small></h3><p><code>MEMORY.md</code> as the root catalog · user / project / tech / tool catalogs and their nodes · <code>rulings.md</code> imported by CLAUDE.md · the <code>unit-loop</code> template and agent types with pinned model IDs · env checks · the session node</p></div>
+      <div class="layer rv"><h3>Mod <small>Claude Code plugin</small></h3><p>Watch pane and live change feed · served-model flags and <code>models enforce</code> · the Haiku 5.5 curator that folds notes into nodes · ruling extraction · close/resume commands · meter + nudge · the guard that keeps <code>MEMORY.md</code> a root</p></div>
+      <div class="layer rv"><h3>Claude Workflows <small>the engine</small></h3><p>Deterministic phases, schemas, concurrency, resume from the journal. baton never replaces it. It watches it, feeds it knowledge and remembers what it did.</p></div>
+    </div>
+    <div class="more rv" style="margin-top:22px"><a class="btn a" href="#p-files" data-panel>What still needs proving <span class="ar">→</span></a></div>
+  </div>
+</section>
+<aside class="panel" id="p-files" role="dialog" aria-labelledby="h-files" tabindex="-1">
+  <div class="ph"><span class="eyebrow">11 · Files first</span><a class="x" href="#files">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-files">What still needs proving</h3>
+    <p>v8 is a design. These are the first things a spike must settle before any of it ships:</p>
+    <ol>
+      <li><b>Is the mods rollout on?</b> On 2026-10-04 it was "served off", and v7's plugin tests have never run live.</li>
+      <li><b>Can Workflow agents call the mod's memory tools?</b> If not, they read the catalog files directly, which still works.</li>
+      <li><b>Does a CLAUDE.md import written mid-session reach agents that start later?</b> This decides how fresh rulings are.</li>
+      <li><b>Is the requested model visible at spawn, before alias resolution?</b> This decides whether <code>models enforce</code> can catch <code>haiku</code> → 4.5.</li>
+      <li><b>Is <code>wf_*.json</code> stable?</b> It's an internal format, so the reader must fail loudly ("format changed") rather than draw blanks.</li>
+    </ol>
+    <h4>Build order</h4>
+    <ol>
+      <li>Model truth: prices, full IDs, served model on every row</li>
+      <li>Memory graph format, tools and the curator</li>
+      <li>Migrate the existing memory: copy, A/B on 10 real openers, swap, archive</li>
+      <li>Project catalog: session + env</li>
+      <li>Watch pane + change feed</li>
+      <li>Rulings to every agent + templates + merge queue</li>
+      <li>UI-check drivers, then the Haiku tier experiment</li>
+    </ol>
+    <div class="src">plan · /Users/clank/Desktop/projects/baton-v8-plan.html (rounds 1–3, decisions D1–D11)</div>
+  </div>
+</aside>
+<a class="scrim" href="#files" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= INSTALL ======================= -->
+<section class="plain" id="install" style="--accent:var(--yellow)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">12</span>Install</div>
+      <h2>Two lines, when it ships.</h2>
+      <p class="lede">v8 is a design preview. Today's release is <a href="index.html">v7.5</a>. When v8 lands, this is the whole setup.</p>
+    </div>
+    <div class="install">
+      <div class="box rv"><h3>The mod</h3><pre><span class="c"># once, in Claude Code</span>
+/plugin marketplace add ckluis/baton
+/plugin install baton@baton
+<span class="c"># then just work: the pane opens when a Workflow starts</span>
+/baton doctor</pre><p style="font-size:14px;color:var(--muted)">Doctor checks the Claude Code version, what each model alias resolves to, the UI-check drivers it finds, and whether mods can load.</p></div>
+      <div class="box rv"><h3>Files only</h3><pre><span class="c"># no plugin: build the catalogs from your memory</span>
+baton mem init         <span class="c"># root + user + this project</span>
+baton mem migrate --copy --ab 10
+baton mem doctor       <span class="c"># orphans, stale nodes, broken links</span></pre><p style="font-size:14px;color:var(--muted)">Planned CLI. Every command writes plain Markdown you can read and diff.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= VERSIONS ======================= -->
+<section class="plain" id="versions" style="--accent:var(--cyan)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">13</span>Versions</div>
+      <h2>How it got here.</h2>
+      <p class="lede">From a pasted router prompt to a mod that watches the engine. Each version kept what its experiments proved and cut the rest.</p>
+    </div>
+    <div class="vers">
+      <a class="ver now rv" href="#top"><b>v8 · design</b><span>A watcher over Claude Workflows; graph memory through catalogs; model truth.</span></a>
+      <a class="ver rv" href="index.html"><b>v7.5</b><span>The mod: prime guard, memory tree, rulings, the pane.</span></a>
+      <a class="ver rv" href="baton-v6.html"><b>v6</b><span>The shrink: six experiments, tiers named, personas off.</span></a>
+      <a class="ver rv" href="baton-v5.html"><b>v5</b><span>Accountability: three tiers, a quiet team mode.</span></a>
+      <a class="ver rv" href="baton-v4.html"><b>v4</b><span>GitHub-native team mode.</span></a>
+      <a class="ver rv" href="baton-v3.html"><b>v3</b><span>Prime on demand, the SQLite index.</span></a>
+      <a class="ver rv" href="baton-v2.html"><b>v2</b><span>Rungs, contracts, the phase runner.</span></a>
+      <a class="ver rv" href="baton-v1.html"><b>v1</b><span>The original router prompt.</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= EVIDENCE PANEL ======================= -->
+<aside class="panel" id="p-evidence" role="dialog" aria-labelledby="h-evidence" tabindex="-1">
+  <div class="ph"><span class="eyebrow">Where the numbers come from</span><a class="x" href="#top">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-evidence">Thirteen sessions, twenty Workflow runs</h3>
+    <p>Every figure tagged <span class="tag meas">measured</span> comes from real Claude Code session logs or files, read on 2026-10-10. Figures tagged <span class="tag goal">design target</span> are what v8 aims for and haven't been measured yet.</p>
+    <table>
+      <tr><th>number</th><th>how</th></tr>
+      <tr><td>37 "Status"</td><td>human prompts matching <code>^\s*status\??\s*$</code>: 29 in the F# Campfire session, 8 in taal</td></tr>
+      <tr><td>405 turns</td><td><code>.message.model</code> in onCrack round-4 agent transcripts: 198 + 142 + 65 on <code>claude-haiku-4-5-20251001</code></td></tr>
+      <tr><td>13.9 KB</td><td><code>wc -c MEMORY.md</code>, 13,869 bytes</td></tr>
+      <tr><td>38.2M tokens</td><td>sum of <code>totalTokens</code> over 20 <code>wf_*.json</code> (taal 19.2M, Campfire 19.0M); 206 agents; ≈95 h</td></tr>
+      <tr><td>112 links</td><td><code>[[name]]</code> resolved across 64 memory files; 3 broken, 2 files with none</td></tr>
+      <tr><td>×8 ENOSPC</td><td>"errno=28 (No space left on device)" in the tinker session</td></tr>
+      <tr><td>4,557 Bash</td><td>tool calls in the itsjusthtml main thread; 10 compactions; 5.9B cache-read tokens</td></tr>
+      <tr><td>12+ scripts</td><td>Workflow scripts with the build → verify → fix → re-verify shape across taal and Campfire</td></tr>
+      <tr><td>1.2k at wake</td><td><span class="tag goal">design target</span> root + user + one project + its techs</td></tr>
+    </table>
+    <h4>Sessions read</h4>
+    <p>itsjusthtml · taal · F# Campfire + onCrack · samen ×3 · tinker · baton v7 · Overlook · Bend ×2 · experiments index. Four Sonnet analysts read the logs; every number on this page was re-checked by hand.</p>
+    <div class="src">plan + raw notes · /Users/clank/Desktop/projects/baton-v8-plan.html</div>
+  </div>
+</aside>
+<a class="scrim" href="#top" tabindex="-1" aria-hidden="true"></a>
+
+<footer>
+  <div class="wrap">
+    <span><b style="color:var(--ink)">baton</b> · MIT · <a href="https://github.com/ckluis/baton">github.com/ckluis/baton</a></span>
+    <span>v8 design preview · sample data in the mod is illustrative · built by <a href="https://ckluis.com">Chris Kluis</a></span>
+  </div>
+</footer>
+<script>
+/*
+ * anime.js v3.2.2
+ * (c) 2023 Julian Garnier
+ * Released under the MIT license
+ * animejs.com
+ */
+
+!function(n,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):n.anime=e()}(this,function(){"use strict";var i={update:null,begin:null,loopBegin:null,changeBegin:null,change:null,changeComplete:null,loopComplete:null,complete:null,loop:1,direction:"normal",autoplay:!0,timelineOffset:0},M={duration:1e3,delay:0,endDelay:0,easing:"easeOutElastic(1, .5)",round:0},j=["translateX","translateY","translateZ","rotate","rotateX","rotateY","rotateZ","scale","scaleX","scaleY","scaleZ","skew","skewX","skewY","perspective","matrix","matrix3d"],l={CSS:{},springs:{}};function C(n,e,t){return Math.min(Math.max(n,e),t)}function u(n,e){return-1<n.indexOf(e)}function o(n,e){return n.apply(null,e)}var w={arr:function(n){return Array.isArray(n)},obj:function(n){return u(Object.prototype.toString.call(n),"Object")},pth:function(n){return w.obj(n)&&n.hasOwnProperty("totalLength")},svg:function(n){return n instanceof SVGElement},inp:function(n){return n instanceof HTMLInputElement},dom:function(n){return n.nodeType||w.svg(n)},str:function(n){return"string"==typeof n},fnc:function(n){return"function"==typeof n},und:function(n){return void 0===n},nil:function(n){return w.und(n)||null===n},hex:function(n){return/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(n)},rgb:function(n){return/^rgb/.test(n)},hsl:function(n){return/^hsl/.test(n)},col:function(n){return w.hex(n)||w.rgb(n)||w.hsl(n)},key:function(n){return!i.hasOwnProperty(n)&&!M.hasOwnProperty(n)&&"targets"!==n&&"keyframes"!==n}};function d(n){n=/\(([^)]+)\)/.exec(n);return n?n[1].split(",").map(function(n){return parseFloat(n)}):[]}function c(r,t){var n=d(r),e=C(w.und(n[0])?1:n[0],.1,100),a=C(w.und(n[1])?100:n[1],.1,100),o=C(w.und(n[2])?10:n[2],.1,100),n=C(w.und(n[3])?0:n[3],.1,100),u=Math.sqrt(a/e),i=o/(2*Math.sqrt(a*e)),c=i<1?u*Math.sqrt(1-i*i):0,s=i<1?(i*u-n)/c:-n+u;function f(n){var e=t?t*n/1e3:n,e=i<1?Math.exp(-e*i*u)*(+Math.cos(c*e)+s*Math.sin(c*e)):(1+s*e)*Math.exp(-e*u);return 0===n||1===n?n:1-e}return t?f:function(){var n=l.springs[r];if(n)return n;for(var e=0,t=0;;)if(1===f(e+=1/6)){if(16<=++t)break}else t=0;return n=e*(1/6)*1e3,l.springs[r]=n}}function q(e){return void 0===e&&(e=10),function(n){return Math.ceil(C(n,1e-6,1)*e)*(1/e)}}var H=function(b,e,M,t){if(0<=b&&b<=1&&0<=M&&M<=1){var x=new Float32Array(11);if(b!==e||M!==t)for(var n=0;n<11;++n)x[n]=k(.1*n,b,M);return function(n){return b===e&&M===t||0===n||1===n?n:k(r(n),e,t)}}function r(n){for(var e=0,t=1;10!==t&&x[t]<=n;++t)e+=.1;var r=e+.1*((n-x[--t])/(x[t+1]-x[t])),a=O(r,b,M);if(.001<=a){for(var o=n,u=r,i=b,c=M,s=0;s<4;++s){var f=O(u,i,c);if(0===f)return u;u-=(k(u,i,c)-o)/f}return u}if(0===a)return r;for(var l,d,p=n,h=e,g=e+.1,m=b,v=M,y=0;0<(l=k(d=h+(g-h)/2,m,v)-p)?g=d:h=d,1e-7<Math.abs(l)&&++y<10;);return d}};function r(n,e){return 1-3*e+3*n}function k(n,e,t){return((r(e,t)*n+(3*t-6*e))*n+3*e)*n}function O(n,e,t){return 3*r(e,t)*n*n+2*(3*t-6*e)*n+3*e}e={linear:function(){return function(n){return n}}},t={Sine:function(){return function(n){return 1-Math.cos(n*Math.PI/2)}},Expo:function(){return function(n){return n?Math.pow(2,10*n-10):0}},Circ:function(){return function(n){return 1-Math.sqrt(1-n*n)}},Back:function(){return function(n){return n*n*(3*n-2)}},Bounce:function(){return function(n){for(var e,t=4;n<((e=Math.pow(2,--t))-1)/11;);return 1/Math.pow(4,3-t)-7.5625*Math.pow((3*e-2)/22-n,2)}},Elastic:function(n,e){void 0===e&&(e=.5);var t=C(n=void 0===n?1:n,1,10),r=C(e,.1,2);return function(n){return 0===n||1===n?n:-t*Math.pow(2,10*(n-1))*Math.sin((n-1-r/(2*Math.PI)*Math.asin(1/t))*(2*Math.PI)/r)}}},["Quad","Cubic","Quart","Quint"].forEach(function(n,e){t[n]=function(){return function(n){return Math.pow(n,e+2)}}}),Object.keys(t).forEach(function(n){var r=t[n];e["easeIn"+n]=r,e["easeOut"+n]=function(e,t){return function(n){return 1-r(e,t)(1-n)}},e["easeInOut"+n]=function(e,t){return function(n){return n<.5?r(e,t)(2*n)/2:1-r(e,t)(-2*n+2)/2}},e["easeOutIn"+n]=function(e,t){return function(n){return n<.5?(1-r(e,t)(1-2*n))/2:(r(e,t)(2*n-1)+1)/2}}});var e,t,s=e;function P(n,e){if(w.fnc(n))return n;var t=n.split("(")[0],r=s[t],a=d(n);switch(t){case"spring":return c(n,e);case"cubicBezier":return o(H,a);case"steps":return o(q,a);default:return o(r,a)}}function a(n){try{return document.querySelectorAll(n)}catch(n){}}function I(n,e){for(var t,r=n.length,a=2<=arguments.length?e:void 0,o=[],u=0;u<r;u++)u in n&&(t=n[u],e.call(a,t,u,n))&&o.push(t);return o}function f(n){return n.reduce(function(n,e){return n.concat(w.arr(e)?f(e):e)},[])}function p(n){return w.arr(n)?n:(n=w.str(n)?a(n)||n:n)instanceof NodeList||n instanceof HTMLCollection?[].slice.call(n):[n]}function h(n,e){return n.some(function(n){return n===e})}function g(n){var e,t={};for(e in n)t[e]=n[e];return t}function x(n,e){var t,r=g(n);for(t in n)r[t]=(e.hasOwnProperty(t)?e:n)[t];return r}function D(n,e){var t,r=g(n);for(t in e)r[t]=(w.und(n[t])?e:n)[t];return r}function V(n){var e,t,r,a,o,u,i;return w.rgb(n)?(e=/rgb\((\d+,\s*[\d]+,\s*[\d]+)\)/g.exec(t=n))?"rgba("+e[1]+",1)":t:w.hex(n)?(e=(e=n).replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,function(n,e,t,r){return e+e+t+t+r+r}),e=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(e),"rgba("+parseInt(e[1],16)+","+parseInt(e[2],16)+","+parseInt(e[3],16)+",1)"):w.hsl(n)?(t=/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/g.exec(t=n)||/hsla\((\d+),\s*([\d.]+)%,\s*([\d.]+)%,\s*([\d.]+)\)/g.exec(t),n=parseInt(t[1],10)/360,u=parseInt(t[2],10)/100,i=parseInt(t[3],10)/100,t=t[4]||1,0==u?r=a=o=i:(r=c(u=2*i-(i=i<.5?i*(1+u):i+u-i*u),i,n+1/3),a=c(u,i,n),o=c(u,i,n-1/3)),"rgba("+255*r+","+255*a+","+255*o+","+t+")"):void 0;function c(n,e,t){return t<0&&(t+=1),1<t&&--t,t<1/6?n+6*(e-n)*t:t<.5?e:t<2/3?n+(e-n)*(2/3-t)*6:n}}function B(n){n=/[+-]?\d*\.?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(%|px|pt|em|rem|in|cm|mm|ex|ch|pc|vw|vh|vmin|vmax|deg|rad|turn)?$/.exec(n);if(n)return n[1]}function m(n,e){return w.fnc(n)?n(e.target,e.id,e.total):n}function v(n,e){return n.getAttribute(e)}function y(n,e,t){var r,a,o;return h([t,"deg","rad","turn"],B(e))?e:(r=l.CSS[e+t],w.und(r)?(a=document.createElement(n.tagName),(n=n.parentNode&&n.parentNode!==document?n.parentNode:document.body).appendChild(a),a.style.position="absolute",a.style.width=100+t,o=100/a.offsetWidth,n.removeChild(a),n=o*parseFloat(e),l.CSS[e+t]=n):r)}function $(n,e,t){var r;if(e in n.style)return r=e.replace(/([a-z])([A-Z])/g,"$1-$2").toLowerCase(),e=n.style[e]||getComputedStyle(n).getPropertyValue(r)||"0",t?y(n,e,t):e}function b(n,e){return w.dom(n)&&!w.inp(n)&&(!w.nil(v(n,e))||w.svg(n)&&n[e])?"attribute":w.dom(n)&&h(j,e)?"transform":w.dom(n)&&"transform"!==e&&$(n,e)?"css":null!=n[e]?"object":void 0}function W(n){if(w.dom(n)){for(var e,t=n.style.transform||"",r=/(\w+)\(([^)]*)\)/g,a=new Map;e=r.exec(t);)a.set(e[1],e[2]);return a}}function X(n,e,t,r){var a=u(e,"scale")?1:0+(u(a=e,"translate")||"perspective"===a?"px":u(a,"rotate")||u(a,"skew")?"deg":void 0),o=W(n).get(e)||a;return t&&(t.transforms.list.set(e,o),t.transforms.last=e),r?y(n,o,r):o}function T(n,e,t,r){switch(b(n,e)){case"transform":return X(n,e,r,t);case"css":return $(n,e,t);case"attribute":return v(n,e);default:return n[e]||0}}function E(n,e){var t=/^(\*=|\+=|-=)/.exec(n);if(!t)return n;var r=B(n)||0,a=parseFloat(e),o=parseFloat(n.replace(t[0],""));switch(t[0][0]){case"+":return a+o+r;case"-":return a-o+r;case"*":return a*o+r}}function Y(n,e){var t;return w.col(n)?V(n):/\s/g.test(n)?n:(t=(t=B(n))?n.substr(0,n.length-t.length):n,e?t+e:t)}function F(n,e){return Math.sqrt(Math.pow(e.x-n.x,2)+Math.pow(e.y-n.y,2))}function Z(n){for(var e,t=n.points,r=0,a=0;a<t.numberOfItems;a++){var o=t.getItem(a);0<a&&(r+=F(e,o)),e=o}return r}function G(n){if(n.getTotalLength)return n.getTotalLength();switch(n.tagName.toLowerCase()){case"circle":return 2*Math.PI*v(n,"r");case"rect":return 2*v(t=n,"width")+2*v(t,"height");case"line":return F({x:v(t=n,"x1"),y:v(t,"y1")},{x:v(t,"x2"),y:v(t,"y2")});case"polyline":return Z(n);case"polygon":return e=n.points,Z(n)+F(e.getItem(e.numberOfItems-1),e.getItem(0))}var e,t}function Q(n,e){var e=e||{},n=e.el||function(n){for(var e=n.parentNode;w.svg(e)&&w.svg(e.parentNode);)e=e.parentNode;return e}(n),t=n.getBoundingClientRect(),r=v(n,"viewBox"),a=t.width,t=t.height,e=e.viewBox||(r?r.split(" "):[0,0,a,t]);return{el:n,viewBox:e,x:+e[0],y:+e[1],w:a,h:t,vW:e[2],vH:e[3]}}function z(n,e){var t=/[+-]?\d*\.?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g,r=Y(w.pth(n)?n.totalLength:n,e)+"";return{original:r,numbers:r.match(t)?r.match(t).map(Number):[0],strings:w.str(n)||e?r.split(t):[]}}function A(n){return I(n?f(w.arr(n)?n.map(p):p(n)):[],function(n,e,t){return t.indexOf(n)===e})}function _(n){var t=A(n);return t.map(function(n,e){return{target:n,id:e,total:t.length,transforms:{list:W(n)}}})}function R(e){for(var t=I(f(e.map(function(n){return Object.keys(n)})),function(n){return w.key(n)}).reduce(function(n,e){return n.indexOf(e)<0&&n.push(e),n},[]),a={},n=0;n<t.length;n++)!function(n){var r=t[n];a[r]=e.map(function(n){var e,t={};for(e in n)w.key(e)?e==r&&(t.value=n[e]):t[e]=n[e];return t})}(n);return a}function J(n,e){var t,r=[],a=e.keyframes;for(t in e=a?D(R(a),e):e)w.key(t)&&r.push({name:t,tweens:function(n,t){var e,r=g(t),a=(/^spring/.test(r.easing)&&(r.duration=c(r.easing)),w.arr(n)&&(2===(e=n.length)&&!w.obj(n[0])?n={value:n}:w.fnc(t.duration)||(r.duration=t.duration/e)),w.arr(n)?n:[n]);return a.map(function(n,e){n=w.obj(n)&&!w.pth(n)?n:{value:n};return w.und(n.delay)&&(n.delay=e?0:t.delay),w.und(n.endDelay)&&(n.endDelay=e===a.length-1?t.endDelay:0),n}).map(function(n){return D(n,r)})}(e[t],n)});return r}function K(i,c){var s;return i.tweens.map(function(n){var n=function(n,e){var t,r={};for(t in n){var a=m(n[t],e);w.arr(a)&&1===(a=a.map(function(n){return m(n,e)})).length&&(a=a[0]),r[t]=a}return r.duration=parseFloat(r.duration),r.delay=parseFloat(r.delay),r}(n,c),e=n.value,t=w.arr(e)?e[1]:e,r=B(t),a=T(c.target,i.name,r,c),o=s?s.to.original:a,u=w.arr(e)?e[0]:o,a=B(u)||B(a),r=r||a;return w.und(t)&&(t=o),n.from=z(u,r),n.to=z(E(t,u),r),n.start=s?s.end:0,n.end=n.start+n.delay+n.duration+n.endDelay,n.easing=P(n.easing,n.duration),n.isPath=w.pth(e),n.isPathTargetInsideSVG=n.isPath&&w.svg(c.target),n.isColor=w.col(n.from.original),n.isColor&&(n.round=1),s=n})}var U={css:function(n,e,t){return n.style[e]=t},attribute:function(n,e,t){return n.setAttribute(e,t)},object:function(n,e,t){return n[e]=t},transform:function(n,e,t,r,a){var o;r.list.set(e,t),e!==r.last&&!a||(o="",r.list.forEach(function(n,e){o+=e+"("+n+") "}),n.style.transform=o)}};function nn(n,u){_(n).forEach(function(n){for(var e in u){var t=m(u[e],n),r=n.target,a=B(t),o=T(r,e,a,n),t=E(Y(t,a||B(o)),o),a=b(r,e);U[a](r,e,t,n.transforms,!0)}})}function en(n,e){return I(f(n.map(function(o){return e.map(function(n){var e,t,r=o,a=b(r.target,n.name);if(a)return t=(e=K(n,r))[e.length-1],{type:a,property:n.name,animatable:r,tweens:e,duration:t.end,delay:e[0].delay,endDelay:t.endDelay}})})),function(n){return!w.und(n)})}function tn(n,e){function t(n){return n.timelineOffset||0}var r=n.length,a={};return a.duration=r?Math.max.apply(Math,n.map(function(n){return t(n)+n.duration})):e.duration,a.delay=r?Math.min.apply(Math,n.map(function(n){return t(n)+n.delay})):e.delay,a.endDelay=r?a.duration-Math.max.apply(Math,n.map(function(n){return t(n)+n.duration-n.endDelay})):e.endDelay,a}var rn=0;var N,S=[],an=("undefined"!=typeof document&&document.addEventListener("visibilitychange",function(){L.suspendWhenDocumentHidden&&(n()?N=cancelAnimationFrame(N):(S.forEach(function(n){return n._onDocumentVisibility()}),an()))}),function(){!(N||n()&&L.suspendWhenDocumentHidden)&&0<S.length&&(N=requestAnimationFrame(on))});function on(n){for(var e=S.length,t=0;t<e;){var r=S[t];r.paused?(S.splice(t,1),e--):(r.tick(n),t++)}N=0<t?requestAnimationFrame(on):void 0}function n(){return document&&document.hidden}function L(n){var c,s=0,f=0,l=0,d=0,p=null;function h(n){var e=window.Promise&&new Promise(function(n){return p=n});return n.finished=e}e=x(i,n=n=void 0===n?{}:n),t=J(r=x(M,n),n),n=_(n.targets),r=tn(t=en(n,t),r),a=rn,rn++;var e,t,r,a,k=D(e,{id:a,children:[],animatables:n,animations:t,duration:r.duration,delay:r.delay,endDelay:r.endDelay});h(k);function g(){var n=k.direction;"alternate"!==n&&(k.direction="normal"!==n?"normal":"reverse"),k.reversed=!k.reversed,c.forEach(function(n){return n.reversed=k.reversed})}function m(n){return k.reversed?k.duration-n:n}function o(){s=0,f=m(k.currentTime)*(1/L.speed)}function v(n,e){e&&e.seek(n-e.timelineOffset)}function y(e){for(var n=0,t=k.animations,r=t.length;n<r;){for(var a=t[n],o=a.animatable,u=a.tweens,i=u.length-1,c=u[i],i=(i&&(c=I(u,function(n){return e<n.end})[0]||c),C(e-c.start-c.delay,0,c.duration)/c.duration),s=isNaN(i)?1:c.easing(i),f=c.to.strings,l=c.round,d=[],p=c.to.numbers.length,h=void 0,g=0;g<p;g++){var m=void 0,v=c.to.numbers[g],y=c.from.numbers[g]||0,m=c.isPath?function(e,t,n){function r(n){return e.el.getPointAtLength(1<=t+(n=void 0===n?0:n)?t+n:0)}var a=Q(e.el,e.svg),o=r(),u=r(-1),i=r(1),c=n?1:a.w/a.vW,s=n?1:a.h/a.vH;switch(e.property){case"x":return(o.x-a.x)*c;case"y":return(o.y-a.y)*s;case"angle":return 180*Math.atan2(i.y-u.y,i.x-u.x)/Math.PI}}(c.value,s*v,c.isPathTargetInsideSVG):y+s*(v-y);!l||c.isColor&&2<g||(m=Math.round(m*l)/l),d.push(m)}var b=f.length;if(b)for(var h=f[0],M=0;M<b;M++){f[M];var x=f[M+1],w=d[M];isNaN(w)||(h+=x?w+x:w+" ")}else h=d[0];U[a.type](o.target,a.property,h,o.transforms),a.currentValue=h,n++}}function b(n){k[n]&&!k.passThrough&&k[n](k)}function u(n){var e=k.duration,t=k.delay,r=e-k.endDelay,a=m(n);if(k.progress=C(a/e*100,0,100),k.reversePlayback=a<k.currentTime,c){var o=a;if(k.reversePlayback)for(var u=d;u--;)v(o,c[u]);else for(var i=0;i<d;i++)v(o,c[i])}!k.began&&0<k.currentTime&&(k.began=!0,b("begin")),!k.loopBegan&&0<k.currentTime&&(k.loopBegan=!0,b("loopBegin")),a<=t&&0!==k.currentTime&&y(0),(r<=a&&k.currentTime!==e||!e)&&y(e),t<a&&a<r?(k.changeBegan||(k.changeBegan=!0,k.changeCompleted=!1,b("changeBegin")),b("change"),y(a)):k.changeBegan&&(k.changeCompleted=!0,k.changeBegan=!1,b("changeComplete")),k.currentTime=C(a,0,e),k.began&&b("update"),e<=n&&(f=0,k.remaining&&!0!==k.remaining&&k.remaining--,k.remaining?(s=l,b("loopComplete"),k.loopBegan=!1,"alternate"===k.direction&&g()):(k.paused=!0,k.completed||(k.completed=!0,b("loopComplete"),b("complete"),!k.passThrough&&"Promise"in window&&(p(),h(k)))))}return k.reset=function(){var n=k.direction;k.passThrough=!1,k.currentTime=0,k.progress=0,k.paused=!0,k.began=!1,k.loopBegan=!1,k.changeBegan=!1,k.completed=!1,k.changeCompleted=!1,k.reversePlayback=!1,k.reversed="reverse"===n,k.remaining=k.loop,c=k.children;for(var e=d=c.length;e--;)k.children[e].reset();(k.reversed&&!0!==k.loop||"alternate"===n&&1===k.loop)&&k.remaining++,y(k.reversed?k.duration:0)},k._onDocumentVisibility=o,k.set=function(n,e){return nn(n,e),k},k.tick=function(n){u(((l=n)+(f-(s=s||l)))*L.speed)},k.seek=function(n){u(m(n))},k.pause=function(){k.paused=!0,o()},k.play=function(){k.paused&&(k.completed&&k.reset(),k.paused=!1,S.push(k),o(),an())},k.reverse=function(){g(),k.completed=!k.reversed,o()},k.restart=function(){k.reset(),k.play()},k.remove=function(n){cn(A(n),k)},k.reset(),k.autoplay&&k.play(),k}function un(n,e){for(var t=e.length;t--;)h(n,e[t].animatable.target)&&e.splice(t,1)}function cn(n,e){var t=e.animations,r=e.children;un(n,t);for(var a=r.length;a--;){var o=r[a],u=o.animations;un(n,u),u.length||o.children.length||r.splice(a,1)}t.length||r.length||e.pause()}return L.version="3.2.2",L.speed=1,L.suspendWhenDocumentHidden=!0,L.running=S,L.remove=function(n){for(var e=A(n),t=S.length;t--;)cn(e,S[t])},L.get=T,L.set=nn,L.convertPx=y,L.path=function(n,e){var t=w.str(n)?a(n)[0]:n,r=e||100;return function(n){return{property:n,el:t,svg:Q(t),totalLength:G(t)*(r/100)}}},L.setDashoffset=function(n){var e=G(n);return n.setAttribute("stroke-dasharray",e),e},L.stagger=function(n,e){var i=(e=void 0===e?{}:e).direction||"normal",c=e.easing?P(e.easing):null,s=e.grid,f=e.axis,l=e.from||0,d="first"===l,p="center"===l,h="last"===l,g=w.arr(n),m=g?parseFloat(n[0]):parseFloat(n),v=g?parseFloat(n[1]):0,y=B(g?n[1]:n)||0,b=e.start||0+(g?m:0),M=[],x=0;return function(n,e,t){if(d&&(l=0),p&&(l=(t-1)/2),h&&(l=t-1),!M.length){for(var r,a,o,u=0;u<t;u++)s?(r=p?(s[0]-1)/2:l%s[0],a=p?(s[1]-1)/2:Math.floor(l/s[0]),r=r-u%s[0],a=a-Math.floor(u/s[0]),o=Math.sqrt(r*r+a*a),"x"===f&&(o=-r),M.push(o="y"===f?-a:o)):M.push(Math.abs(l-u)),x=Math.max.apply(Math,M);c&&(M=M.map(function(n){return c(n/x)*x})),"reverse"===i&&(M=M.map(function(n){return f?n<0?-1*n:-n:Math.abs(x-n)}))}return b+(g?(v-m)/x:m)*(Math.round(100*M[e])/100)+y}},L.timeline=function(u){var i=L(u=void 0===u?{}:u);return i.duration=0,i.add=function(n,e){var t=S.indexOf(i),r=i.children;function a(n){n.passThrough=!0}-1<t&&S.splice(t,1);for(var o=0;o<r.length;o++)a(r[o]);t=D(n,x(M,u)),t.targets=t.targets||u.targets,n=i.duration,t.autoplay=!1,t.direction=i.direction,t.timelineOffset=w.und(e)?n:E(e,n),a(i),i.seek(t.timelineOffset),e=L(t),a(e),r.push(e),n=tn(r,u);return i.delay=n.delay,i.endDelay=n.endDelay,i.duration=n.duration,i.seek(0),i.reset(),i.autoplay&&i.play(),i},i},L.easing=P,L.penner=s,L.random=function(n,e){return Math.floor(Math.random()*(e-n+1))+n},L});
+</script>
+<script>
+(() => {
+  'use strict';
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const A = window.anime;
+
+  /* ---------------- reveal ---------------- */
+  const rio = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -6% 0px' });
+  $$('.rv').forEach((el) => (RM ? el.classList.add('in') : rio.observe(el)));
+
+  /* ---------------- counters ---------------- */
+  const fmt = (v, dec) => (dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US'));
+  const cio = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    cio.unobserve(e.target);
+    const el = e.target, to = parseFloat(el.dataset.count), dec = +(el.dataset.dec || 0);
+    const o = { v: 0 };
+    A({ targets: o, v: to, duration: 1700, easing: 'easeOutExpo', update: () => { el.textContent = fmt(o.v, dec); }, complete: () => { el.textContent = fmt(to, dec); } });
+  }), { threshold: 0.6 });
+  if (!RM && A) $$('[data-count]').forEach((el) => cio.observe(el));
+
+  /* ---------------- side panels ---------------- */
+  let openPanel = null, lastFocus = null;
+  function openP(p) {
+    if (openPanel) closeP(openPanel, false);
+    lastFocus = document.activeElement;
+    p.classList.add('open');
+    p.setAttribute('aria-modal', 'true');
+    openPanel = p;
+    document.documentElement.style.overflow = 'hidden';
+    setTimeout(() => p.focus({ preventScroll: true }), 40);
+  }
+  function closeP(p, restore = true) {
+    p.classList.remove('open');
+    p.removeAttribute('aria-modal');
+    openPanel = null;
+    document.documentElement.style.overflow = '';
+    if (restore && lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+  }
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#p-"]');
+    if (a) {
+      const p = document.getElementById(a.getAttribute('href').slice(1));
+      if (p && p.classList.contains('panel')) { e.preventDefault(); openP(p); }
+      return;
+    }
+    const x = e.target.closest('.panel .x, .scrim');
+    if (x) {
+      const p = x.classList.contains('scrim') ? x.previousElementSibling : x.closest('.panel');
+      if (p && p.classList.contains('open')) { e.preventDefault(); closeP(p); }
+      return;
+    }
+    const t = e.target.closest('a[data-tab]');
+    if (t) {
+      const r = document.getElementById(t.dataset.tab);
+      if (r) r.checked = true;
+      if (t.dataset.row) openRow(+t.dataset.row);
+    }
+  });
+  function trap(e) {
+    const p = openPanel; if (!p) return;
+    const f = $$('a[href], button, [tabindex]:not([tabindex="-1"])', p).filter((n) => n.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === p)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  /* ---------------- the mod mock ---------------- */
+  const cc = $('#cc');
+  const radios = ['t-watch', 't-mem', 't-sess', 't-env'].map((id) => document.getElementById(id));
+  let ccVisible = false, ccActive = false, sel = 2;
+  const agents = () => $$('.v-watch details.agent', cc);
+  function mark() { agents().forEach((d, i) => d.classList.toggle('sel', i === sel)); }
+  function openRow(i) {
+    const list = agents(); if (!list[i]) return;
+    sel = i; list.forEach((d, j) => { d.open = j === i; }); mark();
+  }
+  if (cc) {
+    mark();
+    new IntersectionObserver((es) => { ccVisible = es[0].intersectionRatio > 0.3; }, { threshold: [0, 0.3, 0.6] }).observe(cc);
+    cc.addEventListener('pointerenter', () => { ccActive = true; });
+    cc.addEventListener('pointerleave', () => { ccActive = false; });
+    cc.addEventListener('focusin', () => { ccActive = true; });
+    cc.addEventListener('focusout', () => { if (!cc.contains(document.activeElement)) ccActive = false; });
+    cc.addEventListener('click', (e) => {
+      const s = e.target.closest('summary.rw'); if (!s) return;
+      sel = agents().indexOf(s.parentElement); mark();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (openPanel) { closeP(openPanel); return; }
+      const t = $('.panel:target');
+      if (t) location.hash = $('.x', t).getAttribute('href');
+      return;
+    }
+    if (e.key === 'Tab' && openPanel) { trap(e); return; }
+    if (openPanel || !cc || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/INPUT|TEXTAREA|SELECT/.test(tag) && !document.activeElement.name) return;
+    if (/^[1-4]$/.test(e.key) && ccVisible) { radios[+e.key - 1].checked = true; e.preventDefault(); return; }
+    if (!ccActive || !radios[0].checked) return;
+    const list = agents();
+    if (e.key === 'ArrowDown' || e.key === 'j') { sel = Math.min(list.length - 1, sel + 1); mark(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp' || e.key === 'k') { sel = Math.max(0, sel - 1); mark(); e.preventDefault(); }
+    else if (e.key === 'Enter' && list[sel]) { list[sel].open = !list[sel].open; e.preventDefault(); }
+  });
+
+  /* live feed */
+  const EV = [
+    ['verify:parser', 'Bash  npm test -- parse --fuzz'],
+    ['verify:importer', 'Read  test/import.test.ts'],
+    ['run:bench', '<span class="st-bad">model</span> asked haiku → claude-haiku-4-5'],
+    ['verify:importer', '<span class="st-ok">✓</span> no findings in the importer'],
+    ['fix:round1', '◉ started · round 1 of 3 · claude-sonnet-5-5'],
+    ['fix:round1', '✎ src/import/csv.ts <span class="st-ok">+9</span> <span class="st-bad">−3</span>'],
+    ['fix:round1', '<span class="st-ok">✓</span> npm test 54/54'],
+    ['fix:round1', '⎇ commit <span style="color:var(--yellow)">c07d4e2</span>'],
+    ['re-verify', '◉ a fresh verifier · claude-opus-5-5'],
+    ['re-verify', '<span class="st-ok">✓ confirmed</span> · 0 open findings'],
+    ['merge queue', '⎇ PR #85 ready · waiting on you'],
+    ['session', '● project:shop/session rewritten'],
+  ];
+  const feed = $('#feed');
+  if (feed && !RM) {
+    const base = feed.innerHTML;
+    let i = 0, clock = 12 * 3600 + 42 * 60 + 2, usd = 3.84, eta = 38, n = 9;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setInterval(() => {
+      if (!ccVisible || !radios[0].checked || document.hidden) return;
+      if (i === EV.length) { i = 0; clock = 12 * 3600 + 42 * 60 + 2; usd = 3.84; eta = 38; n = 9; feed.innerHTML = base; }
+      const [who, what] = EV[i++];
+      clock += 14 + Math.floor(Math.random() * 20);
+      usd += 0.03 + Math.random() * 0.05; eta = Math.max(1, eta - 3);
+      if (who === 'fix:round1' && what.includes('started')) n = 10;
+      if (who === 're-verify' && what.includes('confirmed')) n = 12;
+      const hh = String(Math.floor(clock / 3600)).padStart(2, '0'), mm = String(Math.floor(clock / 60) % 60).padStart(2, '0'), ss = String(clock % 60).padStart(2, '0');
+      const row = document.createElement('div');
+      row.className = 'fe new';
+      row.innerHTML = `<span class="ts">${hh}:${mm}:${ss}</span><span class="who">${who}</span><span>${what}</span>`;
+      feed.appendChild(row);
+      while (feed.children.length > 6) feed.removeChild(feed.firstElementChild);
+      if (A) A({ targets: row, opacity: [0, 1], translateX: [-10, 0], duration: 500, easing: 'easeOutCubic' });
+      setTimeout(() => row.classList.remove('new'), 1400);
+      set('cc-usd', usd.toFixed(2)); set('cc-usd2', usd.toFixed(2));
+      set('cc-eta', eta); set('cc-eta2', eta); set('cc-n', n); set('cc-n2', n);
+    }, 2600);
+  }
+  const wb = $('#wakebar');
+  if (wb && A && !RM) {
+    new IntersectionObserver((es) => {
+      if (es[0].isIntersecting) A({ targets: wb, width: ['0%', '34%'], duration: 1400, easing: 'easeOutExpo' });
+    }, { threshold: 0.5 }).observe(wb);
+  }
+
+  /* ---------------- SVG stages ---------------- */
+  if (RM || !A) return;
+  const dash = (el) => { const L = el.getTotalLength(); el.style.strokeDasharray = L; return L; };
+  function stage(id, build) {
+    const svg = document.getElementById(id); if (!svg) return;
+    let tl = null;
+    new IntersectionObserver((es) => {
+      const vis = es[0].isIntersecting;
+      if (vis) { if (!tl) tl = build(svg); else if (tl.play) tl.play(); }
+      else if (tl && tl.pause) tl.pause();
+    }, { threshold: 0.2 }).observe(svg);
+  }
+  function along(path, t) { const L = path.getTotalLength(); return path.getPointAtLength(L * Math.max(0, Math.min(1, t))); }
+
+  /* hero: knowledge flowing both ways */
+  stage('sv-hero', (svg) => {
+    const paths = $$('path[id^="hc"]', svg);
+    const glow = $$('.hp', svg), core = $$('.hp2', svg);
+    const leaves = $$('.hleaf', svg), cats = $$('.hcat circle', svg);
+    const runs = glow.map((g, i) => {
+      const p = paths[(i * 3) % paths.length], dir = i % 2 ? -1 : 1, o = { t: 0 };
+      return A({
+        targets: o, t: 1, duration: 2100 + (i % 3) * 500, delay: i * 420, loop: true, easing: 'easeInOutSine',
+        update: () => {
+          const pt = along(p, dir > 0 ? o.t : 1 - o.t);
+          g.setAttribute('cx', pt.x); g.setAttribute('cy', pt.y);
+          core[i].setAttribute('cx', pt.x); core[i].setAttribute('cy', pt.y);
+        },
+      });
+    });
+    let k = 0;
+    const lit = setInterval(() => {
+      if (!document.body.contains(svg) || document.hidden) return;
+      const c = k++ % cats.length;
+      A({ targets: cats[c], r: [11, 14, 11], duration: 900, easing: 'easeOutQuad' });
+      A({ targets: leaves.filter((l) => +l.dataset.c === c), fill: ['#faff69', '#2a2a35'], stroke: ['#faff69', '#4a4a58'], duration: 1500, delay: A.stagger(120), easing: 'easeOutQuad' });
+    }, 1300);
+    const usd = $('#hb-usd', svg); let u = 3.84;
+    const tick = setInterval(() => { if (!document.hidden) { u += 0.01; usd.textContent = u.toFixed(2); } }, 1800);
+    return { play: () => runs.forEach((r) => r.play()), pause: () => runs.forEach((r) => r.pause()), lit, tick };
+  });
+
+  /* 01 watch */
+  stage('sv-watch', (svg) => {
+    const bars = $$('.wbar', svg), cards = $$('.fcard', svg), strike = $('#w-strike', svg), sel = $('#w-sel', svg);
+    const L = dash(strike);
+    const tl = A.timeline({ loop: true, easing: 'easeOutCubic' });
+    tl.add({ targets: bars, width: [0, (el) => +el.dataset.w], duration: 900, delay: A.stagger(160) })
+      .add({ targets: sel, opacity: [0, 1, 0.4, 1], duration: 900 }, '-=400')
+      .add({ targets: cards, opacity: [0, 1], duration: 450, delay: A.stagger(520) }, '-=600')
+      .add({ targets: strike, strokeDashoffset: [L, 0], duration: 600, easing: 'easeInOutQuad' })
+      .add({ targets: {}, duration: 2600 })
+      .add({ targets: cards, opacity: [1, 0], duration: 400, delay: A.stagger(60) });
+    return tl;
+  });
+
+  /* 02 models */
+  stage('sv-models', (svg) => {
+    const bars = $$('.mbar', svg), rect = $('#m-badrect', svg), served = $('#m-served', svg), x = $('#m-x', svg);
+    const tl = A.timeline({ loop: true, easing: 'easeOutCubic' });
+    tl.add({ targets: [served, x], fill: ['#8b8b96', '#8b8b96'], opacity: [0.4, 0.4], duration: 1 })
+      .add({ targets: rect, strokeOpacity: [0, 0], duration: 1 })
+      .add({ targets: bars, width: [0, (el) => +el.dataset.w], duration: 1100, delay: A.stagger(140) })
+      .add({ targets: [served, x], fill: '#f87171', opacity: 1, duration: 500 }, '-=300')
+      .add({ targets: rect, strokeOpacity: [0, 0.9, 0.2, 0.9, 0.2, 0.9], duration: 1400, easing: 'linear' }, '-=300')
+      .add({ targets: {}, duration: 2600 });
+    return tl;
+  });
+
+  /* 03 memory: one question walks two hops */
+  stage('sv-mem', (svg) => {
+    const e1 = $('#mq-e1', svg), e2 = $('#mq-e2', svg), e3 = $('#mq-e3', svg);
+    const leaf = $('#mq-leaf', svg), lab = $('#mq-leaflabel', svg), proj = $('#mq-proj', svg), ans = $('#mq-ans', svg), bar = $('#mq-bar', svg), tok = $('#mq-tok', svg);
+    const L1 = dash(e1), L2 = dash(e2), L3 = dash(e3);
+    const o = { v: 0 };
+    const tl = A.timeline({ loop: true, easing: 'easeInOutQuad' });
+    tl.add({ targets: [e1, e2, e3], opacity: 1, duration: 1 })
+      .add({ targets: e1, strokeDashoffset: [L1, 0], duration: 900 })
+      .add({ targets: e2, strokeDashoffset: [L2, 0], duration: 450 })
+      .add({ targets: proj, strokeWidth: [1.8, 4, 1.8], duration: 600 }, '-=200')
+      .add({ targets: e3, strokeDashoffset: [L3, 0], duration: 450 }, '-=300')
+      .add({ targets: leaf, r: [4.5, 8, 6], fill: ['#2a2a35', '#faff69'], duration: 600 })
+      .add({ targets: lab, opacity: [0.3, 1], duration: 400 }, '-=400')
+      .add({ targets: ans, opacity: [0, 1], duration: 500 })
+      .add({ targets: bar, width: [0, 98], duration: 900, easing: 'easeOutExpo' }, '-=300')
+      .add({ targets: o, v: [0, 1.2], duration: 900, easing: 'easeOutExpo', update: () => { tok.textContent = o.v.toFixed(1) + 'k'; } }, '-=900')
+      .add({ targets: {}, duration: 2600 })
+      .add({ targets: [e1, e2, e3, ans], opacity: 0, duration: 500 })
+      .add({ targets: leaf, fill: '#2a2a35', r: 4.5, duration: 300 }, '-=300');
+    return tl;
+  });
+
+  /* 04 catalogs */
+  stage('sv-cat', (svg) => {
+    const lines = $$('.cl', svg).filter((p) => !p.getAttribute('stroke-dasharray'));
+    const lens = lines.map(dash);
+    const cards = $$('.cc1', svg), files = ['#cf-cwd', '#cf-pkg', '#cf-dock'].map((s) => $(s, svg));
+    const tl = A.timeline({ loop: true, easing: 'easeOutCubic' });
+    tl.add({ targets: cards, opacity: [0.25, 0.25], duration: 1 })
+      .add({ targets: files, fill: ['#c9c9d1', '#c9c9d1'], duration: 1 });
+    lines.forEach((l, i) => {
+      tl.add({ targets: files[i] || files[0], fill: '#c4b5fd', duration: 300 })
+        .add({ targets: l, strokeDashoffset: [lens[i], 0], duration: 650 }, '-=150')
+        .add({ targets: cards[i], opacity: 1, duration: 400 }, '-=200');
+    });
+    tl.add({ targets: cards[3], opacity: 1, duration: 400 })
+      .add({ targets: {}, duration: 2400 })
+      .add({ targets: lines, strokeDashoffset: (el, i) => lens[i], duration: 500, easing: 'easeInQuad' });
+    return tl;
+  });
+
+  /* 05 resume */
+  stage('sv-resume', (svg) => {
+    const fill = $('#r-fill', svg), wall = $('#r-wall', svg), morn = $('#r-morning', svg), lines = $$('.rline', svg);
+    const ticks = $$('.rt circle', svg), labels = $$('.rt text', svg), saved = $('#r-saved', svg), node = $('#r-node', svg);
+    const paint = (upto) => ticks.forEach((c, i) => {
+      c.setAttribute('stroke', i < upto ? '#4ade80' : '#3a3a46');
+      labels[i].setAttribute('class', 't-mono ' + (i < upto ? 't-body' : 't-mute2'));
+    });
+    const P9 = (8 / 13);
+    let last = -1;
+    const progress = (a, from, to) => {
+      const p = from + (to - from) * (a.progress / 100);
+      const k = Math.floor(p * 13 + 1e-6) + 1;
+      if (k !== last) {
+        last = k; paint(k);
+        if (k <= 9) saved.textContent = 'saved after agent ' + k;
+        A({ targets: node, r: [7, 11, 7], duration: 500, easing: 'easeOutQuad' });
+      }
+    };
+    const tl = A.timeline({ loop: true, easing: 'linear' });
+    tl.add({ targets: [wall, morn], opacity: 0, duration: 1, complete: () => { last = -1; paint(0); } })
+      .add({ targets: lines, opacity: 0, duration: 1 })
+      .add({ targets: fill, strokeDashoffset: [560, 560 - 560 * P9], duration: 3800, update: (a) => progress(a, 0, P9) })
+      .add({ targets: wall, opacity: [0, 1], translateY: [-24, 0], duration: 500, easing: 'easeOutBack' })
+      .add({ targets: {}, duration: 1100 })
+      .add({ targets: morn, opacity: [0, 1], duration: 500, easing: 'easeOutCubic' })
+      .add({ targets: lines, opacity: [0, 1], duration: 300, delay: A.stagger(320) })
+      .add({ targets: wall, opacity: 0.25, duration: 400 })
+      .add({ targets: fill, strokeDashoffset: [560 - 560 * P9, 0], duration: 2200, update: (a) => progress(a, P9, 1) })
+      .add({ targets: {}, duration: 2400 });
+    return tl;
+  });
+
+  /* 06 preflight */
+  stage('sv-pre', (svg) => {
+    const bad = $('#p-bad', svg), boom = $('#p-boom', svg), chk = $('#p-check', svg), good = $('#p-good', svg);
+    const rows = $$('.pchk', svg), marks = $$('.pchk .ck', svg);
+    boom.style.transformBox = 'fill-box'; boom.style.transformOrigin = 'center';
+    const tl = A.timeline({ loop: true, easing: 'linear' });
+    tl.add({ targets: boom, opacity: 0, duration: 1 })
+      .add({ targets: rows, opacity: 0.25, duration: 1 })
+      .add({ targets: marks, opacity: 0, duration: 1 })
+      .add({ targets: [chk], strokeDashoffset: 28, duration: 1 })
+      .add({ targets: [good], strokeDashoffset: 558, duration: 1 })
+      .add({ targets: bad, strokeDashoffset: [396, 0], duration: 2300, easing: 'easeInQuad' })
+      .add({ targets: boom, opacity: [0, 1], scale: [0.4, 1], duration: 450, easing: 'easeOutBack' })
+      .add({ targets: chk, strokeDashoffset: [28, 0], duration: 900 })
+      .add({ targets: rows, opacity: 1, duration: 200, delay: A.stagger(130) }, '-=900')
+      .add({ targets: marks, opacity: [0, 1], duration: 200, delay: A.stagger(130) }, '-=900')
+      .add({ targets: good, strokeDashoffset: [558, 0], duration: 1900, easing: 'easeOutQuad' })
+      .add({ targets: {}, duration: 2400 });
+    return tl;
+  });
+
+  /* 07 unit loop */
+  stage('sv-loop', (svg) => {
+    const ring = $('#l-ring', svg), tok = $('#l-token', svg), round = $('#l-round', svg);
+    const find = $('#l-find', svg), branch = $('#l-branch', svg), design = $('#l-design', svg), qs = $$('.lq', svg);
+    const LB = dash(branch);
+    const o = { t: 0 };
+    const tl = A.timeline({ loop: true });
+    const lap = (n) => tl.add({
+      targets: o, t: [0, 1], duration: 2600, easing: 'easeInOutSine',
+      begin: () => { round.textContent = n + '/3'; },
+      update: () => { const p = along(ring, o.t); tok.setAttribute('cx', p.x); tok.setAttribute('cy', p.y); },
+    });
+    tl.add({ targets: [find, design], opacity: 0, duration: 1 }).add({ targets: branch, strokeDashoffset: LB, duration: 1 });
+    lap(1);
+    tl.add({ targets: find, opacity: [0, 1], duration: 400, easing: 'easeOutCubic' });
+    lap(2);
+    tl.add({ targets: branch, strokeDashoffset: [LB, 0], duration: 700, easing: 'easeInOutQuad' })
+      .add({ targets: design, opacity: [0, 1], duration: 500, easing: 'easeOutCubic' })
+      .add({ targets: {}, duration: 2400 });
+    const q = A({ targets: qs, cx: [40, 600], duration: 5200, delay: A.stagger(1700), loop: true, easing: 'linear' });
+    return { play: () => { tl.play(); q.play(); }, pause: () => { tl.pause(); q.pause(); } };
+  });
+
+  /* 08 rulings */
+  stage('sv-rul', (svg) => {
+    const a = $('#ru-a', svg), b = $('#ru-b', svg), card = $('#ru-card', svg), file = $('#ru-file', svg);
+    const lines = $$('#ru-lines path', svg), dots = $$('.ra', svg);
+    const lens = lines.map(dash);
+    const tl = A.timeline({ loop: true, easing: 'easeOutCubic' });
+    tl.add({ targets: [card, file], opacity: 0, duration: 1 })
+      .add({ targets: dots, fill: '#34343f', duration: 1 })
+      .add({ targets: lines, strokeDashoffset: (el, i) => lens[i], duration: 1 })
+      .add({ targets: a, strokeDashoffset: [34, 0], duration: 500, delay: 400 })
+      .add({ targets: card, opacity: [0, 1], duration: 500 })
+      .add({ targets: b, strokeDashoffset: [32, 0], duration: 400 })
+      .add({ targets: file, opacity: [0, 1], duration: 450 })
+      .add({ targets: lines, strokeDashoffset: (el, i) => [lens[i], 0], duration: 700, delay: A.stagger(110), easing: 'easeInOutQuad' })
+      .add({ targets: dots, fill: '#e879f9', r: [5, 8, 5], duration: 500, delay: A.stagger(150) }, '-=500')
+      .add({ targets: {}, duration: 2600 });
+    return tl;
+  });
+
+  /* 09 ui check */
+  stage('sv-ui', (svg) => {
+    const scan = $('#ui-scan', svg), font = $('#ui-font', svg), empty = $('#ui-empty', svg);
+    const tl = A.timeline({ loop: true, easing: 'easeInOutSine' });
+    tl.add({ targets: [font, empty], opacity: 0, duration: 1 })
+      .add({ targets: scan, y: [28, 276], duration: 1800 })
+      .add({ targets: font, opacity: [0, 1], duration: 400 }, '-=500')
+      .add({ targets: scan, y: [276, 28], duration: 900, opacity: [0.85, 0.2] })
+      .add({ targets: empty, opacity: [0, 1, 0.5, 1], duration: 1200, easing: 'linear' })
+      .add({ targets: {}, duration: 2400 })
+      .add({ targets: scan, opacity: 0.85, duration: 1 });
+    return tl;
+  });
+
+  /* 10 meter */
+  stage('sv-meter', (svg) => {
+    const chips = $$('.mc', svg), bar = $('#mt-bar', svg), n = $('#mt-n', svg), toast = $('#mt-toast', svg);
+    let count = 0;
+    const tl = A.timeline({ loop: true });
+    tl.add({ targets: chips, opacity: 0, duration: 1, complete: () => { count = 0; n.textContent = '0'; bar.setAttribute('width', 0); } })
+      .add({ targets: toast, opacity: 0, duration: 1 });
+    chips.forEach((c) => {
+      tl.add({
+        targets: c, opacity: [0, 1], duration: 140, easing: 'easeOutQuad',
+        complete: () => {
+          if (c.dataset.c === '1') { count++; n.textContent = String(count); A({ targets: bar, width: 260 * count / 25, duration: 160, easing: 'easeOutQuad' }); }
+        },
+      });
+    });
+    tl.add({ targets: toast, opacity: [0, 1], duration: 500, easing: 'easeOutCubic' })
+      .add({ targets: {}, duration: 3000 });
+    return tl;
+  });
+})();
+
+</script>
+</body>
+</html>
