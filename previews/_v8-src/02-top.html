@@ -1,0 +1,207 @@
+<body>
+<nav class="top" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#top">baton<i>/</i>v8</a>
+    <div class="navlinks">
+      <a href="#mod">The mod</a>
+      <a href="#watch">Watch</a>
+      <a href="#models" class="opt">Models</a>
+      <a href="#memory">Memory</a>
+      <a href="#catalogs" class="opt">Catalogs</a>
+      <a href="#resume">Resume</a>
+      <a href="#preflight" class="opt">Preflight</a>
+      <a href="#loop" class="opt">Unit loop</a>
+      <a href="#rulings" class="opt">Rulings</a>
+      <a href="#uicheck" class="opt">UI check</a>
+      <a href="#files">Files first</a>
+      <a href="#install">Install</a>
+      <a class="gh" href="https://github.com/ckluis/baton">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="aura" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="rv">
+        <span class="pill"><b>v8</b><span class="dot"></span>design preview · not released yet</span>
+        <h1>Workflows that <em>remember.</em></h1>
+        <p class="lede">Claude Workflows run the work. <b>baton watches every agent, remembers through catalogs, and guides without managing</b>: each agent gets exactly the knowledge it needs and nothing else, and you never have to ask "status?" again.</p>
+        <div class="ctas">
+          <a class="btn y" href="#mod">See the mod <span class="ar">→</span></a>
+          <a class="btn" href="#memory">The memory <span class="ar">→</span></a>
+          <a class="btn" href="#p-evidence" data-panel>Where the numbers come from</a>
+        </div>
+      </div>
+      <div class="hero-obj rv" role="img" aria-label="A Claude Workflow on the left streams what its agents learn into a graph memory on the right; the memory streams back only what each agent needs.">
+{{HERO_SVG}}
+      </div>
+    </div>
+
+    <div class="stats rv">
+      <div class="stat c"><div class="n" data-count="37">37</div><div class="l">times you typed a bare "Status" in two Workflow-heavy sessions. The pane answers instead.</div><span class="src">measured · taal + F# Campfire</span></div>
+      <div class="stat r"><div class="n" data-count="405">405</div><div class="l">turns that asked for <code>haiku</code> and ran on Haiku 4.5. Every row now shows the model that served.</div><span class="src">measured · onCrack round 4</span></div>
+      <div class="stat y"><div class="n"><span data-count="13.9" data-dec="1">13.9</span><small>KB</small></div><div class="l">of flat memory loaded into every session, mostly about other projects. Catalogs load only what applies.</div><span class="src">measured · MEMORY.md, 2026-10-10</span></div>
+      <div class="stat m"><div class="n"><span data-count="38.2" data-dec="1">38.2</span><small>M</small></div><div class="l">tokens across 20 Workflow runs that rebuilt baton's verify loop by hand in every script.</div><span class="src">measured · 206 agents, ≈95 h</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= THE MOD ======================= -->
+<section class="band" id="mod">
+  <div class="glow" style="left:-300px;top:-200px" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">00</span>The mod</div>
+      <h2 style="font-size:clamp(38px,6vw,84px);line-height:.98;letter-spacing:-.04em;color:var(--ink);font-weight:800;margin:18px 0 18px;max-width:16ch">Everything, one keystroke away.</h2>
+      <p style="max-width:720px;font-size:clamp(16.5px,1.45vw,19px)">A pane beside your conversation and one line above the prompt. <b style="color:var(--ink)">Watch</b> streams every agent's changes, <b style="color:var(--ink)">Memory</b> walks the catalogs, <b style="color:var(--ink)">Session</b> is what resume will pick up, <b style="color:var(--ink)">Env</b> is the preflight. The same pane draws in the terminal, the desktop app, VS Code and on your phone. Try it: the tabs and rows below are live.</p>
+    </div>
+
+    <div class="cc rv" id="cc" tabindex="0" aria-label="A Claude Code session with the baton v8 pane: conversation on the left, the pane on the right with four tabs, the status band and the prompt">
+      <div class="chrome"><i></i><i></i><i></i><span>~/shop — claude · baton 8.0 · claude-opus-5-5</span></div>
+      <div class="body">
+        <input type="radio" name="cc-tab" id="t-watch" checked>
+        <input type="radio" name="cc-tab" id="t-mem">
+        <input type="radio" name="cc-tab" id="t-sess">
+        <input type="radio" name="cc-tab" id="t-env">
+<div class="convo"><span class="u">&gt; run the csv import units with the unit loop. opus verifies, haiku runs the bench</span>
+
+<span class="k">⏺</span> Workflow(<span class="y">unit-loop</span> · csv-import-units)
+  <span class="d">⎿ wf_8c1e2a started · 14 agents · preflight first</span>
+  <span class="g">baton: preflight 6/6 ✓ (1 learned: disk ≥ 20 GB)</span>
+
+<span class="k">⏺</span> While that runs I'll read the old parser.
+<span class="k">⏺</span> Read(src/import/legacy.ts)
+  <span class="d">⎿ 214 lines — the mod watches, it doesn't wall</span>
+
+<span class="u">&gt; decisions go in issues, never in PRs</span>
+  <span class="m">baton: ruling → user catalog · every agent reads it from rulings.md</span>
+
+<span class="k">⏺</span> verify:parser found a major: a quoted newline splits the row.
+  <span class="d">⎿ fix:round1 queued · round 1 of 3</span>
+  <span class="r">baton: run:bench asked haiku → served claude-haiku-4-5-20251001</span>
+  <span class="d">  flagged in Watch · enforce with /baton models enforce</span>
+
+<span class="y">✻ Watching… · wf csv-import-units · 9/14 · ETA 38m</span></div>
+        <div class="side">
+          <div class="tabs" role="tablist">
+            <label for="t-watch"><b>1</b>Watch</label>
+            <label for="t-mem"><b>2</b>Memory</label>
+            <label for="t-sess"><b>3</b>Session</label>
+            <label for="t-env"><b>4</b>Env</label>
+            <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> <kbd>Enter</kbd> · <kbd>1</kbd>–<kbd>4</kbd> tabs</span>
+          </div>
+          <div class="views">
+            <!-- WATCH -->
+            <div class="view v-watch">
+              <div class="hdr"><span class="nm">csv-import-units</span><span class="id">wf_8c1e2a · unit-loop</span><span class="st-on">◉ running 1h12m</span><span><span id="cc-n">9</span>/14 agents</span><span>$<span id="cc-usd">3.84</span></span><span class="st-ok">ETA <span id="cc-eta">38</span>m</span></div>
+              <div class="lane"><span class="ok">Preflight</span>─<span class="ok">Build</span>─<span class="on">Verify</span>─<span class="off">Fix</span>─<span class="off">Re-verify</span>─<span class="off">Merge queue</span></div>
+              <div class="th"><span></span><span>agent</span><span>model · served</span><span>state</span><span class="num">tokens</span><span class="num">$</span></div>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ preflight</span><span class="mdl">claude-haiku-5-5</span><span class="st-ok">done</span><span class="num">3.1k</span><span class="num">&lt;.01</span></summary>
+<div class="dv"><span class="k">asked    </span>claude-haiku-5-5 → served claude-haiku-5-5 <span class="add">✓</span>
+<span class="k">ran      </span>6 checks from project:shop/env in 19 s
+<span class="k">learned  </span>disk ≥ 20 GB <span class="k">(added 2026-10-09 after ENOSPC)</span></div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:parser</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">182k</span><span class="num">0.61</span></summary>
+<div class="dv"><span class="k">changed  </span>src/import/parse.ts   <span class="add">+88</span> <span class="del">−31</span>
+<span class="k">         </span>test/parse.test.ts    <span class="add">+52</span>
+<span class="k">commit   </span><span class="y">a41c07e</span> parse RFC 4180 fields
+<span class="k">tests    </span>npm test -- parse  <span class="add">38/38</span></div></details>
+              <details class="agent" open><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:importer</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">240k</span><span class="num">0.84</span></summary>
+<div class="dv"><span class="k">changed  </span>src/import/csv.ts     <span class="add">+42</span> <span class="del">−7</span>
+<span class="k">         </span>src/import/types.ts   <span class="add">+11</span>
+<span class="k">         </span>test/import.test.ts   <span class="add">+64</span>
+<span class="k">commit   </span><span class="y">3f9a2c1</span> stream rows into the importer
+<span class="k">tests    </span>npm test  <span class="y">51/54</span> → handed to verify
+<span class="k">open     </span><span class="c">diff ↗</span>  <span class="c">transcript ↗</span>  <span class="c">result ↗</span></div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-ok">✓ build:cli</span><span class="mdl">claude-sonnet-5-5</span><span class="st-ok">done</span><span class="num">97k</span><span class="num">0.33</span></summary>
+<div class="dv"><span class="k">changed  </span>src/cli/import.ts     <span class="add">+29</span> <span class="del">−4</span>
+<span class="k">commit   </span><span class="y">9be12d0</span> shop import --csv</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-on">◉ verify:parser</span><span class="mdl">claude-opus-5-5</span><span class="st-on">running</span><span class="num">61k</span><span class="num">0.38</span></summary>
+<div class="dv"><span class="k">asked    </span>claude-opus-5-5 → served claude-opus-5-5 <span class="add">✓</span>
+<span class="k">doing    </span>Bash  npm test -- parse --fuzz  <span class="k">(12 s ago)</span>
+<span class="k">found    </span><span class="del">⚑ major</span>  src/import/csv.ts:88  a quoted newline splits the row
+<span class="k">changed  </span>nothing — verifiers never edit</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-on">◉ verify:importer</span><span class="mdl">claude-opus-5-5</span><span class="st-on">running</span><span class="num">44k</span><span class="num">0.27</span></summary>
+<div class="dv"><span class="k">doing    </span>Read  test/import.test.ts
+<span class="k">found    </span>nothing yet</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-bad">✗ run:bench</span><span class="mdl bad"><s>haiku</s> → claude-haiku-4-5-20251001</span><span class="st-bad">flagged</span><span class="num">18k</span><span class="num">0.02</span></summary>
+<div class="dv"><span class="k">asked    </span>haiku  →  served <span class="del">claude-haiku-4-5-20251001 ✗</span>
+<span class="k">why      </span>this Claude Code resolves the alias to Haiku 4.5
+<span class="k">costs    </span>$1 / $5 per MTok instead of $0.10 / $0.50
+<span class="k">fix      </span>name models by full ID: the template's model map does
+<span class="k">enforce  </span><span class="y">/baton models enforce</span> → the mod denies the spawn</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-q">○ fix:round1</span><span class="mdl">claude-sonnet-5-5</span><span class="st-q">queued</span><span class="num">—</span><span class="num">—</span></summary>
+<div class="dv"><span class="k">waits on </span>verify:parser, verify:importer
+<span class="k">round    </span>1 of 3 · a finding seen in 2 rounds spawns a design unit</div></details>
+              <details class="agent"><summary class="rw"><span class="caret">›</span><span class="st-q">○ re-verify</span><span class="mdl">claude-opus-5-5</span><span class="st-q">queued</span><span class="num">—</span><span class="num">—</span></summary>
+<div class="dv"><span class="k">fresh    </span>a new verifier, never the one that found it</div></details>
+              <div class="sub"><span>what changed · live</span><span>Enter opens a row</span></div>
+              <div class="feed" id="feed">
+                <div class="fe"><span class="ts">12:41:07</span><span class="who">build:importer</span><span>✎ src/import/csv.ts <span class="st-ok">+42</span> <span class="st-bad">−7</span></span></div>
+                <div class="fe"><span class="ts">12:41:31</span><span class="who">build:importer</span><span>✓ npm test 51/54</span></div>
+                <div class="fe"><span class="ts">12:41:44</span><span class="who">build:importer</span><span>⎇ commit 3f9a2c1</span></div>
+                <div class="fe"><span class="ts">12:42:02</span><span class="who">verify:parser</span><span><span class="st-bad">⚑ major</span> quoted newline splits the row</span></div>
+              </div>
+            </div>
+            <!-- MEMORY -->
+            <div class="view v-mem">
+              <div class="crumb"><b>root</b> › catalogs loaded for <b>~/shop</b> · the rest is one hop away</div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">user</span><span class="hk">how you work · 14 nodes</span><span class="sz">0.4k</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">project:shop</span><span class="hk">picked by cwd · 23 nodes</span><span class="sz">0.5k</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  session</span><span class="hk">wf_8c1e2a at agent 10/14 · 2 PRs</span><span class="sz">live</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  env</span><span class="hk">6 checks · 1 learned</span><span class="sz">90b</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  how-to-test</span><span class="hk">npm test · e2e needs pg on :5433</span><span class="sz">120b</span></div>
+              <div class="cat"><span class="ic">●</span><span class="nm">  rulings</span><span class="hk">4 active · newest: decisions → issues</span><span class="sz">260b</span></div>
+              <div class="cat stale"><span class="ic">●</span><span class="nm">  csv-quirks</span><span class="hk">quoted newlines, BOM, ; separators</span><span class="sz">210b</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">tech:typescript</span><span class="hk">picked by package.json · 9 nodes</span><span class="sz">0.2k</span></div>
+              <div class="cat lit"><span class="ic">◆</span><span class="nm">tool:cmux</span><span class="hk">picked by doctor · 6 nodes</span><span class="sz">0.1k</span></div>
+              <div class="cat" style="opacity:.55"><span class="ic">◇</span><span class="nm">tech:rust</span><span class="hk">not here: no Cargo.toml</span><span class="sz">—</span></div>
+              <div class="cat" style="opacity:.55"><span class="ic">◇</span><span class="nm">project:tinker</span><span class="hk">not here: other repo</span><span class="sz">—</span></div>
+              <div class="meter"><span>wake</span><span class="bar"><u style="width:100%"></u><i style="width:34%" id="wakebar"></i></span><span><b style="color:var(--ink)">1.2k</b> vs 3.5k flat</span></div>
+              <div class="sub" style="margin-top:14px"><span>node · project:shop/csv-quirks</span><span>stale: csv.ts changed 3f9a2c1</span></div>
+<div class="dv" style="margin-left:0">Quoted fields may hold newlines; a BOM can lead the file; EU exports use ";".
+<span class="k">source   </span>src/import/csv.ts @ a41c07e  <span class="y">← newer commit exists: re-check</span>
+<span class="k">links    </span>[[how-to-test]] [[tech:typescript/streams]] <span class="k">supersedes</span> [[csv-quirks@09-30]]</div>
+            </div>
+            <!-- SESSION -->
+            <div class="view v-sess">
+              <div class="hdr"><span class="nm">project:shop/session</span><span class="id">rewritten 12:42:07 · after agent 9 returned</span></div>
+              <div class="kv">
+                <span class="k">run</span><span>wf_8c1e2a · unit-loop · csv-import-units</span>
+                <span class="k">resume at</span><span>agent 10 of 14 (fix:round1) · 9 cached in the journal</span>
+                <span class="k">in flight</span><span class="st-on">verify:parser, verify:importer — close waits for them</span>
+                <span class="k">PRs</span><span>#84 open · #85 draft</span>
+                <span class="k">decisions</span><span class="st-bad">D3 which vendor key does the import use? (asked 11:58)</span>
+                <span class="k">rulings +</span><span>decisions go in issues, never in PRs</span>
+                <span class="k">next</span><span>fix:round1 → re-verify → merge queue</span>
+              </div>
+              <div class="sub"><span>next morning</span><span>07:02</span></div>
+<div class="dv" style="margin-left:0"><span class="y">&gt; /baton resume</span>
+<span class="add">✓</span> PR #84 merged since close → unit 7 unblocked
+<span class="add">✓</span> main moved 3 commits → re-baseline queued
+<span class="del">✗</span> disk 14 GB &lt; 20 GB (learned check) → cleaned dist/, 31 GB free
+<span class="add">✓</span> resuming wf_8c1e2a at agent 10 · 9 agents replayed from the journal</div>
+            </div>
+            <!-- ENV -->
+            <div class="view v-env">
+              <div class="hdr"><span class="nm">project:shop/env</span><span class="id">preflight · 19 s · before agent 1</span></div>
+              <div class="chk learn"><span class="st-ok">✓</span><span>disk free ≥ 20 GB</span><span class="why">31 GB · learned 2026-10-09 (ENOSPC mid-build)</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>node ≥ 22</span><span class="why">v25.9.0</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>pg_isready -p 5433</span><span class="why">accepting connections</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>port 44100 free or ours</span><span class="why">npm run dev · pid 8812</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>git clean</span><span class="why">main @ 7367f72</span></div>
+              <div class="chk"><span class="st-ok">✓</span><span>gh auth</span><span class="why">signed in</span></div>
+              <div class="sub"><span>learned from failures</span><span>/baton env add "&lt;cmd&gt;"</span></div>
+<div class="dv" style="margin-left:0"><span class="k">2026-10-09 </span>build:importer died: <span class="del">ld: write() failed, errno=28 (No space left on device)</span>
+<span class="k">           </span>→ added <span class="y">disk free ≥ 20 GB</span> with the cleanup that fixed it</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bandrow"><span class="y">baton</span><span>◉ <b>csv-import-units</b> <span id="cc-n2">9</span>/14 · ETA <span id="cc-eta2">38</span>m · $<span id="cc-usd2">3.84</span></span><span class="sp">│</span><span>main thread <b>6</b> calls since dispatch</span><span class="sp">│</span><span>5h <b>41%</b> · week <b>18%</b></span><span class="sp">│</span><span>ctx <b>22%</b></span><span class="sp">│</span><span style="color:var(--red)">1 model flagged</span></div>
+      <div class="prompt"><span class="caret">&gt;</span><span class="cursor blink"></span></div>
+    </div>
+    <div class="cc-note rv"><span><kbd>1</kbd>–<kbd>4</kbd> switch tabs</span><span><kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>Enter</kbd> opens a row</span><span>Rows and tabs work without JavaScript too.</span><span><b>Sample data.</b> v8 is a design; the run is illustrative.</span></div>
+  </div>
+</section>

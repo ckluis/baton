@@ -1,0 +1,118 @@
+
+<!-- ======================= FILES FIRST ======================= -->
+<section class="plain" id="files" style="--accent:var(--green)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">11</span>Files first</div>
+      <h2>Works before you install anything.</h2>
+      <p class="lede">The memory, rulings, templates and preflight are <b style="color:var(--ink)">plain files</b>. Any agent can read them and any Workflow script can use them. The mod is the accelerator: it watches, keeps the files current, draws the pane and nudges. If the mod can't load (mods are still early access), nothing breaks; you just lose the live view.</p>
+    </div>
+    <div class="layers">
+      <div class="layer hot rv"><h3>Files <small>no install · any harness</small></h3><p><code>MEMORY.md</code> as the root catalog · user / project / tech / tool catalogs and their nodes · <code>rulings.md</code> imported by CLAUDE.md · the <code>unit-loop</code> template and agent types with pinned model IDs · env checks · the session node</p></div>
+      <div class="layer rv"><h3>Mod <small>Claude Code plugin</small></h3><p>Watch pane and live change feed · served-model flags and <code>models enforce</code> · the Haiku 5.5 curator that folds notes into nodes · ruling extraction · close/resume commands · meter + nudge · the guard that keeps <code>MEMORY.md</code> a root</p></div>
+      <div class="layer rv"><h3>Claude Workflows <small>the engine</small></h3><p>Deterministic phases, schemas, concurrency, resume from the journal. baton never replaces it. It watches it, feeds it knowledge and remembers what it did.</p></div>
+    </div>
+    <div class="more rv" style="margin-top:22px"><a class="btn a" href="#p-files" data-panel>What still needs proving <span class="ar">→</span></a></div>
+  </div>
+</section>
+<aside class="panel" id="p-files" role="dialog" aria-labelledby="h-files" tabindex="-1">
+  <div class="ph"><span class="eyebrow">11 · Files first</span><a class="x" href="#files">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-files">What still needs proving</h3>
+    <p>v8 is a design. These are the first things a spike must settle before any of it ships:</p>
+    <ol>
+      <li><b>Is the mods rollout on?</b> On 2026-10-04 it was "served off", and v7's plugin tests have never run live.</li>
+      <li><b>Can Workflow agents call the mod's memory tools?</b> If not, they read the catalog files directly, which still works.</li>
+      <li><b>Does a CLAUDE.md import written mid-session reach agents that start later?</b> This decides how fresh rulings are.</li>
+      <li><b>Is the requested model visible at spawn, before alias resolution?</b> This decides whether <code>models enforce</code> can catch <code>haiku</code> → 4.5.</li>
+      <li><b>Is <code>wf_*.json</code> stable?</b> It's an internal format, so the reader must fail loudly ("format changed") rather than draw blanks.</li>
+    </ol>
+    <h4>Build order</h4>
+    <ol>
+      <li>Model truth: prices, full IDs, served model on every row</li>
+      <li>Memory graph format, tools and the curator</li>
+      <li>Migrate the existing memory: copy, A/B on 10 real openers, swap, archive</li>
+      <li>Project catalog: session + env</li>
+      <li>Watch pane + change feed</li>
+      <li>Rulings to every agent + templates + merge queue</li>
+      <li>UI-check drivers, then the Haiku tier experiment</li>
+    </ol>
+    <div class="src">plan · /Users/clank/Desktop/projects/baton-v8-plan.html (rounds 1–3, decisions D1–D11)</div>
+  </div>
+</aside>
+<a class="scrim" href="#files" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= INSTALL ======================= -->
+<section class="plain" id="install" style="--accent:var(--yellow)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">12</span>Install</div>
+      <h2>Two lines, when it ships.</h2>
+      <p class="lede">v8 is a design preview. Today's release is <a href="index.html">v7.5</a>. When v8 lands, this is the whole setup.</p>
+    </div>
+    <div class="install">
+      <div class="box rv"><h3>The mod</h3><pre><span class="c"># once, in Claude Code</span>
+/plugin marketplace add ckluis/baton
+/plugin install baton@baton
+<span class="c"># then just work: the pane opens when a Workflow starts</span>
+/baton doctor</pre><p style="font-size:14px;color:var(--muted)">Doctor checks the Claude Code version, what each model alias resolves to, the UI-check drivers it finds, and whether mods can load.</p></div>
+      <div class="box rv"><h3>Files only</h3><pre><span class="c"># no plugin: build the catalogs from your memory</span>
+baton mem init         <span class="c"># root + user + this project</span>
+baton mem migrate --copy --ab 10
+baton mem doctor       <span class="c"># orphans, stale nodes, broken links</span></pre><p style="font-size:14px;color:var(--muted)">Planned CLI. Every command writes plain Markdown you can read and diff.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= VERSIONS ======================= -->
+<section class="plain" id="versions" style="--accent:var(--cyan)">
+  <div class="wrap">
+    <div class="rv">
+      <div class="eyebrow"><span class="n">13</span>Versions</div>
+      <h2>How it got here.</h2>
+      <p class="lede">From a pasted router prompt to a mod that watches the engine. Each version kept what its experiments proved and cut the rest.</p>
+    </div>
+    <div class="vers">
+      <a class="ver now rv" href="#top"><b>v8 · design</b><span>A watcher over Claude Workflows; graph memory through catalogs; model truth.</span></a>
+      <a class="ver rv" href="index.html"><b>v7.5</b><span>The mod: prime guard, memory tree, rulings, the pane.</span></a>
+      <a class="ver rv" href="baton-v6.html"><b>v6</b><span>The shrink: six experiments, tiers named, personas off.</span></a>
+      <a class="ver rv" href="baton-v5.html"><b>v5</b><span>Accountability: three tiers, a quiet team mode.</span></a>
+      <a class="ver rv" href="baton-v4.html"><b>v4</b><span>GitHub-native team mode.</span></a>
+      <a class="ver rv" href="baton-v3.html"><b>v3</b><span>Prime on demand, the SQLite index.</span></a>
+      <a class="ver rv" href="baton-v2.html"><b>v2</b><span>Rungs, contracts, the phase runner.</span></a>
+      <a class="ver rv" href="baton-v1.html"><b>v1</b><span>The original router prompt.</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= EVIDENCE PANEL ======================= -->
+<aside class="panel" id="p-evidence" role="dialog" aria-labelledby="h-evidence" tabindex="-1">
+  <div class="ph"><span class="eyebrow">Where the numbers come from</span><a class="x" href="#top">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-evidence">Thirteen sessions, twenty Workflow runs</h3>
+    <p>Every figure tagged <span class="tag meas">measured</span> comes from real Claude Code session logs or files, read on 2026-10-10. Figures tagged <span class="tag goal">design target</span> are what v8 aims for and haven't been measured yet.</p>
+    <table>
+      <tr><th>number</th><th>how</th></tr>
+      <tr><td>37 "Status"</td><td>human prompts matching <code>^\s*status\??\s*$</code>: 29 in the F# Campfire session, 8 in taal</td></tr>
+      <tr><td>405 turns</td><td><code>.message.model</code> in onCrack round-4 agent transcripts: 198 + 142 + 65 on <code>claude-haiku-4-5-20251001</code></td></tr>
+      <tr><td>13.9 KB</td><td><code>wc -c MEMORY.md</code>, 13,869 bytes</td></tr>
+      <tr><td>38.2M tokens</td><td>sum of <code>totalTokens</code> over 20 <code>wf_*.json</code> (taal 19.2M, Campfire 19.0M); 206 agents; ≈95 h</td></tr>
+      <tr><td>112 links</td><td><code>[[name]]</code> resolved across 64 memory files; 3 broken, 2 files with none</td></tr>
+      <tr><td>×8 ENOSPC</td><td>"errno=28 (No space left on device)" in the tinker session</td></tr>
+      <tr><td>4,557 Bash</td><td>tool calls in the itsjusthtml main thread; 10 compactions; 5.9B cache-read tokens</td></tr>
+      <tr><td>12+ scripts</td><td>Workflow scripts with the build → verify → fix → re-verify shape across taal and Campfire</td></tr>
+      <tr><td>1.2k at wake</td><td><span class="tag goal">design target</span> root + user + one project + its techs</td></tr>
+    </table>
+    <h4>Sessions read</h4>
+    <p>itsjusthtml · taal · F# Campfire + onCrack · samen ×3 · tinker · baton v7 · Overlook · Bend ×2 · experiments index. Four Sonnet analysts read the logs; every number on this page was re-checked by hand.</p>
+    <div class="src">plan + raw notes · /Users/clank/Desktop/projects/baton-v8-plan.html</div>
+  </div>
+</aside>
+<a class="scrim" href="#top" tabindex="-1" aria-hidden="true"></a>
+
+<footer>
+  <div class="wrap">
+    <span><b style="color:var(--ink)">baton</b> · MIT · <a href="https://github.com/ckluis/baton">github.com/ckluis/baton</a></span>
+    <span>v8 design preview · sample data in the mod is illustrative · built by <a href="https://ckluis.com">Chris Kluis</a></span>
+  </div>
+</footer>
