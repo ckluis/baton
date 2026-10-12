@@ -231,7 +231,7 @@ The operator took every recommendation on this run's final brief on 2026-09-24.
 - **These commits reach `main` through PR #30.** `opus55-replay` is a fast-forward of
   `v5-accountability`, so PR #30 carries its own evidence.
 - **The run record is kept and archived.** A copy of `_orch/` sits outside the checkout at
-  `/Users/clank/Desktop/projects/baton-runs-archive/opus55-replay-and-ladder-orch-20260924.tar.gz`.
+  `/Users/clank/Desktop/projects/baton/_archive/opus55-replay-and-ladder-orch-20260924.tar.gz`.
 - **One genuine UNSETTLEABLE row is recorded as unpromotable,** beside `P121`'s cross-handoff gap.
   `P132` #24 reads: *"Each finding present after the change and absent before it is named
   individually in `work/records-valid.md` with a statement of why it is correct, settled by

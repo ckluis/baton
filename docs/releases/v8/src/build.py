@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Assemble baton v8 index.html from these parts + generated SVG + inlined anime.js.
 
-Usage: python3 previews/_v8-src/build.py v8.html"""
+Usage: python3 docs/releases/v8/src/build.py docs/releases/v8/index.html"""
 import math, re, sys, pathlib
 
 HERE = pathlib.Path(__file__).parent
