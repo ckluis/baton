@@ -73,11 +73,158 @@ svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
 <div class="wrap">
 
 <header>
-  <span class="pill">plan · round 3 · nothing built</span><span class="pill">2026-10-10</span>
+  <span class="pill">plan · round 5 · nothing built</span><span class="pill">2026-10-15</span>
   <h1>baton v8: a universal Claude Code mod for Claude Workflows</h1>
   <p>baton v8 is a watcher, infrastructure and guidance for Claude Workflows. It doesn't manage them. Its core is a graph memory with catalogs as the entry points, and the memory is plain files, so it works with or without the mod installed.</p>
-  <p>Round 3 (on top) settles the memory design and the migration of your existing memory. Rounds 1–2 follow below, with D7 replaced. Open decisions D8–D11 are at the bottom.</p>
+  <p>Rounds 4–5 (on top) settle universality, Codex, the press-release stage and the single-family roles file, and add guardrails. Round 3 (the memory design) and rounds 1–2 follow. Open decisions D8 (revised), D9–D11 and D15–D17 are at the bottom.</p>
 </header>
+
+<!-- ============ Rounds 4–5: settled ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Rounds 4–5: your answers (2026-10-12 to 10-15)</div>
+    <h2>What's settled since round 3</h2>
+    <table>
+      <tr><th>you said</th><th>what it means for the build</th></tr>
+      <tr><td>Make it universal: AGENTS.md, every harness and provider</td><td><b>D12, universal-first.</b> baton is a memory and generic workflow accelerator made of plain files and process: the catalog graph, templates, rulings, preflight, close/resume and the run record. Any agent reads it through <code>AGENTS.md</code>. The Claude Code mod is the visibility layer and accelerator on top.</td></tr>
+      <tr><td>Top tier for Claude, but don't leave Codex friends behind</td><td><b>D14, Codex is the second adapter.</b> An <code>AGENTS.md</code> entry plus a <code>baton watch</code> terminal view rebuilt from <code>~/.codex/sessions/…/rollout-*.jsonl</code> (each rollout names its parent thread), refreshed by Codex's <code>notify</code> turn-ended hook. Codex gets no pane and no spawn deny; those need Claude's mod system.</td></tr>
+      <tr><td>Build the press release before the project, then build, then validate</td><td><b>D13, a new first stage.</b> The press release's claims become the build's acceptance criteria, and the final gate redraws the same page with each claim stamped. See the next slide.</td></tr>
+      <tr><td>(from measurement, not a question) prompt-cache findings</td><td><b>D8 revised to "read, don't import."</b> <code>CLAUDE.md</code> is frozen at session start and imports load in full, so catalogs, rulings and the session node are files agents Read on demand. The roles file gets a cache TTL column: 1 hour only for roles that sit idle on long commands.</td></tr>
+      <tr><td>Primarily single family; multiple as an option, since not everyone pays for several subscriptions</td><td><b>The roles file defaults to one provider's tiers.</b> A cross-family verifier is one optional line. See the roles slide.</td></tr>
+      <tr><td>Strict linters that reduce the AI's flexibility, under the theory of constraints</td><td><b>A guardrails node in every project catalog,</b> plus enforcement the mod accelerates. See the guardrails slide; D16 and D17 are open.</td></tr>
+      <tr><td>"Holy baton sprawl"</td><td>All v8 work lives in the repo: this page at <code>docs/designs/v8/plan.html</code>, the press release at <code>docs/releases/v8/</code>.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ D13: press release, build, validate ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">D13 · settled · the press-release stage</div>
+    <h2>Promise first, build against the promise, then stamp every claim</h2>
+    <p class="desc">Before any code, a run writes <code>_orch/release/release.html</code>: a sales hero per value area, side panels for detail, measured numbers tagged apart from targets. You approve the page. Each claim on it becomes one acceptance criterion. At the final gate the same page is redrawn from the ledger, with every claim stamped.</p>
+    <div class="visual">
+      <svg viewBox="0 0 740 190" width="100%" role="img" aria-label="Press release claims flow into build units, then into validation that stamps each claim; a missed claim loops back as a new unit or a changed claim">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--mute)"/></marker></defs>
+        <g font-size="12.5">
+          <rect class="hot" x="10" y="20" width="200" height="86" rx="10"/>
+          <text x="24" y="44" font-weight="600">1 · Press release</text>
+          <text x="24" y="64" class="mute" font-size="11.5">claims with targets</text>
+          <text x="24" y="81" class="mute" font-size="11.5">you approve the page</text>
+          <text x="24" y="98" class="mute" font-size="11.5">cheap to iterate</text>
+          <rect class="box" x="270" y="20" width="200" height="86" rx="10"/>
+          <text x="284" y="44" font-weight="600">2 · Build</text>
+          <text x="284" y="64" class="mute" font-size="11.5">each unit names its claim</text>
+          <text x="284" y="81" class="mute" font-size="11.5">claim = acceptance line</text>
+          <text x="284" y="98" class="mute" font-size="11.5">no claim, no unit</text>
+          <rect class="hot" x="530" y="20" width="200" height="86" rx="10"/>
+          <text x="544" y="44" font-weight="600">3 · Validate</text>
+          <text x="544" y="64" class="mute" font-size="11.5">same page, redrawn</text>
+          <text x="544" y="81" class="mute" font-size="11.5">proven · missed · changed</text>
+          <text x="544" y="98" class="mute" font-size="11.5">evidence from the ledger</text>
+          <path class="line" d="M210 63 L266 63" marker-end="url(#ah)"/>
+          <path class="line" d="M470 63 L526 63" marker-end="url(#ah)"/>
+          <path class="line" d="M630 106 C630 160, 370 170, 370 110" marker-end="url(#ah)" stroke-dasharray="4 4"/>
+          <text x="420" y="168" class="mute" font-size="11.5">missed → a new unit, or the claim changes</text>
+        </g>
+      </svg>
+    </div>
+    <table>
+      <tr><th>claim state</th><th>meaning on the final page</th></tr>
+      <tr><td><span class="yes">proven</span></td><td>The verify step ran on the real artifact and the ledger row points at the evidence.</td></tr>
+      <tr><td><span class="no">missed</span></td><td>Not met. The page says by how much and what blocked it.</td></tr>
+      <tr><td>changed</td><td>You changed the claim during the build; the old wording stays, struck through, with the reason.</td></tr>
+    </table>
+  </div>
+  <aside class="rail">
+    <h4>Borrowed from pstack</h4>
+    <ul>
+      <li><b>Brief fields are required.</b> A unit's prompt carries goal, scope, acceptance, verify and report. In Claude the mod can deny a Workflow agent's spawn when acceptance or verify is missing; elsewhere a template check refuses it.</li>
+      <li><b>The ledger is checked against the transcripts</b> before a claim is stamped proven, so the final page can't stamp what never ran.</li>
+      <li><b>A verify node per project</b> (launch, doctor, drive, evidence, cleanup) with a feature map, one journey per user-facing feature. It folds into P4's UI-check drivers. Each claim points at the journey that proves it.</li>
+    </ul>
+    <h4>Not borrowed</h4>
+    <p>pstack's "the best spec is code." The press release is not a plan document; it is the acceptance spec, checked at the end.</p>
+  </aside>
+</section>
+
+<!-- ============ Roles: single family ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 5 · the roles file · D15</div>
+    <h2>One provider's tiers by default; a second family is one optional line</h2>
+    <p class="desc">Not everyone pays for two subscriptions, so baton defaults to a single family. The roles file maps each role to a full model ID and a cache TTL. <code>doctor</code> fills it only with IDs it has confirmed are available, and the mod compares the model that actually served each agent against it.</p>
+    <table>
+      <tr><th>role</th><th>Claude (default)</th><th>Codex (default)</th><th>cache TTL</th></tr>
+      <tr><td>judgment, verifier, design</td><td><code>claude-opus-5-5</code></td><td>its strongest model</td><td>5 min</td></tr>
+      <tr><td>builder</td><td><code>claude-sonnet-5-5</code></td><td>its default coding model</td><td>5 min</td></tr>
+      <tr><td>mechanical, curator, digests</td><td><code>claude-haiku-5-5</code></td><td>its smallest model</td><td>5 min</td></tr>
+      <tr><td>runner (long commands, benches)</td><td><code>claude-sonnet-5-5</code></td><td>its default coding model</td><td>1 hour</td></tr>
+      <tr><td>cross-family verifier (optional)</td><td colspan="2">off unless you add the line, for example a Codex model verifying Claude's builds</td><td>5 min</td></tr>
+    </table>
+    <div class="okbox">Full IDs only. The <code>haiku</code> alias served <code>claude-haiku-4-5-20251001</code> for 405 turns in onCrack round 4; a full ID plus the mod's served-model check would have caught it on the first turn.</div>
+  </div>
+  <aside class="rail">
+    <h4>Independence without a second family</h4>
+    <ul>
+      <li><b>Fresh context.</b> The verifier never sees the builder's reasoning, only the diff, the claims and the verify recipe.</li>
+      <li><b>A different tier.</b> Opus checks Sonnet's work.</li>
+      <li><b>An adversarial prompt.</b> "Try to refute each claim; when unsure, say refuted."</li>
+    </ul>
+    <h4>Where it lives (D15)</h4>
+    <ul>
+      <li>A <code>roles</code> node in the user catalog sets your defaults; a project's catalog can override single lines.</li>
+      <li>Replaces the hard-coded <code>MECH</code> in <code>mod/lib/binding.mjs</code>; the price table in <code>mod/lib/ledger.mjs</code> gains Sonnet 5.5 and Haiku 5.5.</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ Guardrails ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 5 · guardrails · the theory of constraints · D16, D17</div>
+    <h2>Your review is the constraint; anything a machine can catch never reaches it</h2>
+    <p class="desc">With agents writing the code, the bottleneck is your attention for review and verification. Strict checks narrow what an agent can do, so it converges faster, and they move every mechanical catch off your desk. The project catalog's <code>guardrails</code> node lists each rule, what enforces it, and the proof that it fails.</p>
+    <div class="visual">
+      <svg viewBox="0 0 740 170" width="100%" role="img" aria-label="Three layers: per-edit checks in seconds, gate checks in minutes, and your review for judgment only">
+        <g font-size="12.5">
+          <path class="box" d="M10 14 H730 L680 64 H60 Z"/>
+          <text x="370" y="36" text-anchor="middle" font-weight="600">Per edit · seconds · inside the agent's turn</text>
+          <text x="370" y="54" text-anchor="middle" class="mute" font-size="11.5">formatter · incremental type check · lint on the changed file · error says what to use instead</text>
+          <path class="box" d="M64 72 H676 L626 122 H114 Z"/>
+          <text x="370" y="94" text-anchor="middle" font-weight="600">At the gate · minutes · the verify step</text>
+          <text x="370" y="112" text-anchor="middle" class="mute" font-size="11.5">full tests · architecture rules · UI journeys · suppression count</text>
+          <path class="hot" d="M118 130 H622 L590 162 H150 Z"/>
+          <text x="370" y="151" text-anchor="middle" font-weight="600">Your review · judgment only</text>
+        </g>
+      </svg>
+    </div>
+    <table>
+      <tr><th>rule (example)</th><th>enforced by</th><th>proof it fails</th></tr>
+      <tr><td>Every PR targets <code>main</code></td><td>a CI check on the PR's base branch</td><td>a test PR opened against a feature branch is refused</td></tr>
+      <tr><td>Never push to <code>main</code></td><td>branch protection, plus a mod deny on <code>git push … main</code></td><td>the denied call appears in the ledger</td></tr>
+      <tr><td>Build outputs share one target directory</td><td>the <code>env</code> preflight</td><td>preflight fails on a checkout with its own target directory</td></tr>
+    </table>
+    <p class="desc" style="margin-top:12px"><b>Enforce at the highest level that works:</b> architecture (one owner, one supported way) → types → a lint whose error names the fix → a test → a written rule last, because nothing fails when an agent skips a doc.</p>
+  </div>
+  <aside class="rail">
+    <h4>Close the exits</h4>
+    <ul>
+      <li><b>Lint config and CI files are off limits</b> to building agents. The mod denies the edit in Claude; a CI diff check catches it everywhere else.</li>
+      <li><b>Suppressions need a reason and an expiry.</b> The count goes on the meter; a rising count is the signal.</li>
+      <li><b>Builders don't edit the tests they're graded against</b> (D17). The mod knows which Workflow agent made each call, so it can enforce paths per role.</li>
+    </ul>
+    <h4>Tighten gradually (D16)</h4>
+    <ul>
+      <li>Record today's violations as a baseline, fail only new ones, and let the count only go down.</li>
+      <li>A rule earns its place after a mistake happens twice. The curator proposes "this ruling came up 3 times, make it a check."</li>
+      <li>Every check is proven to fail once, on purpose, before it counts.</li>
+      <li>Prototypes and press-release spikes run loose.</li>
+    </ul>
+    <h4>Measure it</h4>
+    <p>Most of the case for strict linting with agents is practitioner reports. The ledger counts repeat corrections per project before and after each rule lands.</p>
+  </aside>
+</section>
 
 <!-- ============ Round 3: settled ============ -->
 <section class="slide full">
@@ -392,17 +539,19 @@ svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
 <!-- ============ Sequence ============ -->
 <section class="slide">
   <div class="main">
-    <div class="kicker">Order of work (round 3)</div>
+    <div class="kicker">Order of work (round 5)</div>
     <h2>A spike, then memory first, because everything else hangs off it</h2>
     <ol class="steps">
       <li class="zero"><b>Spike (findings note, no PR).</b> Is the mods rollout on? Can Workflow agents call the mod's memory tools? Is <code>agent.spawn</code> with <code>e.workflow</code> and <code>tool.call</code> attribution seen live? Does a CLAUDE.md import reach agents started later?</li>
-      <li><b>Model truth (D1, P8).</b> Price rows for Sonnet 5.5 and Haiku 5.5 (Haiku priced per request on prompt size); <code>MECH</code> → <code>claude-haiku-5-5</code>; full IDs; <code>doctor</code> shows alias resolution; the served model ID next to every agent name. Small, and safe to ship first.</li>
+      <li><b>Model truth (D1, P8) + the roles file (D15).</b> A single-family roles file with full IDs and cache TTLs, checked by <code>doctor</code>. Price rows for Sonnet 5.5 and Haiku 5.5 (Haiku priced per request on prompt size); <code>MECH</code> → <code>claude-haiku-5-5</code>; full IDs; <code>doctor</code> shows alias resolution; the served model ID next to every agent name. Small, and safe to ship first.</li>
       <li><b>Memory graph format + tools.</b> Node and catalog file format, links, <code>supersedes</code>, stale marking, the orphan check, cwd/marker-file catalog selection, the Haiku curator. A CLI that works without the mod (<code>baton mem …</code>), plus the mod's memory tools on top.</li>
       <li><b>Migrate your memory (D10, D11).</b> Built in a copy; A/B on 10 real session openers; swap; archive the originals; the CLAUDE.md rule against root re-flattening.</li>
       <li><b>Project catalog: session + env (P7, P9, D9).</b> Continuous session writes, <code>/baton close</code>, <code>/baton resume</code> with drift checks, learned preflight.</li>
       <li><b>Watcher pane (D3, P1).</b> Run tree from spawn events + <code>wf_*.json</code>; a live per-agent "what changed" feed; Enter drills in; changes also land in the graph.</li>
-      <li><b>Rulings reach every agent (D8) + templates (P3, P5).</b> <code>unit-loop</code>, the merge queue, pinned agent types.</li>
-      <li><b>UI-check drivers (P4) and the Haiku experiment (D1).</b> The cmux driver first; the experiment needs a budget from you.</li>
+      <li><b>Rulings reach every agent (D8, read, don't import) + templates (P3, P5).</b> <code>unit-loop</code>, the merge queue, pinned agent types, required brief fields.</li>
+      <li><b>Guardrails (D16, D17).</b> The guardrails node, baseline and ratchet, protected configs and tests, suppression count on the meter, curator promotion of repeat rulings.</li>
+      <li><b>The press-release stage (D13).</b> <code>release.html</code> before the build, claims as acceptance lines, the stamped page at the final gate, with the verify node's feature map as the proof.</li>
+      <li><b>UI-check drivers (P4, the verify node) and the Haiku experiment (D1).</b> The cmux driver first; the experiment needs a budget from you.</li>
     </ol>
   </div>
   <aside class="rail">
@@ -423,14 +572,17 @@ svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
 <section class="slide full">
   <div class="main">
     <div class="kicker">Open decisions</div>
-    <h2>Answer like "D8:1 D9:1 D10:1 D11:1"</h2>
-    <p class="desc">Settled so far: D1:1 · D2:1 (universal) · D3:2 (mod pane) · D5:1 (meter, from "watcher, not manager") · D6:1 (env in the project catalog) · D7 replaced by the catalog graph.</p>
+    <h2>Answer like "D8:1 D9:1 D10:1 D11:1 D15:1 D16:1 D17:1"</h2>
+    <p class="desc">Settled so far: D1:1 · D2:1 (universal) · D3:2 (mod pane) · D5:1 (meter, from "watcher, not manager") · D6:1 (env in the project catalog) · D7 replaced by the catalog graph · D12 universal-first · D13 press release → build → validate · D14 Codex as the second adapter.</p>
     <table class="dtable">
       <tr><th>#</th><th>question</th><th>options</th></tr>
-      <tr><td>D8</td><td>How do rulings reach Workflow agents?</td><td>1. Rulings are nodes in the user/project catalogs; a generated rules file imported by CLAUDE.md carries the active ones; templates use agent types with pinned model IDs <span class="r">Recommended</span><br>2. Template <code>args</code> only<br>3. Prime wake only (as v7)</td></tr>
+      <tr><td>D8</td><td>How do rulings reach Workflow agents? <i>(revised: read, don't import)</i></td><td>1. Rulings are catalog nodes agents Read at start; <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings; templates pin agent types with full model IDs <span class="r">Recommended</span><br>2. A generated rules file imported by <code>CLAUDE.md</code> (frozen at session start, loaded in full)<br>3. Template <code>args</code> only</td></tr>
       <tr><td>D9</td><td>Where do project catalogs live?</td><td>1. A hidden git ref in the repo (<code>refs/baton/catalog</code>), so they travel with the repo and any machine can resume; local fallback for non-git folders <span class="r">Recommended</span><br>2. Local only, under <code>~/.claude/baton/projects/&lt;repo&gt;/</code><br>3. Committed under <code>.baton/</code> in the repo</td></tr>
       <tr><td>D10</td><td>How do we migrate the existing 64 memory files?</td><td>1. Migrate a copy, A/B on 10 real session openers, swap, archive the originals <span class="r">Recommended</span><br>2. Migrate in place with a git snapshot<br>3. Grow into it: move files as they're touched</td></tr>
       <tr><td>D11</td><td>How do we stop sessions re-flattening <code>MEMORY.md</code>?</td><td>1. A rule in <code>~/.claude/CLAUDE.md</code> + a mod hook that refiles stray root lines <span class="r">Recommended</span><br>2. The CLAUDE.md rule only<br>3. A periodic curator pass only</td></tr>
+      <tr><td>D15</td><td>Where does the roles file live?</td><td>1. A <code>roles</code> node in the user catalog for your defaults, single family; a project catalog may override single lines <span class="r">Recommended</span><br>2. One global file only<br>3. Per template, in its <code>args</code></td></tr>
+      <tr><td>D16</td><td>How strict are guardrails by default?</td><td>1. Ratchet: baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and expiry <span class="r">Recommended</span><br>2. Advisory: count on the meter, block nothing<br>3. Strict from day one: fail on every violation</td></tr>
+      <tr><td>D17</td><td>Who may edit existing tests during a build unit?</td><td>1. The verifier only; builders may add new tests but not change or delete existing ones <span class="r">Recommended</span><br>2. Anyone; the verifier reviews every test diff<br>3. Nobody until you unlock them</td></tr>
     </table>
   </div>
 </section>
