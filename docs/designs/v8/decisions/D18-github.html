@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D18 GitHub scope</title>
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1b1b1a; --mute:#66635c; --line:#e3dfd6;
+  --accent:#b4441f; --accent-soft:#f6e3db; --ok:#2f6f4f; --ok-soft:#e0efe6; --warn:#8a6a10; --warn-soft:#f6eccb;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141413; --card:#1d1d1b; --ink:#ecebe6; --mute:#a3a097; --line:#33322e;
+  --accent:#e2774c; --accent-soft:#3a241b; --ok:#6fbf93; --ok-soft:#1d3127; --warn:#e0b64a; --warn-soft:#352c14;
+}}
+:root[data-theme="dark"]{
+  --bg:#141413; --card:#1d1d1b; --ink:#ecebe6; --mute:#a3a097; --line:#33322e;
+  --accent:#e2774c; --accent-soft:#3a241b; --ok:#6fbf93; --ok-soft:#1d3127; --warn:#e0b64a; --warn-soft:#352c14;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:36px 16px 70px}
+.pill{display:inline-block;font:12px var(--mono);padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-right:6px}
+.slide{display:grid;grid-template-columns:1.618fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:22px 0;overflow:hidden}
+.main{padding:28px 30px}
+.rail{padding:24px;border-left:1px solid var(--line);font-size:13.5px;background:color-mix(in srgb,var(--card) 85%,var(--bg))}
+.rail h4{margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.rail h4:first-child{margin-top:0}
+.rail ul{margin:0;padding-left:18px}.rail li{margin:3px 0}
+.kicker{font:12px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+h1{font-size:30px;letter-spacing:-.02em;margin:8px 0 4px}
+h2{font-size:24px;letter-spacing:-.015em;margin:4px 0 10px}
+.desc{max-width:720px}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.opt{border:1px solid var(--line);border-radius:10px;padding:12px 13px;font-size:13.5px}
+.opt b{display:block;margin-bottom:4px}
+.opt .n{font:12px var(--mono);color:var(--mute)}
+.opt.rec{border-color:var(--ok);background:var(--ok-soft)}
+.rec-tag{font:11px var(--mono);color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-left:6px}
+code{font-family:var(--mono);font-size:12.5px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:14px}
+th,td{text-align:left;vertical-align:top;padding:7px 9px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:600}
+.yes{color:var(--ok);font-weight:600}.no{color:var(--accent);font-weight:600}.mid{color:var(--warn);font-weight:600}
+svg text{fill:var(--ink);font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+svg .mute{fill:var(--mute)}
+svg .box{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+svg .hot{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .okb{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.5}
+svg .dim{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:5 4}
+svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
+@media (max-width:900px){.slide{grid-template-columns:1fr}.rail{border-left:none;border-top:1px solid var(--line)}.opts{grid-template-columns:1fr}.main{padding:22px 18px}table{display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="pill">decided 2026-10-19 · option 1</span><span class="pill">archived decision page</span>
+  <h1>D18 · How much of baton should live on GitHub?</h1>
+  <p class="desc" style="color:var(--mute)">You said: "wasn't the concept that this plugin is about more than local work, including issues and tasks? I'm not sold that's necessary given how much can be done today, but that was the concept."</p>
+
+  <section class="slide">
+    <div class="main">
+      <div class="kicker">What baton has today</div>
+      <h2>Three layers of GitHub, built across v4 to v7.5</h2>
+      <table>
+        <tr><th>feature</th><th>since</th><th>what it does</th><th>who it serves</th></tr>
+        <tr><td><b>PR as the delivery</b></td><td>v7.2</td><td>A run's changes land as one PR. The mod polls its checks, shows merge-ready rows, and a <code>/approve</code> comment on the PR answers a gate from anywhere.</td><td>You: you ship everything as PRs and merge them yourself</td></tr>
+        <tr><td><b>Issues as goals</b></td><td>v7.2</td><td><code>/baton start #12</code> makes an issue the goal; a <code>baton:&lt;state&gt;</code> label tracks it, a Projects board card moves, <code>/baton watch</code> and <code>next</code> work a queue of issues.</td><td>Teams and backlogs</td></tr>
+        <tr><td><b><code>TEAM: github</code></b></td><td>v4–v5</td><td>The run's state on its own git ref, blocked questions as Issues answered by <code>/answer</code> comments, a branch and draft PR per node.</td><td>Several people on one run</td></tr>
+      </table>
+      <p class="desc" style="margin-top:14px">The v5 design notes already pulled back once: putting run state into Issues "so it scales to many people" was measured, and one run wrote about 3,500 state rows, so v5 kept state in git and used Issues only for questions.</p>
+    </div>
+    <aside class="rail">
+      <h4>What exists without baton today</h4>
+      <ul>
+        <li><b>Remote Control</b> answers a session from your phone (the <code>/rc</code> in your session header).</li>
+        <li><b>PR notifications</b>: a session can subscribe to a PR and gets its reviews, comments and CI as notifications.</li>
+        <li><b>Routines</b> run scheduled cloud agents on a cron.</li>
+        <li><b><code>/code-review</code></b> reviews a branch or PR, locally or in the cloud.</li>
+      </ul>
+      <h4>What D9 already gives you</h4>
+      <p>Committed <code>.baton/</code> means the catalogs and durable memory travel through git to any machine and any agent, with no issues needed.</p>
+    </aside>
+  </section>
+
+  <section class="slide">
+    <div class="main">
+      <div class="kicker">D18 · the options</div>
+      <h2>Files first; GitHub as an adapter, and how much of one</h2>
+      <svg viewBox="0 0 740 200" width="100%" role="img" aria-label="Core files in the repo feed four adapters: the Claude mod, the Codex watch view, a GitHub PR adapter on by default, and GitHub issues and boards as an opt-in">
+        <g font-size="12.5">
+          <rect class="hot" x="250" y="10" width="240" height="56" rx="10"/>
+          <text x="370" y="34" text-anchor="middle" font-weight="600">baton core: files in the repo</text>
+          <text x="370" y="53" text-anchor="middle" class="mute" font-size="11.5">.baton/ catalogs · templates · run record</text>
+          <rect class="okb" x="10" y="120" width="160" height="60" rx="9"/><text x="90" y="145" text-anchor="middle" font-weight="600">Claude mod</text><text x="90" y="163" text-anchor="middle" class="mute" font-size="11">pane · gates · meter</text>
+          <rect class="box" x="195" y="120" width="160" height="60" rx="9"/><text x="275" y="145" text-anchor="middle" font-weight="600">Codex watch</text><text x="275" y="163" text-anchor="middle" class="mute" font-size="11">terminal view</text>
+          <rect class="okb" x="380" y="120" width="160" height="60" rx="9"/><text x="460" y="145" text-anchor="middle" font-weight="600">GitHub: PRs</text><text x="460" y="163" text-anchor="middle" class="mute" font-size="11">checks · merge-ready · /approve</text>
+          <rect class="dim" x="565" y="120" width="165" height="60" rx="9"/><text x="647" y="145" text-anchor="middle" font-weight="600">GitHub: issues</text><text x="647" y="163" text-anchor="middle" class="mute" font-size="11">goals · labels · boards</text>
+          <path class="line" d="M330 66 L90 120 M350 66 L275 120 M390 66 L460 120 M410 66 L647 120"/>
+          <text x="647" y="196" text-anchor="middle" class="mute" font-size="11">dashed = opt-in under option 1</text>
+        </g>
+      </svg>
+      <div class="opts">
+        <div class="opt rec"><span class="n">1</span><span class="rec-tag">Chosen</span><b>Local-first; PRs on, issues opt-in</b>The core is files. The PR adapter stays on, because every change you ship is a PR and approving from a PR comment works from anywhere. Issues as goals, labels, boards and <code>TEAM: github</code> become an opt-in adapter: kept, tested, not grown in v8.</div>
+        <div class="opt"><span class="n">2</span><b>GitHub-native stays core</b>Issue → PR → board by default, Issues as the human lane. Best for teams with a backlog; more setup, more state on GitHub, and it ties baton to one forge, which works against universal-first.</div>
+        <div class="opt"><span class="n">3</span><b>Local only</b>Drop the GitHub features from v8 and lean on Claude Code's own PR notifications, Remote Control and <code>gh</code>. Least to maintain; loses the merge-ready view and remote <code>/approve</code>, and Codex users get no PR view at all.</div>
+      </div>
+    </div>
+    <aside class="rail">
+      <h4>Why option 1</h4>
+      <ul>
+        <li><b>It matches how you work:</b> one operator, every change a PR, you merge.</li>
+        <li><b>It keeps "more than local":</b> committed <code>.baton/</code> plus PRs carry the work beyond one laptop.</li>
+        <li><b>It stays universal:</b> the PR adapter is plain <code>gh</code>, so Codex can use it too; issues and boards are GitHub-only.</li>
+        <li><b>Nothing is thrown away:</b> the issue flow keeps its 26-check smoke test and turns on with one setting.</li>
+      </ul>
+      <h4>What would change my mind</h4>
+      <p>If you expect other people to run baton on shared repos soon, option 2 earns its setup.</p>
+    </aside>
+  </section>
+</div>
+</body>
+</html>

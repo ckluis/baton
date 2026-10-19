@@ -73,11 +73,54 @@ svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
 <div class="wrap">
 
 <header>
-  <span class="pill">plan · round 5 · nothing built</span><span class="pill">2026-10-15</span>
+  <span class="pill">plan · round 6 · every decision settled · nothing built</span><span class="pill">2026-10-19</span>
   <h1>baton v8: a universal Claude Code mod for Claude Workflows</h1>
   <p>baton v8 is a watcher, infrastructure and guidance for Claude Workflows. It doesn't manage them. Its core is a graph memory with catalogs as the entry points, and the memory is plain files, so it works with or without the mod installed.</p>
-  <p>Rounds 4–5 (on top) settle universality, Codex, the press-release stage and the single-family roles file, and add guardrails. Round 3 (the memory design) and rounds 1–2 follow. Open decisions D8 (revised), D9–D11 and D15–D17 are at the bottom.</p>
+  <p>Round 6 (on top) settles every open decision, D8–D11 and D15–D18, asked through baton itself. Rounds 4–5 settle universality, Codex, the press-release stage, the single-family roles file and guardrails. Round 3 (the memory design) and rounds 1–2 follow. The decision record is at the bottom.</p>
 </header>
+
+<!-- ============ Round 6: every decision settled ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Round 6: your answers (2026-10-19)</div>
+    <h2>Every open decision is settled</h2>
+    <table>
+      <tr><th>#</th><th>answer</th><th>what it means for the build</th></tr>
+      <tr><td class="mono">D8</td><td>Read on demand</td><td>Rulings are catalog nodes agents Read at start. <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings.</td></tr>
+      <tr><td class="mono">D9</td><td>Committed <code>.baton/</code> <i>(changed from the hidden git ref)</i></td><td>Catalogs and durable nodes are committed under <code>.baton/</code>; volatile <code>session</code> and <code>env</code> rows are git-ignored. Universal-first decided it: any agent reads plain files, and they travel with the repo.</td></tr>
+      <tr><td class="mono">D10</td><td>Copy, A/B, swap</td><td>Your memory migrates in a copy, is A/B'd on 10 real session openers, then swapped, with the originals archived. Waits until your sessions free up.</td></tr>
+      <tr><td class="mono">D11</td><td>Rule + mod hook</td><td>A rule in <code>~/.claude/CLAUDE.md</code>, plus a mod hook that refiles stray root lines. Possible now that the mod is installed.</td></tr>
+      <tr><td class="mono">D15</td><td>User default + override</td><td>A <code>roles</code> node in the user catalog, single family by default; a project catalog may override single lines.</td></tr>
+      <tr><td class="mono">D16</td><td>Ratchet</td><td>Baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and an expiry.</td></tr>
+      <tr><td class="mono">D17</td><td>Verifier only</td><td>Builders may add tests but not change or delete existing ones.</td></tr>
+      <tr><td class="mono">D18</td><td>PRs on, issues opt-in</td><td>The core is files. The PR adapter stays on (checks, merge-ready, <code>/approve</code> from a PR comment). Issues as goals, labels, boards and <code>TEAM: github</code> become an opt-in adapter, kept and tested but not grown in v8. Options page archived at <a href="decisions/D18-github.html">decisions/D18-github.html</a>.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ Round 6: how baton asks ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 6 · settled · how baton asks</div>
+    <h2>A question dialog, a page for anything complex, and an archive once it's decided</h2>
+    <p class="desc">You set the default: ask with the AskUserQuestion dialog, recommended option first. When a concept is complex, write a temporary HTML page that lays out the options (one slide per decision: title, description, visual, options), open it, and name it in the question. Once the answer is in, archive the page in the repo with the choice marked, under <code>docs/designs/&lt;version&gt;/decisions/</code> here, and under <code>_orch/brief/</code> in a run.</p>
+    <table>
+      <tr><th>tested live</th><th>result</th></tr>
+      <tr><td>The prime asks D8–D11 and D15–D17 in two dialogs</td><td><span class="yes">worked</span>. Each answer became a <code>decision</code> note in the run's memory.</td></tr>
+      <tr><td>A garbled instruction (a paste cut mid-text)</td><td><span class="yes">the prime stopped and asked</span> instead of inventing the missing options.</td></tr>
+      <tr><td>A worker's <code>git push</code></td><td><span class="yes">the approval gate asked first</span>, naming the agent path (prime › worker) and offering approve, approve for the run, or refuse; the approval was noted.</td></tr>
+      <tr><td>A worker's hand-back message</td><td><span class="no">noted as the operator's words</span>, so a rule-shaped message from an agent could become a ruling. Fixed in PR #56: only prompts whose origin is you count.</td></tr>
+    </table>
+  </div>
+  <aside class="rail">
+    <h4>What changes in baton</h4>
+    <ul>
+      <li>The briefer writes the options page for any decision that needs more than the dialog's descriptions; that's rule 8.2's slide, now paired with the dialog.</li>
+      <li>The answer is a run note, and the page moves to the archive with the choice marked.</li>
+      <li><code>memory_note</code> gains a tag argument: the prime had to prefix "decision" by hand.</li>
+    </ul>
+  </aside>
+</section>
 
 <!-- ============ Rounds 4–5: settled ============ -->
 <section class="slide full">
@@ -571,18 +614,19 @@ svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
 <!-- ============ Decision table ============ -->
 <section class="slide full">
   <div class="main">
-    <div class="kicker">Open decisions</div>
-    <h2>Answer like "D8:1 D9:1 D10:1 D11:1 D15:1 D16:1 D17:1"</h2>
+    <div class="kicker">Decision record</div>
+    <h2>Every decision settled (2026-10-19)</h2>
     <p class="desc">Settled so far: D1:1 · D2:1 (universal) · D3:2 (mod pane) · D5:1 (meter, from "watcher, not manager") · D6:1 (env in the project catalog) · D7 replaced by the catalog graph · D12 universal-first · D13 press release → build → validate · D14 Codex as the second adapter.</p>
     <table class="dtable">
       <tr><th>#</th><th>question</th><th>options</th></tr>
-      <tr><td>D8</td><td>How do rulings reach Workflow agents? <i>(revised: read, don't import)</i></td><td>1. Rulings are catalog nodes agents Read at start; <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings; templates pin agent types with full model IDs <span class="r">Recommended</span><br>2. A generated rules file imported by <code>CLAUDE.md</code> (frozen at session start, loaded in full)<br>3. Template <code>args</code> only</td></tr>
-      <tr><td>D9</td><td>Where do project catalogs live?</td><td>1. A hidden git ref in the repo (<code>refs/baton/catalog</code>), so they travel with the repo and any machine can resume; local fallback for non-git folders <span class="r">Recommended</span><br>2. Local only, under <code>~/.claude/baton/projects/&lt;repo&gt;/</code><br>3. Committed under <code>.baton/</code> in the repo</td></tr>
-      <tr><td>D10</td><td>How do we migrate the existing 64 memory files?</td><td>1. Migrate a copy, A/B on 10 real session openers, swap, archive the originals <span class="r">Recommended</span><br>2. Migrate in place with a git snapshot<br>3. Grow into it: move files as they're touched</td></tr>
-      <tr><td>D11</td><td>How do we stop sessions re-flattening <code>MEMORY.md</code>?</td><td>1. A rule in <code>~/.claude/CLAUDE.md</code> + a mod hook that refiles stray root lines <span class="r">Recommended</span><br>2. The CLAUDE.md rule only<br>3. A periodic curator pass only</td></tr>
-      <tr><td>D15</td><td>Where does the roles file live?</td><td>1. A <code>roles</code> node in the user catalog for your defaults, single family; a project catalog may override single lines <span class="r">Recommended</span><br>2. One global file only<br>3. Per template, in its <code>args</code></td></tr>
-      <tr><td>D16</td><td>How strict are guardrails by default?</td><td>1. Ratchet: baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and expiry <span class="r">Recommended</span><br>2. Advisory: count on the meter, block nothing<br>3. Strict from day one: fail on every violation</td></tr>
-      <tr><td>D17</td><td>Who may edit existing tests during a build unit?</td><td>1. The verifier only; builders may add new tests but not change or delete existing ones <span class="r">Recommended</span><br>2. Anyone; the verifier reviews every test diff<br>3. Nobody until you unlock them</td></tr>
+      <tr><td>D8</td><td>How do rulings reach Workflow agents? <i>(revised: read, don't import)</i></td><td>1. Rulings are catalog nodes agents Read at start; <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings; templates pin agent types with full model IDs <span class="r">Chosen</span><br>2. A generated rules file imported by <code>CLAUDE.md</code> (frozen at session start, loaded in full)<br>3. Template <code>args</code> only</td></tr>
+      <tr><td>D9</td><td>Where do project catalogs live?</td><td>1. Committed under <code>.baton/</code> in the repo; volatile session and env rows git-ignored <span class="r">Chosen</span><br>2. A hidden git ref (<code>refs/baton/catalog</code>), the round-3 pick, dropped because agents need git commands to read it<br>3. Local only, under <code>~/.claude/baton/projects/&lt;repo&gt;/</code></td></tr>
+      <tr><td>D10</td><td>How do we migrate the existing 64 memory files?</td><td>1. Migrate a copy, A/B on 10 real session openers, swap, archive the originals <span class="r">Chosen</span><br>2. Migrate in place with a git snapshot<br>3. Grow into it: move files as they're touched</td></tr>
+      <tr><td>D11</td><td>How do we stop sessions re-flattening <code>MEMORY.md</code>?</td><td>1. A rule in <code>~/.claude/CLAUDE.md</code> + a mod hook that refiles stray root lines <span class="r">Chosen</span><br>2. The CLAUDE.md rule only<br>3. A periodic curator pass only</td></tr>
+      <tr><td>D15</td><td>Where does the roles file live?</td><td>1. A <code>roles</code> node in the user catalog for your defaults, single family; a project catalog may override single lines <span class="r">Chosen</span><br>2. One global file only<br>3. Per template, in its <code>args</code></td></tr>
+      <tr><td>D16</td><td>How strict are guardrails by default?</td><td>1. Ratchet: baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and expiry <span class="r">Chosen</span><br>2. Advisory: count on the meter, block nothing<br>3. Strict from day one: fail on every violation</td></tr>
+      <tr><td>D17</td><td>Who may edit existing tests during a build unit?</td><td>1. The verifier only; builders may add new tests but not change or delete existing ones <span class="r">Chosen</span><br>2. Anyone; the verifier reviews every test diff<br>3. Nobody until you unlock them</td></tr>
+      <tr><td>D18</td><td>How much of baton lives on GitHub?</td><td>1. Files first; the PR adapter on, issues, labels, boards and <code>TEAM: github</code> opt-in <span class="r">Chosen</span><br>2. GitHub-native core: issue → PR → board by default<br>3. Local only</td></tr>
     </table>
   </div>
 </section>
