@@ -75,9 +75,13 @@ const FILES: Record<string, string> = {
   '_orch/nodes/V1/work/green.txt': 'green',
   '_orch/nodes/V1/work/blue.txt': 'blue',
   '_orch/verify/V1-verdict.json': JSON.stringify({ verdict: 'CONFIRMED', criteria: [] }),
-  // PLAN: red only -> at `red` (no flag: a BLOCKED node would flag the goal, and the prime's guard reads the goal)
+  // PLAN: red, green, blue -> at `blue` (3rd of 4). A real node id that no id-shaped pattern (letters then
+  // digits) would guess; at `blue` so a guessed-but-missing node (nothing written) can never draw its stepper.
+  // No flag: a BLOCKED node would flag the goal, and the prime's guard reads the goal.
   '_orch/nodes/PLAN/handoff.md': '# PLAN',
   '_orch/nodes/PLAN/work/red.txt': 'red',
+  '_orch/nodes/PLAN/work/green.txt': 'green',
+  '_orch/nodes/PLAN/work/blue.txt': 'blue',
 }
 const NODE_IDS = ['F17', 'G1', 'LV7', 'PLAN', 'T17', 'V1', 'XT17']
 const DIRS: Record<string, any[]> = {
@@ -96,6 +100,7 @@ const STEPS = {
   T17: '●─●─◉─○', // node ladder, at blue (3 of 4) — E1 §m probes.md:421, :424
   LV7: '◉─○─○─○', // node ladder, at red (1 of 4) — README.md:116
   G1: '◉─○', // exempt ladder `working → verified`, at working — README.md:117
+  PLAN: '●─●─◉─○', // node ladder, at blue (3 of 4) — README.md:116
 }
 // Any stepper: two or more steps joined by `─` (E1 §m form).
 const ANY_STEPPER = /[●◉○✗](─[●◉○✗])+/
@@ -271,13 +276,38 @@ test('the steps column is never dropped, at any pane width rendered', async ($, 
 // `graph.yaml`) and phase ids."
 test("a row's label tokens are matched against the run's real node and phase ids", async ($, on) => {
   world(on)
+  // Fixture ids (graph.yaml and _orch/nodes above): F17, G1 and PLAN are real nodes; F99 is id-shaped but is
+  // no node (absent from graph.yaml and _orch/nodes). P2 is a real phase (_orch/phases/P2); P9 is id-shaped
+  // but is no phase and no node.
   await spawn($, 's-p2b', 'P2 phase', 'baton:sub-orchestrator')
   await spawn($, 'w-f17b', 'fix F17 now', 'baton:worker', 's-p2b')
   await spawn($, 'w-g1b', 'G1 answers', 'baton:worker')
+  await spawn($, 'w-plan', 'F99 for PLAN', 'baton:worker')
+  await spawn($, 'w-f99', 'F99 sweep', 'baton:worker')
+  await spawn($, 'w-p9', 'P9 sweep', 'baton:worker')
+  for (const agentId of ['s-p2b', 'w-f99', 'w-p9'])
+    await $.turn.complete({ agentId, answer: 'done', durationMs: 5, isAborted: false, turnId: 't-' + agentId, reason: 'answer' } as any)
   const ui = await pane($)
+  // expected: PLAN is a real node (_orch/nodes/PLAN, graph.yaml) though no id pattern guesses it, so the row shows
+  // PLAN's stepper at blue (Q-15 "Match the label's tokens against the run's real node ids"; README.md:116);
+  // the id-shaped F99 before it is no node and must not be taken for one
+  expect(await row(ui, /worker F99 for PLAN/)).toContain(STEPS.PLAN)
   // expected: the node named by a token anywhere in the label (Q-15), F17 at green, G1 exempt at working
   expect(await row(ui, /worker fix F17 now/)).toContain(STEPS.F17)
   expect(await row(ui, /worker G1 answers/)).toContain(STEPS.G1)
+  // expected: F99 and P9 look like ids but match no real node or phase, so each row shows its own lifecycle
+  // stepper (Q-15 "A row that matches nothing shows its own lifecycle stepper (spawned → working → returned →
+  // verdict)"); returned, so spawned and working are behind it (Q-15 ladder order). A stepper of a guessed node
+  // or phase with nothing on record has no step reached and cannot draw this.
+  for (const label of [/worker F99 sweep/, /worker P9 sweep/]) {
+    const r = await row(ui, label)
+    expect(r).toMatch(LIFECYCLE)
+    expect(r).toMatch(/●─●─[●◉✗]─[●◉○✗]/)
+  }
+  // expected: P2 is a real phase id, so its row shows P2's phase stepper `briefed → dispatched → verified →
+  // approved` (README.md:116; Q-15 "and phase ids"): briefed reached (_orch/phases/P2/brief.md exists), verified
+  // not (no phase verdict in the fixture). Its returned turn's own lifecycle (`●─●─◉─○`) would fail this.
+  expect(await row(ui, /sub-orch P2 phase/)).toMatch(/(?<![●◉○✗─])[●◉]─[●◉○]─○─○(?![─●◉○✗])/)
 })
 
 // R-C11-01 (L153 "... verifier ..."); Q-15 answer: "A verifier row shows the stepper of the node it verifies."
