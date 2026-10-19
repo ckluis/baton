@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>baton v8 plan</title>
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1b1b1a; --mute:#66635c; --line:#e3dfd6;
+  --accent:#b4441f; --accent-soft:#f6e3db; --ok:#2f6f4f; --ok-soft:#e0efe6; --warn:#8a6a10; --warn-soft:#f6eccb;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141413; --card:#1d1d1b; --ink:#ecebe6; --mute:#a3a097; --line:#33322e;
+  --accent:#e2774c; --accent-soft:#3a241b; --ok:#6fbf93; --ok-soft:#1d3127; --warn:#e0b64a; --warn-soft:#352c14;
+}}
+:root[data-theme="dark"]{
+  --bg:#141413; --card:#1d1d1b; --ink:#ecebe6; --mute:#a3a097; --line:#33322e;
+  --accent:#e2774c; --accent-soft:#3a241b; --ok:#6fbf93; --ok-soft:#1d3127; --warn:#e0b64a; --warn-soft:#352c14;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:40px 16px 80px}
+header h1{font-size:34px;letter-spacing:-.02em;margin:0 0 6px}
+header p{color:var(--mute);margin:0 0 4px;max-width:860px}
+.pill{display:inline-block;font:12px var(--mono);padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-right:6px}
+.slide{display:grid;grid-template-columns:1.618fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:28px 0;overflow:hidden}
+.slide.full{grid-template-columns:1fr}
+.main{padding:28px 30px}
+.rail{padding:24px;border-left:1px solid var(--line);font-size:13.5px;background:color-mix(in srgb,var(--card) 85%,var(--bg))}
+.rail h4{margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.rail h4:first-child{margin-top:0}
+.rail ul,.rail ol{margin:0;padding-left:18px}
+.rail li{margin:3px 0}
+.kicker{font:12px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+h2{font-size:26px;letter-spacing:-.015em;margin:4px 0 10px}
+.desc{max-width:700px}
+.visual{margin:18px 0 20px}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.opt{border:1px solid var(--line);border-radius:10px;padding:12px 13px;font-size:13.5px}
+.opt b{display:block;margin-bottom:4px}
+.opt .n{font:12px var(--mono);color:var(--mute)}
+.opt.rec{border-color:var(--ok);background:var(--ok-soft)}
+.rec-tag{font:11px var(--mono);color:var(--ok);text-transform:uppercase;letter-spacing:.08em;margin-left:6px}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:600}
+.dtable td:first-child{font-family:var(--mono);white-space:nowrap}
+.r{color:var(--ok);font-weight:600}
+.flag{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 12px;font-size:13.5px;margin:12px 0}
+.okbox{background:var(--ok-soft);color:var(--ok);border-radius:8px;padding:10px 12px;font-size:13.5px;margin:12px 0}
+.yes{color:var(--ok);font-weight:600}.no{color:var(--accent);font-weight:600}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;padding:10px 0 10px 40px;position:relative;border-bottom:1px solid var(--line)}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:600 13px/26px var(--mono);text-align:center}
+.steps li.zero::before{content:"0"}
+svg text{fill:var(--ink);font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+svg .mute{fill:var(--mute)}
+svg .box{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+svg .hot{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .line{stroke:var(--mute);stroke-width:1.3;fill:none}
+@media (max-width:900px){
+  .slide{grid-template-columns:1fr}
+  .rail{border-left:none;border-top:1px solid var(--line)}
+  .opts{grid-template-columns:1fr}
+  .main{padding:22px 18px}
+  table{display:block;overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="pill">plan · round 6 · every decision settled · nothing built</span><span class="pill">2026-10-19</span>
+  <h1>baton v8: a universal Claude Code mod for Claude Workflows</h1>
+  <p>baton v8 is a watcher, infrastructure and guidance for Claude Workflows. It doesn't manage them. Its core is a graph memory with catalogs as the entry points, and the memory is plain files, so it works with or without the mod installed.</p>
+  <p>Round 6 (on top) settles every open decision, D8–D11 and D15–D18, asked through baton itself. Rounds 4–5 settle universality, Codex, the press-release stage, the single-family roles file and guardrails. Round 3 (the memory design) and rounds 1–2 follow. The decision record is at the bottom.</p>
+</header>
+
+<!-- ============ Round 6: every decision settled ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Round 6: your answers (2026-10-19)</div>
+    <h2>Every open decision is settled</h2>
+    <table>
+      <tr><th>#</th><th>answer</th><th>what it means for the build</th></tr>
+      <tr><td class="mono">D8</td><td>Read on demand</td><td>Rulings are catalog nodes agents Read at start. <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings.</td></tr>
+      <tr><td class="mono">D9</td><td>Committed <code>.baton/</code> <i>(changed from the hidden git ref)</i></td><td>Catalogs and durable nodes are committed under <code>.baton/</code>; volatile <code>session</code> and <code>env</code> rows are git-ignored. Universal-first decided it: any agent reads plain files, and they travel with the repo.</td></tr>
+      <tr><td class="mono">D10</td><td>Copy, A/B, swap</td><td>Your memory migrates in a copy, is A/B'd on 10 real session openers, then swapped, with the originals archived. Waits until your sessions free up.</td></tr>
+      <tr><td class="mono">D11</td><td>Rule + mod hook</td><td>A rule in <code>~/.claude/CLAUDE.md</code>, plus a mod hook that refiles stray root lines. Possible now that the mod is installed.</td></tr>
+      <tr><td class="mono">D15</td><td>User default + override</td><td>A <code>roles</code> node in the user catalog, single family by default; a project catalog may override single lines.</td></tr>
+      <tr><td class="mono">D16</td><td>Ratchet</td><td>Baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and an expiry.</td></tr>
+      <tr><td class="mono">D17</td><td>Verifier only</td><td>Builders may add tests but not change or delete existing ones.</td></tr>
+      <tr><td class="mono">D18</td><td>PRs on, issues opt-in</td><td>The core is files. The PR adapter stays on (checks, merge-ready, <code>/approve</code> from a PR comment). Issues as goals, labels, boards and <code>TEAM: github</code> become an opt-in adapter, kept and tested but not grown in v8. Options page archived at <a href="decisions/D18-github.html">decisions/D18-github.html</a>.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ Round 6: how baton asks ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 6 · settled · how baton asks</div>
+    <h2>A question dialog, a page for anything complex, and an archive once it's decided</h2>
+    <p class="desc">You set the default: ask with the AskUserQuestion dialog, recommended option first. When a concept is complex, write a temporary HTML page that lays out the options (one slide per decision: title, description, visual, options), open it, and name it in the question. Once the answer is in, archive the page in the repo with the choice marked, under <code>docs/designs/&lt;version&gt;/decisions/</code> here, and under <code>_orch/brief/</code> in a run.</p>
+    <table>
+      <tr><th>tested live</th><th>result</th></tr>
+      <tr><td>The prime asks D8–D11 and D15–D17 in two dialogs</td><td><span class="yes">worked</span>. Each answer became a <code>decision</code> note in the run's memory.</td></tr>
+      <tr><td>A garbled instruction (a paste cut mid-text)</td><td><span class="yes">the prime stopped and asked</span> instead of inventing the missing options.</td></tr>
+      <tr><td>A worker's <code>git push</code></td><td><span class="yes">the approval gate asked first</span>, naming the agent path (prime › worker) and offering approve, approve for the run, or refuse; the approval was noted.</td></tr>
+      <tr><td>A worker's hand-back message</td><td><span class="no">noted as the operator's words</span>, so a rule-shaped message from an agent could become a ruling. Fixed in PR #56: only prompts whose origin is you count.</td></tr>
+    </table>
+  </div>
+  <aside class="rail">
+    <h4>What changes in baton</h4>
+    <ul>
+      <li>The briefer writes the options page for any decision that needs more than the dialog's descriptions; that's rule 8.2's slide, now paired with the dialog.</li>
+      <li>The answer is a run note, and the page moves to the archive with the choice marked.</li>
+      <li><code>memory_note</code> gains a tag argument: the prime had to prefix "decision" by hand.</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ Rounds 4–5: settled ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Rounds 4–5: your answers (2026-10-12 to 10-15)</div>
+    <h2>What's settled since round 3</h2>
+    <table>
+      <tr><th>you said</th><th>what it means for the build</th></tr>
+      <tr><td>Make it universal: AGENTS.md, every harness and provider</td><td><b>D12, universal-first.</b> baton is a memory and generic workflow accelerator made of plain files and process: the catalog graph, templates, rulings, preflight, close/resume and the run record. Any agent reads it through <code>AGENTS.md</code>. The Claude Code mod is the visibility layer and accelerator on top.</td></tr>
+      <tr><td>Top tier for Claude, but don't leave Codex friends behind</td><td><b>D14, Codex is the second adapter.</b> An <code>AGENTS.md</code> entry plus a <code>baton watch</code> terminal view rebuilt from <code>~/.codex/sessions/…/rollout-*.jsonl</code> (each rollout names its parent thread), refreshed by Codex's <code>notify</code> turn-ended hook. Codex gets no pane and no spawn deny; those need Claude's mod system.</td></tr>
+      <tr><td>Build the press release before the project, then build, then validate</td><td><b>D13, a new first stage.</b> The press release's claims become the build's acceptance criteria, and the final gate redraws the same page with each claim stamped. See the next slide.</td></tr>
+      <tr><td>(from measurement, not a question) prompt-cache findings</td><td><b>D8 revised to "read, don't import."</b> <code>CLAUDE.md</code> is frozen at session start and imports load in full, so catalogs, rulings and the session node are files agents Read on demand. The roles file gets a cache TTL column: 1 hour only for roles that sit idle on long commands.</td></tr>
+      <tr><td>Primarily single family; multiple as an option, since not everyone pays for several subscriptions</td><td><b>The roles file defaults to one provider's tiers.</b> A cross-family verifier is one optional line. See the roles slide.</td></tr>
+      <tr><td>Strict linters that reduce the AI's flexibility, under the theory of constraints</td><td><b>A guardrails node in every project catalog,</b> plus enforcement the mod accelerates. See the guardrails slide; D16 and D17 are open.</td></tr>
+      <tr><td>"Holy baton sprawl"</td><td>All v8 work lives in the repo: this page at <code>docs/designs/v8/plan.html</code>, the press release at <code>docs/releases/v8/</code>.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ D13: press release, build, validate ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">D13 · settled · the press-release stage</div>
+    <h2>Promise first, build against the promise, then stamp every claim</h2>
+    <p class="desc">Before any code, a run writes <code>_orch/release/release.html</code>: a sales hero per value area, side panels for detail, measured numbers tagged apart from targets. You approve the page. Each claim on it becomes one acceptance criterion. At the final gate the same page is redrawn from the ledger, with every claim stamped.</p>
+    <div class="visual">
+      <svg viewBox="0 0 740 190" width="100%" role="img" aria-label="Press release claims flow into build units, then into validation that stamps each claim; a missed claim loops back as a new unit or a changed claim">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="var(--mute)"/></marker></defs>
+        <g font-size="12.5">
+          <rect class="hot" x="10" y="20" width="200" height="86" rx="10"/>
+          <text x="24" y="44" font-weight="600">1 · Press release</text>
+          <text x="24" y="64" class="mute" font-size="11.5">claims with targets</text>
+          <text x="24" y="81" class="mute" font-size="11.5">you approve the page</text>
+          <text x="24" y="98" class="mute" font-size="11.5">cheap to iterate</text>
+          <rect class="box" x="270" y="20" width="200" height="86" rx="10"/>
+          <text x="284" y="44" font-weight="600">2 · Build</text>
+          <text x="284" y="64" class="mute" font-size="11.5">each unit names its claim</text>
+          <text x="284" y="81" class="mute" font-size="11.5">claim = acceptance line</text>
+          <text x="284" y="98" class="mute" font-size="11.5">no claim, no unit</text>
+          <rect class="hot" x="530" y="20" width="200" height="86" rx="10"/>
+          <text x="544" y="44" font-weight="600">3 · Validate</text>
+          <text x="544" y="64" class="mute" font-size="11.5">same page, redrawn</text>
+          <text x="544" y="81" class="mute" font-size="11.5">proven · missed · changed</text>
+          <text x="544" y="98" class="mute" font-size="11.5">evidence from the ledger</text>
+          <path class="line" d="M210 63 L266 63" marker-end="url(#ah)"/>
+          <path class="line" d="M470 63 L526 63" marker-end="url(#ah)"/>
+          <path class="line" d="M630 106 C630 160, 370 170, 370 110" marker-end="url(#ah)" stroke-dasharray="4 4"/>
+          <text x="420" y="168" class="mute" font-size="11.5">missed → a new unit, or the claim changes</text>
+        </g>
+      </svg>
+    </div>
+    <table>
+      <tr><th>claim state</th><th>meaning on the final page</th></tr>
+      <tr><td><span class="yes">proven</span></td><td>The verify step ran on the real artifact and the ledger row points at the evidence.</td></tr>
+      <tr><td><span class="no">missed</span></td><td>Not met. The page says by how much and what blocked it.</td></tr>
+      <tr><td>changed</td><td>You changed the claim during the build; the old wording stays, struck through, with the reason.</td></tr>
+    </table>
+  </div>
+  <aside class="rail">
+    <h4>Borrowed from pstack</h4>
+    <ul>
+      <li><b>Brief fields are required.</b> A unit's prompt carries goal, scope, acceptance, verify and report. In Claude the mod can deny a Workflow agent's spawn when acceptance or verify is missing; elsewhere a template check refuses it.</li>
+      <li><b>The ledger is checked against the transcripts</b> before a claim is stamped proven, so the final page can't stamp what never ran.</li>
+      <li><b>A verify node per project</b> (launch, doctor, drive, evidence, cleanup) with a feature map, one journey per user-facing feature. It folds into P4's UI-check drivers. Each claim points at the journey that proves it.</li>
+    </ul>
+    <h4>Not borrowed</h4>
+    <p>pstack's "the best spec is code." The press release is not a plan document; it is the acceptance spec, checked at the end.</p>
+  </aside>
+</section>
+
+<!-- ============ Roles: single family ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 5 · the roles file · D15</div>
+    <h2>One provider's tiers by default; a second family is one optional line</h2>
+    <p class="desc">Not everyone pays for two subscriptions, so baton defaults to a single family. The roles file maps each role to a full model ID and a cache TTL. <code>doctor</code> fills it only with IDs it has confirmed are available, and the mod compares the model that actually served each agent against it.</p>
+    <table>
+      <tr><th>role</th><th>Claude (default)</th><th>Codex (default)</th><th>cache TTL</th></tr>
+      <tr><td>judgment, verifier, design</td><td><code>claude-opus-5-5</code></td><td>its strongest model</td><td>5 min</td></tr>
+      <tr><td>builder</td><td><code>claude-sonnet-5-5</code></td><td>its default coding model</td><td>5 min</td></tr>
+      <tr><td>mechanical, curator, digests</td><td><code>claude-haiku-5-5</code></td><td>its smallest model</td><td>5 min</td></tr>
+      <tr><td>runner (long commands, benches)</td><td><code>claude-sonnet-5-5</code></td><td>its default coding model</td><td>1 hour</td></tr>
+      <tr><td>cross-family verifier (optional)</td><td colspan="2">off unless you add the line, for example a Codex model verifying Claude's builds</td><td>5 min</td></tr>
+    </table>
+    <div class="okbox">Full IDs only. The <code>haiku</code> alias served <code>claude-haiku-4-5-20251001</code> for 405 turns in onCrack round 4; a full ID plus the mod's served-model check would have caught it on the first turn.</div>
+  </div>
+  <aside class="rail">
+    <h4>Independence without a second family</h4>
+    <ul>
+      <li><b>Fresh context.</b> The verifier never sees the builder's reasoning, only the diff, the claims and the verify recipe.</li>
+      <li><b>A different tier.</b> Opus checks Sonnet's work.</li>
+      <li><b>An adversarial prompt.</b> "Try to refute each claim; when unsure, say refuted."</li>
+    </ul>
+    <h4>Where it lives (D15)</h4>
+    <ul>
+      <li>A <code>roles</code> node in the user catalog sets your defaults; a project's catalog can override single lines.</li>
+      <li>Replaces the hard-coded <code>MECH</code> in <code>mod/lib/binding.mjs</code>; the price table in <code>mod/lib/ledger.mjs</code> gains Sonnet 5.5 and Haiku 5.5.</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ Guardrails ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 5 · guardrails · the theory of constraints · D16, D17</div>
+    <h2>Your review is the constraint; anything a machine can catch never reaches it</h2>
+    <p class="desc">With agents writing the code, the bottleneck is your attention for review and verification. Strict checks narrow what an agent can do, so it converges faster, and they move every mechanical catch off your desk. The project catalog's <code>guardrails</code> node lists each rule, what enforces it, and the proof that it fails.</p>
+    <div class="visual">
+      <svg viewBox="0 0 740 170" width="100%" role="img" aria-label="Three layers: per-edit checks in seconds, gate checks in minutes, and your review for judgment only">
+        <g font-size="12.5">
+          <path class="box" d="M10 14 H730 L680 64 H60 Z"/>
+          <text x="370" y="36" text-anchor="middle" font-weight="600">Per edit · seconds · inside the agent's turn</text>
+          <text x="370" y="54" text-anchor="middle" class="mute" font-size="11.5">formatter · incremental type check · lint on the changed file · error says what to use instead</text>
+          <path class="box" d="M64 72 H676 L626 122 H114 Z"/>
+          <text x="370" y="94" text-anchor="middle" font-weight="600">At the gate · minutes · the verify step</text>
+          <text x="370" y="112" text-anchor="middle" class="mute" font-size="11.5">full tests · architecture rules · UI journeys · suppression count</text>
+          <path class="hot" d="M118 130 H622 L590 162 H150 Z"/>
+          <text x="370" y="151" text-anchor="middle" font-weight="600">Your review · judgment only</text>
+        </g>
+      </svg>
+    </div>
+    <table>
+      <tr><th>rule (example)</th><th>enforced by</th><th>proof it fails</th></tr>
+      <tr><td>Every PR targets <code>main</code></td><td>a CI check on the PR's base branch</td><td>a test PR opened against a feature branch is refused</td></tr>
+      <tr><td>Never push to <code>main</code></td><td>branch protection, plus a mod deny on <code>git push … main</code></td><td>the denied call appears in the ledger</td></tr>
+      <tr><td>Build outputs share one target directory</td><td>the <code>env</code> preflight</td><td>preflight fails on a checkout with its own target directory</td></tr>
+    </table>
+    <p class="desc" style="margin-top:12px"><b>Enforce at the highest level that works:</b> architecture (one owner, one supported way) → types → a lint whose error names the fix → a test → a written rule last, because nothing fails when an agent skips a doc.</p>
+  </div>
+  <aside class="rail">
+    <h4>Close the exits</h4>
+    <ul>
+      <li><b>Lint config and CI files are off limits</b> to building agents. The mod denies the edit in Claude; a CI diff check catches it everywhere else.</li>
+      <li><b>Suppressions need a reason and an expiry.</b> The count goes on the meter; a rising count is the signal.</li>
+      <li><b>Builders don't edit the tests they're graded against</b> (D17). The mod knows which Workflow agent made each call, so it can enforce paths per role.</li>
+    </ul>
+    <h4>Tighten gradually (D16)</h4>
+    <ul>
+      <li>Record today's violations as a baseline, fail only new ones, and let the count only go down.</li>
+      <li>A rule earns its place after a mistake happens twice. The curator proposes "this ruling came up 3 times, make it a check."</li>
+      <li>Every check is proven to fail once, on purpose, before it counts.</li>
+      <li>Prototypes and press-release spikes run loose.</li>
+    </ul>
+    <h4>Measure it</h4>
+    <p>Most of the case for strict linting with agents is practitioner reports. The ledger counts repeat corrections per project before and after each rule lands.</p>
+  </aside>
+</section>
+
+<!-- ============ Round 3: settled ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Round 3: your answers</div>
+    <h2>What's settled now</h2>
+    <table>
+      <tr><th>you said</th><th>what it means for the build</th></tr>
+      <tr><td>The mod is a watcher + infrastructure/guidance, not a manager</td><td>The mod watches agents, keeps the catalogs current, draws the pane and nudges. It never steers a Workflow. This settles D5 as option 1 (meter + nudge; the strict prime is opt-in).</td></tr>
+      <tr><td>"…IF the workflow can use the mod"</td><td>Design rule: <b>files are the source of truth, the mod is an accelerator.</b> Workflow agents can always Read the catalogs. Whether they can also call the mod's memory tools goes into the step-0 spike.</td></tr>
+      <tr><td>Catalogs for each project, each technology, and catalogs of catalogs</td><td>Replaces D7. Root catalog → user / project / technology / tool catalogs → sub-memories.</td></tr>
+      <tr><td>Catalogs are entry points into a graph of sub-memories</td><td>A catalog row is a pointer into the graph. Nodes link to nodes, and catalogs are just the nodes an agent starts from.</td></tr>
+      <tr><td>Close/resume belongs in the project catalog</td><td>Yes: the project's <code>session</code> node, written continuously and checked on resume.</td></tr>
+      <tr><td>The environment check belongs in the project catalog</td><td>Settles D6 as option 1: the project's <code>env</code> node, a learned preflight.</td></tr>
+      <tr><td>Replace and work with <code>MEMORY.md</code>; rebuild the existing files this way</td><td><code>MEMORY.md</code> becomes the root catalog. The 64 existing files are migrated into the graph (slide after next).</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ Round 3: the graph ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 3 · the memory design</div>
+    <h2>A graph of small memories, entered through catalogs</h2>
+    <p class="desc">Every memory is a <b>node</b>: one fact, a few hundred bytes to a couple of KB, with <code>[[links]]</code> to other nodes. A <b>catalog</b> is also a node, but its body is only rows of the form "name: one-line hook → link". An agent loads the root, follows one or two catalog rows, and reads only the nodes it lands on.</p>
+    <div class="visual">
+      <svg viewBox="0 0 740 300" width="100%" role="img" aria-label="Root catalog points to user, project, technology and tool catalogs, which point into a graph of nodes">
+        <g font-size="12.5">
+          <rect class="hot" x="270" y="4" width="200" height="40" rx="8"/><text x="284" y="22" font-weight="600">root (MEMORY.md)</text><text x="284" y="37" class="mute" font-size="11">≈1 KB, always loaded</text>
+          <rect class="hot" x="10" y="86" width="150" height="40" rx="8"/><text x="22" y="104" font-weight="600">user</text><text x="22" y="119" class="mute" font-size="11">how you work</text>
+          <rect class="hot" x="200" y="86" width="150" height="40" rx="8"/><text x="212" y="104" font-weight="600">project: samen</text><text x="212" y="119" class="mute" font-size="11">picked by cwd</text>
+          <rect class="hot" x="390" y="86" width="150" height="40" rx="8"/><text x="402" y="104" font-weight="600">tech: rust</text><text x="402" y="119" class="mute" font-size="11">picked by Cargo.toml</text>
+          <rect class="hot" x="580" y="86" width="150" height="40" rx="8"/><text x="592" y="104" font-weight="600">tool: cmux</text><text x="592" y="119" class="mute" font-size="11">picked by doctor</text>
+          <path class="line" d="M370 44 L85 86 M370 44 L275 86 M370 44 L465 86 M370 44 L655 86"/>
+          <rect class="box" x="10" y="176" width="130" height="34" rx="7"/><text x="20" y="197">decision tables</text>
+          <rect class="box" x="160" y="176" width="110" height="34" rx="7"/><text x="170" y="197">session ●</text>
+          <rect class="box" x="285" y="176" width="90" height="34" rx="7"/><text x="295" y="197">env ●</text>
+          <rect class="box" x="390" y="176" width="150" height="34" rx="7"/><text x="400" y="197">shared target dir</text>
+          <rect class="box" x="580" y="176" width="150" height="34" rx="7"/><text x="590" y="197">screenshot recipe</text>
+          <rect class="box" x="150" y="250" width="130" height="34" rx="7"/><text x="160" y="271">ADR-053 state</text>
+          <rect class="box" x="300" y="250" width="160" height="34" rx="7"/><text x="310" y="271">PLT leak (history)</text>
+          <rect class="box" x="480" y="250" width="150" height="34" rx="7"/><text x="490" y="271">ENOSPC lesson</text>
+          <path class="line" d="M85 126 L75 176 M275 126 L215 176 M275 126 L330 176 M465 126 L465 176 M655 126 L655 176 M215 210 L215 250 M330 210 L380 250 M465 210 L555 250 M330 210 L540 250"/>
+        </g>
+      </svg>
+    </div>
+    <table>
+      <tr><th>catalog</th><th>loaded when</th><th>holds rows for</th></tr>
+      <tr><td>root (<code>MEMORY.md</code>)</td><td>always (Claude Code already loads it)</td><td>one row per catalog</td></tr>
+      <tr><td>user</td><td>always (small)</td><td>how you work: decision tables, PRs to main, never push after handoff, cheap models for fan-outs</td></tr>
+      <tr><td>project: &lt;repo&gt;</td><td>cwd is inside it</td><td><code>session</code> (close/resume), <code>env</code> (preflight), how to test, rulings, open PRs, ADR state</td></tr>
+      <tr><td>tech: &lt;stack&gt;</td><td>a marker file is present (<code>Cargo.toml</code>, <code>mix.exs</code>, <code>*.fsproj</code>, <code>go.mod</code>)</td><td>cross-project lessons for that stack</td></tr>
+      <tr><td>tool: &lt;tool&gt;</td><td><code>doctor</code> finds it installed</td><td>cmux, Claude Workflows, mods, gh: recipes and gotchas, plus the plugin skill to load</td></tr>
+    </table>
+  </div>
+  <aside class="rail">
+    <h4>Rules for a healthy graph</h4>
+    <ul>
+      <li><b>One fact per node.</b> A log becomes a short "current state" node plus dated history nodes linked by <code>previous</code>.</li>
+      <li><b>Every node is reachable from a catalog.</b> An orphan is flagged, never silently kept.</li>
+      <li><b>Every node cites its source</b> (path + commit or modified time) and is marked stale when the source is newer.</li>
+      <li><b>Newest wins</b> through a <code>supersedes</code> link, not by editing history away.</li>
+      <li><b>Catalog rows are capped</b> (around 40). Overflow becomes a sub-catalog.</li>
+      <li><b>Agents add notes; a Haiku 5.5 curator folds them into nodes</b> at boundaries. That is today's merge job, retargeted.</li>
+    </ul>
+    <h4>Token target</h4>
+    <ul>
+      <li>Today: <code>MEMORY.md</code> is 13.9 KB (≈3.5k tokens), loaded in every session, and mostly about other projects.</li>
+      <li>Target: root + user + one project + its techs ≈ 4–6 KB, all relevant; anything deeper is read on demand.</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ Round 3: migration ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Round 3 · rebuilding your existing memory · D10</div>
+    <h2>Your memory is already a graph; it needs entry points and smaller nodes</h2>
+    <p class="desc">The 64 memory files have 112 <code>[[links]]</code> between them, only 3 broken links and 2 files with no links at all, so the graph exists. What's missing is the entry points (<code>MEMORY.md</code> is a flat list of all of them, loaded whole) and node size: the biggest files are session logs, not facts.</p>
+    <table>
+      <tr><th>today</th><th>becomes</th></tr>
+      <tr><td>22 <code>feedback_*</code> files (the most-linked: fan-out serialization 11 inbound, no push after handoff 8, gate tasks in foreground 7)</td><td>The user catalog. A few move to tool or tech catalogs (cmux screenshots → tool:cmux; clean Rust builds → tech:rust).</td></tr>
+      <tr><td>32 <code>project_*</code> files</td><td>One project catalog each, plus a <code>session</code> and an <code>env</code> node for each</td></tr>
+      <tr><td>6 <code>reference_*</code> files</td><td>Tech and tool catalogs (model landscape → tech:claude-models; sudo via osascript → tool:macos)</td></tr>
+      <tr><td>The 4 largest: samen ADR-048 coverage 37 KB, samen foundry 35 KB, baton v2 30 KB, prettyPresentations 29 KB</td><td>Split: one current-state node plus dated history nodes</td></tr>
+      <tr><td>Everything sits in one folder because you always launch from <code>~/Desktop/projects</code></td><td>Catalogs are chosen by the repo under cwd, not by the launch folder</td></tr>
+    </table>
+    <div class="opts" style="margin-top:16px">
+      <div class="opt rec"><span class="n">1.</span><b>Migrate a copy, A/B, then swap<span class="rec-tag">Recommended</span></b>Build the graph in a copy. Replay 10 real session openers against old vs new and compare tokens loaded and facts found. Swap only if new ≥ old on facts. Keep the originals archived.</div>
+      <div class="opt"><span class="n">2.</span><b>Migrate in place</b>Faster. Rollback is from a git snapshot of the memory folder.</div>
+      <div class="opt"><span class="n">3.</span><b>Grow into it</b>New memories go into catalogs; old files move when touched.</div>
+    </div>
+  </div>
+  <aside class="rail">
+    <h4>A catch: the harness's own memory rules</h4>
+    <p>Every session's system instructions say "add a one-line pointer in <code>MEMORY.md</code>". Left alone, future sessions would re-flatten the root. Two guards (D11):</p>
+    <ul>
+      <li>A rule in your <code>~/.claude/CLAUDE.md</code>, which overrides harness defaults: "new memories go in the relevant catalog; <code>MEMORY.md</code> holds catalog rows only".</li>
+      <li>With the mod: a hook on writes to the memory folder that files a stray root line into the right catalog.</li>
+    </ul>
+    <h4>Measured with</h4>
+    <ul>
+      <li>A Python pass over <code>/Users/clank/.claude/projects/-Users-clank-Desktop-projects/memory/*.md</code> that resolves <code>[[name]]</code> against each file's frontmatter <code>name:</code> and filename</li>
+      <li>Total memory: 346 KB across 64 files (≈86k tokens if it were all loaded)</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ What you decided ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Round 1: your answers</div>
+    <h2>What's settled</h2>
+    <table>
+      <tr><th>#</th><th>you said</th><th>what it means for the build</th></tr>
+      <tr><td class="mono">D1</td><td>1</td><td>Fix prices and pin full model IDs; move the mod's internal calls to Haiku 5.5; pre-register the Haiku worker-tier test.</td></tr>
+      <tr><td class="mono">D2</td><td>1, universal</td><td>baton v8 is a Claude Code mod over Workflows. Nothing assumes cmux, any one browser or any one OS; cmux is the first adapter.</td></tr>
+      <tr><td class="mono">D3</td><td>2</td><td>The view is the mod pane. That is the universal choice: the same pane draws in the terminal, desktop, VS Code and mobile (<code>$.ui.resolve(e)</code> per surface). No local HTML.</td></tr>
+      <tr><td class="mono">P1</td><td>a feed per agent update, clickable</td><td>A "what changed" row each time an agent edits, commits, runs a test or returns, with Enter to drill in. The API supports it (next slide).</td></tr>
+      <tr><td class="mono">P2</td><td>worried it breaks Workflows</td><td>Settled in round 3: meter + nudge by default, the wall is opt-in.</td></tr>
+      <tr><td class="mono">P3</td><td>agreed</td><td>A <code>unit-loop</code> template: build → verify → fix → re-verify, <code>break</code> on failure, a round cap that is logged, and a finding that recurs across rounds spawns a design unit.</td></tr>
+      <tr><td class="mono">P4</td><td>agreed, with other UI-test adapters; bundle the cmux skills</td><td>A UI-check interface with drivers; cmux skills ship in the plugin and are found through the tools index (below).</td></tr>
+      <tr><td class="mono">P5</td><td>agreed</td><td>A merge queue: independent units continue behind an open PR; a merged PR resumes the run by itself.</td></tr>
+      <tr><td class="mono">P6</td><td>doesn't memory resolve this?</td><td>Partly. The gaps are below → D8. Round 3: rulings become nodes in the user / project catalogs.</td></tr>
+      <tr><td class="mono">P7</td><td>close/resume session</td><td><code>/baton close</code> and <code>/baton resume</code>, built on memory (below).</td></tr>
+      <tr><td class="mono">P8</td><td>ABSOLUTELY</td><td>Every agent row shows its served model ID next to its name, and turns red when that differs from what was asked.</td></tr>
+      <tr><td class="mono">P9</td><td>didn't follow</td><td>Settled in round 3: learned preflight in the project catalog.</td></tr>
+      <tr><td class="mono">P10</td><td>not yet</td><td>Parked.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ What the mod can see ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Found in the mod API (Claude Code 2.1.296 types)</div>
+    <h2>The mod can watch every Workflow agent, but it cannot change one</h2>
+    <p class="desc">This one fact decides how rulings and the model map reach Workflow agents. The mod can see a spawn and can refuse it, but it cannot rewrite the agent's prompt or model. So whatever an agent must know has to reach it another way: through files every agent loads (CLAUDE.md and its imports), through agent definitions the script names (<code>agentType</code>), or through the template's <code>args</code>.</p>
+    <div class="visual">
+      <table>
+        <tr><th>The mod wants to…</th><th>API</th><th></th></tr>
+        <tr><td>know a Workflow agent started, its run and position</td><td><code>agent.spawn</code> fires with <code>e.workflow = { runId, agentIndex }</code></td><td class="yes">yes</td></tr>
+        <tr><td>see what each agent does (edits, commands)</td><td><code>tool.call</code> events carry the Workflow agent's <code>agentId</code></td><td class="yes">yes</td></tr>
+        <tr><td>refuse an agent (e.g. one on an unmapped model)</td><td><code>{ deny }</code> from <code>agent.spawn</code>: "only a deny applies there"</td><td class="yes">yes</td></tr>
+        <tr><td>inject rulings or lessons into its prompt</td><td>"a change to its content is ignored"</td><td class="no">no</td></tr>
+        <tr><td>set its model</td><td>same: content is not rewritable for Workflow agents</td><td class="no">no</td></tr>
+        <tr><td>list the run's agents</td><td><code>$.agent.list()</code>: "a workflow's are not" listed. Build the tree from spawn events plus <code>wf_*.json</code> instead.</td><td class="no">no</td></tr>
+        <tr><td>know which model actually served</td><td>Each agent's transcript records <code>.message.model</code>, and the run JSON has it per agent</td><td class="yes">yes, from files</td></tr>
+      </table>
+    </div>
+  </div>
+  <aside class="rail">
+    <h4>Source</h4>
+    <ul>
+      <li>The <code>AgentSpawnInput</code> docs in the bundled <code>claude-code.d.ts</code> (2.1.296): "also raised for each agent a workflow script's <code>agent()</code> starts … a workflow agent's content is not rewritable".</li>
+      <li><code>AgentLoop.agentId</code>: "A workflow's agents … carry ids no list names."</li>
+    </ul>
+    <h4>Still to prove (step 0 spike)</h4>
+    <ul>
+      <li>Is the mods rollout on for you? On 2026-10-04 it was "served off", and you said "I still cannot use the mod".</li>
+      <li>Does a CLAUDE.md <code>@import</code> written mid-session reach Workflow agents that start later?</li>
+      <li>Does the spawn input carry the requested model before alias resolution, so a deny can catch <code>haiku</code> → 4.5?</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ P2 prime ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">P2 · round 2 · settled in round 3 as option 1</div>
+    <h2>Keep the prime, but make it a meter by default, not a wall</h2>
+    <p class="desc">Your worry is right. Workflows assume a hybrid main session: scout inline first (list files, read the diff, scope the work), then launch the script. v7's guard refuses every non-dispatch tool during a run, which would block the scouting.</p>
+    <p class="desc">The prime still pays: the itsjusthtml main thread burned 5.9B cache-read tokens over 10 compactions doing grunt work. That's a cost problem, not a quality one (v7 measured no rot on Opus 5.5). So the default should watch cost and suggest, and refuse only when you ask it to.</p>
+    <div class="opts">
+      <div class="opt rec"><span class="n">1.</span><b>Meter + nudge; wall opt-in<span class="rec-tag">Recommended</span></b>The band counts main-thread work since the last dispatch (tool calls, context size). Past a threshold it offers "dispatch this?" or "close + resume". <code>/baton prime</code> turns the v7 wall on for a session.</div>
+      <div class="opt"><span class="n">2.</span><b>Wall by default</b>v7's behavior. It stays lean, but it fights the scout-then-orchestrate pattern and plain chat.</div>
+      <div class="opt"><span class="n">3.</span><b>No prime concept</b>Drop it; rely on Workflows and memory alone.</div>
+    </div>
+  </div>
+  <aside class="rail">
+    <h4>Evidence</h4>
+    <ul>
+      <li>itsjusthtml: 4,557 Bash calls in the main thread, 10 compactions at about 970k tokens</li>
+      <li>samen: 463 and 381 Bash calls in two sessions, with 0 agents</li>
+      <li>baton v7's own build: 800 Bash calls in the prime</li>
+      <li>v7 E1b: a lean prime cost $14.78 against $20.40 for one carrying 831K tokens, at the same score</li>
+    </ul>
+    <h4>Starting thresholds (tunable)</h4>
+    <ul>
+      <li>Nudge after 25 tool calls since the last dispatch, or when context passes 300k.</li>
+      <li>Never nudge on Read/Grep-only stretches (that's scouting).</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ P6 rulings ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">P6 · "doesn't our memory resolve this?" · D8</div>
+    <h2>In design yes; in practice it never reached the agents doing the work</h2>
+    <p class="desc">v7 already lifts standing rules out of your prompts, keeps the newest, leads every wake with them, and can enforce one as a refusal. Four gaps kept that from helping in the sessions I read:</p>
+    <ol class="desc">
+      <li><b>The mod never ran live.</b> The rollout switch was off, so no session had rulings.</li>
+      <li><b>Scope.</b> Rulings live in project memory, but the rules you repeat cross projects (decision-table shape, decisions are issues, cheap models, cmux screenshots). Those survive today only because Claude's own <code>MEMORY.md</code> carries them.</li>
+      <li><b>Reach.</b> Rulings lead the prime's wake. Workflow agents can't be prompt-injected (the "mod can watch" slide), and each script re-pasted a <code>COMMON</code> block by hand.</li>
+      <li><b>Agents don't know they exist.</b> Lessons are injected at spawn for Agent-tool agents only.</li>
+    </ol>
+    <div class="opts">
+      <div class="opt rec"><span class="n">1.</span><b>Generated rules file + pinned agent types<span class="rec-tag">Recommended</span></b>The mod writes active rulings to a generated <code>.claude/baton/rulings.md</code>, imported by CLAUDE.md, which every agent (Workflow agents included) loads. Templates use baton <code>agentType</code>s with full model IDs.</div>
+      <div class="opt"><span class="n">2.</span><b>Template args only</b>The template passes rulings in <code>args</code> as the <code>COMMON</code> block. This works only for baton templates, not hand-written scripts.</div>
+      <div class="opt"><span class="n">3.</span><b>Prime wake only</b>Leave it as v7; agents learn rules only through the prompts the prime writes.</div>
+    </div>
+  </div>
+  <aside class="rail">
+    <h4>Trade-off in option 1</h4>
+    <ul>
+      <li>It adds one <code>@.claude/baton/rulings.md</code> line to the project's CLAUDE.md, visible and reviewable, and gitignored if you like.</li>
+      <li>The file still works without the mod: it's just a file.</li>
+      <li>It depends on the step-0 spike (whether a mid-session change reaches agents started later).</li>
+    </ul>
+    <h4>User-scope rulings</h4>
+    <p>In round 3 terms, user-wide rulings are nodes in the user catalog, and the generated file is imported from <code>~/.claude/CLAUDE.md</code>, the same mechanism one level up.</p>
+  </aside>
+</section>
+
+<!-- ============ P7 close / resume ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">P7 · round 2 · now the project catalog's <code>session</code> node · storage → D9</div>
+    <h2><code>/baton close</code> writes one session row; <code>/baton resume</code> reads it</h2>
+    <p class="desc">Today continuity is a hand-written session-prompt file plus Workflow surgery: <code>resumeFromRunId</code>, results pasted into scripts, and a Monitor on <code>journal.jsonl</code>. Close and resume make that one step each, and memory does the remembering.</p>
+    <table>
+      <tr><th><code>/baton close</code> records</th><th><code>/baton resume</code> does</th></tr>
+      <tr><td>open runs: run ID, script path, the next unfinished <code>agentIndex</code>, any agent still in flight (warns before a stop)</td><td>offers the one-line resume per run (<code>scriptPath</code> + <code>resumeFromRunId</code>)</td></tr>
+      <tr><td>open PRs and the merge queue</td><td>checks <code>gh</code> for merges since close and continues the units they unblock</td></tr>
+      <tr><td>rulings added this session, plus a decisions-pending list</td><td>wakes with the index heads, then the session row</td></tr>
+      <tr><td>the project catalog's <code>session</code> node, rewritten at every agent completion (not only on close), pointing at the notes below</td><td>descends only where you ask</td></tr>
+    </table>
+    <div class="okbox">This fits your global handoff rule: close can also write the session-prompt file and print the one line <code>Read @/abs/path and execute</code>, with that file's body being "run /baton resume".</div>
+  </div>
+  <aside class="rail">
+    <h4>Evidence</h4>
+    <ul>
+      <li>About 8 <code>resumeFromRunId</code> relaunches in Campfire/onCrack; round 4 had about 6 resumes and 4 stops.</li>
+      <li>A stop killed a running agent two-thirds of the way through.</li>
+      <li>taal and onCrack both died on session limits mid-run.</li>
+      <li>"I'm saddened you didn't continue last night": resume should continue on its own when goals are clear.</li>
+    </ul>
+    <h4>Automatic close</h4>
+    <p>A session-limit hit or a compaction writes the same row, so a crash leaves a resumable state.</p>
+  </aside>
+</section>
+
+<!-- ============ P9 preflight ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">P9 · round 2 · settled: the project catalog's <code>env</code> node</div>
+    <h2>Preflight: a 20-second environment check before a long run</h2>
+    <p class="desc">Several runs failed hours in for reasons that had nothing to do with the code: the disk filled, a toolchain wasn't on PATH, a database or the Docker VM wasn't up, or a stale dev server held the port. Each failure cost an agent's work and a resume. A preflight checks those once, before the first agent starts, and stops with a clear message instead.</p>
+    <p class="desc">The useful part is that it <b>learns</b>. When a run fails on something environmental (<code>ENOSPC</code>, <code>command not found</code>, <code>EADDRINUSE</code>), baton adds that check to the project catalog's <code>env</code> node. Next run, it's checked up front.</p>
+    <table>
+      <tr><th>seen in your sessions</th><th>preflight check that would have caught it</th></tr>
+      <tr><td>tinker: <code>No space left on device</code> ×8 mid-build</td><td>free disk ≥ project threshold; offer the known cleanup (<code>cargo clean</code>, old targets)</td></tr>
+      <tr><td>tinker: Rust not on PATH (<code>/opt/homebrew/opt/rustup/bin</code>)</td><td><code>cargo --version</code></td></tr>
+      <tr><td>tinker: postgres failed to start</td><td><code>pg_isready</code></td></tr>
+      <tr><td>Campfire: colima disk at 15GB, Docker VM memory</td><td><code>docker info</code>, VM disk free</td></tr>
+      <tr><td>itsjusthtml: stale process held :44100 (exit 7)</td><td>port free, or owned by our dev server</td></tr>
+    </table>
+    <div class="opts" style="margin-top:16px">
+      <div class="opt rec"><span class="n">1.</span><b>Learned preflight<span class="rec-tag">Recommended</span></b>Part of <code>/baton doctor</code> and the first stage of every template; failures add checks to the project's <code>env</code> node.</div>
+      <div class="opt"><span class="n">2.</span><b>Static checklist</b>Checks you write by hand per project.</div>
+      <div class="opt"><span class="n">3.</span><b>Drop it</b>Handle environment failures when they happen.</div>
+    </div>
+  </div>
+  <aside class="rail">
+    <h4>Cost</h4>
+    <ul>
+      <li>Each check is a shell command, so there's no model call, and it adds seconds per run.</li>
+      <li>A learned check is a single note row: <code>check: df -g . | awk … ≥ 20</code>, plus why it was added and when.</li>
+    </ul>
+    <h4>Universal</h4>
+    <p>Nothing here is macOS-specific. Checks are plain commands per project, and the shipped defaults are only "disk" and "git clean".</p>
+  </aside>
+</section>
+
+<!-- ============ P4 UI adapters ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">P4 · UI verification, universal</div>
+    <h2>One UI-check interface; cmux first, others as drivers</h2>
+    <p class="desc">The verifier asks for the same things whatever the browser: screenshots at desktop and phone width, run these interactions (hover, click, fullscreen enter/exit, close panel), report console errors, and confirm the live URL is not empty. A driver does the how.</p>
+    <table>
+      <tr><th>driver</th><th>for</th><th>ships as</th></tr>
+      <tr><td><b>cmux</b> (default for you)</td><td><code>cmux browser open/goto/click/eval/screenshot</code>, in a tab in the existing pane, never a new split</td><td>plugin skill <code>baton:ui-cmux</code> carrying the cmux rules you've taught me</td></tr>
+      <tr><td>Playwright</td><td>CI and anyone without cmux</td><td>skill <code>baton:ui-playwright</code></td></tr>
+      <tr><td>Claude in Chrome / built-in browser</td><td>desktop app users</td><td>skill that defers to those tools' own skills</td></tr>
+      <tr><td>none found</td><td>headless servers</td><td>HTTP fetch + HTML structure checks; the verdict says "no visual check"</td></tr>
+    </table>
+    <p class="desc" style="margin-top:12px">On "bundle the cmux skills with memory or AGENTS.md": I'd ship them as plugin skills (loaded on demand, versioned with baton) and put one row per skill in the tool catalog (<code>tool:cmux</code> etc.), so an agent finds the right driver through memory without carrying every skill in context. AGENTS.md / CLAUDE.md would load all of it into every agent.</p>
+  </div>
+  <aside class="rail">
+    <h4>The proof bar</h4>
+    <ul>
+      <li>It must catch the recorded regressions on their old commits: itsjusthtml fullscreen exit, mobile taps and the panel not closing, and shellOS's empty page.</li>
+      <li>Driver choice is picked by <code>doctor</code> (what's installed) and pinned per project.</li>
+    </ul>
+    <h4>Not assumed</h4>
+    <p>No driver is required. A project with none still gets the HTTP/structure check, and the verdict says so plainly.</p>
+  </aside>
+</section>
+
+<!-- ============ Sequence ============ -->
+<section class="slide">
+  <div class="main">
+    <div class="kicker">Order of work (round 5)</div>
+    <h2>A spike, then memory first, because everything else hangs off it</h2>
+    <ol class="steps">
+      <li class="zero"><b>Spike (findings note, no PR).</b> Is the mods rollout on? Can Workflow agents call the mod's memory tools? Is <code>agent.spawn</code> with <code>e.workflow</code> and <code>tool.call</code> attribution seen live? Does a CLAUDE.md import reach agents started later?</li>
+      <li><b>Model truth (D1, P8) + the roles file (D15).</b> A single-family roles file with full IDs and cache TTLs, checked by <code>doctor</code>. Price rows for Sonnet 5.5 and Haiku 5.5 (Haiku priced per request on prompt size); <code>MECH</code> → <code>claude-haiku-5-5</code>; full IDs; <code>doctor</code> shows alias resolution; the served model ID next to every agent name. Small, and safe to ship first.</li>
+      <li><b>Memory graph format + tools.</b> Node and catalog file format, links, <code>supersedes</code>, stale marking, the orphan check, cwd/marker-file catalog selection, the Haiku curator. A CLI that works without the mod (<code>baton mem …</code>), plus the mod's memory tools on top.</li>
+      <li><b>Migrate your memory (D10, D11).</b> Built in a copy; A/B on 10 real session openers; swap; archive the originals; the CLAUDE.md rule against root re-flattening.</li>
+      <li><b>Project catalog: session + env (P7, P9, D9).</b> Continuous session writes, <code>/baton close</code>, <code>/baton resume</code> with drift checks, learned preflight.</li>
+      <li><b>Watcher pane (D3, P1).</b> Run tree from spawn events + <code>wf_*.json</code>; a live per-agent "what changed" feed; Enter drills in; changes also land in the graph.</li>
+      <li><b>Rulings reach every agent (D8, read, don't import) + templates (P3, P5).</b> <code>unit-loop</code>, the merge queue, pinned agent types, required brief fields.</li>
+      <li><b>Guardrails (D16, D17).</b> The guardrails node, baseline and ratchet, protected configs and tests, suppression count on the meter, curator promotion of repeat rulings.</li>
+      <li><b>The press-release stage (D13).</b> <code>release.html</code> before the build, claims as acceptance lines, the stamped page at the final gate, with the verify node's feature map as the proof.</li>
+      <li><b>UI-check drivers (P4, the verify node) and the Haiku experiment (D1).</b> The cmux driver first; the experiment needs a budget from you.</li>
+    </ol>
+  </div>
+  <aside class="rail">
+    <h4>Why memory moved ahead of the pane</h4>
+    <ul>
+      <li>It works without the mod, so it can't be blocked by the rollout switch.</li>
+      <li>Session and env, rulings, tool recipes and the change feed are all writes into the graph. Build the graph once and they become small.</li>
+    </ul>
+    <h4>How it's built</h4>
+    <ul>
+      <li>Sonnet builders, an Opus verifier, one subagent at a time; the hooks module stays one <code>register.js</code>.</li>
+      <li>Your live memory folder is only touched at step 4, after the A/B, and with the originals archived.</li>
+    </ul>
+  </aside>
+</section>
+
+<!-- ============ Decision table ============ -->
+<section class="slide full">
+  <div class="main">
+    <div class="kicker">Decision record</div>
+    <h2>Every decision settled (2026-10-19)</h2>
+    <p class="desc">Settled so far: D1:1 · D2:1 (universal) · D3:2 (mod pane) · D5:1 (meter, from "watcher, not manager") · D6:1 (env in the project catalog) · D7 replaced by the catalog graph · D12 universal-first · D13 press release → build → validate · D14 Codex as the second adapter.</p>
+    <table class="dtable">
+      <tr><th>#</th><th>question</th><th>options</th></tr>
+      <tr><td>D8</td><td>How do rulings reach Workflow agents? <i>(revised: read, don't import)</i></td><td>1. Rulings are catalog nodes agents Read at start; <code>AGENTS.md</code> / <code>CLAUDE.md</code> carry one pointer line, never the rulings; templates pin agent types with full model IDs <span class="r">Chosen</span><br>2. A generated rules file imported by <code>CLAUDE.md</code> (frozen at session start, loaded in full)<br>3. Template <code>args</code> only</td></tr>
+      <tr><td>D9</td><td>Where do project catalogs live?</td><td>1. Committed under <code>.baton/</code> in the repo; volatile session and env rows git-ignored <span class="r">Chosen</span><br>2. A hidden git ref (<code>refs/baton/catalog</code>), the round-3 pick, dropped because agents need git commands to read it<br>3. Local only, under <code>~/.claude/baton/projects/&lt;repo&gt;/</code></td></tr>
+      <tr><td>D10</td><td>How do we migrate the existing 64 memory files?</td><td>1. Migrate a copy, A/B on 10 real session openers, swap, archive the originals <span class="r">Chosen</span><br>2. Migrate in place with a git snapshot<br>3. Grow into it: move files as they're touched</td></tr>
+      <tr><td>D11</td><td>How do we stop sessions re-flattening <code>MEMORY.md</code>?</td><td>1. A rule in <code>~/.claude/CLAUDE.md</code> + a mod hook that refiles stray root lines <span class="r">Chosen</span><br>2. The CLAUDE.md rule only<br>3. A periodic curator pass only</td></tr>
+      <tr><td>D15</td><td>Where does the roles file live?</td><td>1. A <code>roles</code> node in the user catalog for your defaults, single family; a project catalog may override single lines <span class="r">Chosen</span><br>2. One global file only<br>3. Per template, in its <code>args</code></td></tr>
+      <tr><td>D16</td><td>How strict are guardrails by default?</td><td>1. Ratchet: baseline today's violations, fail only new ones; lint config and CI files protected; suppressions need a reason and expiry <span class="r">Chosen</span><br>2. Advisory: count on the meter, block nothing<br>3. Strict from day one: fail on every violation</td></tr>
+      <tr><td>D17</td><td>Who may edit existing tests during a build unit?</td><td>1. The verifier only; builders may add new tests but not change or delete existing ones <span class="r">Chosen</span><br>2. Anyone; the verifier reviews every test diff<br>3. Nobody until you unlock them</td></tr>
+      <tr><td>D18</td><td>How much of baton lives on GitHub?</td><td>1. Files first; the PR adapter on, issues, labels, boards and <code>TEAM: github</code> opt-in <span class="r">Chosen</span><br>2. GitHub-native core: issue → PR → board by default<br>3. Local only</td></tr>
+    </table>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,369 @@
+
+<!-- ======================= 01 WATCH ======================= -->
+<section class="band" id="watch">
+  <div class="glow" style="right:-320px;top:-160px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">01</span>Watch</div>
+      <h2>Stop typing <em>"Status."</em></h2>
+      <p class="punch">Every Workflow agent appears in the pane the moment it starts: its phase, <b>the model that actually served it</b>, its tokens and cost. Each edit, commit, test run and finding lands as a row you can open.</p>
+      <div class="big"><span class="n" data-count="37">37</span><span class="l">bare <b>"Status"</b> prompts in two sessions, plus ETA and "next data point?" asks. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>A live feed per agent</b>: ✎ edits with +/−, ⎇ commits, ✓ test runs, ⚑ findings</li>
+        <li><b>Enter opens anything</b>: the diff, the transcript, the result</li>
+        <li><b>An ETA</b> from the durations of finished agents, not a guess</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-watch" data-panel>How it sees Workflow agents <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-watch">Try it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="watch · wf_8c1e2a" role="img" aria-label="A phase lane, agent rows filling with progress, and a live feed of changes sliding in; a typed 'status' is struck out.">
+<svg viewBox="0 0 640 460" id="sv-watch" aria-hidden="true">
+  <defs>
+    <linearGradient id="wg" x1="0" x2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#60a5fa"/></linearGradient>
+  </defs>
+  <g transform="translate(0,6)">
+    <path d="M60 50 H460" stroke="#2f2f3a" stroke-width="2"/>
+    <path d="M60 50 H260" stroke="url(#wg)" stroke-width="2" id="w-lanefill"/>
+    <g class="t-mono" font-size="11">
+      <circle cx="60" cy="50" r="7" fill="#4ade80"/><text x="60" y="76" text-anchor="middle" class="t-mute">Preflight</text>
+      <circle cx="160" cy="50" r="7" fill="#4ade80"/><text x="160" y="76" text-anchor="middle" class="t-mute">Build</text>
+      <circle cx="260" cy="50" r="13" fill="none" stroke="#5eead4" stroke-width="2" class="pulse"/><circle cx="260" cy="50" r="7" fill="#5eead4"/><text x="260" y="76" text-anchor="middle" class="t-ink">Verify</text>
+      <circle cx="360" cy="50" r="7" fill="#2a2a33"/><text x="360" y="76" text-anchor="middle" class="t-mute2">Fix</text>
+      <circle cx="460" cy="50" r="7" fill="#2a2a33"/><text x="460" y="76" text-anchor="middle" class="t-mute2">Re-verify</text>
+    </g>
+  </g>
+  <g id="w-rows" font-size="12.5">
+    <g transform="translate(24,104)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#4ade80"/><text x="30" y="22" class="t-ink">build:parser</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-sonnet-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="66" height="6" rx="3" fill="#4ade80" class="wbar" data-w="66"/></g>
+    <g transform="translate(24,148)"><rect width="364" height="36" rx="8" class="f-raised"/><rect x="0" y="0" width="3" height="36" rx="1.5" fill="#faff69" id="w-sel"/><circle cx="16" cy="18" r="4.5" fill="#4ade80"/><text x="30" y="22" class="t-ink">build:importer</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-sonnet-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="66" height="6" rx="3" fill="#4ade80" class="wbar" data-w="66"/></g>
+    <g transform="translate(24,192)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#5eead4" class="pulse"/><text x="30" y="22" class="t-ink">verify:parser</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-opus-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="40" height="6" rx="3" fill="#5eead4" class="wbar" data-w="40"/></g>
+    <g transform="translate(24,236)"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="#5eead4" class="pulse"/><text x="30" y="22" class="t-ink">verify:importer</text><text x="152" y="22" class="t-mono t-mute" font-size="10.5">claude-opus-5-5</text><rect x="284" y="15" width="66" height="6" rx="3" fill="#24242d"/><rect x="284" y="15" width="28" height="6" rx="3" fill="#5eead4" class="wbar" data-w="28"/></g>
+    <g transform="translate(24,280)" opacity=".55"><rect width="364" height="36" rx="8" class="f-raised"/><circle cx="16" cy="18" r="4.5" fill="none" stroke="#5b5b66" stroke-width="1.5"/><text x="30" y="22" class="t-body">fix:round1</text><text x="152" y="22" class="t-mono t-mute2" font-size="10.5">claude-sonnet-5-5</text><text x="350" y="22" text-anchor="end" class="t-mono t-mute2" font-size="10.5">queued</text></g>
+  </g>
+  <g id="w-feed" font-size="12">
+    <text x="410" y="118" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">WHAT CHANGED</text>
+    <g class="fcard" transform="translate(410,130)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">✎ csv.ts <tspan fill="#4ade80">+42</tspan> <tspan fill="#f87171">−7</tspan></text></g>
+    <g class="fcard" transform="translate(410,184)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">✓ npm test <tspan fill="#faff69">51/54</tspan></text></g>
+    <g class="fcard" transform="translate(410,238)"><rect width="206" height="46" rx="9" fill="#14141b" stroke="#2a2a35"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">build:importer</text><text x="12" y="36" class="t-ink">⎇ commit <tspan class="t-mono" fill="#faff69">3f9a2c1</tspan></text></g>
+    <g class="fcard" transform="translate(410,292)"><rect width="206" height="46" rx="9" fill="#1a1216" stroke="#5a2a2f"/><text x="12" y="18" class="t-mono" fill="#a78bfa" font-size="10.5">verify:parser</text><text x="12" y="36" class="t-ink"><tspan fill="#f87171">⚑ major</tspan> quoted newline</text></g>
+  </g>
+  <g transform="translate(24,356)">
+    <rect width="592" height="72" rx="12" fill="#0f0f15" stroke="#25252e"/>
+    <text x="20" y="31" class="t-mono t-ink" font-size="15">&gt; status</text>
+    <path d="M18 26 H96" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" id="w-strike"/>
+    <text x="20" y="55" class="t-mono t-mute" font-size="11.5">answered by the pane · 9/14 agents · ETA 38m · $3.84</text>
+    <text x="572" y="31" text-anchor="end" class="t-mono" fill="#5eead4" font-size="11">no prompt needed</text>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-watch" role="dialog" aria-labelledby="h-watch" tabindex="-1">
+  <div class="ph"><span class="eyebrow">01 · Watch</span><a class="x" href="#watch">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-watch">How the mod sees every Workflow agent</h3>
+    <p>Claude Code tells a mod about every agent a Workflow script starts, and about every tool call those agents make. baton listens to both. It never steers the agents; it only watches, records and shows.</p>
+    <h4>What the mod receives</h4>
+    <table>
+      <tr><th>event</th><th>gives baton</th></tr>
+      <tr><td><code>agent.spawn</code></td><td><code>e.workflow = { runId, agentIndex }</code>: which run, which agent. Fires for every <code>agent()</code> a script starts.</td></tr>
+      <tr><td><code>tool.call</code></td><td>Each call carries the agent's <code>agentId</code>, so an Edit, a Bash test run or a commit lands in that agent's feed.</td></tr>
+      <tr><td><code>wf_*.json</code> + <code>journal.jsonl</code></td><td>Phases, labels, state, tokens, and what each agent returned. These files are already written for every run.</td></tr>
+      <tr><td>agent transcripts</td><td><code>.message.model</code>, the model that really served each turn</td></tr>
+    </table>
+    <h4>What it can't do, on purpose</h4>
+    <p>For Workflow agents the mod can only <b>refuse</b> a spawn: their prompt and model can't be rewritten. So guidance travels through files every agent reads (rulings, catalogs) and through templates, never through the mod reaching into a running script.</p>
+    <h4>Why it matters</h4>
+    <ul>
+      <li>F# Campfire: <b>29</b> bare "Status" prompts out of about 100. taal: <b>8</b> of 19.</li>
+      <li>Hand-made <code>Monitor</code> watchers on <code>journal.jsonl</code> to learn when a unit finished.</li>
+      <li>"when could I expect the next data point?", "ETA?"</li>
+      <li>No sign that <code>/workflows</code> was ever opened. The view has to come to you.</li>
+    </ul>
+    <h4>Status</h4>
+    <div class="status"><span class="tag meas">v7.5</span><span>Pane, agent table and drill-down exist for Agent-tool agents</span><span class="tag goal">v8</span><span>Workflow agents, the per-agent change feed, ETA, served model per row</span></div>
+    <div class="src">source · Claude Code 2.1.296 mod types: AgentSpawnInput.workflow, AgentLoop.agentId · session logs 5229f514, fea4ed62</div>
+  </div>
+</aside>
+<a class="scrim" href="#watch" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 02 MODELS ======================= -->
+<section class="band" id="models">
+  <div class="glow" style="left:-360px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">02</span>Model truth</div>
+      <h2>The model you asked for. <em>Or a red row.</em></h2>
+      <p class="punch">Every agent shows the model ID that <b>served</b> it next to its name, and turns red when that isn't what was asked for. Prices are per request, so Haiku 5.5's 100k-token cliff is visible too.</p>
+      <div class="big"><span class="n" data-count="405">405</span><span class="l">turns asked for <b>haiku</b> and got <b>claude-haiku-4-5</b>, at 10× the price. Nothing said so. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Full model IDs</b> in every template's model map</li>
+        <li><b>Requested vs served</b> on every row, red on mismatch</li>
+        <li><b><code>/baton models enforce</code></b>: refuse a spawn that would run on the wrong model</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-models" data-panel>The Haiku 5.5 story <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-watch" data-row="6">See the red row</a></div>
+    </div>
+    <div class="stage rv" data-label="asked → served" role="img" aria-label="Three agents with asked and served models; the third flips red. Below, input prices per million tokens: Opus 5.5 $4, Sonnet 5.5 $2, Haiku 4.5 $1, Haiku 5.5 $0.10 under 100k tokens.">
+<svg viewBox="0 0 640 440" id="sv-models" aria-hidden="true">
+  <g font-size="12.5">
+    <g transform="translate(24,46)"><rect width="592" height="44" rx="10" class="f-raised"/><text x="18" y="27" class="t-ink">verify:parser</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked claude-opus-5-5</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono t-ink" font-size="11">claude-opus-5-5</text><text x="572" y="28" text-anchor="end" fill="#4ade80" font-size="16">✓</text></g>
+    <g transform="translate(24,100)"><rect width="592" height="44" rx="10" class="f-raised"/><text x="18" y="27" class="t-ink">build:importer</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked claude-sonnet-5-5</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono t-ink" font-size="11">claude-sonnet-5-5</text><text x="572" y="28" text-anchor="end" fill="#4ade80" font-size="16">✓</text></g>
+    <g transform="translate(24,154)" id="m-bad"><rect width="592" height="44" rx="10" fill="#1d1416" stroke="#f87171" stroke-opacity=".9" id="m-badrect"/><text x="18" y="27" class="t-ink">run:bench</text><text x="168" y="27" class="t-mono t-mute" font-size="11">asked haiku</text><text x="340" y="27" class="t-mono t-mute2" font-size="11">→</text><text x="362" y="27" class="t-mono" font-size="11" fill="#f87171" id="m-served">claude-haiku-4-5-20251001</text><text x="572" y="28" text-anchor="end" fill="#f87171" font-size="16" id="m-x">✗</text></g>
+  </g>
+  <text x="24" y="246" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">INPUT $ PER MILLION TOKENS</text>
+  <g font-size="12.5" id="m-bars">
+    <text x="24" y="281" class="t-body">Opus 5.5</text><rect x="170" y="268" width="380" height="18" rx="4" fill="#fb923c" class="mbar" data-w="380"/><text x="558" y="282" class="t-mono t-ink" font-size="12">$4.00</text>
+    <text x="24" y="317" class="t-body">Sonnet 5.5</text><rect x="170" y="304" width="190" height="18" rx="4" fill="#fdba74" class="mbar" data-w="190"/><text x="370" y="318" class="t-mono t-ink" font-size="12">$2.00</text>
+    <text x="24" y="353" class="t-body">Haiku 4.5</text><rect x="170" y="340" width="95" height="18" rx="4" fill="#f87171" class="mbar" data-w="95"/><text x="275" y="354" class="t-mono t-ink" font-size="12">$1.00</text>
+    <text x="24" y="389" class="t-body">Haiku 5.5</text><rect x="170" y="376" width="48" height="18" rx="4" fill="#4ade80" fill-opacity=".25" stroke="#4ade80" stroke-dasharray="3 3" class="mbar" data-w="48"/><rect x="170" y="376" width="10" height="18" rx="4" fill="#4ade80" class="mbar" data-w="10"/><text x="228" y="390" class="t-mono t-ink" font-size="12">$0.10 <tspan class="t-mute" font-size="11">≤100k prompt · $0.50 above</tspan></text>
+  </g>
+  <path d="M218 372 V398" stroke="#4ade80" stroke-dasharray="2 3" stroke-width="1.2"/>
+  <text x="24" y="424" class="t-mono t-mute2" font-size="10.5">prices verified 2026-10-10 · Haiku 4.5 = what the 405 turns actually cost</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-models" role="dialog" aria-labelledby="h-models" tabindex="-1">
+  <div class="ph"><span class="eyebrow">02 · Model truth</span><a class="x" href="#models">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-models">The Haiku 5.5 story, and why IDs beat aliases</h3>
+    <p>onCrack round 4 planned Haiku 5.5 for its measuring and final-run units. All three ran on <b>claude-haiku-4-5-20251001</b>: 405 turns. The session was on Claude Code 2.1.287, where the <code>haiku</code> alias still pointed at 4.5. On 2.1.296 it resolves to 5.5. The script, the logs and the summary all said "Haiku"; only the transcripts' <code>.message.model</code> told the truth.</p>
+    <h4>Prices (per million tokens)</h4>
+    <table>
+      <tr><th>model</th><th>input</th><th>output</th><th>cache read</th></tr>
+      <tr><td>claude-opus-5-5</td><td>$4</td><td>$20</td><td>$0.20</td></tr>
+      <tr><td>claude-sonnet-5-5</td><td>$2</td><td>$10</td><td>$0.10</td></tr>
+      <tr><td>claude-haiku-4-5</td><td>$1</td><td>$5</td><td>$0.10</td></tr>
+      <tr><td>claude-haiku-5-5 (≤100k prompt)</td><td>$0.10</td><td>$0.50</td><td>$0.01</td></tr>
+      <tr><td>claude-haiku-5-5 (&gt;100k prompt)</td><td>$0.50</td><td>$2.50</td><td>$0.05</td></tr>
+    </table>
+    <h4>What v8 changes</h4>
+    <ul>
+      <li>The ledger prices <b>per request</b>, because Haiku 5.5's price depends on that request's prompt size. The pane shows the share of a Haiku agent's turns above 100k.</li>
+      <li>v7.5's price table had no Sonnet 5.5 row, so the cheap tier's cost read <code>$?</code>. It also had no Haiku 5.5 row. Both are fixed.</li>
+      <li>The mod's own small calls (memory merges, ruling extraction, PR-comment summaries) move to Haiku 5.5: prompts under 1k tokens, well under the cliff.</li>
+      <li><code>/baton doctor</code> prints what each alias resolves to on this Claude Code.</li>
+    </ul>
+    <h4>Next: a measured tier</h4>
+    <p>A pre-registered test runs Haiku 5.5 against Sonnet 5.5 as the worker on the existing conformance suites and on command-settled work (run the suite, bench, measure), with the verifier held on Opus 5.5. Haiku becomes the command tier only if it scores within 0.03 and stays under 100k in at least 90% of turns.</p>
+    <div class="src">source · onCrack wf_c8dd6822 agent transcripts: 198 + 142 + 65 turns on claude-haiku-4-5-20251001 · CLI 2.1.287 in those transcripts · baton mod/lib/ledger.mjs PRICES</div>
+  </div>
+</aside>
+<a class="scrim" href="#models" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 03 MEMORY ======================= -->
+<section class="band" id="memory">
+  <div class="glow" style="right:-300px;top:-100px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">03</span>Graph memory</div>
+      <h2>Catalogs all <em>the way down.</em></h2>
+      <p class="punch">Memory is a graph of small facts. <b>Catalogs are the doors in</b>: a root that lists catalogs, catalogs that list nodes, nodes that link to nodes. An agent walks two hops and reads only what it lands on.</p>
+      <div class="big"><span class="n"><span data-count="1.2" data-dec="1">1.2</span>k</span><span class="l">tokens at wake for the catalogs that apply, against <b>3.5k</b> for today's flat MEMORY.md, which is mostly other projects. <span class="tag goal">design target</span></span></div>
+      <ul class="ticks">
+        <li><b>One fact per node</b>; logs split into "now" and dated history</li>
+        <li><b>Every node cites its source</b> and is marked stale when the source moves</li>
+        <li><b>Newest wins</b> through <code>supersedes</code> links, not deletion</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-memory" data-panel>The graph, node by node <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-mem">Walk it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="root → catalogs → nodes" role="img" aria-label="A root node, a ring of catalogs and an outer ring of memory nodes. A question travels from an agent through the root and one catalog to a single node; a meter shows how few tokens that path loads.">
+{{MEM_SVG}}
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-memory" role="dialog" aria-labelledby="h-memory" tabindex="-1">
+  <div class="ph"><span class="eyebrow">03 · Graph memory</span><a class="x" href="#memory">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-memory">A graph of small facts, entered through catalogs</h3>
+    <p>v7's memory is a <b>timeline</b>: an append-only log of notes of at most 280 bytes, with a tree of summaries over it. It answers "what happened lately" well and "what do we know about X" badly. v8 keeps the timeline and adds the second axis: <b>things</b>.</p>
+    <h4>Three kinds of node</h4>
+    <table>
+      <tr><th>kind</th><th>body</th><th>example</th></tr>
+      <tr><td>root</td><td>one row per catalog</td><td><code>MEMORY.md</code>, about 1 KB, always loaded</td></tr>
+      <tr><td>catalog</td><td>rows "name: hook → [[link]]", capped near 40; overflow becomes a sub-catalog</td><td><code>project:shop</code>, <code>tech:rust</code></td></tr>
+      <tr><td>node</td><td>one fact, links, source + commit, <code>supersedes</code></td><td><code>project:shop/how-to-test</code></td></tr>
+    </table>
+    <h4>Rules that keep it healthy</h4>
+    <ul>
+      <li><b>Every node is reachable from a catalog.</b> Orphans are flagged.</li>
+      <li><b>Stale is shown, never hidden.</b> A node whose source has a newer commit says so until someone re-checks it.</li>
+      <li><b>Agents append notes; a Haiku 5.5 curator folds them into nodes</b> at boundaries. That is v7's merge job, retargeted.</li>
+      <li><b>Plain Markdown files.</b> Any agent can Read them, with or without the mod.</li>
+    </ul>
+    <h4>Your memory today, measured</h4>
+    <ul>
+      <li>64 memory files, <b>112 links</b> between them, 3 broken, 2 with no links: already a graph.</li>
+      <li><code>MEMORY.md</code> is 13.9 KB (≈3.5k tokens), loaded in every session; 32 of its rows are projects, and usually one applies.</li>
+      <li>The four largest "memories" are logs of 29–37 KB each, to be split into "now" and history nodes.</li>
+    </ul>
+    <h4>Migration</h4>
+    <p>Build the graph from a copy. Replay 10 real session openers against old and new, comparing tokens loaded and facts found, and swap only if the new graph finds at least as much. The originals stay archived. A rule in <code>~/.claude/CLAUDE.md</code>, plus a mod hook, keeps sessions from flattening the root again.</p>
+    <div class="src">source · /Users/clank/.claude/projects/-Users-clank-Desktop-projects/memory (64 files, 345,740 bytes) · baton mod/lib/memcore.mjs</div>
+  </div>
+</aside>
+<a class="scrim" href="#memory" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 04 CATALOGS ======================= -->
+<section class="band" id="catalogs">
+  <div class="glow" style="left:-340px;top:-140px" aria-hidden="true"></div>
+  <div class="wrap vh flip">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">04</span>Catalogs</div>
+      <h2>Your repo picks <em>its own memory.</em></h2>
+      <p class="punch">A catalog per <b>project</b>, per <b>technology</b>, per <b>tool</b>, and one for <b>you</b>. The folder you're in picks the project, marker files pick the tech, and <code>doctor</code> picks the tools. No model call is needed to decide what to load.</p>
+      <div class="big"><span class="n" data-count="112">112</span><span class="l">links already connect your <b>64</b> memories. They needed doors, not a rewrite. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>project:</b> session, env, how to test, rulings, open PRs</li>
+        <li><b>tech:</b> "Rust targets fill the disk" lives once, for every Rust repo</li>
+        <li><b>user:</b> decision tables, PRs to main, cheap models for fan-outs</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-catalogs" data-panel>What goes where <span class="ar">→</span></a></div>
+    </div>
+    <div class="stage rv" data-label="~/shop picks" role="img" aria-label="A repository's files on the left; package.json, docker-compose.yml and the folder itself light up lines to the catalogs they select. Rust and other projects stay dim.">
+<svg viewBox="0 0 640 440" id="sv-cat" aria-hidden="true">
+  <g transform="translate(24,40)">
+    <rect width="238" height="364" rx="14" fill="#0f0f15" stroke="#25252e"/>
+    <text x="18" y="32" class="t-mono t-ink" font-size="13">~/shop <tspan class="t-mute2">$</tspan></text>
+    <g class="t-mono" font-size="12">
+      <text x="18" y="70" class="t-body" id="cf-cwd">📁 .  <tspan class="t-mute2">(the repo)</tspan></text>
+      <text x="34" y="104" class="t-body" id="cf-pkg">package.json</text>
+      <text x="34" y="134" class="t-mute">tsconfig.json</text>
+      <text x="34" y="164" class="t-body" id="cf-dock">docker-compose.yml</text>
+      <text x="34" y="194" class="t-mute">src/</text>
+      <text x="34" y="224" class="t-mute">test/</text>
+      <text x="34" y="254" class="t-mute">.claude/</text>
+      <text x="34" y="300" class="t-mute2"><tspan text-decoration="line-through">Cargo.toml</tspan></text>
+      <text x="34" y="330" class="t-mute2"><tspan text-decoration="line-through">mix.exs</tspan></text>
+    </g>
+  </g>
+  <g fill="none" stroke-width="1.6">
+    <path class="cl" d="M190 106 C 300 106, 300 74, 382 74" stroke="#a78bfa"/>
+    <path class="cl" d="M146 140 C 300 140, 300 136, 382 136" stroke="#a78bfa"/>
+    <path class="cl" d="M206 200 C 300 200, 300 198, 382 198" stroke="#a78bfa"/>
+    <path class="cl" d="M262 260 C 320 260, 330 260, 382 260" stroke="#a78bfa" stroke-dasharray="3 4"/>
+  </g>
+  <g font-size="12.5">
+    <g transform="translate(382,52)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">project:shop</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">cwd</text></g>
+    <g transform="translate(382,114)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tech:typescript</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">package.json</text></g>
+    <g transform="translate(382,176)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tool:docker</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">compose file</text></g>
+    <g transform="translate(382,238)" class="cc1"><rect width="234" height="44" rx="10" fill="#17142a" stroke="#a78bfa"/><text x="14" y="27" class="t-ink" font-weight="600">tool:cmux</text><text x="220" y="27" text-anchor="end" class="t-mono t-mute" font-size="10.5">doctor</text></g>
+    <g transform="translate(382,300)"><rect width="234" height="40" rx="10" fill="#121217" stroke="#2a2a33"/><text x="14" y="25" class="t-mute" font-weight="600">user</text><text x="220" y="25" text-anchor="end" class="t-mono t-mute2" font-size="10.5">always</text></g>
+    <g transform="translate(382,350)" opacity=".38"><rect width="112" height="34" rx="9" fill="none" stroke="#34343f" stroke-dasharray="3 3"/><text x="12" y="22" class="t-mute" font-size="11.5">tech:rust</text></g>
+    <g transform="translate(504,350)" opacity=".38"><rect width="112" height="34" rx="9" fill="none" stroke="#34343f" stroke-dasharray="3 3"/><text x="12" y="22" class="t-mute" font-size="11.5">project:tinker</text></g>
+  </g>
+  <text x="382" y="30" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">LOADED FOR THIS FOLDER</text>
+  <text x="382" y="410" class="t-mono t-mute2" font-size="10.5">dim = one hop away, never loaded</text>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-catalogs" role="dialog" aria-labelledby="h-catalogs" tabindex="-1">
+  <div class="ph"><span class="eyebrow">04 · Catalogs</span><a class="x" href="#catalogs">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-catalogs">What goes where</h3>
+    <table>
+      <tr><th>catalog</th><th>picked by</th><th>holds</th></tr>
+      <tr><td>root</td><td>always</td><td>one row per catalog: the catalog of catalogs</td></tr>
+      <tr><td>user</td><td>always (small)</td><td>how you work: decision-table shape, decisions are issues, PRs target main, never push after handoff, cheap models for fan-outs</td></tr>
+      <tr><td>project:&lt;repo&gt;</td><td>the repo under cwd, not the folder you launched from</td><td><code>session</code>, <code>env</code>, how to test, dev ports, rulings, open PRs, ADR state</td></tr>
+      <tr><td>tech:&lt;stack&gt;</td><td>marker files: <code>Cargo.toml</code>, <code>mix.exs</code>, <code>*.fsproj</code>, <code>go.mod</code>, <code>package.json</code></td><td>cross-project lessons: shared <code>CARGO_TARGET_DIR</code>, PLTs never committed, …</td></tr>
+      <tr><td>tool:&lt;tool&gt;</td><td><code>doctor</code> finds it installed</td><td>cmux recipes, Workflow resume, gh, colima memory cap, plus the plugin skill to load</td></tr>
+    </table>
+    <h4>Seeding from what you have</h4>
+    <ul>
+      <li>22 <code>feedback_*</code> files → mostly <b>user</b>; a few move to tool or tech (cmux screenshots → tool:cmux, clean Rust builds → tech:rust)</li>
+      <li>32 <code>project_*</code> files → one <b>project</b> catalog each, plus a session and an env node</li>
+      <li>6 <code>reference_*</code> files → <b>tech</b> and <b>tool</b> catalogs</li>
+    </ul>
+    <h4>Where project catalogs live</h4>
+    <p>On a hidden git ref in the repo (<code>refs/baton/catalog</code>): they travel with the repo, any machine can resume, and nothing shows up in branches or PRs. A folder that isn't a git repo falls back to <code>~/.claude/baton/projects/&lt;name&gt;/</code>.</p>
+    <div class="src">source · memory folder prefix counts (feedback 22, project 32, reference 6) · v5 quiet team mode used refs/baton/run/&lt;id&gt; the same way</div>
+  </div>
+</aside>
+<a class="scrim" href="#catalogs" tabindex="-1" aria-hidden="true"></a>
+
+<!-- ======================= 05 RESUME ======================= -->
+<section class="band" id="resume">
+  <div class="glow" style="right:-320px;top:-120px" aria-hidden="true"></div>
+  <div class="wrap vh">
+    <div class="copy rv">
+      <div class="eyebrow"><span class="n">05</span>Close &amp; resume</div>
+      <h2>Session limit at 2 a.m.? <em>Resume at 7.</em></h2>
+      <p class="punch">The project catalog's <b>session node is rewritten every time an agent finishes</b>, not only when you close. A limit, a crash or a compaction leaves a resumable state. <code>/baton resume</code> checks what drifted overnight, then continues from the exact agent.</p>
+      <div class="big"><span class="n" data-count="8">8</span><span class="l"><b>resumeFromRunId</b> relaunches by hand in one port, plus results pasted into scripts and a stop that killed a running agent. <span class="tag meas">measured</span></span></div>
+      <ul class="ticks">
+        <li><b>Drift check</b>: merged PRs, moved branches, failed env checks</li>
+        <li><b>Journal replay</b>: finished agents return instantly</li>
+        <li><b>Warns before a stop</b> that would kill an agent mid-flight</li>
+      </ul>
+      <div class="more"><a class="btn a" href="#p-resume" data-panel>What the session node holds <span class="ar">→</span></a><a class="btn" href="#mod" data-tab="t-sess">See it in the mod</a></div>
+    </div>
+    <div class="stage rv" data-label="project:shop/session" role="img" aria-label="A run of fourteen agents on a timeline; a red session-limit wall stops it at agent nine; the session node pulses after every agent; the next morning a resume checks drift and continues from agent ten.">
+<svg viewBox="0 0 640 440" id="sv-resume" aria-hidden="true">
+  <text x="24" y="44" class="t-mono t-mute2" font-size="10.5" letter-spacing="1.5">wf_8c1e2a · 14 AGENTS</text>
+  <g id="r-ticks"></g>
+  <path d="M40 120 H600" stroke="#24242d" stroke-width="10" stroke-linecap="round"/>
+  <path d="M40 120 H600" stroke="#4ade80" stroke-width="10" stroke-linecap="round" id="r-fill" stroke-dasharray="560" stroke-dashoffset="215"/>
+  <g id="r-wall">
+    <rect x="392" y="84" width="6" height="72" rx="3" fill="#f87171"/>
+    <text x="395" y="74" text-anchor="middle" class="t-mono" fill="#f87171" font-size="11">session limit · 01:52</text>
+  </g>
+  <g transform="translate(24,196)">
+    <rect width="290" height="200" rx="14" fill="#0f0f15" stroke="#25252e"/>
+    <circle cx="26" cy="30" r="7" fill="#4ade80" id="r-node" class="pulse"/>
+    <text x="42" y="35" class="t-ink" font-size="13" font-weight="600">session node</text>
+    <text x="276" y="35" text-anchor="end" class="t-mono t-mute2" font-size="10" id="r-saved">saved after agent 9</text>
+    <g class="t-mono" font-size="11">
+      <text x="20" y="70" class="t-mute">resume at</text><text x="104" y="70" class="t-ink">agent 10 · fix:round1</text>
+      <text x="20" y="96" class="t-mute">cached</text><text x="104" y="96" class="t-ink">9 in the journal</text>
+      <text x="20" y="122" class="t-mute">PRs</text><text x="104" y="122" class="t-ink">#84 open · #85 draft</text>
+      <text x="20" y="148" class="t-mute">decision</text><text x="104" y="148" fill="#f87171">D3 vendor key?</text>
+      <text x="20" y="174" class="t-mute">next</text><text x="104" y="174" class="t-ink">fix → re-verify → merge</text>
+    </g>
+  </g>
+  <g transform="translate(330,196)" id="r-morning">
+    <rect width="286" height="200" rx="14" fill="#0f1712" stroke="#2a4a35"/>
+    <text x="18" y="35" class="t-mono" fill="#faff69" font-size="12.5">&gt; /baton resume <tspan class="t-mute2">07:02</tspan></text>
+    <g class="t-mono" font-size="11">
+      <text x="18" y="70" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">PR #84 merged since close</tspan></text>
+      <text x="18" y="96" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">main moved 3 → re-baseline</tspan></text>
+      <text x="18" y="122" class="rline"><tspan fill="#f87171">✗</tspan> <tspan class="t-ink">disk 14 GB → cleaned, 31 GB</tspan></text>
+      <text x="18" y="148" class="rline"><tspan fill="#4ade80">✓</tspan> <tspan class="t-ink">9 agents replayed instantly</tspan></text>
+      <text x="18" y="174" class="rline"><tspan fill="#4ade80">▶</tspan> <tspan class="t-ink">continuing at agent 10</tspan></text>
+    </g>
+  </g>
+</svg>
+    </div>
+  </div>
+</section>
+<aside class="panel" id="p-resume" role="dialog" aria-labelledby="h-resume" tabindex="-1">
+  <div class="ph"><span class="eyebrow">05 · Close &amp; resume</span><a class="x" href="#resume">close ✕</a></div>
+  <div class="pb">
+    <h3 id="h-resume">The session node: continuous, checked, portable</h3>
+    <h4>What it holds</h4>
+    <table>
+      <tr><th>field</th><th>from</th></tr>
+      <tr><td>open runs</td><td>run ID, script path, the next unfinished <code>agentIndex</code>, any agent in flight</td></tr>
+      <tr><td>PRs + merge queue</td><td><code>gh</code>, at write time</td></tr>
+      <tr><td>decisions pending</td><td>questions you haven't answered</td></tr>
+      <tr><td>rulings added</td><td>this session's new rulings, already in the user/project catalogs</td></tr>
+      <tr><td>next</td><td>what the run will do after resume</td></tr>
+    </table>
+    <h4>Three properties make it bulletproof</h4>
+    <ul>
+      <li><b>Continuous.</b> It's rewritten at every agent completion (the watcher sees each one). <code>/baton close</code> is just the final save. A session limit, crash or compaction writes the same row.</li>
+      <li><b>Checked.</b> Resume re-reads <code>gh</code>, <code>git</code> and the env checks before trusting the row: merged PRs unblock units, moved branches queue a re-baseline.</li>
+      <li><b>Portable.</b> It lives in the project catalog on a hidden git ref, so another machine can resume.</li>
+    </ul>
+    <h4>It fits your handoff habit</h4>
+    <p><code>/baton close</code> can also write the session-prompt file and print the single line <code>Read @/abs/path and execute</code>. That file's body is "run /baton resume".</p>
+    <h4>Evidence</h4>
+    <ul>
+      <li>Campfire/onCrack: about 8 <code>resumeFromRunId</code> relaunches; round 4 alone had about 6 resumes and 4 stops.</li>
+      <li>A stop killed a cable-suite agent two-thirds of the way through.</li>
+      <li>taal and onCrack both died on session limits mid-run.</li>
+      <li>"I'm saddened you didn't continue last night": with clear goals, resume continues on its own.</li>
+    </ul>
+    <div class="src">source · session fea4ed62 (workflows/wf_*.json: 14 runs, 2 killed) · session 5229f514 (6 runs, 1 killed)</div>
+  </div>
+</aside>
+<a class="scrim" href="#resume" tabindex="-1" aria-hidden="true"></a>
