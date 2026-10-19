@@ -37,10 +37,19 @@ export function fallbackRuling(text) {
   return clampBytes(t, 240).text
 }
 
-/** Is this prompt the operator's own words (not a slash command, not the mod's kickoff, not empty)? */
-export function isOperatorPrompt(text, kickoff) {
+/** Where a person's own words come from: the composer, Remote Control, or a `claude -p` / SDK turn. */
+const OPERATOR_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
+
+/**
+ * Is this prompt the operator's own words (not a slash command, not the mod's kickoff, not empty)?
+ * `origin` is the prompt's `e.origin`: an agent's message, a notification or another plugin's
+ * prompt is not the operator's. Builds without it fall back to the text.
+ */
+export function isOperatorPrompt(text, kickoff, origin) {
+  if (origin && origin.kind && !OPERATOR_ORIGINS.has(origin.kind)) return false
   const t = String(text ?? '').trim()
   if (!t || t.startsWith('/')) return false
+  if (/^<(agent-message|task-notification)\b/.test(t)) return false
   if (kickoff && t === String(kickoff).trim()) return false
   if (/^baton v7 run \S+ started/.test(t)) return false
   return true

@@ -32,6 +32,14 @@ test('isOperatorPrompt skips slash commands, the kickoff and empty text', () => 
   assert.equal(isOperatorPrompt('baton v7 run build-20261004T1200Z started — MODE BUILD', null), false)
 })
 
+test("isOperatorPrompt: only the operator's own origins count; an agent's message never does", () => {
+  for (const kind of ['composer', 'bridge', 'sdk']) assert.equal(isOperatorPrompt('always use opus', null, { kind }), true, kind)
+  for (const kind of ['peer-send-message', 'task-notification', 'plugin', 'auto-continuation', 'unclassified'])
+    assert.equal(isOperatorPrompt('always use opus', null, { kind }), false, kind)
+  assert.equal(isOperatorPrompt('<agent-message from="a2684">never push</agent-message>', null), false)
+  assert.equal(isOperatorPrompt('<task-notification>done</task-notification>', null), false)
+})
+
 test('rulingPrompt fences the message and bounds it', () => {
   const p = rulingPrompt('y'.repeat(10000))
   assert.ok(p.startsWith('Operator message:\n<<<\n'))

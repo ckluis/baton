@@ -2718,7 +2718,7 @@ export function register(on, options) {
   // ruling (in the background: the turn does not wait on the cheap model).
   // After a rotation, the prompt also carries the wake.
   on('prompt.submit', async ($, e, next) => {
-    if (!e.agentId && isOperatorPrompt(e.text, run.lastKickoff) && (await runActive($))) {
+    if (!e.agentId && isOperatorPrompt(e.text, run.lastKickoff, e.origin) && (await runActive($))) {
       const text = String(e.text)
       try {
         await appendNote($, 'run', text, 'operator')
