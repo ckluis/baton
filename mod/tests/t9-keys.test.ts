@@ -48,11 +48,14 @@ function world(on: any, o: Opts = {}) {
     for (const n of ps) files.set('_orch/phases/P' + n + '/brief.md', '# P' + n + ' brief\n')
   }
   setPhases(o.phases ?? [1, 2, 3])
-  // The engine hands the mod absolute paths; the fixture is keyed from `_orch/` on.
+  // The engine hands the mod absolute paths under the plugin's folder; the fixture is keyed from the last `_orch/` on
+  // (the folder itself may sit under another `_orch/`, as a baton worktree does).
   const rel = (p: string) => {
     const s = String(p)
-    const i = s.indexOf('_orch/')
-    return i >= 0 ? s.slice(i) : s === '_orch' || s.endsWith('/_orch') ? '_orch' : s
+    if (s === '_orch' || s.endsWith('/_orch')) return '_orch'
+    if (s.startsWith('_orch/')) return s
+    const i = s.lastIndexOf('/_orch/')
+    return i >= 0 ? s.slice(i + 1) : s
   }
   on('fs.read', (_$: any, e: any) => {
     const v = files.get(rel(e.path))
