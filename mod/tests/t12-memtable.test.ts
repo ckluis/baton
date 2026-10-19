@@ -281,7 +281,7 @@ test('guard: GE2 a summary is drilled into from the keyboard by its + (focus and
   expect(w.zooms).toContain('6-7') // E1 §k: the drill opens "notes #128-143", the summary's own range; Q-23: down to level-0 notes
   const t = await shown(ui)
   expect(t).toContain(textOf(6)) // fixture: the summary's children are notes #6 and #7
-  expect(t).toContain(textOf(7))
+  expect(t).toContain(textOf(7)) // fixture: #7 is the other child of #6-7 (E1 k-10: the drilled view lists every note of the range)
   expect(t.includes(textOf(9))).toBe(false) // the wake view's other notes are no longer listed (E1 k-10: only #128-#143 shown)
 })
 
@@ -314,7 +314,7 @@ test('guard: GE3 the drilled view goes back to its parent by b, one level at a t
   await w.settle(1000)
   t = await shown(ui)
   expect(t).toContain(SUMMARY['2:0']) // back at the wake view (E1 k-11: "wake view …")
-  expect(t).toContain(textOf(9))
+  expect(t).toContain(textOf(9)) // fixture WAKE: note #9 is listed again in the wake view (E1 k-11)
 })
 
 // ================================================================== R-C12-01: column alignment
