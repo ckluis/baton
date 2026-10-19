@@ -265,27 +265,32 @@ test('t10-lines: with p on, a phase row\'s node rows are drawn before its sub-or
 
 // R-C10-62
 // Spec L339-340: "at most 12 per phase, followed by `… N more nodes`." Q-59 option A: "The 12-row cap and `… N more nodes` stay."
-test('t10-lines: with p on, a phase of more than 12 nodes shows exactly 12 node rows', async ($, on) => {
+// GUARD (preservation, not red): the cap already holds at da5910c (verdict r1 probe,
+// _orch/verify/T110L-verdict.r1.json c7); _orch/inbox/OQ7.answer.md: "Behaviour that already works at
+// da5910c ... gets guard tests, named `guard:…`, that pass now and at every later commit."
+// It asserts no tree placement (criterion 4's): it counts P2's node rows wherever they are drawn.
+test('guard: with p on, a phase of more than 12 nodes shows exactly 12 node rows', async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
   const ls = lines(await ui.drawn())
-  const { at, end } = phaseBlock(ls, 2)
-  const shown = ls.filter((l, i) => i > at && i < end && P2N.some((id) => nodeIn(id).test(l.text)))
+  const shown = ls.filter((l) => P2N.some((id) => nodeIn(id).test(l.text)))
+  if (shown.length !== 12) throw new Error('P2 node rows drawn: ' + shown.length + dump(ls))
   expect(shown.length).toBe(12) // origin: spec L339 and Q-59, "at most 12 per phase"; the fixture's P2 has 14
 })
 
 // R-C10-63 · R-C10-59
 // Spec L340: "followed by `… N more nodes`." Spec L336: "`… N more nodes` stays under its phase row."
-test('t10-lines: with p on, the 12 node rows are followed by `… N more nodes`, N the number not shown', async ($, on) => {
+// GUARD (preservation, not red): already drawn at da5910c (verdict r1 probe c8); approval
+// _orch/inbox/OQ7.answer.md, as above. No tree placement: the row after P2's last node row, wherever drawn.
+test('guard: with p on, the 12 node rows are followed by `… N more nodes`, N the number not shown', async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
   const ls = lines(await ui.drawn())
-  const { at, end } = phaseBlock(ls, 2)
   let last = -1
-  for (let i = at + 1; i < end; i++) if (P2N.some((id) => nodeIn(id).test(ls[i].text))) last = i
-  if (last < 0) throw new Error('no P2 node row inside the tree' + dump(ls))
+  ls.forEach((l, i) => { if (P2N.some((id) => nodeIn(id).test(l.text))) last = i })
+  if (last < 0) throw new Error('no P2 node row is drawn' + dump(ls))
   // origin: spec L340, "followed by `… N more nodes`"; N = 14 - 12 = 2 from the fixture
   expect(ls[last + 1]?.text ?? '').toMatch(/…\s*2 more nodes\b/)
 })
