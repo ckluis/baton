@@ -370,6 +370,41 @@ async function shownText(ui: any) {
 const qRe = (id: string) => new RegExp('(^|[^A-Za-z0-9-])' + id + '([^0-9]|$)')
 const squash = (s: string) => s.replace(/\s+/g, '') // wrapping only moves whitespace (Q-40 "wrapped to the pane's width")
 
+// c32-wrap-begin (verdict T113B r1: squash() alone lets a cut line pass, so the wrap itself is read from the tree)
+const PANE_COLUMNS = 160 // the pane's width: the bodyColumns this file mounts the Pane with (world().pane)
+/**
+ * The places the tree draws `line` cut instead of wrapped. A paint unit is an outermost Text (or Code) node; its wrap
+ * is its own `wrap`, else the default `'wrap'` (index.d.ts:1700 "`'wrap'` (the default) continues it on rows under";
+ * Text's spellings at :13219). Every spelling other than `'wrap'` cuts a line wider than the room (:1703
+ * "`'truncate-end'` cuts it at the edge"). A unit holding `line`, or a piece of it, that cuts and whose row (its
+ * nearest flexDirection 'row' Box, else itself) is wider than the pane is a cut: the line is not wrapped to the pane's
+ * width. Pieces of `line` drawn one per row, each fitting the pane, are a wrapping and are not cut.
+ */
+function cutsOf(tree: any, line: string, columns: number): { text: string; wrap: any; width: number }[] {
+  const want = squash(line)
+  const out: { text: string; wrap: any; width: number }[] = []
+  const width = (t: string) => Math.max(0, ...t.split('\n').map((l) => [...l].length))
+  const walk = (n: any, row: any) => {
+    if (!n || typeof n !== 'object') return
+    if (Array.isArray(n)) return n.forEach((c: any) => walk(c, row))
+    if (n.type === 'Button') return
+    if (n.type === 'Text' || n.type === 'Code') {
+      const text = strings(n)
+      const sq = squash(text)
+      const holds = sq.length > 0 && (sq.includes(want) || (sq.length >= 12 && want.includes(sq)))
+      const wrap = (n.props && n.props.wrap) ?? 'wrap'
+      const w = width(row ? strings(row) : text)
+      if (holds && wrap !== 'wrap' && w > columns) out.push({ text, wrap, width: w })
+      return
+    }
+    const isRow = n.type === 'Box' && n.props && n.props.flexDirection === 'row'
+    ;(n.children || []).forEach((c: any) => walk(c, isRow ? n : row))
+  }
+  walk(tree, undefined)
+  return out
+}
+// c32-wrap-end
+
 /**
  * The drawn nodes that are `?` rows of question `id`: text starting `?` that names the id (the `?` row of spec L197,
  * L201; plan/decisions/Q-49.md "`? Q-42 · queued for G1 · <first line>`"). Each with the colour it is drawn in.
@@ -457,9 +492,13 @@ test('missing #1 (c32): a question\'s brief shows every line of its Q-<n>.md, un
   const w = world(on)
   const ui: any = await w.pane($)
   await openBrief(w, ui, 'Q-71')
-  const shown = squash(await shownText(ui))
+  const tree = await ui.drawn()
+  const shown = squash(strings(tree))
   const missing = Q71.split('\n').filter((l) => l.trim() && !shown.includes(squash(l))) // every line of fixture Q-71.md, markdown as written (Q-40)
-  expect(missing).toEqual([]) // Q-40: the whole file, unreworded; the 180-column LONG line whole, not cut (wrapped to 160)
+  expect(missing).toEqual([]) // Q-40: the whole file, unreworded
+  // Q-40 "wrapped to the pane's width": the 184-column LONG line is not drawn in a Text that cuts it at 160 columns
+  // (wrap 'truncate-end' or any spelling but 'wrap'); drawn whole and wrapping, or in pieces that each fit, it passes.
+  expect(cutsOf(tree, LONG, PANE_COLUMNS)).toEqual([])
 })
 
 test('missing #2 (c33): a question\'s brief shows the file\'s Blocked by: line first', async ($, on) => {
