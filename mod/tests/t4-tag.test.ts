@@ -130,6 +130,7 @@ const RESERVED = ['operator', 'prime-reply', 'ruling', 'ruling-hand', 'handoff',
 // origin: Q-3.md option 1 "`L` followed by digits" — two instances of that form
 const RESERVED_L = ['L3', 'L12']
 
+// R-C4-01, R-C4-02 (with R-C7-10) — Q-3.md option 1: "returns an error naming the reserved set"
 test('T4: memory_note with a reserved tag returns an error naming the reserved set', async ($, on) => {
   world(on)
   for (const tag of [...RESERVED, ...RESERVED_L]) {
@@ -146,6 +147,8 @@ test('T4: memory_note with a reserved tag returns an error naming the reserved s
   }
 })
 
+// R-C4-01, R-C4-02 (with R-C7-10) — Q-3.answer.md: "A: refuse reserved tags with an error."
+// Q-3.md option 1: "... returns an error naming the reserved set, and no note is written."
 test('T4: memory_note with a reserved tag writes no note', async ($, on) => {
   const w = world(on)
   for (const tag of [...RESERVED, ...RESERVED_L]) {
