@@ -495,7 +495,7 @@ test('t10-phases: the pending phase row is drawn dim', { options: OPTIONS }, asy
     if (x.type === 'Text' && (x.children ?? []).some((c: any) => typeof c === 'string' && c.trim())) texts.push(x)
   })
   const bright = texts.filter((x) => x.props?.dimColor !== true).map(textOf)
-  expect(texts.length, say(t, 'P3 draws no text')).toBeGreaterThan(0)
+  expect(texts.length, say(t, 'P3 draws no text')).toBeGreaterThan(0) // origin: Q-62, the row draws its mark and label `P3`
   expect(bright, say(t, 'P3 texts not dim')).toEqual([]) // origin: spec L348 and Q-62, "A dim row": every text of the row dim
 })
 
@@ -642,7 +642,8 @@ test("t10-phases: the phase view shows the phase's tokens, the total over its su
   const view = await openRow(ui, t, p2, 'P2')
   const want = sum(P2_TREE, tokensOf) // origin: the fixture, S2A + W1 + V1 + S2B + W2 (WX works under S1, Q-58)
   const got = tokenFigures(view.join('\n'))
-  expect(got.some((v) => Math.abs(v - want) <= want * 0.005), 'P2 view token figures ' + JSON.stringify(got) + ', want ' + want + ':\n' + view.join('\n')).toBe(true)
+  expect(got.some((v) => Math.abs(v - want) <= want * 0.005), 'P2 view token figures ' + JSON.stringify(got) + ', want ' + want + ':\n' + view.join('\n')) // origin: P2_TREE's tokens, half a percent of rounding allowed (a drawn `218k`)
+  .toBe(true)
 })
 
 // R-C10-48
@@ -655,7 +656,7 @@ test("t10-phases: the phase view shows the phase's cost, the total over its sub-
   const view = await openRow(ui, t, p2, 'P2')
   const want = sum(P2_TREE, costOf) // origin: the fixture's subtree at the fixture's prices ($2.18)
   const got = usdFigures(view.join('\n'))
-  expect(got.some((v) => Math.abs(v - want) < 0.0051), 'P2 view costs ' + JSON.stringify(got) + ', want $' + want.toFixed(2) + ':\n' + view.join('\n')).toBe(true)
+  expect(got.some((v) => Math.abs(v - want) < 0.0051), 'P2 view costs ' + JSON.stringify(got) + ', want $' + want.toFixed(2) + ':\n' + view.join('\n')).toBe(true) // origin: P2_TREE's cost, to the cent
 })
 
 // R-C10-49
@@ -714,7 +715,7 @@ test('t10-phases: when the pane first draws, the pending phase row takes the Q-1
   // origin: the fixture's tree per spec L309-325: prime, P1, S1, WX, P2, S2A, W1, V1, S2B, W2 come
   // before P3 (10 rows), so P3 is the 11th row and takes the 11th letter
   const want = POOL[10]
-  expect(keys, say(t, 'P3 row keys ' + JSON.stringify(keys) + ', want ' + want)).toContain(want)
+  expect(keys, say(t, 'P3 row keys ' + JSON.stringify(keys) + ', want ' + want)).toContain(want) // origin: Q-12 pool, Q-60 tree order, the fixture's 11th row
 })
 
 // ---- guards: what already works at da5910c ---------------------------------------------------------
@@ -731,9 +732,9 @@ test('guard: p shows the node rows of the phases, and p again hides them', { opt
   // origin: the fixture's nodes T101 (P1) and T201 (P2): hidden, shown, hidden (spec L264)
   expect([await has('T101'), await has('T201')]).toEqual([false, false])
   await pressP(ui)
-  expect([await has('T101'), await has('T201')]).toEqual([true, true])
+  expect([await has('T101'), await has('T201')]).toEqual([true, true]) // origin: spec L264, `p` shows them
   await pressP(ui)
-  expect([await has('T101'), await has('T201')]).toEqual([false, false])
+  expect([await has('T101'), await has('T201')]).toEqual([false, false]) // origin: spec L264, `p` again hides them
 })
 
 // R-C10-45
