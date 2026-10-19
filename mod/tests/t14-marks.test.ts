@@ -478,7 +478,7 @@ test('memory_mark given a summary label records the mark on that summary', SLOW,
   await mark($, '0-1', 'ok', 'both notes checked')
   expect(w.marksOf('0-1').map((m) => m.mark)).toEqual(['ok']) // the summary #0-1 (fixture L1 #0-1) carries the mark
   expect(w.marksOf('0')).toEqual([]) // L490 "A mark on a summary is the summary's own (Q-75)": not its notes'
-  expect(w.marksOf('1')).toEqual([])
+  expect(w.marksOf('1')).toEqual([]) // Q-75: nor note #1's (fixture)
 })
 
 // R-C15-03, R-C15-77 · spec L412-413 "A mark records a one-line reason" · Q-74 "a mark is an appended record
@@ -565,7 +565,7 @@ test('the error a memory_mark call carrying an agentId returns reads the Q-73 re
   const w = world(on)
   await w.begin($)
   const r = await mark($, '6', 'void', 'a worker thinks it is wrong', { agentId: SUBAGENT })
-  expect(isErrorResult(r)).toBe(true)
+  expect(isErrorResult(r)).toBe(true) // D-T14-mark-messages: an error result first
   expect(errorText(r)).toBe('refused: only the operator and the prime mark (Q-73)') // D-T14-mark-messages, verbatim
 })
 
@@ -590,7 +590,7 @@ test('in a fixture, marking a note ❌ removes it from memory_wake\'s output', S
   await w.drain()
   const out = text(await call($, 'memory_wake')) // the default budget (96) shows every note verbatim
   expect(out).not.toContain(VOID_TEXT) // L448: the ❌ note's text is not in memory_wake
-  expect(out).not.toContain('monitor session: approved push')
+  expect(out).not.toContain('monitor session: approved push') // the ❌ note's text (fixture NOTES[5])
 })
 
 // R-C15-18, R-C15-43, R-C15-157, R-C15-158 · spec L423 "A summary built from a ❌ note is rebuilt without it."
@@ -708,7 +708,7 @@ test('after a rebuild the summary\'s slot holds the new summary', SLOW, async ($
   const now = w.sum(1, 2) ?? ''
   expect(now).not.toBe(SUMMARIES['1:2']) // not the old text (fixture)
   expect(now).toContain('tokN4') // the new summary, built from what is left under it: note #4 (fixture)
-  expect(now).not.toContain(VOID_TEXT)
+  expect(now).not.toContain(VOID_TEXT) // Q-84 with L423: the new summary is built without the ❌ note (fixture tokN5)
 })
 
 // R-C15-16, R-C15-44 · spec L422 "`memory_recall` skips a ❌ note" · D-T14-tool-names: `include_void`, false by default.
@@ -755,7 +755,7 @@ test('marking a ✅ note ❌ appends a second mark record and keeps the first', 
   const list = w.marksOf('3')
   expect(list.length).toBe(2) // Q-74 "an appended record": a second one
   expect(list[0]).toEqual(first) // the first kept as it was
-  expect(list[1].mark).toBe('void')
+  expect(list[1].mark).toBe('void') // Q-74: the newest record is the ❌ the prime just made (`void`, D-T14-tool-names)
 })
 
 // R-C15-78 · Q-74 "the newest record is the note's current mark" · spec L477-478 · Q-90 `#n ❌` before its text.
@@ -776,7 +776,7 @@ test('memory_mark with mark clear returns a marked note to unmarked', SLOW, asyn
   expect(w.marksOf('3').at(-1)?.mark).toBe('clear') // Q-74: a `clear` record is the newest
   const out = text(await call($, 'memory_recall', { pattern: 'tokN3', include_void: true }))
   const line = lineOf(out, '#3 ')
-  expect(line).toContain('tokN3')
+  expect(line).toContain('tokN3') // the #3 line is the note (fixture NOTES[3])
   expect(line).not.toContain('✅') // unmarked: neither confirmed (L414)
   expect(line).not.toContain('❌') // nor void
 })
@@ -846,7 +846,7 @@ test('marking a summary ❌ rebuilds it from its children', SLOW, async ($, on) 
   const now = w.sum(1, 2) ?? ''
   expect(now).not.toContain('tokS1x2') // not the void summary's own text
   expect(now).toContain('tokN4') // rebuilt from its children, notes #4 and #5 (fixture; both unmarked)
-  expect(now).toContain('tokN5')
+  expect(now).toContain('tokN5') // and #5 (Q-75: a summary's ❌ is its own; its notes are unmarked)
 })
 
 // R-C15-98 · Q-75 "and every summary above it is rebuilt from the new one." · spec L491-492.
