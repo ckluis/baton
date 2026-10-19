@@ -285,10 +285,10 @@ test("t10-rollup: an agent row's `this agent` tokens cell shows its own tokens, 
   }
 })
 
-// R-C10-65 · R-C10-85
+// R-C10-65 · R-C10-85 · guard under _orch/inbox/OQ7.answer.md (passes at da5910c)
 // Spec L341: "`this agent` (the row's own tokens and cost)"
 // _orch/inbox/Q-57.answer.md: "this agent's own tokens/cost".
-test("t10-rollup: an agent row's `this agent` cost cell shows its own cost", { options: OPTIONS }, async ($, on) => {
+test("guard: an agent row's `this agent` cost cell shows its own cost", { options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
