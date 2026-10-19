@@ -8,7 +8,7 @@
 // A run is active when the session's directory holds _orch/manifest.json with
 // "prime": true (what /baton start writes), or /baton start ran here.
 
-import { guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
+import { agentIdVerified, guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
@@ -434,8 +434,8 @@ async function runDoctor($) {
   }
   const rg = await runQuiet($, ['rg', '--version'])
   add('ripgrep', rg.ok, rg.ok ? rg.out : 'not found (code_refs falls back to a slower scan)', 'optional: brew install ripgrep')
-  const verified = String(probe.version || '').startsWith(VERIFIED_AGENTID_VERSION)
-  add('Claude Code version', verified, String(probe.version || 'unknown'), 'the prime guard is verified on ' + VERIFIED_AGENTID_VERSION + '; on another version it fails closed')
+  const verified = agentIdVerified(probe.version)
+  add('Claude Code version', verified, String(probe.version || 'unknown'), 'the prime guard needs Claude Code ' + VERIFIED_AGENTID_VERSION + ' or later; on an older version it fails closed')
   let memOk = true
   try {
     await memoRun($, [...(await memoryArgs($, 'project')), '--json', 'stats'])
@@ -2350,10 +2350,10 @@ export function register(on, options) {
     try {
       const v = await $.session.version()
       probe.version = v.base ?? v.version
-      if (!String(probe.version).startsWith(VERIFIED_AGENTID_VERSION)) {
+      if (!agentIdVerified(probe.version)) {
         probe.notice =
-          `baton: the prime guard tells the prime from a subagent by tool.call's agentId, verified on Claude Code ` +
-          `${VERIFIED_AGENTID_VERSION}; this is ${probe.version}. The guard fails closed: a call without agentId ` +
+          `baton: the prime guard tells the prime from a subagent by tool.call's agentId, which needs Claude Code ` +
+          `${VERIFIED_AGENTID_VERSION} or later; this is ${probe.version}. The guard fails closed: a call without agentId ` +
           `is treated as the prime's. If subagents report "is not a prime tool", agentId has changed — /baton stop.`
         $.ui.log(probe.notice)
       }

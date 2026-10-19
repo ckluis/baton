@@ -1,5 +1,14 @@
 # Changelog
 
+## v7.5.1 — 2026-10-19
+
+- **Current Claude Code:** the prime guard accepts Claude Code 2.1.287 or later instead of exactly
+  2.1.287, so doctor and the load notice stop flagging newer builds. Re-verified live on 2.1.302.
+- **Tests run again:** `claude plugin test mod` works now that mods are on, and the four tests
+  written while it couldn't run were brought up to date (`$.ui.ask` is answered as an
+  `AskUserQuestion` tool call; the code tools, the one-line band and the trend column).
+  44 plugin tests and 83 node tests pass.
+
 ## v7.5 — 2026-10-05
 
 - **Drill in:** `↑`/`↓` and `Enter` on any agent, phase or node in Work opens its view (the task, the

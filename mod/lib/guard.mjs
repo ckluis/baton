@@ -5,6 +5,8 @@
 // Read and the prime reached for Bash), so this is an allowlist: whatever is
 // not on it is refused with a reason that names the route.
 
+import { compareVersions } from './view.mjs'
+
 /** Tools the prime keeps during a run. */
 export const PRIME_TOOLS = Object.freeze([
   'Agent', // dispatch: the one way work happens
@@ -70,5 +72,11 @@ export function manifestIsPrime(text) {
   }
 }
 
-/** The Claude Code release whose tool.call agentId the spike verified. */
+/** The first Claude Code release whose tool.call agentId the spike verified; later releases document the field. */
 export const VERIFIED_AGENTID_VERSION = '2.1.287'
+
+/** True when `version` (e.g. "2.1.302") is VERIFIED_AGENTID_VERSION or later. */
+export function agentIdVerified(version) {
+  const m = /^\d+\.\d+\.\d+/.exec(String(version ?? ''))
+  return !!m && compareVersions(m[0], VERIFIED_AGENTID_VERSION) >= 0
+}

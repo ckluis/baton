@@ -62,7 +62,7 @@ test('/baton opens the pane; Work and Memory draw on terminal and desktop', asyn
   expect(r.text ?? '').toBe('')
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 140, placement: 'dock', scroll: { bodyRows: 30 } } as any })
-    await has(ui, /agent\s+context\s+budget/)
+    await has(ui, /agent\s+context\s+(trend\s+)?budget/)
     await has(ui, /◆ prime/)
     await ui.press({ key: 'plan-toggle' })
     await ui.press({ key: 'tab-memory' })
@@ -93,15 +93,15 @@ test('claude -p (no surface): /baton prints every tab as text', async ($, on) =>
   expect(r.text).not.toContain('## Ledger')
 })
 
-test('the band shows the context gauge and rotations during a run, and nothing otherwise', async ($, on) => {
+test('the band shows the context against the rotation threshold during a run', async ($, on) => {
   world(on)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any) // reads the manifest: the run is active
   await $.session.measure({ context: { tokens: 120000, window: 1000000, percent: 12 }, rateLimits: [], changed: ['context'] } as any)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: {} } as any })
-    const g = await ui.find({ type: 'Text', text: /^baton ▕/ })
-    expect(g?.text).toMatch(/^baton ▕.*▏ 12% · rotate at 35% · rotations 0/)
+    const g = await ui.find({ type: 'Text', text: /^ctx / })
+    expect(g?.text).toMatch(/^ctx .*12%\/35%$/)
     expect(g?.props.color).toBe('green')
     await ui.unmount()
   }
@@ -111,7 +111,7 @@ test('no run: the band and the spinner are left alone', async ($, on) => {
   world(on, { orch: false })
   await $.tool.call({ tool: 'Read', file_path: 'x' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: {} } as any })
-  expect(await ui.find({ type: 'Text', text: /^baton ▕/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /\/35%$/ })).toBeUndefined()
 })
 
 test('the spinner carries the phase and the node the prime dispatched', async ($, on) => {

@@ -45,3 +45,9 @@ test('the code tools read code, so they are not the prime\'s', async () => {
   assert.equal(primeMayUse('mcp__baton__memory_wake'), true)
   assert.equal(primeMayUse('mcp__baton__code_fetch'), false)
 })
+
+test('agentIdVerified: the verified release and later pass, earlier and unreadable fail', async () => {
+  const { agentIdVerified } = await import('../lib/guard.mjs')
+  for (const v of ['2.1.287', '2.1.302', '2.2.0', '3.0.0', '2.1.302 (Claude Code)']) assert.equal(agentIdVerified(v), true, v)
+  for (const v of ['2.1.286', '2.0.999', '1.9.9', '', undefined, 'unknown']) assert.equal(agentIdVerified(v), false, String(v))
+})
