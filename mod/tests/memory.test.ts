@@ -52,7 +52,7 @@ function world(on: any, opts: { pending?: any[] } = {}) {
 test('session.start registers the memory tools when a run is active', async ($, on) => {
   const w = world(on)
   await $.session.start({ cwd: '/work', surface: null } as any)
-  expect(w.registered).toEqual(['memory_wake', 'memory_note', 'memory_zoom', 'memory_recall', 'project_wake', 'project_note', 'project_recall'])
+  expect(w.registered).toEqual(['code_search', 'code_fetch', 'code_refs', 'code_explore', 'memory_wake', 'memory_note', 'memory_zoom', 'memory_recall', 'project_wake', 'project_note', 'project_recall'])
 })
 
 test('memory_note appends to the run memory under _orch/memory, tagged prime, text on stdin', async ($, on) => {

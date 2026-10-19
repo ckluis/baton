@@ -10,7 +10,7 @@ claude --plugin-dir ./mod          # from the repo root; the mod hot-reloads on 
 /baton start BUILD ./app           # in the session: arm the guard and start the prime
 ```
 
-Tested with Claude Code **2.1.287** on macOS. The mods surface is early access, so pin that.
+Tested with Claude Code **2.1.287** and **2.1.302** on macOS. The guard needs 2.1.287 or later.
 The memory store needs `node` on `PATH`: the mod runs `bin/memo.mjs` for every memory read and
 write.
 
@@ -37,7 +37,7 @@ write.
 | `agents/` | `sub-orchestrator` (also the PR steward), `worker`, `worker-cheap`, `verifier`, `pr-reviewer`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
 | `tests/*.test.ts` | `claude plugin test` (44 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (61 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (83 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
 
 ### The memory
 
@@ -270,7 +270,16 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 
 ## Verified
 
-Every run here used Claude Code 2.1.287 in a temporary directory with
+**Re-checked 2026-10-19 on Claude Code 2.1.302:** `claude plugin validate mod` passes;
+`claude plugin test mod` runs again (the rollout switch is on) and gives `44 pass, 0 fail` after
+the tests caught up with v7.3–v7.5 (`$.ui.ask` is now a `tool.call` of `AskUserQuestion`, so the
+approvals mock answers that; the code tools, the one-line band and the table's trend column);
+`node --test mod/test/*.test.mjs` gives `83 pass, 0 fail`. Live, headless, in a scratch repo:
+`/baton doctor` passes every check, `/baton start GENERIC ./` arms the guard, the prime's own
+`Bash pwd` is refused with the route, a `baton:worker-cheap` subagent ran `ls -a`, its messages
+report `claude-sonnet-5-5`, and `_orch/spend.json` meters the prime and the worker apart.
+
+Every run below used Claude Code 2.1.287 in a temporary directory with
 `--plugin-dir mod --model claude-sonnet-5-5`.
 
 | claim | how | result |
@@ -313,9 +322,9 @@ Every run here used Claude Code 2.1.287 in a temporary directory with
 
 ## Known risks
 
-- **`e.agentId` is undocumented** in the mods reference. It is declared in the 2.1.287 types
-  (`AgentLoop` on `ToolCallInput`), and the spike and these runs observed it. The guard fails
-  closed: a call with no `agentId` is treated as the prime's. On another version it logs a notice
+- **`e.agentId`** was undocumented on 2.1.287; by 2.1.299 the types document it on `tool.call`
+  ("`agentId` names the loop"), and the 2.1.302 run above observed it. The guard fails
+  closed: a call with no `agentId` is treated as the prime's. Before 2.1.287 it logs a notice
   at load. If a future build drops the field, subagents get refused and the run stops loudly; it
   does not leak.
 - **Auto-mode classifier.** In `auto` permission mode, an early smoke run that told the prime "if

@@ -1,5 +1,22 @@
 # Changelog
 
+## v7.5.1 — 2026-10-19
+
+- **Current Claude Code:** the prime guard accepts Claude Code 2.1.287 or later instead of exactly
+  2.1.287, so doctor and the load notice stop flagging newer builds. Re-verified live on 2.1.302.
+- **Tests run again:** `claude plugin test mod` works now that mods are on, and the four tests
+  written while it couldn't run were brought up to date (`$.ui.ask` is answered as an
+  `AskUserQuestion` tool call; the code tools, the one-line band and the trend column).
+  45 plugin tests and 83 node tests pass.
+- **The pane opens by itself again.** It asked Claude Code for `focus: false`, which the current
+  build refuses (only `focus: true` or no key), so the auto-open never reached the engine. When a
+  terminal is too narrow for a pane nobody asked for (under 144 columns), the band now says
+  `/baton opens the pane` instead of showing nothing.
+- **Agents see approvals and checkpoints.** The line saying the operator approved a gated command,
+  and the checkpoint's restore line, now ride in the tool result's context. They were appended to
+  a string result, but Bash's result is an object, so agents never saw them: in a live test the
+  prime reported that the approval gate "didn't fire" when it had.
+
 ## v7.5 — 2026-10-05
 
 - **Drill in:** `↑`/`↓` and `Enter` on any agent, phase or node in Work opens its view (the task, the

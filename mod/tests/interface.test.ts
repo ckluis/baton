@@ -7,7 +7,7 @@ async function has(ui: any, re: RegExp) {
   if (!(await ui.find({ text: re }))) throw new Error('not drawn: ' + re + ' in ' + JSON.stringify(await ui.drawn()).slice(0, 2000))
 }
 
-function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
+function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: boolean } = {}) {
   const orch = opts.orch ?? true
   const files: Record<string, string> = orch
     ? {
@@ -34,14 +34,17 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
     const k = find(dirs, e.path)
     return k ? { value: dirs[k] } : { deny: 'ENOENT' }
   })
-  mock.clock(on)
+  const clock = mock.clock(on)
   // Beneath the plugins, the engine's own drawing: one Text carrying the props it was handed.
   on('ui.render', ($: any, e: any) => {
     const { Text } = $.ui.resolve(e)
     return Text({ key: 'engine', children: ['engine ' + JSON.stringify(e.props.suffix ?? e.component)] })
   })
-  on('ui.log', () => ({ value: undefined }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const logs: string[] = []
+  on('ui.log', (_$: any, e: any) => { logs.push(String(e.text ?? '')); return { value: undefined } })
+  const opens: any[] = []
+  on('ui.open', (_$: any, e: any) => { opens.push(e); return { value: { isPlaced: opts.placed ?? true } } })
+  on('ui.panes', () => ({ value: [{ id: 'baton', title: 'baton', isShown: false, isFocused: false, isPlaced: opts.placed ?? true }] }))
   on('session.cwd', () => ({ value: '/work' }))
   on('session.root', () => ({ value: '/work' }))
   on('session.surfaces', () => ({ value: opts.surfaces ?? ['terminal'] }))
@@ -54,6 +57,7 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[] } = {}) {
   })
   on('command.run', () => ({ text: 'core' }))
   on('tool.call', () => ({ result: 'ran' }))
+  return { clock, logs, opens }
 }
 
 test('/baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
@@ -62,7 +66,7 @@ test('/baton opens the pane; Work and Memory draw on terminal and desktop', asyn
   expect(r.text ?? '').toBe('')
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 140, placement: 'dock', scroll: { bodyRows: 30 } } as any })
-    await has(ui, /agent\s+context\s+budget/)
+    await has(ui, /agent\s+context\s+(trend\s+)?budget/)
     await has(ui, /◆ prime/)
     await ui.press({ key: 'plan-toggle' })
     await ui.press({ key: 'tab-memory' })
@@ -93,25 +97,49 @@ test('claude -p (no surface): /baton prints every tab as text', async ($, on) =>
   expect(r.text).not.toContain('## Ledger')
 })
 
-test('the band shows the context gauge and rotations during a run, and nothing otherwise', async ($, on) => {
+test('the band shows the context against the rotation threshold during a run', async ($, on) => {
   world(on)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any) // reads the manifest: the run is active
   await $.session.measure({ context: { tokens: 120000, window: 1000000, percent: 12 }, rateLimits: [], changed: ['context'] } as any)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: {} } as any })
-    const g = await ui.find({ type: 'Text', text: /^baton ▕/ })
-    expect(g?.text).toMatch(/^baton ▕.*▏ 12% · rotate at 35% · rotations 0/)
+    const g = await ui.find({ type: 'Text', text: /^ctx / })
+    expect(g?.text).toMatch(/^ctx .*12%\/35%$/)
     expect(g?.props.color).toBe('green')
     await ui.unmount()
   }
+})
+
+test('a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', async ($, on) => {
+  const { clock, opens } = world(on, { placed: false })
+  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
+  on('session.version', () => ({ value: { version: '2.1.302', base: '2.1.302' } }))
+  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
+  on('command.register', () => ({ value: undefined }))
+  on('classic.SessionStart', () => ({}))
+  mock.env(on, {})
+  await $.session.start({ cwd: '/work', surface: null } as any)
+  await clock.advance(1000)
+  await clock.settle()
+  // opened by itself, unfocused (focus: false is refused by the engine; it must be left out)
+  expect(opens).toEqual([{ id: 'baton', title: 'baton', closeOnEscape: true }])
+  const band = async () => {
+    const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 86, scroll: {} } as any })
+    const t = await ui.find({ type: 'Text', text: /^\/baton opens the pane$/ })
+    await ui.unmount()
+    return t
+  }
+  expect((await band())?.text).toBe('/baton opens the pane')
+  await $.command.run({ command: 'baton', args: '' } as any)
+  expect(await band()).toBeUndefined()
 })
 
 test('no run: the band and the spinner are left alone', async ($, on) => {
   world(on, { orch: false })
   await $.tool.call({ tool: 'Read', file_path: 'x' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: {} } as any })
-  expect(await ui.find({ type: 'Text', text: /^baton ▕/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /\/35%$/ })).toBeUndefined()
 })
 
 test('the spinner carries the phase and the node the prime dispatched', async ($, on) => {

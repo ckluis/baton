@@ -11,7 +11,7 @@
       "name": "baton",
       "source": "./mod",
       "description": "The baton mod for Claude Code: prime guard, memory, rulings, the Track and Agents tabs with per-agent meters, approvals, GitHub goals, a built-in code index, quiet output and notifications",
-      "version": "7.5.0"
+      "version": "7.5.1"
     }
   ]
 }

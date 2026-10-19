@@ -13,11 +13,6 @@ function world(on: any, opts: { answers?: any[]; surfaces?: string[]; rulings?: 
   on('session.cwd', () => ({ value: '/work' }))
   on('session.root', () => ({ value: '/work' }))
   on('session.surfaces', () => ({ value: opts.surfaces ?? ['terminal'] }))
-  on('ui.ask', (_$: any, e: any) => {
-    asked.push({ q: e.question ?? e.text ?? String(e), options: e.options ?? [] })
-    const a = answers.shift()
-    return a === undefined ? { deny: 'dismissed' } : { value: typeof a === 'function' ? a(e.options ?? []) : a }
-  })
   on('process.run', (_$: any, e: any) => {
     const argv = [...e.argv]
     if (argv.includes('note')) {
@@ -29,7 +24,16 @@ function world(on: any, opts: { answers?: any[]; surfaces?: string[]; rulings?: 
   })
   on('agent.spawn', (_$: any, e: any) => ({ model: e.model ?? 'claude-opus-5-5', agentId: e.prompt }))
   on('turn.complete', () => ({ text: '' }))
-  on('tool.call', () => ({ result: 'ran' }))
+  // $.ui.ask is a tool.call of AskUserQuestion; answer it as the dialog would
+  on('tool.call', (_$: any, e: any) => {
+    if (e.tool !== 'AskUserQuestion') return { result: 'ran' }
+    const q = e.questions[0]
+    const options = q.options.map((o: any) => o.label)
+    asked.push({ q: q.question, options })
+    const a = answers.shift()
+    if (a === undefined) return { deny: 'dismissed' }
+    return { result: { questions: e.questions, answers: { [q.question]: typeof a === 'function' ? a(options) : a } } }
+  })
   on('tool.check', () => ({ decision: 'allow' }))
   return { asked, notes }
 }
@@ -44,6 +48,8 @@ test('a worker two levels down asks before git push; Approve runs it and notes t
   await tree($)
   const r: any = await $.tool.call({ tool: 'Bash', command: 'git push origin v7', agentId: 'w1' } as any)
   expect(r.result).toBe('ran')
+  // the worker never sees the dialog, so its result says the operator approved
+  expect(r.context).toContain('baton: the operator approved this "git push" command before it ran.')
   expect(w.asked[0].q).toContain('prime › P3 › T7 wants to git push')
   expect(w.notes.at(-1)!.tag).toBe('approval')
 })
@@ -53,9 +59,12 @@ test('a typed answer refuses with that reason; approve-for-run skips later asks 
   await tree($)
   const no: any = await $.tool.call({ tool: 'Bash', command: 'git push origin main', agentId: 'w1' } as any)
   expect(no.deny).toContain('use a branch, not main')
-  await $.tool.call({ tool: 'Bash', command: 'rm -rf build', agentId: 'w1' } as any)
+  const first: any = await $.tool.call({ tool: 'Bash', command: 'rm -rf build', agentId: 'w1' } as any)
+  expect(first.context.some((l: string) => /approved this .* for the rest of the run\.$/.test(l))).toBe(true)
   const again: any = await $.tool.call({ tool: 'Bash', command: 'rm -rf dist', agentId: 'w1' } as any)
+  // a discarding command runs after a checkpoint; the restore line rides in the context, not the result
   expect(again.result).toBe('ran')
+  expect(again.context.some((l: string) => /^baton checkpoint \S+ taken first: \/baton restore /.test(l))).toBe(true)
   expect(w.asked).toHaveLength(2)
 })
 
