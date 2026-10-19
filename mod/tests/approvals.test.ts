@@ -48,6 +48,8 @@ test('a worker two levels down asks before git push; Approve runs it and notes t
   await tree($)
   const r: any = await $.tool.call({ tool: 'Bash', command: 'git push origin v7', agentId: 'w1' } as any)
   expect(r.result).toBe('ran')
+  // the worker never sees the dialog, so its result says the operator approved
+  expect(r.context).toContain('baton: the operator approved this "git push" command before it ran.')
   expect(w.asked[0].q).toContain('prime › P3 › T7 wants to git push')
   expect(w.notes.at(-1)!.tag).toBe('approval')
 })
@@ -57,10 +59,12 @@ test('a typed answer refuses with that reason; approve-for-run skips later asks 
   await tree($)
   const no: any = await $.tool.call({ tool: 'Bash', command: 'git push origin main', agentId: 'w1' } as any)
   expect(no.deny).toContain('use a branch, not main')
-  await $.tool.call({ tool: 'Bash', command: 'rm -rf build', agentId: 'w1' } as any)
+  const first: any = await $.tool.call({ tool: 'Bash', command: 'rm -rf build', agentId: 'w1' } as any)
+  expect(first.context.some((l: string) => /approved this .* for the rest of the run\.$/.test(l))).toBe(true)
   const again: any = await $.tool.call({ tool: 'Bash', command: 'rm -rf dist', agentId: 'w1' } as any)
-  // a gated command runs after a checkpoint, whose restore line follows the result
-  expect(again.result).toMatch(/^ran(\n\(baton checkpoint \S+ taken first|$)/)
+  // a discarding command runs after a checkpoint; the restore line rides in the context, not the result
+  expect(again.result).toBe('ran')
+  expect(again.context.some((l: string) => /^baton checkpoint \S+ taken first: \/baton restore /.test(l))).toBe(true)
   expect(w.asked).toHaveLength(2)
 })
 

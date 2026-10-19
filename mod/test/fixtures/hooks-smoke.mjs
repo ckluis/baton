@@ -49,7 +49,7 @@ const $ = {
 const ok = (c, msg) => { if (!c) { console.log('FAIL', msg); process.exitCode = 1 } else console.log('ok  ', msg) }
 await fire('session.start', { cwd: W })
 for (const f of timers.splice(0)) await f()
-ok(opened.some((x) => x.id === 'baton' && x.focus === false), 'the pane opened by itself at session start, unfocused (no /baton needed)')
+ok(opened.some((x) => x.id === 'baton' && !('focus' in x)), 'the pane opened by itself at session start, unfocused: no focus key, which the engine refuses as false (no /baton needed)')
 
 // hierarchy
 await fire('agent.spawn', { _id: 's1', subagentType: 'baton:sub-orchestrator', description: 'P3', model: 'claude-opus-5-5' })
@@ -214,7 +214,7 @@ ok(!/lessons from earlier/.test(spawnPrompts.at(-1)), 'and a worker elsewhere do
 execFileSync('git', ['init', '-q'], { cwd: W })
 fs.writeFileSync(W + '/keep.txt', 'precious')
 const cp = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf build' })
-const cpId = (/baton checkpoint (\d{8}T\d{9}Z) taken first/.exec(cp.result || '') || [])[1]
+const cpId = (/baton checkpoint (\d{8}T\d{9}Z) taken first/.exec((cp.context || []).join('\n')) || [])[1]
 ok(!!cpId, 'a checkpoint is taken before rm -r runs: ' + cpId)
 fs.writeFileSync(W + '/keep.txt', 'clobbered')
 const lst = await fire('command.run', { command: 'baton', args: 'checkpoints' })

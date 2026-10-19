@@ -113,6 +113,7 @@ const TABS = [
 ]
 const pane = {
   open: false,
+  waiting: false, // auto-opened but not placed: the terminal is too narrow for an unasked pane
   tab: 'work',
   planOpen: false, // Work: every node of every phase, not just one line per phase
   detail: null, // Work: { kind: agent|phase|node, id, view } opened with Enter on a row; b closes it
@@ -317,8 +318,10 @@ async function autoOpenPane($) {
   if (pane.open || !config.autoPane || !(await interactive($))) return
   pane.tab = 'work'
   try {
-    const r = await $.ui.open({ id: PANE, title: 'baton', focus: false, closeOnEscape: true })
+    const r = await $.ui.open({ id: PANE, title: 'baton', closeOnEscape: true }) // no focus: it opens beside the work, unfocused
     pane.open = !r || r.isPlaced !== false
+    // Too narrow to place a pane nobody asked for: it waits, and the band says how to open it.
+    pane.waiting = !pane.open
   } catch {
     return
   }
@@ -2479,6 +2482,9 @@ export function register(on, options) {
 
   // ---------------------------------------------------------------- approvals
 
+  // A line the model reads after a tool's result, whatever the result's shape (Bash's is an object).
+  const withContext = (r, line) => (r && !r.deny ? { ...r, context: [...(r.context || []), line] } : r)
+
   // Forbidden files: refuse a `git add` that names one, from any agent, run or no
   // run. Prevention at the moment it happens; the PR's merge-ready row catches
   // what a broad `git add -A` let through.
@@ -2516,7 +2522,8 @@ export function register(on, options) {
       if (verdict === 'always') approvals.always.add(gate.id)
       approvals.approved++
       await noteQuietly($, 'operator approved (' + gate.id + (verdict === 'always' ? ', for the run' : '') + ') for ' + who + ': ' + e.command, 'approval')
-      return next(e)
+      // The agent never sees the dialog: tell it the operator approved, so its report is true.
+      return withContext(await next(e), 'baton: the operator approved this "' + gate.label + '" command before it ran' + (verdict === 'always' ? ', and every "' + gate.label + '" for the rest of the run' : '') + '.')
     }
     approvals.refused++
     const reason = verdict.refuse
@@ -2540,8 +2547,7 @@ export function register(on, options) {
     if (!g || (g.id !== 'reset' && g.id !== 'rm')) return next(e)
     const id = await checkpoint($, (e.agentId ? chain(tree, e.agentId) : 'session') + ': ' + String(e.command).slice(0, 160))
     const r = await next(e)
-    if (id && r && !r.deny && typeof r.result === 'string') return { ...r, result: r.result + '\n(baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back)' }
-    return r
+    return id ? withContext(r, 'baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back.') : r
   })
 
   // The phase gate: once a sub-orchestrator reports DONE, the prime's next
@@ -2897,6 +2903,7 @@ export function register(on, options) {
         await refreshPane($, 30)
         if (!surfaces.length) return { text: (await statusText($)) + '\n\n' + paneText() }
         pane.open = true
+        pane.waiting = false
         await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
         try {
           if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
@@ -2970,6 +2977,17 @@ export function register(on, options) {
       goal,
       pr,
     })
+    if (pane.waiting) {
+      // A wider terminal places the waiting pane by itself; check the engine's record before saying so.
+      try {
+        const up = (await $.ui.panes()).find((x) => x.id === PANE)
+        if (!up || up.isPlaced) {
+          pane.waiting = false
+          pane.open = !!up
+        }
+      } catch {}
+      if (pane.waiting) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: '/baton opens the pane', color: undefined })
+    }
     const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x, i) => Text({ key: 'b' + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
