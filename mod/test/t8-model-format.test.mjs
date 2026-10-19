@@ -132,41 +132,47 @@ function dropSequence(rows) {
 const named = (id) => (id === 'ctx' ? 'context' : id)
 
 // R-C8-04 · spec L112: "and keep it out of the narrow-pane drop order." · Q-11 (inbox/Q-11.answer.md): "A: model, steps,
-// agent and state never drop." · Q-57 (inbox/Q-57.answer.md): the this-agent and roll-up groups "Per Q-11 these columns
-// never drop"; D-T10-group-cells (decisions.md): "The this-agent cost cell is the existing cost column, so `cost` leaves
-// the Q-11 drop order".
-test('the model column never leaves the table, at any width from 400 down to 60, and neither does cost', () => {
+// agent and state never drop."
+test('the model column never leaves the table, at any width from 400 down to 60', () => {
   for (const rows of [[row('claude-opus-5-5')], [row(UNKNOWN)], CURRENT.map(([id]) => row(id))]) {
     for (const w of WIDTHS) {
       const cols = agentTable(rows, w).cols
       assert.ok(cols.includes('model'), `model is drawn at width ${w}: ${cols.join(',')}`) // spec L112 "keep it out of the narrow-pane drop order"; Q-11
-      assert.ok(cols.includes('cost'), `cost is drawn at width ${w}: ${cols.join(',')}`) // Q-57 "these columns never drop"; D-T10-group-cells
     }
     assert.ok(!dropSequence(rows).includes('model')) // spec L112: model is not in the drop order
+  }
+})
+
+// GUARD (T18 c27, a preservation guard approved by inbox/OQ7.answer.md: "Behaviour that already works at da5910c ...
+// gets guard tests, named `guard:…`, that pass now and at every later commit"; verdict r1 probe: no width 1..400
+// drops cost at da5910c). R-C8-04 · Q-57 (inbox/Q-57.answer.md): the this-agent and roll-up groups "Per Q-11 these
+// columns never drop"; D-T10-group-cells (decisions.md): "The this-agent cost cell is the existing cost column, so
+// `cost` leaves the Q-11 drop order".
+test('guard: the cost column is never dropped at any pane width the tests render', () => {
+  for (const rows of [[row('claude-opus-5-5')], [row(UNKNOWN)], CURRENT.map(([id]) => row(id))]) {
+    for (const w of WIDTHS) {
+      const cols = agentTable(rows, w).cols
+      assert.ok(cols.includes('cost'), `cost is drawn at width ${w}: ${cols.join(',')}`) // Q-57 "these columns never drop"; D-T10-group-cells
+    }
+    assert.ok(!dropSequence(rows).includes('cost')) // Q-57 "these columns never drop", read with Q-11
   }
 })
 
 // R-C8-04 · Q-11 (inbox/Q-11.answer.md) option 1 as answered: "Drop order becomes cacheWrite, trend, input, budget, output,
 // cacheRead, context, cost." · amended by Q-57 (inbox/Q-57.answer.md: "Per Q-11 these columns never drop") as D-T10-group-cells
 // records it: "`cost` leaves the Q-11 drop order, which becomes cacheWrite, trend, input, budget, output, cacheRead, context."
-test('the narrow-pane drop order is exactly cacheWrite, trend, input, budget, output, cacheRead, context; cost never drops', () => {
+test('the narrow-pane drop order is exactly cacheWrite, trend, input, budget, output, cacheRead, context', () => {
   const seq = dropSequence([row('claude-opus-5-5'), row('claude-haiku-4-5-20251001')]).map(named)
   assert.deepEqual(seq, ['cacheWrite', 'trend', 'input', 'budget', 'output', 'cacheRead', 'context']) // D-T10-group-cells, from Q-11 and Q-57
-  assert.ok(!seq.includes('cost')) // Q-57 "these columns never drop" (the this-agent cost cell, D-T10-group-cells)
-  for (const w of WIDTHS) assert.ok(agentTable([row('claude-opus-5-5')], w).cols.includes('cost'), `cost is drawn at width ${w}`) // Q-57, read with Q-11
 })
 
 // R-C8-04 · Q-11 option 1 as answered (inbox/Q-11.answer.md; the option text in inbox/Q-11.md): "Model, steps, agent and
 // state never drop; when even those do not fit, the agent label is cut first, then state."
 test('when even model, steps, agent and state do not fit, the agent label is cut before state', () => {
   const LABEL = '● worker T18 an agent label far too long to fit any narrow pane' // fixture
-  const STATE = 'now Bash' // fixture: the state text of a running agent
+  // fixture: the state text of a running agent, as wide as the state column (18) so a narrow pane must cut either it or the label
+  const STATE = 'now Bash: npm test'
   const r = row('claude-opus-5-5', { label: LABEL, state: STATE })
-  for (const w of WIDTHS) {
-    // Q-11 "model ... agent and state never drop": the narrow layout keeps them, so cutting is the only way left to fit.
-    const cols = agentTable([r], w).cols
-    for (const id of ['agent', 'model', 'state']) assert.ok(cols.includes(id), `${id} is drawn at width ${w}: ${cols.join(',')}`) // Q-11 "never drop"
-  }
   for (const w of WIDTHS) {
     const [, line] = tableText(agentTable([r], w))
     const seen = [...line].slice(0, w).join('') // what a pane of w columns shows of the row
