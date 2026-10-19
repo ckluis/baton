@@ -68,6 +68,11 @@ const asked = (at: string) => 'asked_at: ' + at + '\nasked_via: terminal\ngate: 
 // verdict is BLOCKED (or ESCALATE) ... is a blocked row".
 const T5_STATUS = { node: 'T5', rung: 1, model: 'claude-opus-5-5', effort: 'medium', attempt: 1, verdict: 'BLOCKED', outputs: [], summary: 'T5 is BLOCKED on Q-72: may the export drop the legacy column.', evidence: [], risk: 'none', caveats: [], escalation_reason: null, handback: null }
 
+// Q-38 option 1: a blocked row's brief shows "its envelope summary" (fixture T5_STATUS.summary) and "the `Blocked by:`
+// line", here Q-72.md's, the inbox file that names T5 (fixture Q72 above; rule 10 step 1 shape).
+const T5_SUMMARY = T5_STATUS.summary // fixture: T5's envelope summary
+const T5_BLOCKED_BY = 'Blocked by: docs/export.md:"the legacy column stays until v9" (interpreted)' // fixture: Q72's last line
+
 const AGENTS = ['alpha worker', 'beta worker', 'gamma worker'] // fixture, as T19 key-scheme.md "The letters of the fixture"
 
 function world(on: any) {
@@ -332,6 +337,13 @@ test('missing #3: a blocked row (a node row whose envelope reads BLOCKED) opens 
   expect(await viewIsOpen(ui)).toBe(true) // its brief opened (Q-38.md option 1)
   const t = await shownText(ui)
   expect(T5_RE.test(t) && !t.includes(Q71_BODY)).toBe(true) // Q-38.md option 1: the brief names the node id; it is not Q-71's brief
+  // What item 3 adds over the node view da5910c already opens (work/probe-da5910c.md, probe P-6): the blocked row's brief.
+  // Spec L202: "Opening a blocked row shows its brief: what the node is blocked on and its `Blocked by:` line." Q-38
+  // (inbox/Q-38.answer.md, option 1 of Q-38.md): "the node id, its envelope summary or the agent's last line, and the
+  // `Blocked by:` line, read from `_orch/nodes/<id>/status.json` ..., falling back to the inbox `Q-<n>.md` that names
+  // the node." The fixture's envelope carries no Blocked by line, so the line is Q-72.md's (Q-72 names T5).
+  const flat = (x: string) => x.replace(/\s+/g, ' ')
+  expect({ summary: flat(t).includes(flat(T5_SUMMARY)), blockedBy: flat(t).includes(flat(T5_BLOCKED_BY)) }).toEqual({ summary: true, blockedBy: true }) // Q-38 option 1: the envelope summary (fixture T5_STATUS) and the Blocked by line (fixture Q-72.md, rule 10 step 1)
 })
 
 test('missing #4 (c17): the blocked row opens its brief by its own direct key, the letter key-scheme.md gives it', async ($, on) => {
