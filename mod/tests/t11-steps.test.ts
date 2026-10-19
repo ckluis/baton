@@ -274,27 +274,43 @@ test('the steps column is never dropped, at any pane width rendered', async ($, 
 
 // R-C11-01 (L153); Q-15 answer: "Match the label's tokens against the run's real node ids (`_orch/nodes/*`,
 // `graph.yaml`) and phase ids."
+// The fixtures defeat any matcher that picks a token by its shape or its position instead of looking it up:
+// a real id first with an id-shaped non-node last ('PLAN for F99'), an id-shaped non-node first with a real id
+// last ('F99 for PLAN'), a real id followed by a capitalised non-id word ('fix XT17 TODO'), a real id that no
+// letters-then-digits pattern guesses (PLAN), labels whose only id-shaped token is fake ('F99 sweep', 'P9
+// sweep': they must stay unmatched), and a real phase id ('P2 phase').
 test("a row's label tokens are matched against the run's real node and phase ids", async ($, on) => {
   world(on)
-  // Fixture ids (graph.yaml and _orch/nodes above): F17, G1 and PLAN are real nodes; F99 is id-shaped but is
-  // no node (absent from graph.yaml and _orch/nodes). P2 is a real phase (_orch/phases/P2); P9 is id-shaped
-  // but is no phase and no node.
+  // Fixture ids (graph.yaml and _orch/nodes above): PLAN, XT17 and G1 are real nodes; F99 and TODO are no
+  // node (absent from graph.yaml and _orch/nodes). P2 is a real phase (_orch/phases/P2); P9 is id-shaped but
+  // is no phase and no node.
   await spawn($, 's-p2b', 'P2 phase', 'baton:sub-orchestrator')
-  await spawn($, 'w-f17b', 'fix F17 now', 'baton:worker', 's-p2b')
+  await spawn($, 'w-planf', 'PLAN for F99', 'baton:worker')
+  await spawn($, 'w-fplan', 'F99 for PLAN', 'baton:worker')
+  await spawn($, 'w-xtodo', 'fix XT17 TODO', 'baton:worker')
   await spawn($, 'w-g1b', 'G1 answers', 'baton:worker')
-  await spawn($, 'w-plan', 'F99 for PLAN', 'baton:worker')
   await spawn($, 'w-f99', 'F99 sweep', 'baton:worker')
   await spawn($, 'w-p9', 'P9 sweep', 'baton:worker')
+  // Only the unmatched rows and the phase row return; every node-matched row stays live, so its own lifecycle
+  // (Q-15 ladder at `working`, `●─◉─○─○`) differs from the node stepper it must show.
   for (const agentId of ['s-p2b', 'w-f99', 'w-p9'])
     await $.turn.complete({ agentId, answer: 'done', durationMs: 5, isAborted: false, turnId: 't-' + agentId, reason: 'answer' } as any)
   const ui = await pane($)
-  // expected: PLAN is a real node (_orch/nodes/PLAN, graph.yaml) though no id pattern guesses it, so the row shows
-  // PLAN's stepper at blue (Q-15 "Match the label's tokens against the run's real node ids"; README.md:116);
-  // the id-shaped F99 before it is no node and must not be taken for one
-  expect(await row(ui, /worker F99 for PLAN/)).toContain(STEPS.PLAN)
-  // expected: the node named by a token anywhere in the label (Q-15), F17 at green, G1 exempt at working
-  expect(await row(ui, /worker fix F17 now/)).toContain(STEPS.F17)
-  expect(await row(ui, /worker G1 answers/)).toContain(STEPS.G1)
+  // A stepper drawn exactly so: not part of a longer one (E1 §m form, dots joined by `─`).
+  const exactly = (dots: string) => new RegExp('(?<![●◉○✗─])' + dots + '(?![─●◉○✗])')
+  // expected: PLAN is a real node (_orch/nodes/PLAN, graph.yaml), so 'PLAN for F99' shows PLAN's stepper at blue
+  // (Q-15 "Match the label's tokens against the run's real node ids"; README.md:116). The id-shaped F99 after it
+  // is no node: a matcher taking the last id-shaped or capitalised token takes F99 and cannot draw this.
+  expect(await row(ui, /worker PLAN for F99/)).toMatch(exactly(STEPS.PLAN))
+  // expected: the same with the order reversed, 'F99 for PLAN' (Q-15; README.md:116): a matcher taking the first
+  // id-shaped token takes F99 and cannot draw PLAN's stepper.
+  expect(await row(ui, /worker F99 for PLAN/)).toMatch(exactly(STEPS.PLAN))
+  // expected: 'fix XT17 TODO' shows XT17's stepper at blue (Q-15; README.md:116); TODO is a capitalised word but
+  // no node, so a matcher taking the last capitalised token takes TODO and cannot draw this.
+  expect(await row(ui, /worker fix XT17 TODO/)).toMatch(exactly(STEPS.XT17))
+  // expected: G1, a real node, rgb exempt, at working (README.md:117 `working → verified`): two steps, which no
+  // four-step lifecycle stepper is.
+  expect(await row(ui, /worker G1 answers/)).toMatch(exactly(STEPS.G1))
   // expected: F99 and P9 look like ids but match no real node or phase, so each row shows its own lifecycle
   // stepper (Q-15 "A row that matches nothing shows its own lifecycle stepper (spawned → working → returned →
   // verdict)"); returned, so spawned and working are behind it (Q-15 ladder order). A stepper of a guessed node
