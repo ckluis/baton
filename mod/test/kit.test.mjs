@@ -69,9 +69,14 @@ test('quiet output keeps head, failures and tail, and says where the rest is', (
 
 test('the agent table: every column when wide, the least useful dropped when narrow', async () => {
   const { agentTable, fitColumns, tableText } = await import('../lib/table.mjs')
-  assert.deepEqual(fitColumns(210).map((c) => c.id), ['agent', 'ctx', 'trend', 'budget', 'model', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost', 'steps', 'state'])
+  const OLD = ['agent', 'ctx', 'trend', 'budget', 'model', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost', 'steps', 'state'] // amended by verifier (XT110): today's twelve columns, kept in this order; the existing cost column is the `this agent` cost cell (spec L341, D-T10-group-cells, D-T10R-group-columns; R-C10-64, R-C10-65)
+  const wide = fitColumns(210) // amended by verifier (XT110): every column at 210 (spec L341-347; R-C10-64, R-C10-85)
+  assert.deepEqual(wide.map((c) => c.id).filter((id) => OLD.includes(id)), OLD) // amended by verifier (XT110): the twelve columns stay, in order, around the two groups' cells (spec L341, D-T10R-group-columns; R-C10-64)
+  const groupsOk = (titles) => { const tk = titles.flatMap((x, i) => (x === 'tokens' ? [i] : [])); const cs = titles.flatMap((x, i) => (x === 'cost' ? [i] : [])); return tk.length === 2 && cs.length === 2 && Math.max(tk[0], cs[0]) < Math.min(tk[1], cs[1]) } // amended by verifier (XT110): two cells titled tokens and cost per group, the `this agent` pair before the `roll-up` pair (D-T10-group-cells, D-T10R-group-columns; R-C10-64, R-C10-65, R-C10-66, R-C10-85)
+  assert.ok(groupsOk(wide.map((c) => c.title)), 'both column groups at 210: ' + wide.map((c) => c.title).join(',')) // amended by verifier (XT110): every row shows two column groups, `this agent` and `roll-up` (spec L341-342, Q-57; R-C10-64, R-C10-85)
   const narrow = fitColumns(90).map((c) => c.id) // amended by verifier (XT18): the narrow table is pinned by the spec's rules, not by today's widths (spec L112, Q-10, Q-11, Q-57; R-C8-03, R-C8-04)
   assert.ok(narrow.includes('model'), 'model is kept at 90: ' + narrow.join(',')) // amended by verifier (XT18): model stays out of the narrow-pane drop order (spec L112, Q-11; R-C8-04)
+  assert.ok(groupsOk(fitColumns(90).map((c) => c.title)), 'both column groups kept at 90: ' + narrow.join(',')) // amended by verifier (XT110): neither column group is ever dropped at a narrow width (spec L347, Q-57 read with Q-11; R-C10-71, R-C10-88)
   for (const id of ['agent', 'cost', 'steps', 'state']) assert.ok(narrow.includes(id), id + ' is kept at 90') // amended by verifier (XT18): agent, steps and state never drop (Q-11) and cost leaves the drop order (Q-57, D-T10-group-cells; R-C8-04)
   const ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'cacheRead', 'ctx'] // amended by verifier (XT18): the drop order cacheWrite, trend, input, budget, output, cacheRead, context (Q-11, Q-57, D-T10-group-cells; R-C8-04)
   const dropped = ORDER.filter((id) => !narrow.includes(id)) // amended by verifier (XT18): what 90 columns dropped, in drop order (Q-11; R-C8-04)
@@ -79,8 +84,20 @@ test('the agent table: every column when wide, the least useful dropped when nar
   const acc = { byModel: { 'claude-opus-5-5': { input: 2000, output: 400, cacheWrite: 0, cacheRead: 1210000 } } }
   const t = agentTable([{ label: '● worker T10', ctxHist: [10, 30, 61], ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus 5.5', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 210) // amended by verifier (XT18): the formatted model is `opus 5.5`, family and version (spec L111-112; R-C8-01, R-C8-02)
   const [head, row] = tableText(t)
-  assert.match(head, /^agent\s+context\s+trend\s+budget\s+model\s+input\s+c\.write\s+c\.read\s+output\s+cost\s+steps\s+state$/)
-  assert.match(row, /^● worker T10\s+61%\s+▁▃▅\s+50%\s+opus 5\.5\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26\s+●─●─◉─○\s+blue$/) // amended by verifier (XT18): the model column shows `opus 5.5` whole, never cut (spec L111-112, Q-10; R-C8-01, R-C8-03)
+  const spans = [] // amended by verifier (XT110): each column's title and its span on the line, from the header's one text per column (D-T10R-group-columns; R-C10-64)
+  t.header.reduce((at, h) => (spans.push({ title: h.text.trim(), start: at, end: at + h.text.length }), at + h.text.length), 0) // amended by verifier (XT110): the header segments are padded to their column's width (R-C10-64)
+  const titles = spans.map((x) => x.title) // amended by verifier (XT110): the column-name line's titles in order (R-C10-64)
+  const firstCost = titles.indexOf('cost') // amended by verifier (XT110): the `this agent` cost cell is the existing cost column (D-T10-group-cells; R-C10-65)
+  assert.deepEqual(titles.filter((x, i) => x !== 'tokens' && !(x === 'cost' && i !== firstCost)), ['agent', 'context', 'trend', 'budget', 'model', 'input', 'c.write', 'c.read', 'output', 'cost', 'steps', 'state']) // amended by verifier (XT110): today's titles stay, in order, around the groups' cells (spec L341, D-T10R-group-columns; R-C10-64)
+  assert.ok(groupsOk(titles), 'both groups titled on the header: ' + head) // amended by verifier (XT110): the header names each group's tokens and cost (D-T10R-group-columns; R-C10-64, R-C10-85)
+  const cells = spans.map((x) => row.slice(x.start, x.end).trim()) // amended by verifier (XT110): the row's cells, each under its column's title (D-T10R-group-columns: the row's cells line up under the header; R-C10-64)
+  const tk = titles.flatMap((x, i) => (x === 'tokens' ? [i] : [])) // amended by verifier (XT110): the two tokens cells, `this agent` first (D-T10-group-cells; R-C10-65, R-C10-66)
+  const cs = titles.flatMap((x, i) => (x === 'cost' ? [i] : [])) // amended by verifier (XT110): the two cost cells, `this agent` first (D-T10-group-cells; R-C10-65, R-C10-66)
+  const num = (x) => { const m = /^(\d[\d,]*(?:\.\d+)?)\s*([kKmM]?)$/.exec(x || ''); return m ? Number(m[1].replace(/,/g, '')) * ({ k: 1e3, m: 1e6 }[m[2].toLowerCase()] ?? 1) : NaN } // amended by verifier (XT110): a token figure as drawn: 1.21M, 1,212,400 (D-T10-group-cells; R-C10-65)
+  assert.ok(Math.abs(num(cells[tk[0]]) - 1212400) <= 1212400 * 0.005, 'this agent tokens is the sum of the token kinds (2k + 0 + 1.21M + 400): ' + JSON.stringify(cells[tk[0]]) + ' in ' + row) // amended by verifier (XT110): the `this agent` tokens cell is the row's own tokens, the sum of its token kinds (spec L341, D-T10-group-cells; R-C10-65)
+  assert.equal(cells[cs[0]], '$0.26') // amended by verifier (XT110): the `this agent` cost cell is the row's own cost (spec L341; R-C10-65)
+  assert.deepEqual([cells[tk[1]], cells[cs[1]]], ['', '']) // amended by verifier (XT110): a row with no children leaves its roll-up group empty, drawing nothing (spec L343, D-T10R-group-columns; R-C10-67, R-C10-86)
+  assert.match(cells.filter((_, i) => !tk.includes(i) && i !== cs[1]).join(' | '), /^● worker T10 \| 61% \| ▁▃▅ \| 50% \| opus 5\.5 \| 2k \| 0 \| 1\.21M \| 400 \| \$0\.26 \| ●─●─◉─○ \| blue$/) // amended by verifier (XT110): today's cells keep their values under their own titles, the model `opus 5.5` whole (spec L111-112, L341; R-C8-01, R-C10-64) // amended by verifier (XT18): the model column shows `opus 5.5` whole, never cut (spec L111-112, Q-10; R-C8-01, R-C8-03)
 })
 
 test('plan usage: labels, resets, colors, the line', async () => {
