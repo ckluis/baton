@@ -49,7 +49,8 @@ const $ = {
   plugin: { root: MOD },
   env: { get: async () => undefined },
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(path.resolve(W, p)),
-        list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
+        // amended by verifier (XT11): a directory is listed as the declared kind 'dir', index.d.ts:5093 `kind: 'file' | 'dir' | 'other'` (mismatches S0489, S0494; R-C1-05, R-C1-06)
+        list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'dir' : 'file' })) },
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sentMsgs.push(x), { isDelivered: true }) },
   process: { run: async (argv, o) => {
     if (argv[0] === 'gh') { try { return { exitCode: 0, stdout: fakeGh(argv.slice(1), o?.stdin), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: err.message } } }
