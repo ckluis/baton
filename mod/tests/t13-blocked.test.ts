@@ -599,7 +599,7 @@ test('missing #9 (c30): the brief of a node whose Blocked by line ends (explicit
   const w = world(on, { nodes: { T11 } })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T11', T11_SUMMARY)
-  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] })
+  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T11's brief is open (fixture T11_SUMMARY) with neither y nor w (Q-37.md option 1: explicit → no approve key)
 })
 
 test('missing #9 (c31): the brief of a node whose Blocked by line ends (explicit) says what must be fixed', async ($, on) => {
@@ -608,7 +608,7 @@ test('missing #9 (c31): the brief of a node whose Blocked by line ends (explicit
   const w = world(on, { nodes: { T11 } })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T11', T11_SUMMARY)
-  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /_orch\/nodes\/T11\/handoff\.md|data\/report\.csv/) }).toEqual({ brief: true, says: true })
+  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /_orch\/nodes\/T11\/handoff\.md|data\/report\.csv/) }).toEqual({ brief: true, says: true }) // a line says "fix" and names T11's quoted file or line (fixture T11_BLOCKED_BY; Q-37.md option 1)
 })
 
 test('missing #9 (c32): the brief of a node blocked by a forbidden file shows no approve key', async ($, on) => {
@@ -616,7 +616,7 @@ test('missing #9 (c32): the brief of a node blocked by a forbidden file shows no
   const w = world(on, { nodes: { T8 } })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T8', T8_SUMMARY)
-  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] })
+  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T8's brief is open (fixture T8_SUMMARY) with neither y nor w (Q-37.md option 1: a forbidden file → no approve key)
 })
 
 test('missing #9 (c33): the brief of a node blocked by a forbidden file says what must be fixed', async ($, on) => {
@@ -624,7 +624,7 @@ test('missing #9 (c33): the brief of a node blocked by a forbidden file says wha
   const w = world(on, { nodes: { T8 } })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T8', T8_SUMMARY)
-  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /config\/\.env\.production/) }).toEqual({ brief: true, says: true })
+  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /config\/\.env\.production/) }).toEqual({ brief: true, says: true }) // a line says "fix" and names the forbidden file (fixture T8_FILE; Q-37.md option 1)
 })
 
 test('missing #9 (c34): the brief of a node blocked by an enforced ruling shows no approve key', async ($, on) => {
@@ -632,7 +632,7 @@ test('missing #9 (c34): the brief of a node blocked by an enforced ruling shows 
   const w = world(on, { nodes: { T10 }, rulings: RULINGS })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T10', T10_SUMMARY)
-  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] })
+  expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T10's brief is open (fixture T10_SUMMARY) with neither y nor w (Q-37.md option 1: an enforced ruling → no approve key)
 })
 
 test('missing #9 (c35): the brief of a node blocked by an enforced ruling says what must be fixed', async ($, on) => {
@@ -640,7 +640,7 @@ test('missing #9 (c35): the brief of a node blocked by an enforced ruling says w
   const w = world(on, { nodes: { T10 }, rulings: RULINGS })
   const ui: any = await w.pane($)
   const brief = await openNodeBrief(ui, 'T10', T10_SUMMARY)
-  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /#0|never edit the vendored library/) }).toEqual({ brief: true, says: true })
+  expect({ brief, says: saysFix(shownLines(await ui.drawn()), /#0|never edit the vendored library/) }).toEqual({ brief: true, says: true }) // a line says "fix" and names ruling #0 (fixture RULINGS; Q-37.md option 1)
 })
 
 // ================================================================== 8 (cont.) · interpreted: overrule
@@ -678,13 +678,14 @@ test('missing #10 (c36): after an approval from a blocked row\'s brief, the row 
   if (r) await ui.press({ key: keyOf(r) })
   await w.settle(1000)
   const changed = letterOf(await nodeRow(ui, 'T5'))
-  expect({ pressed, stays: typeof after === 'string', goneAfterChange: changed === undefined }).toEqual({ pressed: true, stays: true, goneAfterChange: true })
+  expect({ pressed, stays: typeof after === 'string', goneAfterChange: changed === undefined }).toEqual({ pressed: true, stays: true, goneAfterChange: true }) // Q-37.md option 1: "The row stays until the node's status changes."
 })
 
 // ================================================================== guards (inbox/OQ7.answer.md; work/guard-evidence.md)
 
 test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', async ($, on) => {
-  // OQ7 (inbox/OQ7.answer.md): a preservation guard. The criterion: "a queued phase is approved by `1` on the band and by
+  // R-C14-08 "From a blocked row's brief, a key approves what the node is blocked on right there." (L204), whose queued
+  // phase kind is band `1`'s twin (Q-37.md option 1). OQ7 (inbox/OQ7.answer.md): a preservation guard. The criterion: "a queued phase is approved by `1` on the band and by
   // Enter on its `approve` button, as at da5910c (register.js ~1436, 3006)". Q-37.md option 1 reads approving a queued
   // phase from its brief as "the same as band `1`" (missing #8, c26), so band `1` must keep working.
   const line = 'P3 DONE+CONFIRMED 4/4 · export written' // fixture: the sub-orchestrator's return
@@ -700,12 +701,13 @@ test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', asy
   expect(!!(await keyButton(bandUi, '1'))).toBe(false) // nothing waits any more
   const dispatch: any = await $.tool.call({ tool: 'Agent', prompt: 'P4', description: 'P4' } as any)
   expect(dispatch && dispatch.deny).toBeFalsy() // the prime's next dispatch is not held for the check
-  expect(w.asks.some((a) => /reports:/.test(a.q))).toBe(false)
+  expect(w.asks.some((a) => /reports:/.test(a.q))).toBe(false) // and the phase gate asks nothing (its question reads "<label> reports:", mod/tests/approvals.test.ts)
   void ui
 })
 
 test('guard: c9 a queued phase is approved by Enter on its approve button in Work, as at da5910c', async ($, on) => {
-  // OQ7 (inbox/OQ7.answer.md). E1 §k: "Enter on focus | ... :1436 approve". The approve Button sits in the `⚑ P3` row.
+  // R-C14-08 (L204), read through Q-37.md option 1 ("a queued phase → the same as band `1`"). OQ7 (inbox/OQ7.answer.md):
+  // a preservation guard. E1 §k: "Enter on focus | ... :1436 approve". The approve Button sits in the `⚑ P3` row.
   const line = 'P3 DONE+CONFIRMED 4/4 · export written' // fixture
   const w = world(on, { subOrchs: { P3: line } })
   const ui: any = await w.pane($)
@@ -714,23 +716,24 @@ test('guard: c9 a queued phase is approved by Enter on its approve button in Wor
   expect(!!row).toBe(true) // the queued phase's row with its `approve` Button (register.js ~1436)
   await ui.press({ key: keyOf(row!.buttons.find((b: any) => labelOf(b) === 'approve')) }) // Enter on the focused `approve`
   await w.settle(100)
-  expect(w.toPrime.some((x) => x.tag === 'approval' && /approved P3/.test(x.text))).toBe(true)
-  expect(!!(await keyButton(bandUi, '1'))).toBe(false)
+  expect(w.toPrime.some((x) => x.tag === 'approval' && /approved P3/.test(x.text))).toBe(true) // the approval is noted (mod/tests/approvals.test.ts: tag `approval`)
+  expect(!!(await keyButton(bandUi, '1'))).toBe(false) // nothing waits any more (E1 §k: band `1` only with a queued phase)
   const dispatch: any = await $.tool.call({ tool: 'Agent', prompt: 'P4', description: 'P4' } as any)
-  expect(dispatch && dispatch.deny).toBeFalsy()
+  expect(dispatch && dispatch.deny).toBeFalsy() // the prime's next dispatch is not held (mod/tests/approvals.test.ts)
 })
 
 test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as at da5910c', async ($, on) => {
-  // Q-38 (inbox/Q-38.answer.md) option 1: "Each gets a `›`". E1 §k: agent rows' `›` (register.js:1463) are reached by
+  // R-C14-01 "A `?` (question) row and a blocked row can be selected in the pane" (L199), R-C14-02 "by focus-and-Enter,"
+  // (L200). Q-38 (inbox/Q-38.answer.md) option 1: "Each gets a `›`". E1 §k: agent rows' `›` (register.js:1463) are reached by
   // ↑/↓; finished agents keep their row. A false premise for a red test (work/guard-evidence.md), so a guard (OQ7).
   const w = world(on, { returns: { [EXPORT_AGENT]: EXPORT_LINE } })
   const ui: any = await w.pane($)
   const row = rowOf(await ui.drawn(), new RegExp(EXPORT_AGENT))
-  expect(!!row && openers(row).some((b) => labelOf(b).includes('›'))).toBe(true)
+  expect(!!row && openers(row).some((b) => labelOf(b).includes('›'))).toBe(true) // a `›` in the row (Q-38.md option 1; E1 §k register.js:1463)
 })
 
 test('guard: c45 Enter on a BLOCKED agent row opens the agent view, as at da5910c', async ($, on) => {
-  // OQ7 (inbox/OQ7.answer.md): "Enter-to-open on rows that already open". Q-38.md option 1: "On a BLOCKED agent row,
+  // R-C14-02 "by focus-and-Enter," (L200). OQ7 (inbox/OQ7.answer.md): "Enter-to-open on rows that already open". Q-38.md option 1: "On a BLOCKED agent row,
   // Enter still opens the agent view (the OQ7 guard on rows that already open holds)". E1 §k: Enter on an agent's `›`
   // opens "in the tree prime › F17 worker ...".
   const w = world(on, { returns: { [EXPORT_AGENT]: EXPORT_LINE } })
