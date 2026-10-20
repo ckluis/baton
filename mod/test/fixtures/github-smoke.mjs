@@ -187,7 +187,7 @@ ok(sentMsgs.length === 1 && sentMsgs[0].to.agentId === 'w10' && /60% of its wind
 surfaces = []
 const agentsTxt = (await fire('command.run', { command: 'baton', args: '' })).text.split('## Work')[1] || ''
 const w9row = agentsTxt.split('\n').find((l) => /worker T10/.test(l)) || ''
-ok(/worker T10 big parser\s+61%\s+▅▅\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim())
+ok(/worker T10 big parser\s+61%\s+▅▅\s+50%\s+opus 5\.5\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26(?!\+)/.test(w9row), 'the worker row shows its own context against its threshold, tokens and cost: ' + w9row.trim()) // amended by verifier (XT18): the worker's model cell reads `opus 5.5`, family and version, whole (spec L111-112, Q-10; R-C8-01, R-C8-03)
 const primeRow = agentsTxt.split('\n').find((l) => /^◆ prime/.test(l)) || ''
 ok(/\/35%/.test(primeRow) || !/ctx/.test(primeRow), 'the prime row measures against the rotation threshold: ' + primeRow.trim())
 // the budget refuses another round once spent

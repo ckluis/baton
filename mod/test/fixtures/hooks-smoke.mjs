@@ -118,7 +118,7 @@ let t = await render()
 await byKey(t, 'tab-work').props.onPress()
 t = await render()
 const at = text(t)
-ok(/agent\s+context\s+budget\s+model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+50%\s+opus/.test(at) && /✓ worker-cheap T7\s+—\s+50%\s+sonnet/.test(at), 'Agents tab draws the tree as a table')
+ok(/agent\s+context\s+(budget\s+)?model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+(50%\s+)?opus 5\.5(?!\S)/.test(at) && /✓ worker-cheap T7\s+—\s+(50%\s+)?sonnet 5\.5(?!\S)/.test(at), 'Agents tab draws the tree as a table') // amended by verifier (XT18): the model reads `opus 5.5` / `sonnet 5.5` whole, and the wider model column may push budget out at 116 columns, which Q-11 drops before model (spec L111-112, Q-10, Q-11; R-C8-01, R-C8-03, R-C8-04)
 // a live agent to message
 await fire('agent.spawn', { _id: 's2', subagentType: 'baton:sub-orchestrator', description: 'P4' })
 t = await render()

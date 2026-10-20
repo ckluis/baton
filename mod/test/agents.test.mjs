@@ -16,11 +16,11 @@ test('the tree nests by parent, counts tools, and closes with a verdict', () => 
   assert.equal(t.nodes.get('orphan').parent, PRIME)
   let rows = treeRows(t, 62000)
   assert.equal(rows[0].text, '◆ prime · 1m02s · 1 tool · now Agent')
-  assert.equal(rows[1].text, '  ● sub-orchestrator P3 · opus · 1m01s · 0 tools')
-  assert.equal(rows[2].text, '    ● worker-cheap T7 · sonnet · 1m00s · 2 tools · now Read')
+  assert.equal(rows[1].text, '  ● sub-orchestrator P3 · opus 5.5 · 1m01s · 0 tools') // amended by verifier (XT18): the model shows family and version, never a bare family (spec L111-112; R-C8-01, R-C8-02)
+  assert.equal(rows[2].text, '    ● worker-cheap T7 · sonnet 5.5 · 1m00s · 2 tools · now Read') // amended by verifier (XT18): the model shows family and version, never a bare family (spec L111-112; R-C8-01, R-C8-02)
   finishAgent(t, 'w1', { line: 'T7 BLOCKED on Q-2', at: 5000 })
   rows = treeRows(t, 62000)
-  assert.match(rows[2].text, /✗ worker-cheap T7 · sonnet · 3s · 2 tools · BLOCKED — T7 BLOCKED on Q-2/)
+  assert.match(rows[2].text, /✗ worker-cheap T7 · sonnet 5\.5 · 3s · 2 tools · BLOCKED — T7 BLOCKED on Q-2/) // amended by verifier (XT18): the model shows family and version, never a bare family (spec L111-112; R-C8-01, R-C8-02)
   assert.equal(rows[2].color, 'red')
 })
 
@@ -36,7 +36,7 @@ test('old finished agents fold into a count', () => {
 })
 
 test('helpers: shortModel, elapsed', () => {
-  assert.equal(shortModel('claude-opus-5-5'), 'opus')
+  assert.equal(shortModel('claude-opus-5-5'), 'opus 5.5') // amended by verifier (XT18): the model shows family and version, never a bare family (spec L111-112; R-C8-01, R-C8-02)
   assert.equal(shortModel(undefined), null)
   assert.equal(elapsed(3_725_000), '1h02m')
 })
