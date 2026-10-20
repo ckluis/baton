@@ -22,7 +22,7 @@ import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
-import { agentTable, components, sumAccounts, tableFloor, tableText, tokensIn } from '../lib/table.mjs'
+import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
 import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, rulingDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
@@ -1711,9 +1711,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   const items = workTree()
   // Direct keys (T9, Q-60): every agent and phase row, top to bottom in tree order.
   assignLetters(pane.letters, items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])))
-  const drawn = items.filter((x) => x.kind !== 'note')
-  const data = drawn.map(treeItemRow)
-  const t = agentTable(data, tableWidth(data, cols))
+  const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
   out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
@@ -1724,8 +1722,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
       out.push(Box({ key: x.key, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] }))
       continue
     }
-    const segs = t.lines[drawn.indexOf(x)]
-    const cells = segs.map((y) => Text({ wrap: 'truncate-end', ...tone(y), children: [y.text] }))
+    const cells = lineOf.get(x).map((y) => Text({ wrap: 'truncate-end', ...tone(y), children: [y.text] }))
     if (x.kind === 'phase') {
       // Enter on a phase row's › opens the phase view: its steps, its nodes with their states, its spend (Q-54).
       out.push(Box({ key: 'pr-' + x.p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + x.p.id, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells] }))
@@ -1827,10 +1824,11 @@ function treeItemRow(x) {
   const pending = p.flag === 'pending' && !x.heads.length
   const roll = rollOf(x.heads)
   const mini = stepperMini(pending ? { ...p, flag: 'pending' } : p)
-  const mark = pending ? '○' : p.state === 'approved' ? '✓' : p.flag && p.flag !== 'pending' ? '✗' : '●'
+  const flagged = !!p.flag && p.flag !== 'pending'
+  const [mark, tone] = pending ? ['○', 'rail'] : p.state === 'approved' ? ['✓', 'green'] : flagged ? ['✗', 'red'] : ['●', 'cyan']
   return {
     label: indent + mark + ' ' + p.id,
-    tone: pending ? 'rail' : p.state === 'approved' ? 'green' : p.flag && p.flag !== 'pending' ? 'red' : 'cyan',
+    tone,
     ctxPct: null,
     noContext: true,
     model: '',
@@ -1842,6 +1840,14 @@ function treeItemRow(x) {
   }
 }
 
+/** The tree's table rows (every item but a note) as one table, and each item's line of it. */
+function treeTable(items, widthOf) {
+  const drawn = items.filter((x) => x.kind !== 'note')
+  const data = drawn.map(treeItemRow)
+  const t = agentTable(data, widthOf(data))
+  return { t, lineOf: new Map(drawn.map((x, i) => [x, t.lines[i]])) }
+}
+
 /** The width the pane draws its table at: the pane's, but never under the width every kept column needs whole. */
 function tableWidth(data, cols) {
   const widest = (f) => Math.max(0, ...data.map((r) => [...String(f(r) || '')].length))
@@ -1851,11 +1857,10 @@ function tableWidth(data, cols) {
 /** The tree as text (the -p form, Q-70): the legend, the group line, the column names, the rows. */
 function treeText() {
   const items = workTree()
-  const drawn = items.filter((x) => x.kind !== 'note')
-  const t = agentTable(drawn.map(treeItemRow), 200)
-  const [head, ...lines] = tableText(t)
-  const out = [...(track.view ? [LEGEND] : []), t.groups.map((x) => x.text).join('').trimEnd(), head]
-  for (const x of items) out.push(x.kind === 'note' ? '  '.repeat(x.depth) + x.text : lines[drawn.indexOf(x)])
+  const { t, lineOf } = treeTable(items, () => 200)
+  const text = (segs) => segs.map((y) => y.text).join('').trimEnd()
+  const out = [...(track.view ? [LEGEND] : []), text(t.groups), text(t.header)]
+  for (const x of items) out.push(x.kind === 'note' ? '  '.repeat(x.depth) + x.text : text(lineOf.get(x)))
   return out
 }
 
