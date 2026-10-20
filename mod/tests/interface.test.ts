@@ -20,8 +20,9 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: bo
     : {}
   const dirs: Record<string, any[]> = orch
     ? {
-        '_orch/phases': [{ name: 'P1', kind: 'directory' }, { name: 'P2', kind: 'directory' }],
-        '_orch/nodes': [{ name: 'T1', kind: 'directory' }, { name: 'T2', kind: 'directory' }, { name: 'T3', kind: 'directory' }],
+        // amended by verifier (XT11): directories are listed as the declared kind 'dir', index.d.ts:5093 `kind: 'file' | 'dir' | 'other'` (mismatches S0489, S0494; R-C1-05, R-C1-06)
+        '_orch/phases': [{ name: 'P1', kind: 'dir' }, { name: 'P2', kind: 'dir' }],
+        '_orch/nodes': [{ name: 'T1', kind: 'dir' }, { name: 'T2', kind: 'dir' }, { name: 'T3', kind: 'dir' }],
         '_orch/ledger': [{ name: '20261002T120500Z-T1-1.csv', kind: 'file' }],
       }
     : {}
@@ -60,7 +61,8 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: bo
   return { clock, logs, opens }
 }
 
-test('/baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
+// amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
   world(on)
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
@@ -87,7 +89,8 @@ test('with no _orch every tab draws, and nothing throws', async ($, on) => {
   await has(ui, /rulings/)
 })
 
-test('claude -p (no surface): /baton prints every tab as text', async ($, on) => {
+// amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: claude -p (no surface): /baton prints every tab as text', async ($, on) => {
   world(on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text).toContain('baton run build-20261002T120000Z')
@@ -97,7 +100,8 @@ test('claude -p (no surface): /baton prints every tab as text', async ($, on) =>
   expect(r.text).not.toContain('## Ledger')
 })
 
-test('the band shows the context against the rotation threshold during a run', async ($, on) => {
+// amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: the band shows the context against the rotation threshold during a run', async ($, on) => {
   world(on)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any) // reads the manifest: the run is active
@@ -111,12 +115,13 @@ test('the band shows the context against the rotation threshold during a run', a
   }
 })
 
-test('a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', async ($, on) => {
+// amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', async ($, on) => {
   const { clock, opens } = world(on, { placed: false })
   on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
   on('session.version', () => ({ value: { version: '2.1.302', base: '2.1.302' } }))
   on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
-  on('command.register', () => ({ value: undefined }))
+  on('command.register', () => ({ value: undefined } as any)) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   on('classic.SessionStart', () => ({}))
   mock.env(on, {})
   await $.session.start({ cwd: '/work', surface: null } as any)
@@ -142,7 +147,8 @@ test('no run: the band and the spinner are left alone', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /\/35%$/ })).toBeUndefined()
 })
 
-test('the spinner carries the phase and the node the prime dispatched', async ($, on) => {
+// amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: the spinner carries the phase and the node the prime dispatched', async ($, on) => {
   world(on)
   on('agent.spawn', () => ({ model: 'claude-opus-5-5', agentId: 's1' }))
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any)
@@ -155,7 +161,7 @@ test('/baton start writes a prime manifest, refuses a second run, and /baton sto
   const written: Record<string, string> = {}
   on('fs.read', (_$: any, e: any) => {
     const k = Object.keys(written).find((p) => e.path.endsWith(p))
-    return k ? { value: written[k] } : { deny: 'ENOENT' }
+    return k ? { value: written[k]! } : { deny: 'ENOENT' } // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   })
   on('fs.write', (_$: any, e: any) => {
     written[e.path] = e.text
@@ -167,7 +173,7 @@ test('/baton start writes a prime manifest, refuses a second run, and /baton sto
   on('session.root', () => ({ value: '/work' }))
   on('session.surfaces', () => ({ value: [] }))
   on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))
-  on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: '', truncated: false, merges: [] }), stderr: '' } }))
+  on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: '', truncated: false, merges: [] }), stderr: '' } } as any)) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   on('command.run', () => ({ text: 'core' }))
   on('tool.call', () => ({ result: 'ran' }))
   const bad: any = await $.command.run({ command: 'baton', args: 'start NOPE x' } as any)
@@ -176,7 +182,7 @@ test('/baton start writes a prime manifest, refuses a second run, and /baton sto
   expect(r.text).toContain('started (MODE BUILD, TARGET ./app the parser)')
   expect(r.text).toContain('You are the PRIME orchestrator') // headless: the kickoff rides in the text
   const mf = () => written[Object.keys(written).find((p) => p.endsWith('_orch/manifest.json'))!]
-  const m = JSON.parse(mf())
+  const m = JSON.parse(mf()!) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   expect(m).toMatchObject({ mode: 'BUILD', target: './app the parser', prime: true, models: { frontier: 'claude-opus-5-5', cheap: 'claude-sonnet-5-5' } })
   expect(m.run_id).toMatch(/^build-\d{8}T\d{6}Z$/)
   expect(m.baton_base).toBeDefined()
@@ -186,6 +192,6 @@ test('/baton start writes a prime manifest, refuses a second run, and /baton sto
   expect(again.text).toContain('already active')
   const stop: any = await $.command.run({ command: 'baton', args: 'stop' } as any)
   expect(stop.text).toContain('closed')
-  expect(JSON.parse(mf()).closed).toBe(true)
+  expect(JSON.parse(mf()!).closed).toBe(true) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   expect(((await $.tool.call({ tool: 'Bash', command: 'ls' } as any)) as any).result).toBe('ran')
 })

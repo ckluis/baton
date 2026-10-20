@@ -60,10 +60,10 @@ test('memory_note appends to the run memory under _orch/memory, tagged prime, te
   const r: any = await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'P2 parked: waits on Q-3' } as any)
   expect(r.result).toBe('noted #0')
   const c = w.calls[0]
-  expect(c.argv[0]).toBe('node')
-  expect(c.argv[1]).toEndWith('/bin/memo.mjs')
-  expect(c.argv.slice(2)).toEqual(['--dir', '/work/_orch/memory', '--json', 'note', '--tag', 'prime', '-'])
-  expect(c.stdin).toBe('P2 parked: waits on Q-3')
+  expect(c!.argv[0]).toBe('node') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
+  expect(c!.argv[1]).toEndWith('/bin/memo.mjs') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
+  expect(c!.argv.slice(2)).toEqual(['--dir', '/work/_orch/memory', '--json', 'note', '--tag', 'prime', '-']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
+  expect(c!.stdin).toBe('P2 parked: waits on Q-3') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
 })
 
 test('memory_wake uses the configured budget; zoom and recall pass their argument after --', async ($, on) => {
@@ -86,10 +86,10 @@ test('wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBud
 test('project memory: memoryDir from config, a namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
   const w = world(on)
   await $.tool.call({ tool: 'mcp__baton__project_note', text: 'never push to main', namespace: 'rulings' } as any)
-  expect(w.calls[0].argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', 'rulings'])
-  expect(w.calls[0].argv).toContain('prime')
+  expect(w.calls[0]!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', 'rulings']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
+  expect(w.calls[0]!.argv).toContain('prime') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   await $.tool.call({ tool: 'mcp__baton__project_wake', namespace: '../../etc' } as any)
-  expect(w.calls[1].argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc'])
+  expect(w.calls[1]!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
 })
 
 test('a subagent the prime dispatched returns: its first line becomes one run note', async ($, on) => {
