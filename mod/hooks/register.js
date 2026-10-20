@@ -730,12 +730,14 @@ async function noteQuietly($, text, tag) {
   }
 }
 
-/** The default note tag for a caller (Q-26): prime, its spawn type minus baton: (sub-orchestrator → sub), or agent. */
+/** A note tag for a subagent role (its spawn type minus baton:): sub-orchestrator → sub, else cut to 16 bytes. */
+const roleTag = (role) => (role === 'sub-orchestrator' ? 'sub' : role.slice(0, 16))
+
+/** The default note tag for a caller (Q-26): prime, its role tag, or agent for a subagent the mod did not see spawned. */
 function callerRole(agentId) {
   if (!agentId) return 'prime'
   const n = tree.nodes.get(agentId)
-  if (!n) return 'agent'
-  return n.role === 'sub-orchestrator' ? 'sub' : n.role.slice(0, 16)
+  return n ? roleTag(n.role) : 'agent'
 }
 
 /** Note the one-line return of a subagent the prime dispatched. True when a note was written. */
@@ -744,8 +746,7 @@ async function noteReturn($, agentId, text) {
   const who = spawnedByPrime.get(agentId)
   const line = firstLine(text)
   if (!who || !line) return false
-  const role = String(who.type ?? 'agent').replace(/^baton:/, '')
-  const tag = role === 'sub-orchestrator' ? 'sub' : role.slice(0, 16)
+  const tag = roleTag(String(who.type ?? 'agent').replace(/^baton:/, ''))
   const label = who.name || who.description
   try {
     await appendNote($, 'run', (label ? label + ': ' : '') + line, tag)
@@ -1684,8 +1685,9 @@ async function serveMemoryTool($, e) {
       case 'memory_wake':
         return { result: (await rulingsBlock($)) + (await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)])) }
       case 'memory_note': {
-        const tag = e.tag == null || e.tag === '' ? callerRole(e.agentId) : cleanTag(e.tag)
-        if (e.tag != null && e.tag !== '' && isReservedTag(tag)) {
+        const given = e.tag != null && e.tag !== ''
+        const tag = given ? cleanTag(e.tag) : callerRole(e.agentId)
+        if (given && isReservedTag(tag)) {
           return { result: 'baton: tag "' + tag + '" is reserved (' + RESERVED_TAGS_TEXT + '); no note written. Use another tag, or none for your role.' }
         }
         return { result: await appendNote($, 'run', String(e.text ?? ''), tag) }
