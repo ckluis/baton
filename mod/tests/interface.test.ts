@@ -2,16 +2,17 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 const MANIFEST = { run_id: 'build-20261002T120000Z', mode: 'BUILD', target: './app', prime: true, phase: 'P2' }
+const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
 async function has(ui: any, re: RegExp) {
   if (!(await ui.find({ text: re }))) throw new Error('not drawn: ' + re + ' in ' + JSON.stringify(await ui.drawn()).slice(0, 2000))
 }
 
-function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: boolean } = {}) {
+function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: boolean; member?: boolean } = {}) { // amended by verifier (XT17): member: the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   const orch = opts.orch ?? true
   const files: Record<string, string> = orch
     ? {
-        '_orch/manifest.json': JSON.stringify(MANIFEST),
+        '_orch/manifest.json': JSON.stringify(opts.member ? { ...MANIFEST, prime_session: { id: SID, heartbeat_at: new Date().toISOString() } } : MANIFEST), // amended by verifier (XT17): the manifest records the prime's session id, this session's (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
         '_orch/phases/P1/envelope.json': JSON.stringify({ verdict: 'DONE', summary: 'bootstrap and plan' }),
         '_orch/nodes/T1/status.json': JSON.stringify({ verdict: 'DONE' }),
         '_orch/nodes/T2/status.json': JSON.stringify({ verdict: 'BLOCKED' }),
@@ -61,6 +62,23 @@ function world(on: any, opts: { orch?: boolean; surfaces?: string[]; placed?: bo
   return { clock, logs, opens }
 }
 
+/** The run's own session: its id, and what session.start and SessionStart need beneath the mod. */ // amended by verifier (XT17): membership is recorded at session.start and keyed to session.id (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+function member(on: any) { // amended by verifier (XT17): a session.id mock, a manifest write sink and a session.start in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.id', () => ({ value: SID })) // amended by verifier (XT17): membership is keyed to $.session.id() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd })) // amended by verifier (XT17): session.start records membership (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('classic.SessionStart', () => ({})) // amended by verifier (XT17): the startup SessionStart that follows session.start (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.version', () => ({ value: { version: '2.1.303', base: '2.1.303' } })) // amended by verifier (XT17): what session.start reads beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } })) // amended by verifier (XT17): what session.start registers beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('command.register', () => ({ value: undefined })) // amended by verifier (XT17): what session.start registers beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('fs.write', () => ({ value: undefined })) // amended by verifier (XT17): a sink for the manifest's prime_session writes (Q-7) (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+} // amended by verifier (XT17): end of member() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+
+/** The engine starting this session in the run's directory (/work): session.start, then the startup SessionStart. */ // amended by verifier (XT17): membership is recorded at session.start, never re-derived from the current directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+async function begin($: any) { // amended by verifier (XT17): the session starts in the run's directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await $.session.start({ cwd: '/work', surface: null, isInteractive: false } as any) // amended by verifier (XT17): session.start in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await $.classic.SessionStart({ source: 'startup', cwd: '/work' } as any) // amended by verifier (XT17): the startup SessionStart in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+} // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
   world(on)
@@ -102,8 +120,10 @@ test('guard: claude -p (no surface): /baton prints every tab as text', async ($,
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: the band shows the context against the rotation threshold during a run', async ($, on) => {
-  world(on)
+  world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
+  member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await begin($) // amended by verifier (XT17): started in the run directory before its first call, so the run is active by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any) // reads the manifest: the run is active
   await $.session.measure({ context: { tokens: 120000, window: 1000000, percent: 12 }, rateLimits: [], changed: ['context'] } as any)
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -149,15 +169,18 @@ test('no run: the band and the spinner are left alone', async ($, on) => {
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: the spinner carries the phase and the node the prime dispatched', async ($, on) => {
-  world(on)
+  world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   on('agent.spawn', () => ({ model: 'claude-opus-5-5', agentId: 's1' }))
+  member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await begin($) // amended by verifier (XT17): started in the run directory before its first call, so the run is active by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any)
   await $.agent.spawn({ prompt: 'p', description: 'P2 phase', subagentType: 'baton:sub-orchestrator' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'Spinner', props: { word: 'Thinking', message: null, suffix: '…', mode: 'thinking' } as any })
   expect((await ui.find({ type: 'Text', text: /^engine/ }))?.text).toBe('engine " · baton · P2 · P2 phase…"')
 })
 
-test('/baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: /baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
   const written: Record<string, string> = {}
   on('fs.read', (_$: any, e: any) => {
     const k = Object.keys(written).find((p) => e.path.endsWith(p))
@@ -176,6 +199,7 @@ test('/baton start writes a prime manifest, refuses a second run, and /baton sto
   on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: '', truncated: false, merges: [] }), stderr: '' } } as any)) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   on('command.run', () => ({ text: 'core' }))
   on('tool.call', () => ({ result: 'ran' }))
+  on('session.id', () => ({ value: SID })) // amended by verifier (XT17): /baton start records this session's id as the manifest's prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   const bad: any = await $.command.run({ command: 'baton', args: 'start NOPE x' } as any)
   expect(bad.text).toContain('usage: /baton start <MODE> <TARGET>')
   const r: any = await $.command.run({ command: 'baton', args: 'start BUILD ./app the parser' } as any)
