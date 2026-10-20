@@ -28,20 +28,17 @@ export function addUsage(acc, u) {
     const m = String(u.model || 'unknown')
     const k = ((acc.byModel ??= {})[m] ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 })
     const n = (x) => (Number.isFinite(Number(u[x])) ? Number(u[x]) : 0)
-    k.input += n('input_tokens')
-    k.output += n('output_tokens')
-    k.cacheWrite += n('cache_creation_input_tokens')
-    k.cacheRead += n('cache_read_input_tokens')
-    // A request whose prompt is over its model's price step is priced at the step row;
-    // its tokens are kept apart too (they stay in the totals above).
-    const step = priceFor(m)?.step
-    if (step && contextOf(u) > step.above_tokens) {
-      const s = (k.stepped ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 })
-      s.input += n('input_tokens')
-      s.output += n('output_tokens')
-      s.cacheWrite += n('cache_creation_input_tokens')
-      s.cacheRead += n('cache_read_input_tokens')
+    const into = (t) => {
+      t.input += n('input_tokens')
+      t.output += n('output_tokens')
+      t.cacheWrite += n('cache_creation_input_tokens')
+      t.cacheRead += n('cache_read_input_tokens')
     }
+    into(k)
+    // A request whose prompt is over its model's price step is priced at the step row:
+    // its tokens are also counted in `stepped` (they stay in the totals above).
+    const step = priceFor(m)?.step
+    if (step && contextOf(u) > step.above_tokens) into((k.stepped ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 }))
   }
   return acc
 }
@@ -82,8 +79,8 @@ export function costOf(acc, extra = {}) {
       continue
     }
     const at = (q, t) => (t.input * q.input + t.output * q.output + t.cacheWrite * q.input * 1.25 + t.cacheRead * q.cacheRead) / 1e6
-    const s = p.step && k.stepped
-    usd += s ? at(p, { input: k.input - s.input, output: k.output - s.output, cacheWrite: k.cacheWrite - s.cacheWrite, cacheRead: k.cacheRead - s.cacheRead }) + at(p.step, s) : at(p, k)
+    // Stepped tokens are in the totals at the base row; move them to the step row.
+    usd += at(p, k) + (p.step && k.stepped ? at(p.step, k.stepped) - at(p, k.stepped) : 0)
   }
   return { usd, unpriced }
 }
