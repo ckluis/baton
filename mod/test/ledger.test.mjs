@@ -80,13 +80,14 @@ test('cost per model from the verified prices; an unpriced model is unknown, nev
   // 4 + 2 + 0.5 + 0.2
   assert.equal(costOf(acc).usd.toFixed(2), '6.70')
   assert.equal(shortUsd(costOf(acc)), '$6.70')
-  add(acc, { model: 'claude-sonnet-5-5', input_tokens: 1000, output_tokens: 10 })
-  assert.deepEqual(costOf(acc).unpriced, ['claude-sonnet-5-5'])
+  add(acc, { model: 'claude-unpriced-0-0', input_tokens: 1000, output_tokens: 10 }) // amended by verifier (XT13): claude-sonnet-5-5 now has a price (R-C3-02), so the unpriced case uses a made-up id
+  assert.deepEqual(costOf(acc).unpriced, ['claude-unpriced-0-0']) // amended by verifier (XT13): made-up unpriced id, since claude-sonnet-5-5 is priced (R-C3-02)
   assert.equal(shortUsd(costOf(acc)), '$6.70+?')
-  assert.equal(shortUsd(costOf(acc, { 'claude-sonnet-5-5': { input: 3, output: 15, cacheRead: 0.3 } })), '$6.70')
+  assert.equal(shortUsd(costOf(acc, { 'claude-unpriced-0-0': { input: 3, output: 15, cacheRead: 0.3 } })), '$6.70') // amended by verifier (XT13): override price for the made-up unpriced id (R-C3-02)
   assert.ok(priceFor('claude-haiku-4-5-20251001'))
   assert.equal(windowFor('claude-opus-5-5'), 1e6)
-  assert.equal(windowFor('claude-sonnet-5-5', 400000), 400000)
+  assert.equal(windowFor('claude-sonnet-5-5', 400000), 1e6) // amended by verifier (XT13): claude-sonnet-5-5 gains a 1,000,000-token window (R-C3-03)
+  assert.equal(windowFor('claude-unpriced-0-0', 400000), 400000) // amended by verifier (XT13): the fallback is still pinned, on a made-up id with no known window (R-C3-03)
   assert.equal(windowFor('claude-sonnet-5-5[1m]'), 1e6)
   assert.equal(contextOf({ input_tokens: 10, cache_read_input_tokens: 300000, cache_creation_input_tokens: 2000 }), 302010)
   assert.deepEqual([ctxTone(10, 50), ctxTone(40, 50), ctxTone(55, 50), ctxTone(null, 50)], ['green', 'yellow', 'red', undefined])
