@@ -25,7 +25,7 @@ import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, ruling
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { bandSegs, compareVersions, installedCopy, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -126,6 +126,7 @@ const pane = {
   memLines: [],
   rulings: [], // the standing rulings, for the Rulings tab
   target: null, // the agent the Agents tab's message field writes to
+  letters: new Map(), // Work: each row's direct key ('agent:<id>' or 'phase:<id>' -> a letter of ROW_LETTERS), held while the row is listed
 }
 
 // What the prime is doing now, for the spinner: its live dispatches.
@@ -1180,6 +1181,9 @@ function workspaceBody($, ui) {
   }
   const v = track.view
   const out = []
+  // Direct keys (T9): in tree order the prime, the phase rows, then the other agent rows.
+  const agents = treeRows(tree).filter((r) => r.id && r.id !== PRIME).map((r) => 'agent:' + r.id)
+  assignLetters(pane.letters, ['agent:' + PRIME, ...(v ? v.phases.map((p) => 'phase:' + p.id) : []), ...agents])
   if (v) {
     out.push(...goalLinks(ui, 'w-links'))
     out.push(stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget)))
@@ -1266,7 +1270,7 @@ function planSection($, ui, v) {
     const ver = p.nodes.filter((x) => x.state === 'verified').length
     const stuck = p.nodes.filter((x) => x.flag && x.flag !== 'pending').map((x) => x.id + ' ' + x.flag)
     const tail = (p.nodes.length ? ' · ' + ver + '/' + p.nodes.length + ' verified' : '') + (stuck.length ? ' · ' + stuck.slice(0, 3).join(', ') : '') + spendTail(v.spend.byPhase[p.id])
-    out.push(Box({ key: 'pr-' + p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + p.id, label: '›', plain: true, onPress: () => openDetail($, 'phase', p.id) }), stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail)] }))
+    out.push(Box({ key: 'pr-' + p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + p.id, label: '›', ...letterKey('phase:' + p.id), plain: true, onPress: () => openDetail($, 'phase', p.id) }), stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail)] }))
     if (pane.planOpen) {
       p.nodes.slice(0, 12).forEach((x) => out.push(Box({ key: 'nr-' + x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.id, label: '›', plain: true, onPress: () => openDetail($, 'node', x.id) }), stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))] })))
       if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
@@ -1453,7 +1457,7 @@ function agentRow(r) {
 /** Agents: phases waiting for a check, then the live tree; a message field for the selected agent. */
 function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }) {
   const out = []
-  if (onlyInput) return messageField($, { Text, Input })
+  if (onlyInput) return messageField($, { Box, Text, Input })
   approvals.queue.forEach((q, i) => {
     out.push(
       Box({
@@ -1488,17 +1492,28 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   t.lines.forEach((segs, i) => {
     const r = rowsData[i]
     // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
-    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
+    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
     const children = [...open, ...segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
   })
-  out.push(...messageField($, { Text, Input }))
+  out.push(...messageField($, { Box, Text, Input }))
   return out
 }
 
+/** A row's direct key, if it holds one: its letter as the `hotkey` of the Button that opens it (T9). */
+function letterKey(id) {
+  const k = pane.letters.get(id)
+  return k ? { hotkey: k } : {}
+}
+
+/** A hint line: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32). */
+function keyHint({ Box, Text }, key, parts) {
+  return Box({ key, flexDirection: 'row', children: parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]) })
+}
+
 /** The field that messages the targeted running agent (✉ on its row, or its open view). */
-function messageField($, { Text, Input }) {
+function messageField($, { Box, Text, Input }) {
   const out = []
   const tg = pane.target && tree.nodes.get(pane.target)
   if (tg && tg.endedAt == null) {
@@ -1525,7 +1540,7 @@ function messageField($, { Text, Input }) {
       }),
     )
   } else {
-    out.push(Text({ dimColor: true, children: ['↑/↓ then Enter on › opens an agent · ✉ messages a running one · p shows every node · b goes back'] }))
+    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']]))
   }
   return out
 }
@@ -1559,7 +1574,7 @@ async function resolveQueued($, i, how, who = 'operator') {
 }
 
 /** Memory: open a block (+), go back (b), or search; notes and summaries as lines. */
-function memoryBody($, { Box, Button, Input, line, rows }) {
+function memoryBody($, { Box, Text, Button, Input, line, rows }) {
   const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
   const reload = () => refreshPane($, rows)
   const nav = [
@@ -1610,6 +1625,7 @@ function memoryBody($, { Box, Button, Input, line, rows }) {
     children.push(line('m' + j, l))
     out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children }))
   })
+  if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then Enter opens a block'], ['b', ' goes back']]))
   return out
 }
 
