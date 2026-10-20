@@ -24,7 +24,10 @@ Done when: every done-criterion in the handoff has its red, green and blue recor
   `_orch/inbox/Q-<n>.md` (rule 10) — do not guess an operator's answer.
 
 **Your final text is exactly ONE line of at most 280 bytes** — `<id> <VERDICT> · what changed · what
-is open` — then the status.json path. Nothing else.
+is open` — then the status.json path. Nothing else. The line names every `Q-<id>` you wrote (each
+`_orch/inbox/Q-<id>.md`), with runs compressed (`Q-42..Q-46`); when the ids still do not fit, it
+names as many as fit, then `+<k> more`. Every such question's `_orch/inbox/Q-<id>.md` goes on the
+path lines after the line, one per line after the status.json path; the 280 bytes do not cover them.
 
 - Some shell commands wait for the operator's approval: `git push`, `gh pr create|merge|close`, a release
   or package publish, `git reset --hard` / `git clean -f`, `rm -r`. If one is refused, do not retry it
