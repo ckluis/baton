@@ -25,7 +25,7 @@ import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, ruling
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
 import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, memTable, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -1606,7 +1606,7 @@ async function resolveQueued($, i, how, who = 'operator') {
     .catch((err) => $.ui.log('baton: could not hand the send-back to the prime: ' + err.message))
 }
 
-/** Memory: open a block (+), go back (b), or search; notes and summaries as lines. */
+/** Memory: open a block (+), go back (b), or search; notes and summaries as a table (T12). */
 function memoryBody($, { Box, Text, Button, Input, line, rows }) {
   const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
   const reload = () => refreshPane($, rows)
@@ -1639,26 +1639,25 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
     )
   }
   out.push(Box({ key: 'mem-nav', flexDirection: 'row', columnGap: 2, children: nav }))
-  pane.memLines.forEach((l, j) => {
+  memTable(pane.memLines).forEach((l, j) => {
     const t = pane.memTiles[j]
-    const children = []
-    if (t && t.level > 0)
-      children.push(
-        Button({
-          key: 'mem-open-' + j,
-          label: '+',
-          plain: true,
-          onPress: () => {
-            browse.search = null
-            browse.stack.push(t.lo + '-' + (t.hi - 1))
-            return reload()
-          },
-        }),
-      )
-    children.push(line('m' + j, l))
-    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children }))
+    // the first column: a summary's + opens it; a note keeps the column blank so the table lines up
+    const first =
+      t && t.level > 0
+        ? Button({
+            key: 'mem-open-' + j,
+            label: '+',
+            plain: true,
+            onPress: () => {
+              browse.search = null
+              browse.stack.push(t.lo + '-' + (t.hi - 1))
+              return reload()
+            },
+          })
+        : Text({ children: [' '] })
+    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children: [first, line('m' + j, l)] }))
   })
-  if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then Enter opens a block'], ['b', ' goes back']]))
+  if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then '], ['Enter', ' opens a block · '], ['b', ' goes back']]))
   return out
 }
 
