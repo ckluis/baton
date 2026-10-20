@@ -1145,11 +1145,8 @@ async function batonStart($, args) {
     }
     target = 'issue #' + issue.number + ': ' + issue.title
   }
-  let existing = null
-  try {
-    existing = JSON.parse(await $.fs.read('_orch/manifest.json'))
-  } catch {}
-  if (existing && existing.prime === true && existing.closed !== true) {
+  const existing = await readManifest($, null)
+  if (isOpenPrime(existing)) {
     return 'a baton run is already active here: ' + existing.run_id + ' (/baton stop closes it)'
   }
   if (existing && !existing.prime) {
@@ -1226,16 +1223,13 @@ async function batonStart($, args) {
 }
 
 async function batonStop($) {
-  let m = null
-  try {
-    m = JSON.parse(await $.fs.read('_orch/manifest.json'))
-  } catch {}
+  const m = await readManifest($, null)
   run.startedHere = false
   forgetRunCache()
   if (!m || m.prime !== true) return 'no baton v7 run is active here'
   m.closed = true
   m.closed_at = new Date(Date.now()).toISOString()
-  await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
+  await writeManifest($, null, m)
   try {
     await appendNote($, 'run', 'run closed by the operator (/baton stop)', 'operator')
   } catch {}
