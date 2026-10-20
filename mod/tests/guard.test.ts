@@ -4,6 +4,25 @@
 import { expect, test } from 'claude-code/testing'
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
+const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+const MEMBER = () => JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true, prime_session: { id: SID, heartbeat_at: new Date().toISOString() } }) // amended by verifier (XT17): the manifest records the prime's session id, this session's (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+
+/** The run's own session: its id, and what session.start and SessionStart need beneath the mod. */ // amended by verifier (XT17): membership is recorded at session.start and keyed to session.id (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+function member(on: any) { // amended by verifier (XT17): a session.id mock, a manifest write sink and a session.start in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.id', () => ({ value: SID })) // amended by verifier (XT17): membership is keyed to $.session.id() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd })) // amended by verifier (XT17): session.start records membership (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('classic.SessionStart', () => ({})) // amended by verifier (XT17): the startup SessionStart that follows session.start (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('session.version', () => ({ value: { version: '2.1.303', base: '2.1.303' } })) // amended by verifier (XT17): what session.start reads beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } })) // amended by verifier (XT17): what session.start registers beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('command.register', () => ({ value: undefined })) // amended by verifier (XT17): what session.start registers beneath the mod (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  on('fs.write', () => ({ value: undefined })) // amended by verifier (XT17): a sink for the manifest's prime_session writes (Q-7) (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+} // amended by verifier (XT17): end of member() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+
+/** The engine starting this session in the run's directory (/work): session.start, then the startup SessionStart. */ // amended by verifier (XT17): membership is recorded at session.start, never re-derived from the current directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+async function begin($: any) { // amended by verifier (XT17): the session starts in the run's directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await $.session.start({ cwd: '/work', surface: null, isInteractive: false } as any) // amended by verifier (XT17): session.start in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await $.classic.SessionStart({ source: 'startup', cwd: '/work' } as any) // amended by verifier (XT17): the startup SessionStart in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+} // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
 function world(on: any, manifest: string | null) {
   on('fs.read', (_$: any, e: any) =>
@@ -21,8 +40,11 @@ function world(on: any, manifest: string | null) {
   on('tool.call', () => ({ result: 'ran' }))
 }
 
-test('during a run the prime is denied every reading, running and editing tool, with the route', async ($, on) => {
-  world(on, ACTIVE)
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: during a run the prime is denied every reading, running and editing tool, with the route', async ($, on) => {
+  world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   for (const tool of ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write', 'WebFetch', 'NotebookEdit', 'Skill', 'mcp__other__read']) {
     const r: any = await $.tool.call({ tool, file_path: 'src/a.ts', command: 'ls', pattern: 'x' } as any)
     expect(r.deny, tool).toMatch(/dispatch a sub-orchestrator/)
@@ -30,8 +52,11 @@ test('during a run the prime is denied every reading, running and editing tool, 
   }
 })
 
-test('during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
-  world(on, ACTIVE)
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
+  world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
+  await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   for (const tool of ['Agent', 'AskUserQuestion', 'SendMessage', 'ToolSearch', 'mcp__baton__memory_wake', 'mcp__baton__memory_note', 'mcp__baton__project_wake']) {
     const r: any = await $.tool.call({ tool, text: 'x', pattern: 'x', range: '0-1' } as any)
     expect(r.deny, tool).toBeUndefined()

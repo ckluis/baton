@@ -6,7 +6,10 @@
 // route. Subagents (sub-orchestrators, workers, verifiers) pass untouched.
 //
 // A run is active when the session's directory holds _orch/manifest.json with
-// "prime": true (what /baton start writes), or /baton start ran here.
+// "prime": true (what /baton start writes), or /baton start ran here. Which
+// session is the run's own is recorded once, at session.start (spec T7): the
+// directory it started in and the manifest's prime_session, never the current
+// directory after a cd.
 
 import { agentIdVerified, guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
 import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
@@ -38,6 +41,21 @@ const run = {
   kickoff: null, // the prime's first prompt, submitted by the ticker after /baton start
   lastKickoff: null, // that prompt's text, so prompt.submit does not note it as the operator's
 }
+
+// Run membership (spec T7, Q-7, Q-8, Q-29): recorded at session.start, keyed to the session id
+// and the manifest's prime_session {id, heartbeat_at}. Until a session.start records it, the
+// manifest under the current directory decides, as before.
+const membership = {
+  recorded: false, // session.start (or /baton start) recorded this session's membership
+  member: false, // this session is the run's own: the guard arms and it writes run notes
+  dir: null, // the run's directory, recorded with it
+  id: null, // the session id this session last wrote to prime_session
+  runId: null, // the run the start saw, member or not
+  why: null, // why this session is not armed (Q-29), or why it was disarmed (Q-8); on the band
+}
+const PRIME_LIVE_MS = 90000 // Q-7: a prime whose heartbeat is under 90 s old is live
+const TAKE_OVER = 'Take over as the prime'
+const STAY_UNARMED = 'Stay unarmed'
 
 // What the guard learned about agentId at run time.
 const probe = {
@@ -234,9 +252,15 @@ async function runActive($) {
   const now = Date.now()
   if (now - run.checkedAt < MANIFEST_TTL_MS) return run.active || run.startedHere
   run.checkedAt = now
+  if (membership.recorded && !membership.member) {
+    // Not the run's own session: no cd and no manifest in the current directory arms it (T7).
+    run.active = false
+    run.manifest = null
+    return false
+  }
   let text = null
   try {
-    text = await $.fs.read('_orch/manifest.json')
+    text = await $.fs.read(manifestPath(membership.recorded ? membership.dir : null))
   } catch {
     text = null
   }
@@ -251,6 +275,154 @@ async function runActive($) {
 
 function forgetRunCache() {
   run.checkedAt = -1e12
+}
+
+/** The manifest of the run in `dir` (absolute), or under the current directory when there is none. */
+const manifestPath = (dir) => (dir ? dir + '/_orch/manifest.json' : '_orch/manifest.json')
+
+async function readManifest($, dir) {
+  try {
+    return JSON.parse(await $.fs.read(manifestPath(dir)))
+  } catch {
+    return null
+  }
+}
+
+async function writeManifest($, dir, m) {
+  await $.fs.write(manifestPath(dir), JSON.stringify(m, null, 2) + '\n')
+  forgetRunCache()
+}
+
+const isOpenPrime = (m) => !!m && m.prime === true && m.closed !== true
+
+async function sessionId($) {
+  try {
+    const id = await $.session.id()
+    return id ? String(id) : null
+  } catch {
+    return null
+  }
+}
+
+/** When prime_session was last heard from (ms), or null. D-T17-heartbeat-format: an ISO string; a number is read too. */
+function heardAt(ps) {
+  const t = typeof ps.heartbeat_at === 'number' ? ps.heartbeat_at : Date.parse(String(ps.heartbeat_at))
+  return Number.isFinite(t) ? t : null
+}
+
+/** The live prime of another session that the manifest names (Q-7: heard under 90 s ago), or null. */
+function livePrimeElsewhere(m, id) {
+  const ps = m && m.prime_session
+  if (!ps || !ps.id || String(ps.id) === id) return null
+  const t = heardAt(ps)
+  if (t === null || Date.now() - t >= PRIME_LIVE_MS) return null
+  return { id: String(ps.id), ago: Math.max(0, Math.round((Date.now() - t) / 1000)) }
+}
+
+/** Q-29's words for an unarmed second session. */
+const notArmedLine = (runId, other) =>
+  'baton: run ' + runId + ' has a live prime in another session (' + other.id.slice(0, 8) + ', heard ' + other.ago + 's ago); this session is not armed'
+
+/** Write this session into the manifest's prime_session with a fresh heartbeat (Q-7). Needs the session id. */
+async function writePrimeSession($, id) {
+  if (!id) return
+  const m = await readManifest($, membership.dir)
+  if (!isOpenPrime(m)) return
+  m.prime_session = { id, heartbeat_at: new Date(Date.now()).toISOString() }
+  await writeManifest($, membership.dir, m)
+  membership.id = id
+}
+
+/** This session is the run's prime: it arms, and writes its id (a manifest without prime_session is claimed, Q-7). */
+async function claimRun($, id) {
+  membership.member = true
+  membership.why = null
+  forgetRunCache()
+  try {
+    await writePrimeSession($, id)
+  } catch (err) {
+    $.ui.log('baton: could not record this session as the prime: ' + err.message)
+  }
+}
+
+function stayUnarmed($, why) {
+  membership.member = false
+  membership.why = why
+  run.active = false
+  run.startedHere = false
+  forgetRunCache()
+  $.ui.log(why)
+  $.ui.invalidate('ui.render')
+}
+
+/**
+ * session.start: record whether this session is the run's own (spec T7). It is when it starts in
+ * the run's directory and the manifest names no other live prime. With a live prime elsewhere it
+ * stays unarmed and says why (Q-29); interactive, it is asked first whether to take over (Q-8).
+ */
+async function recordMembership($, e) {
+  let dir = e && e.cwd ? String(e.cwd) : null
+  if (!dir) {
+    try {
+      dir = await $.session.cwd()
+    } catch {}
+  }
+  Object.assign(membership, { recorded: true, member: false, dir: dir || null, id: null, runId: null, why: null })
+  run.active = false
+  forgetRunCache()
+  const m = await readManifest($, membership.dir)
+  if (!isOpenPrime(m)) return
+  membership.runId = String(m.run_id ?? '?')
+  const id = await sessionId($)
+  const other = livePrimeElsewhere(m, id)
+  if (!other) return claimRun($, id)
+  const why = notArmedLine(membership.runId, other)
+  const ask = e && typeof e.isInteractive === 'boolean' ? e.isInteractive : await interactive($)
+  if (!ask) return stayUnarmed($, why)
+  // Asked once the session is up, not inside its start; unarmed until the answer is yes.
+  $.clock.after(0, () => askTakeover($, id, why, other).catch(() => stayUnarmed($, why)))
+}
+
+async function askTakeover($, id, why, other) {
+  let answer = null
+  try {
+    answer = await $.ui.ask(
+      'Run ' + membership.runId + ' has a live prime in another session (' + other.id.slice(0, 8) + ', heard ' + other.ago + 's ago), which disarms at its next tick if you take over. Take over as its prime in this session?',
+      [TAKE_OVER, STAY_UNARMED],
+    )
+  } catch {}
+  if (answer !== TAKE_OVER) return stayUnarmed($, why)
+  await claimRun($, id)
+  try {
+    await registerMemoryTools($)
+  } catch {}
+  $.ui.log('baton: this session took over as the prime of run ' + membership.runId)
+  $.ui.invalidate('ui.render')
+}
+
+/**
+ * The prime's heartbeat, on the 30 s usage tick (Q-7): refresh prime_session.heartbeat_at, and
+ * after a /clear write the new session id. Another id there means another session took over:
+ * this one disarms and says so on its band (Q-8).
+ */
+async function heartbeat($) {
+  if (!membership.recorded || !membership.member || !membership.id) return
+  const m = await readManifest($, membership.dir)
+  if (!isOpenPrime(m)) return
+  const ps = m.prime_session
+  if (ps && ps.id && String(ps.id) !== membership.id) {
+    return stayUnarmed($, 'baton: run ' + String(m.run_id ?? '?') + ' was taken over by another session (' + String(ps.id).slice(0, 8) + '); this session is disarmed')
+  }
+  await writePrimeSession($, (await sessionId($)) || membership.id)
+}
+
+/** session.end: the prime clears prime_session (Q-7). A /clear goes on under a new id, which the next tick writes. */
+async function releaseRun($, e) {
+  if (e.reason === 'clear' || !membership.member || !membership.id) return
+  const m = await readManifest($, membership.dir)
+  if (!isOpenPrime(m) || !m.prime_session || String(m.prime_session.id) !== membership.id) return
+  m.prime_session = null
+  await writeManifest($, membership.dir, m)
 }
 
 // ------------------------------------------------------------------ memory plumbing
@@ -276,7 +448,8 @@ function cleanNamespace(ns) {
 async function memoryArgs($, which, namespace) {
   let dir
   if (which === 'run') {
-    dir = (await $.session.cwd()) + '/_orch/memory'
+    // The run's own session writes to the run it started in, wherever it has cd'd since (T7).
+    dir = (membership.recorded && membership.member && membership.dir ? membership.dir : await $.session.cwd()) + '/_orch/memory'
   } else {
     const md = String(config.memoryDir || '.baton/memory')
     dir = md.startsWith('/') ? md : (await $.session.root()) + '/' + md
@@ -972,11 +1145,8 @@ async function batonStart($, args) {
     }
     target = 'issue #' + issue.number + ': ' + issue.title
   }
-  let existing = null
-  try {
-    existing = JSON.parse(await $.fs.read('_orch/manifest.json'))
-  } catch {}
-  if (existing && existing.prime === true && existing.closed !== true) {
+  const existing = await readManifest($, null)
+  if (isOpenPrime(existing)) {
     return 'a baton run is already active here: ' + existing.run_id + ' (/baton stop closes it)'
   }
   if (existing && !existing.prime) {
@@ -1008,7 +1178,15 @@ async function batonStart($, args) {
     m.team = 'github'
     m.branch = 'baton/' + m.run_id
   }
+  // The manifest records the prime's session id (spec T7, Q-7): this session's.
+  const sid = await sessionId($)
+  if (sid) m.prime_session = { id: sid, heartbeat_at: now }
   await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
+  let here = null
+  try {
+    here = await $.session.cwd()
+  } catch {}
+  Object.assign(membership, { recorded: true, member: true, dir: here || null, id: sid, runId: m.run_id, why: null })
   run.startedHere = true
   forgetRunCache()
   tree = newTree()
@@ -1045,16 +1223,13 @@ async function batonStart($, args) {
 }
 
 async function batonStop($) {
-  let m = null
-  try {
-    m = JSON.parse(await $.fs.read('_orch/manifest.json'))
-  } catch {}
+  const m = await readManifest($, null)
   run.startedHere = false
   forgetRunCache()
   if (!m || m.prime !== true) return 'no baton v7 run is active here'
   m.closed = true
   m.closed_at = new Date(Date.now()).toISOString()
-  await $.fs.write('_orch/manifest.json', JSON.stringify(m, null, 2) + '\n')
+  await writeManifest($, null, m)
   try {
     await appendNote($, 'run', 'run closed by the operator (/baton stop)', 'operator')
   } catch {}
@@ -1733,6 +1908,11 @@ async function serveMemoryTool($, e) {
       case 'memory_wake':
         return { result: (await rulingsBlock($)) + (await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)])) }
       case 'memory_note': {
+        // Only the run's own session writes run notes (T7); Q-80: an error result, nothing written.
+        if (membership.recorded && !membership.member) {
+          const here = membership.runId || ((await readManifest($, null)) || {}).run_id || '?'
+          return { deny: 'refused: this session is not in run ' + here + ' (T7)' }
+        }
         const given = e.tag != null && e.tag !== ''
         const tag = given ? cleanTag(e.tag) : callerRole(e.agentId)
         if (given && isReservedTag(tag)) {
@@ -2458,6 +2638,13 @@ export function register(on, options) {
       const q = await $.env.get('BATON_QUIET')
       if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
     } catch {}
+    // Run membership is recorded here, once (T7): where the session started, and whose run it is.
+    try {
+      await recordMembership($, e)
+    } catch (err) {
+      membership.recorded = false // could not record: the manifest under the current directory decides, as before
+      $.ui.log('baton: could not record run membership: ' + err.message)
+    }
     // The memory tools exist for a run; a session with none sees no new tools.
     if (await runActive($)) {
       try {
@@ -2475,7 +2662,12 @@ export function register(on, options) {
     // The pane opens by itself, and plan usage refreshes on the clock: no /baton needed.
     $.clock.after(500, () => autoOpenPane($).catch(() => {}))
     try {
-      $.clock.every(30000, () => readUsage($).then(() => $.ui.invalidate('ui.render')))
+      $.clock.every(30000, () =>
+        heartbeat($)
+          .catch((err) => $.ui.log('baton: prime heartbeat: ' + err.message))
+          .then(() => readUsage($))
+          .then(() => $.ui.invalidate('ui.render')),
+      )
     } catch {}
     // GitHub: poll the run's PR while a run is active (cheap when none is).
     if (!gh.timer) {
@@ -2783,6 +2975,16 @@ export function register(on, options) {
 
   // Every compaction of the main conversation during a run is a rotation:
   // count it, and arm the wake for the prime's next turn.
+  // The prime that ends clears its prime_session, so a restart picks the run up at once (Q-7).
+  on('session.end', async ($, e, next) => {
+    try {
+      await releaseRun($, e)
+    } catch (err) {
+      $.ui.log('baton: could not clear prime_session: ' + err.message)
+    }
+    return next(e)
+  }).catch(failOpen)
+
   on('session.compact', async ($, e, next) => {
     if (e.agentId || e.trigger === 'precompute' || !(await runActive($))) return next(e)
     if (e.trigger !== 'plugin' && !rotation.awaitingCompact) {
@@ -2804,7 +3006,10 @@ export function register(on, options) {
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
     const r = await next(e)
     forgetRunCache()
-    if (!(await runActive($))) return r
+    if (!(await runActive($))) {
+      // A session left unarmed by a live prime elsewhere is told why in its output too (Q-29).
+      return membership.why ? { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), membership.why] } : r
+    }
     try {
       await registerMemoryTools($)
     } catch {}
@@ -3080,6 +3285,8 @@ export function register(on, options) {
       goal,
       pr,
     })
+    // Not the run's own session, or no longer (T7): the band says why it is not armed.
+    if (membership.why) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: membership.why, color: 'yellow' })
     if (pane.waiting) {
       // A wider terminal places the waiting pane by itself; check the engine's record before saying so.
       try {
