@@ -16,10 +16,10 @@ import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, finishAgent, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, chain, finishAgent, modelMismatch, newTree, PRIME, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
-import { contextNudge, contextOf, costOf, ctxTone, shortUsd, windowFor } from '../lib/ledger.mjs'
+import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, tableText } from '../lib/table.mjs'
@@ -52,6 +52,15 @@ const membership = {
   id: null, // the session id this session last wrote to prime_session
   runId: null, // the run the start saw, member or not
   why: null, // why this session is not armed (Q-29), or why it was disarmed (Q-8); on the band
+}
+// The session's own model ($.session.model()), read at session.start and on /baton: the prime's row
+// shows it until a request of its own names what served, and a mismatch compares against it (T8, Q-22).
+const sessionOwn = { model: null }
+async function readSessionModel($) {
+  try {
+    const m = await $.session.model()
+    if (m) sessionOwn.model = String(m)
+  } catch {}
 }
 const PRIME_LIVE_MS = 90000 // Q-7: a prime whose heartbeat is under 90 s old is live
 const TAKE_OVER = 'Take over as the prime'
@@ -1447,7 +1456,7 @@ function workspaceLines() {
     if (ml) out.push('         ' + ml.text)
     out.push('')
   }
-  out.push(...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)))
+  out.push(...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)), ...mismatchLines())
   if (v) for (const q of v.questions || []) out.push('? ' + questionLine(q))
   for (const r of pane.rulings.slice(0, 3)) out.push('ruling ' + rulingLine(r))
   return out
@@ -1541,8 +1550,11 @@ async function buildDetail($, kind, id) {
     const pct = ctxPct(n)
     const thr = thresholdFor(n)
     const st = workState(id)
+    const m = modelOf(n)
     return agentDetail(n, {
       chain: chain(tree, id),
+      model: shortModel(m.shown) || null,
+      mismatch: m.mismatch ? { requested: m.expected, served: m.served } : null,
       ctxPct: pct,
       threshold: thr,
       hist: n.ctxHist || [],
@@ -1636,12 +1648,42 @@ function workState(agentId) {
   return null
 }
 
+/** The main row's glyph and name: the prime's in a run this session is the prime of (T7's membership), else the session's (T8). */
+const mainRow = () => (run.active || run.startedHere ? { glyph: '◆', name: 'prime' } : { glyph: '◇', name: 'session' })
+
+const KNOWN_MODELS = [...Object.keys(PRICES), FRONTIER, CHEAP, MECH]
+
+/**
+ * An agent's model: what to show (what served it, else what it started on; the session's own model for the
+ * prime), what it should have run on (bound or requested; the session's model for the prime, Q-22) and
+ * whether the two differ (T8: the cell turns red, the detail view and /baton show both full ids).
+ */
+function modelOf(n) {
+  const prime = n.id === PRIME
+  const expected = prime ? sessionOwn.model : n.requested
+  const served = n.served || null
+  const shown = served || (prime ? sessionOwn.model : n.model) || null
+  return { shown, expected, served, mismatch: modelMismatch(expected, served, KNOWN_MODELS) }
+}
+
+/** One line per agent whose served model differs from the one requested or bound (the /baton text, T8). */
+function mismatchLines() {
+  const out = []
+  for (const r of treeRows(tree)) {
+    const n = r.id ? tree.nodes.get(r.id) : null
+    const m = n && modelOf(n)
+    if (m && m.mismatch) out.push('model mismatch ' + (n.id === PRIME ? mainRow().name : n.label) + ': requested ' + m.expected + ', served ' + m.served)
+  }
+  return out
+}
+
 /** One agent as a table row. */
 function agentRow(r) {
   const n = r.id ? tree.nodes.get(r.id) : null
   if (!n) return { label: r.text.trim(), tone: 'rail' }
-  const glyph = n.id === PRIME ? '◆' : r.live ? '●' : r.color === 'red' ? '✗' : '✓'
-  const name = n.id === PRIME ? 'prime' : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
+  const m = modelOf(n)
+  const glyph = n.id === PRIME ? mainRow().glyph : r.live ? '●' : r.color === 'red' ? '✗' : '✓'
+  const name = n.id === PRIME ? mainRow().name : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
   const st = workState(r.id)
   const mini = st ? stepperMini(st) : null
   const pct = ctxPct(n)
@@ -1653,7 +1695,8 @@ function agentRow(r) {
     ctxHist: n.ctxHist || [],
     ctxTone: ctxTone(pct, thr),
     threshold: thr,
-    model: shortModel(n.served || n.model) || '',
+    model: shortModel(m.shown) || '',
+    modelTone: m.mismatch ? 'red' : undefined,
     acc: n.spend || null,
     cost: n.spend ? shortUsd(costOf(n.spend, config.prices)) : '',
     steps: mini ? mini.slice(0, -1) : [],
@@ -1889,7 +1932,7 @@ function paneText() {
 function tabLines(id) {
   if (id === 'work') return [...workspaceLines(), ...(track.view ? ['', 'plan:', ...trackLines(track.view).filter((l) => /^P\d|^    \S|^ {11}[✓✗]/.test(l))] : [])]
   if (id === 'memory') return ['rulings:', ...(pane.data.rulings ?? []), '', ...(pane.data.memory ?? []), ...pane.memLines]
-  if (id === 'agents') return [...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160))]
+  if (id === 'agents') return [...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)), ...mismatchLines()]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }
@@ -2638,6 +2681,7 @@ export function register(on, options) {
       const q = await $.env.get('BATON_QUIET')
       if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
     } catch {}
+    await readSessionModel($)
     // Run membership is recorded here, once (T7): where the session started, and whose run it is.
     try {
       await recordMembership($, e)
@@ -3061,6 +3105,7 @@ export function register(on, options) {
   // ---------------------------------------------------------------- /baton
 
   on('command.run', { command: 'baton' }, async ($, e) => {
+    if (!sessionOwn.model) await readSessionModel($)
     const [sub, ...rest] = String(e.args ?? '').trim().split(/\s+/)
     switch ((sub || '').toLowerCase()) {
       case 'start':
@@ -3468,7 +3513,7 @@ export function register(on, options) {
     const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
-      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model, prompt: input.prompt })
+      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model, requested: input.model, prompt: input.prompt })
       if (!pane.open) $.clock.after(0, () => autoOpenPane($).catch(() => {}))
       if (!e.parentAgentId) {
         spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })

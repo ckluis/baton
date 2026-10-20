@@ -5,7 +5,7 @@
 // Output tokens are never cached; caching is on the input side only, so the
 // token columns are fresh input, cache writes (the prefix being cached), cache
 // reads (served from cache at about a tenth of the price) and output.
-// Columns are dropped from the right of DROP_ORDER when the pane is narrow.
+// Columns are dropped in DROP_ORDER when the pane is narrow.
 
 import { shortTokens } from './ledger.mjs'
 
@@ -24,17 +24,29 @@ export const COLUMNS = [
   { id: 'state', title: 'state', w: 18 },
 ]
 
-// What goes first when the pane is too narrow for everything.
-export const DROP_ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'model', 'cacheRead', 'steps']
+// What goes first when the pane is too narrow for everything (Q-11, amended by Q-57 / D-T10-group-cells).
+// Agent, model, cost, steps and state never drop; when even those do not fit, the agent label is cut
+// first, then state (Q-11).
+export const DROP_ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'cacheRead', 'ctx']
 
 const GAP = 2
+// The model column sizes to its widest value, never under 10 (Q-10: `sonnet 5.5`).
+export const MODEL_MIN = 10
+const CUT_MIN = { agent: 4, state: 4 }
 
-export function fitColumns(width) {
-  let cols = COLUMNS.slice()
+/** The columns that fit `width`, the model column `modelW` wide (at least MODEL_MIN). */
+export function fitColumns(width, modelW = MODEL_MIN) {
+  let cols = COLUMNS.map((c) => (c.id === 'model' ? { ...c, w: Math.max(MODEL_MIN, modelW) } : { ...c }))
   const total = () => cols.reduce((n, c) => n + c.w + GAP, 0)
   for (const id of DROP_ORDER) {
     if (total() <= width) break
     cols = cols.filter((c) => c.id !== id)
+  }
+  for (const id of ['agent', 'state']) {
+    const over = total() - width
+    if (over <= 0) break
+    const c = cols.find((x) => x.id === id)
+    c.w = Math.max(CUT_MIN[id], c.w - over)
   }
   return cols
 }
@@ -59,12 +71,12 @@ export function components(acc) {
 }
 
 /**
- * rows: [{ label, tone, ctxPct, ctxTone, threshold, model, acc, cost, steps: [{ text, tone }], state, stateTone }]
+ * rows: [{ label, tone, ctxPct, ctxTone, threshold, model, modelTone, acc, cost, steps: [{ text, tone }], state, stateTone }]
  * Returns { header: [{ text, tone }], lines: [[{ text, tone }]] }; tones are the stepper's
  * (done | current | flagged | future | rail) or a color name, or undefined.
  */
 export function agentTable(rows, width = 140) {
-  const cols = fitColumns(width)
+  const cols = fitColumns(width, Math.max(0, ...rows.map((r) => [...String(r.model || '')].length)))
   const header = []
   cols.forEach((c, i) => header.push({ text: pad(c.title, c.w, c.right) + (i < cols.length - 1 ? ' '.repeat(GAP) : ''), tone: 'rail' }))
   const lines = rows.map((r) => {
@@ -74,7 +86,7 @@ export function agentTable(rows, width = 140) {
       ctx: [{ text: r.ctxPct == null ? '—' : r.ctxPct + '%', tone: r.ctxTone }],
       trend: [{ text: sparkline(r.ctxHist || []), tone: r.ctxTone }],
       budget: [{ text: r.threshold == null ? '' : r.threshold + '%', tone: 'rail' }],
-      model: [{ text: r.model || '', tone: undefined }],
+      model: [{ text: r.model || '', tone: r.modelTone }],
       input: [{ text: r.acc ? shortTokens(k.input) : '', tone: undefined }],
       cacheWrite: [{ text: r.acc ? shortTokens(k.cacheWrite) : '', tone: 'rail' }],
       cacheRead: [{ text: r.acc ? shortTokens(k.cacheRead) : '', tone: 'rail' }],

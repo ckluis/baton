@@ -70,12 +70,17 @@ test('quiet output keeps head, failures and tail, and says where the rest is', (
 test('the agent table: every column when wide, the least useful dropped when narrow', async () => {
   const { agentTable, fitColumns, tableText } = await import('../lib/table.mjs')
   assert.deepEqual(fitColumns(210).map((c) => c.id), ['agent', 'ctx', 'trend', 'budget', 'model', 'input', 'cacheWrite', 'cacheRead', 'output', 'cost', 'steps', 'state'])
-  assert.deepEqual(fitColumns(90).map((c) => c.id), ['agent', 'ctx', 'cacheRead', 'cost', 'steps', 'state'])
+  const narrow = fitColumns(90).map((c) => c.id) // amended by verifier (XT18): the narrow table is pinned by the spec's rules, not by today's widths (spec L112, Q-10, Q-11, Q-57; R-C8-03, R-C8-04)
+  assert.ok(narrow.includes('model'), 'model is kept at 90: ' + narrow.join(',')) // amended by verifier (XT18): model stays out of the narrow-pane drop order (spec L112, Q-11; R-C8-04)
+  for (const id of ['agent', 'cost', 'steps', 'state']) assert.ok(narrow.includes(id), id + ' is kept at 90') // amended by verifier (XT18): agent, steps and state never drop (Q-11) and cost leaves the drop order (Q-57, D-T10-group-cells; R-C8-04)
+  const ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'cacheRead', 'ctx'] // amended by verifier (XT18): the drop order cacheWrite, trend, input, budget, output, cacheRead, context (Q-11, Q-57, D-T10-group-cells; R-C8-04)
+  const dropped = ORDER.filter((id) => !narrow.includes(id)) // amended by verifier (XT18): what 90 columns dropped, in drop order (Q-11; R-C8-04)
+  assert.deepEqual(dropped, ORDER.slice(0, dropped.length), 'dropped from the front of the drop order: ' + narrow.join(',')) // amended by verifier (XT18): columns leave in the Q-11/Q-57 order only (R-C8-04)
   const acc = { byModel: { 'claude-opus-5-5': { input: 2000, output: 400, cacheWrite: 0, cacheRead: 1210000 } } }
-  const t = agentTable([{ label: '● worker T10', ctxHist: [10, 30, 61], ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 210)
+  const t = agentTable([{ label: '● worker T10', ctxHist: [10, 30, 61], ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus 5.5', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 210) // amended by verifier (XT18): the formatted model is `opus 5.5`, family and version (spec L111-112; R-C8-01, R-C8-02)
   const [head, row] = tableText(t)
   assert.match(head, /^agent\s+context\s+trend\s+budget\s+model\s+input\s+c\.write\s+c\.read\s+output\s+cost\s+steps\s+state$/)
-  assert.match(row, /^● worker T10\s+61%\s+▁▃▅\s+50%\s+opus\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26\s+●─●─◉─○\s+blue$/)
+  assert.match(row, /^● worker T10\s+61%\s+▁▃▅\s+50%\s+opus 5\.5\s+2k\s+0\s+1\.21M\s+400\s+\$0\.26\s+●─●─◉─○\s+blue$/) // amended by verifier (XT18): the model column shows `opus 5.5` whole, never cut (spec L111-112, Q-10; R-C8-01, R-C8-03)
 })
 
 test('plan usage: labels, resets, colors, the line', async () => {
