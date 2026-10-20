@@ -58,7 +58,8 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
   await $.classic.SessionStart({ source: 'startup', cwd: '/work' } as any) // amended by verifier (XT17): the startup SessionStart in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 } // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
-test('an operator prompt during a run is a run note; a standing rule in it becomes a ruling', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: an operator prompt during a run is a run note; a standing rule in it becomes a ruling', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, { member: true, model: 'RULING: Never merge a PR yourself; the operator merges.' }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -76,7 +77,8 @@ test('an operator prompt during a run is a run note; a standing rule in it becom
   expect(rule!.text).toBe('Never merge a PR yourself; the operator merges.') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
 })
 
-test('a one-off prompt is noted but records no ruling', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a one-off prompt is noted but records no ruling', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, { member: true, model: 'NONE' }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -88,7 +90,8 @@ test('a one-off prompt is noted but records no ruling', async ($, on) => {
   expect(w.notes().map((x) => x.tag)).toEqual(['operator'])
 })
 
-test('no model answer: the marker fallback records the message itself', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: no model answer: the marker fallback records the message itself', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, { member: true, model: null }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -122,7 +125,8 @@ test("an agent's message during a run is not the operator's: no note, no ruling"
   expect(w.notes()).toEqual([])
 })
 
-test('memory_wake leads with the newest rulings, newest first', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: memory_wake leads with the newest rulings, newest first', async ($, on) => {
   world(on, {
     member: true, // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
     rulings: [
@@ -138,7 +142,8 @@ test('memory_wake leads with the newest rulings, newest first', async ($, on) =>
   expect(r.result).toEndWith('wake output')
 })
 
-test("the prime's reply: its first line is a run note; a subagent's is not", async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test("guard: the prime's reply: its first line is a run note; a subagent's is not", async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)

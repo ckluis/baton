@@ -63,7 +63,8 @@ async function tree($: any) {
   await $.agent.spawn({ prompt: 'w1', description: 'T7', subagentType: 'baton:worker-cheap', parentAgentId: 's1' } as any)
 }
 
-test('a worker two levels down asks before git push; Approve runs it and notes the approval', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a worker two levels down asks before git push; Approve runs it and notes the approval', async ($, on) => {
   const w = world(on, { member: true, answers: ['Approve'] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -77,7 +78,8 @@ test('a worker two levels down asks before git push; Approve runs it and notes t
   expect(w.notes.at(-1)!.tag).toBe('approval')
 })
 
-test('a typed answer refuses with that reason; approve-for-run skips later asks of the same gate', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a typed answer refuses with that reason; approve-for-run skips later asks of the same gate', async ($, on) => {
   const w = world(on, { member: true, answers: ['use a branch, not main', (o: string[]) => o[1]] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -93,7 +95,8 @@ test('a typed answer refuses with that reason; approve-for-run skips later asks 
   expect(w.asked).toHaveLength(2)
 })
 
-test('nobody to ask (claude -p): a gated command is refused, an ordinary one is not', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: nobody to ask (claude -p): a gated command is refused, an ordinary one is not', async ($, on) => {
   world(on, { member: true, surfaces: [] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -102,7 +105,8 @@ test('nobody to ask (claude -p): a gated command is refused, an ordinary one is 
   expect(((await $.tool.call({ tool: 'Bash', command: 'npm test', agentId: 'w1' } as any)) as any).result).toBe('ran')
 })
 
-test('a sub-orchestrator reporting DONE holds the next dispatch until the operator answers', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a sub-orchestrator reporting DONE holds the next dispatch until the operator answers', async ($, on) => {
   const w = world(on, { member: true, answers: ['the criteria are vacuous'] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -114,7 +118,8 @@ test('a sub-orchestrator reporting DONE holds the next dispatch until the operat
   expect(((await $.tool.call({ tool: 'Agent', prompt: 'P3b', description: 'P3' } as any)) as any).result).toBe('ran')
 })
 
-test('an enforced ruling refuses a matching command at tool.check; others keep their decision', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: an enforced ruling refuses a matching command at tool.check; others keep their decision', async ($, on) => {
   world(on, {
     member: true, // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
     rulings: [

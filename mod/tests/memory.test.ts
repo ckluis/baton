@@ -67,14 +67,16 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
   await $.classic.SessionStart({ source: 'startup', cwd: '/work' } as any) // amended by verifier (XT17): the startup SessionStart in the run directory (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 } // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
-test('session.start registers the memory tools when a run is active', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: session.start registers the memory tools when a run is active', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (Q-7 claim) (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): session.start in the run dir with a session.id mock (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await $.session.start({ cwd: '/work', surface: null } as any)
   expect(w.registered).toEqual(['code_search', 'code_fetch', 'code_refs', 'code_explore', 'memory_wake', 'memory_note', 'memory_zoom', 'memory_recall', 'project_wake', 'project_note', 'project_recall'])
 })
 
-test('memory_note appends to the run memory under _orch/memory, tagged prime, text on stdin', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: memory_note appends to the run memory under _orch/memory, tagged prime, text on stdin', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -88,7 +90,8 @@ test('memory_note appends to the run memory under _orch/memory, tagged prime, te
   expect(c!.stdin).toBe('P2 parked: waits on Q-3') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
 })
 
-test('memory_wake uses the configured budget; zoom and recall pass their argument after --', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: memory_wake uses the configured budget; zoom and recall pass their argument after --', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -102,7 +105,8 @@ test('memory_wake uses the configured budget; zoom and recall pass their argumen
   expect(w.calls.at(-1)!.argv.slice(-2)).toEqual(['--', '--evil'])
 })
 
-test('wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBudgetLines: 40 } }, async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBudgetLines: 40 } }, async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -111,7 +115,8 @@ test('wakeBudgetLines from userConfig reaches memory_wake', { options: { wakeBud
   expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(-1)).toEqual(['40'])
 })
 
-test('project memory: memoryDir from config, a namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: project memory: memoryDir from config, a namespace', { options: { memoryDir: 'mem/proj' } }, async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -123,7 +128,8 @@ test('project memory: memoryDir from config, a namespace', { options: { memoryDi
   expect(w.calls[1]!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
 })
 
-test('a subagent the prime dispatched returns: its first line becomes one run note', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a subagent the prime dispatched returns: its first line becomes one run note', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   on('agent.spawn', () => ({ model: 'claude-opus-5-5', agentId: 'sub1' }))
@@ -136,7 +142,8 @@ test('a subagent the prime dispatched returns: its first line becomes one run no
   expect(note.stdin).toBe('P2: P2 DONE+CONFIRMED 4/4 nodes; _orch/phases/P2/envelope.json')
 })
 
-test('a nested spawn (inside a sub-orchestrator) is not noted', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a nested spawn (inside a sub-orchestrator) is not noted', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'w1' }))
@@ -147,7 +154,8 @@ test('a nested spawn (inside a sub-orchestrator) is not noted', async ($, on) =>
   expect(w.calls.filter((c) => c.argv.includes('note'))).toHaveLength(0)
 })
 
-test('a note that completes a block starts a background merge on the cheap model', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: a note that completes a block starts a background merge on the cheap model', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, { member: true, pending: [{ level: 1, index: 0, lo: 0, hi: 1, ready: true, texts: ['a', 'b'] }] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)

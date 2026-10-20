@@ -179,7 +179,8 @@ test('guard: the spinner carries the phase and the node the prime dispatched', a
   expect((await ui.find({ type: 'Text', text: /^engine/ }))?.text).toBe('engine " · baton · P2 · P2 phase…"')
 })
 
-test('/baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: /baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
   const written: Record<string, string> = {}
   on('fs.read', (_$: any, e: any) => {
     const k = Object.keys(written).find((p) => e.path.endsWith(p))

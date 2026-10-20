@@ -40,7 +40,8 @@ function world(on: any, manifest: string | null) {
   on('tool.call', () => ({ result: 'ran' }))
 }
 
-test('during a run the prime is denied every reading, running and editing tool, with the route', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: during a run the prime is denied every reading, running and editing tool, with the route', async ($, on) => {
   world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -51,7 +52,8 @@ test('during a run the prime is denied every reading, running and editing tool, 
   }
 })
 
-test('during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
   world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)

@@ -42,7 +42,8 @@ const MSG = { role: 'user', text: 'summary of the run so far', toolUses: [] }
 
 const measure = (percent: number) => ({ context: { tokens: percent * 10000, window: 1000000, percent }, rateLimits: [], changed: ['context'] })
 
-test('crossing rotateAtPercent during a run: handoff note, then a compaction with baton instructions', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: crossing rotateAtPercent during a run: handoff note, then a compaction with baton instructions', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
@@ -66,7 +67,8 @@ test('crossing rotateAtPercent during a run: handoff note, then a compaction wit
   expect(w.compacts).toHaveLength(1)
 })
 
-test('rotateAtPercent comes from userConfig', { options: { rotateAtPercent: 60 } }, async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: rotateAtPercent comes from userConfig', { options: { rotateAtPercent: 60 } }, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
@@ -91,7 +93,8 @@ test('no run, no rotation', async ($, on) => {
   expect(w.compacts).toHaveLength(0)
 })
 
-test('after a rotation the compact SessionStart tells the prime to call memory_wake, once', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: after a rotation the compact SessionStart tells the prime to call memory_wake, once', async ($, on) => {
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   startable(on, []) // amended by verifier (XT17): what session.start needs beneath the mod; it also mocks classic.SessionStart, which this test mocked itself before (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
@@ -104,7 +107,8 @@ test('after a rotation the compact SessionStart tells the prime to call memory_w
   expect(again.additionalContext ?? []).toHaveLength(0)
 })
 
-test('if no SessionStart carried the wake, the prime\'s next tool call does', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: if no SessionStart carried the wake, the prime\'s next tool call does', async ($, on) => {
   world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   startable(on, []) // amended by verifier (XT17): what session.start needs beneath the mod, headless as before (no surface) (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
@@ -138,7 +142,8 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
   await $.classic.SessionStart({ source: 'startup', cwd: '/work' } as any) // amended by verifier (XT17): the startup SessionStart in the run directory (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
 } // amended by verifier (XT17): end of begin() (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
 
-test('/baton rotate, interactive: handoff note, then the session.start ticker compacts once the command returns', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: /baton rotate, interactive: handoff note, then the session.start ticker compacts once the command returns', async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   startable(on, ['terminal'])
@@ -159,7 +164,8 @@ test('/baton rotate, interactive: handoff note, then the session.start ticker co
   expect(wake.additionalContext.join(' ')).toContain('mcp__baton__memory_wake')
 })
 
-test('/baton rotate, headless: handoff note and the wake armed; the /compact the driver sends is the rotation', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: /baton rotate, headless: handoff note and the wake armed; the /compact the driver sends is the rotation', async ($, on) => {
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   startable(on, [])
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
@@ -186,7 +192,8 @@ test('/baton rotate outside a run says so', async ($, on) => {
   expect(r.text).toContain('no baton run is active')
 })
 
-test('BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does', async ($, on) => {
+// amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('guard: BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does', async ($, on) => {
   const clock = mock.clock(on)
   mock.env(on, { BATON_AUTOROTATE: '0' })
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
