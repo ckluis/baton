@@ -253,3 +253,31 @@ export function assignLetters(held, ids, pool = ROW_LETTERS) {
   }
   return held
 }
+
+/** A memory line's time cell: HH:MM, with the date before it when it is not today (Q-23). */
+export function memTime(ts, now = Date.now()) {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return String(ts ?? '')
+  const two = (n) => String(n).padStart(2, '0')
+  const day = (x) => x.getFullYear() + '-' + two(x.getMonth() + 1) + '-' + two(x.getDate())
+  const hm = two(d.getHours()) + ':' + two(d.getMinutes())
+  return day(d) === day(new Date(now)) ? hm : day(d) + ' ' + hm
+}
+
+/**
+ * The memory explorer as a table (T12, Q-23): each line (`#n ts [tag] text`, or `#lo-hi text` for a
+ * summary) split into id, time, source and text cells, each column as wide as its widest value shown,
+ * two cells apart. Returns one string per line, in order; a line of another shape is all text.
+ */
+export function memTable(lines, now = Date.now()) {
+  const rows = (lines ?? []).map((l) => {
+    const s = String(l ?? '')
+    const n = /^(#\d+) (\S+) \[([^\]]*)\] ?(.*)$/.exec(s)
+    if (n) return [n[1], memTime(n[2], now), n[3], n[4]]
+    const b = /^(#\d+-\d+) ?(.*)$/.exec(s)
+    return b ? [b[1], '', '', b[2]] : ['', '', '', s]
+  })
+  const w = [0, 1, 2].map((c) => Math.max(0, ...rows.map((r) => [...r[c]].length)))
+  const pad = (t, n) => t + ' '.repeat(n - [...t].length)
+  return rows.map((r) => [0, 1, 2].filter((c) => w[c] > 0).map((c) => pad(r[c], w[c]) + '  ').join('') + r[3])
+}
