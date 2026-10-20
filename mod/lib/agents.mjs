@@ -13,18 +13,55 @@ export function newTree(now = Date.now()) {
   return { nodes }
 }
 
-/** A short model name: claude-opus-5-5 → opus, claude-sonnet-5-5 → sonnet. */
+/**
+ * The model column's name for a model id: its family and version, never a bare family (spec T8).
+ * claude-opus-5-5 → opus 5.5, claude-haiku-4-5-20251001 → haiku 4.5, claude-opus-5-5[1m] → opus 5.5
+ * (D-T18-1m-variant). Anything else (an alias, an unknown id) is shown in full (Q-21).
+ */
+const FAMILY_ID = /^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(?:\[1m\])?$/i
 export function shortModel(m) {
-  const s = String(m ?? '')
-  const hit = /(opus|sonnet|haiku|fable)/i.exec(s)
-  return hit ? hit[1].toLowerCase() : s || null
+  const s = String(m ?? '').trim()
+  if (!s) return null
+  const hit = FAMILY_ID.exec(s)
+  return hit ? hit[1].toLowerCase() + ' ' + hit[2] + (hit[3] ? '.' + hit[3] : '') : s
 }
 
-export function addSpawn(t, { id, parent, type, label, model, prompt = '', at = Date.now() }) {
+/** A model id without its date suffix and [1m] tag, lowercased: what two ids are compared by. */
+export const baseModel = (m) => String(m ?? '').trim().toLowerCase().replace(/\[1m\]$/, '').replace(/-\d{8}$/, '')
+
+const ALIAS = /^(opus|sonnet|haiku|fable)$/i
+const NO_MODEL = /^(|inherit|inherited|default)$/i
+
+/** The newest id of a family among `known` (claude-<family>-<major>[-<minor>]), or null. */
+export function newestOf(family, known) {
+  let best = null
+  let bv = -1
+  for (const id of known) {
+    const hit = FAMILY_ID.exec(String(id))
+    if (!hit || hit[1].toLowerCase() !== family.toLowerCase()) continue
+    const v = Number(hit[2]) * 100 + Number(hit[3] || 0)
+    if (v > bv) [best, bv] = [baseModel(id), v]
+  }
+  return best
+}
+
+/**
+ * Whether the model that served an agent differs from the one it should have run on (Q-22): a full id is
+ * compared ignoring a date suffix; an alias is compared to the newest id of its family in `known`.
+ * Nothing expected (or nothing served yet) is never a mismatch.
+ */
+export function modelMismatch(expected, served, known = []) {
+  const e = String(expected ?? '').trim()
+  if (NO_MODEL.test(e) || !served) return false
+  const want = ALIAS.test(e) ? newestOf(e, known) : baseModel(e)
+  return !!want && want !== baseModel(served)
+}
+
+export function addSpawn(t, { id, parent, type, label, model, requested = null, prompt = '', at = Date.now() }) {
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME
   const role = String(type ?? 'agent').replace(/^baton:/, '')
-  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), model: shortModel(model), prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
+  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
   t.nodes.get(p).children.push(id)
 }
 

@@ -52,7 +52,8 @@ export function agentDetail(n, x = {}) {
   const live = n.endedAt == null
   const lines = []
   lines.push(L(dim('in the tree  '), x.chain || n.label))
-  lines.push(L(dim('model        '), (n.model || '?') + '  ·  ' + (live ? 'running ' : 'finished in ') + elapsed((n.endedAt ?? now) - n.startedAt) + '  ·  ' + n.tools + ' tool call' + (n.tools === 1 ? '' : 's') + (live ? '' : '  ·  ' + (n.verdict || 'returned'))))
+  lines.push(L(dim('model        '), (x.model || n.model || '?') + '  ·  ' + (live ? 'running ' : 'finished in ') + elapsed((n.endedAt ?? now) - n.startedAt) + '  ·  ' + n.tools + ' tool call' + (n.tools === 1 ? '' : 's') + (live ? '' : '  ·  ' + (n.verdict || 'returned'))))
+  if (x.mismatch) lines.push(L(dim('             '), { text: 'requested ' + x.mismatch.requested + '  ·  served ' + x.mismatch.served, tone: 'red' }))
   if (x.ctxPct != null) lines.push(L(dim('context      '), { text: x.ctxPct + '% of its window', tone: x.ctxTone }, dim('  ·  budget ' + x.threshold + '%  ·  trend '), { text: sparkline(x.hist || []), tone: x.ctxTone }))
   if (x.comps) lines.push(L(dim('tokens       '), 'input ' + shortTokens(x.comps.input) + '  ·  cache write ' + shortTokens(x.comps.cacheWrite) + '  ·  cache read ' + shortTokens(x.comps.cacheRead) + '  ·  output ' + shortTokens(x.comps.output) + (x.cost ? '  ·  ' + x.cost : '')))
   if (x.steps) lines.push(L(dim('its work     '), ...stepper(x.steps, x.stepsTl || [])))
