@@ -647,7 +647,7 @@ async function withNotice($, e, next) {
 // ------------------------------------------------------------------ failure handling
 //
 // Every gating hook carries a `.catch` (spec T2; the K2 table). Fail closed where a failure must
-// not open a door: once the hook had called next, what ran stands; before that, refuse when `door`
+// not open a door: once the hook had called next, what ran stands; before that, refuse when `door()`
 // says this call is one the hook guards (a door that cannot tell is shut). "During a run" is read
 // afresh with runActive: the hook may have failed before it asked. Fail open everywhere
 // else: the call goes on as if the hook were absent, but the hook's own handler answers.
@@ -662,7 +662,7 @@ async function failClosed(e, next, what, door) {
   if (next.called) return next(e)
   let shut = true
   try {
-    shut = await door(e)
+    shut = await door()
   } catch {}
   if (!shut) return next(e)
   return { deny: 'baton: ' + what + ' failed (' + next.error.kind + '), so this call was refused. Do not retry it another way: return BLOCKED with the exact command or dispatch.' }
@@ -2577,7 +2577,7 @@ export function register(on, options) {
     if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
     return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
   }).catch(($, e, next) =>
-    failClosed(e, next, 'the forbidden-file check', (e) => {
+    failClosed(e, next, 'the forbidden-file check', () => {
       try {
         return forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles).length > 0
       } catch {
@@ -2591,7 +2591,7 @@ export function register(on, options) {
     if (!pause.on || !gateFor(e.command)) return next(e)
     pause.held++
     return { deny: 'baton is paused by the operator. This command waits: return BLOCKED with it, and it is re-dispatched after /baton resume.' }
-  }).catch(($, e, next) => failClosed(e, next, 'the pause check', (e) => pause.on && !!gateFor(e.command)))
+  }).catch(($, e, next) => failClosed(e, next, 'the pause check', () => pause.on && !!gateFor(e.command)))
 
   // The command gate: an irreversible shell command from any agent, at any
   // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
@@ -2631,7 +2631,7 @@ export function register(on, options) {
     }
     return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
   }).catch(($, e, next) =>
-    failClosed(e, next, 'the command gate', async (e) => {
+    failClosed(e, next, 'the command gate', async () => {
       const gate = gateFor(e.command)
       return config.approvals && !!gate && !approvals.always.has(gate.id) && (await runActive($))
     }),
@@ -2647,7 +2647,7 @@ export function register(on, options) {
     }
     const r = await next(e)
     return id ? withContext(r, 'baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back.') : r
-  }).catch(($, e, next) => failClosed(e, next, 'the checkpoint', async (e) => discards(e) && (await runActive($))))
+  }).catch(($, e, next) => failClosed(e, next, 'the checkpoint', async () => discards(e) && (await runActive($))))
 
   // The phase gate: once a sub-orchestrator reports DONE, the prime's next
   // dispatch waits until the operator approves that phase or sends it back.
@@ -2690,7 +2690,7 @@ export function register(on, options) {
       }
     }
     return next(e)
-  }).catch(($, e, next) => failClosed(e, next, 'the phase gate', async (e) => isPrimeCall(e) && config.phaseGate && approvals.queue.length > 0 && (await runActive($))))
+  }).catch(($, e, next) => failClosed(e, next, 'the phase gate', async () => isPrimeCall(e) && config.phaseGate && approvals.queue.length > 0 && (await runActive($))))
 
   // ---------------------------------------------------------------- the kit
 
