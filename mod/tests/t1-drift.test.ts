@@ -10,7 +10,9 @@
 // the 'dir' fix") and inbox/Q-17.answer.md ("the same owner (C1) fixes the node-row Enter crash"; Q-17.md option 1:
 // "Enter on a node row opens its view with done-criteria and red/green/blue").
 // The ui.Text/ui.Link {key} mismatches and the prompt.submit field are pinned in mod/test/t1-drift-source.test.mjs.
-// S0543, S0545 and S0708 hold at the run tip (probes: _orch/nodes/T11/work/false-premise.md) and have no red here.
+// S0543, S0545 and S0708 hold at the run tip (probes: _orch/nodes/T11/work/false-premise.md), so they are pinned by
+// guard: tests that pass now and at every later commit (inbox/OQ7.answer.md, option A "preservation guards"; deviation
+// D-P2-20 in _orch/phases/P2/deviations.md).
 //
 // The world: the engine beneath the mod answers from memory (as mod/tests/interface.test.ts does), in the shapes the
 // engine's types declare. No expected value is copied from the implementation.
@@ -137,6 +139,7 @@ function world(on: any, opts: Opts = {}) {
   on('prompt.submit', (_$: any, e: any) => ({ text: e.text }))
   on('turn.complete', () => ({ text: '' }))
   const toolResults: Record<string, any> = {}
+  const notes: string[] = [] // every run note's text, as written to the memory tool
   on('tool.call', (_$: any, e: any) => {
     if (e.tool in toolResults) return { result: toolResults[e.tool] }
     return { result: 'ran' }
@@ -145,7 +148,7 @@ function world(on: any, opts: Opts = {}) {
   on('process.run', (_$: any, e: any) => {
     const argv = [...e.argv]
     let out: any = {}
-    if (argv.includes('note')) out = { index: 0, text: '', truncated: false, merges: [] }
+    if (argv.includes('note')) (notes.push(String(e.init?.stdin ?? '')), (out = { index: 0, text: '', truncated: false, merges: [] })) // a run note's text goes on stdin (memory.test.ts "text on stdin")
     else if (argv.includes('stats')) out = { notes: 0, summaries: 0, treeCapacity: 0, levels: 0, pending: 0, ready: 0 }
     else if (argv.includes('recall')) out = { pattern: '.', total: 0, notes: [], blocks: [] }
     else if (argv.includes('wake') || argv.includes('zoom')) out = { header: 'h', tiles: [], lines: [] }
@@ -173,7 +176,7 @@ function world(on: any, opts: Opts = {}) {
     await settle(1000)
     return $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 160, placement: 'dock', scroll: { bodyRows: 400 } } as any })
   }
-  return { settle, start, pane, files, logs, notified, toolResults }
+  return { settle, start, pane, files, logs, notified, toolResults, notes }
 }
 
 // ------------------------------------------------------------------ reading the drawn tree
@@ -387,4 +390,68 @@ test('X2: a notice waiting at Stop reaches the person as a native notification',
   await $.classic.Stop({ stopHookActive: false } as any)
   await w.settle(100)
   expect(w.notified.some((n) => /question/.test(n.text))).toBe(true) // README "Notifications": "a new question" notifies
+})
+
+// ================================================================== guards · S0543, S0545, S0708 hold at the run tip
+// inbox/OQ7.answer.md (operator, binding): "Behaviour that already works at da5910c ... gets guard tests, named
+// `guard:…`, that pass now and at every later commit." Deviation D-P2-20 (_orch/phases/P2/deviations.md): "mismatches
+// S0543, S0545 (SubagentHandback absent from the declarations, present in the engine and code) and S0708 (mobile Input)
+// behave correctly at the run tip, so they become guard: tests". Probe: _orch/nodes/T11/work/false-premise.md.
+
+const HANDBACK = 'SubagentHandback' // source record: the engine running T11 offers a tool of this name, one parameter `message` (false-premise.md §S0543)
+const RETURN_LINE = 'T5 DONE · export written · none open' // fixture: a worker's one-line return, in the `<id> <VERDICT> · what changed · what is open` shape of T11's own dispatch
+
+test('guard: S0543 a SubagentHandback call from an agent the prime spawned is noted as its return; another tool is not', async ($, on) => {
+  // R-C1-05 "result shape in `mod/hooks/register.js`" (L25), R-C1-06 "against the engine's current types." (L26).
+  // mismatches.yaml S0543 (register.js:2449) "on(tool.call) e → .tool === 'SubagentHandback'": "either the generated
+  // types omit a subagent-only tool or the code tests a name the engine never sends" — false-premise.md: the former.
+  const w = world(on, { nodes: { T5 } })
+  await w.start($)
+  await $.agent.spawn({ prompt: 'do T5', description: 'T5 worker', subagentType: 'baton:worker' } as any)
+  await w.settle(10)
+  await $.tool.call({ tool: 'Bash', message: RETURN_LINE, command: 'true', agentId: 'a-T5-worker' } as any) // a tool that is not the handback
+  await w.settle(100)
+  const beforeHandback = w.notes.filter((n) => n.includes(RETURN_LINE)).length
+  await $.tool.call({ tool: HANDBACK, message: RETURN_LINE, agentId: 'a-T5-worker' } as any)
+  await w.settle(100)
+  const afterHandback = w.notes.filter((n) => n.includes(RETURN_LINE)).length
+  // memory.test.ts "a subagent the prime dispatched returns: its first line becomes one run note"; OQ7: holds at da5910c
+  expect({ beforeHandback, afterHandback }).toEqual({ beforeHandback: 0, afterHandback: 1 })
+})
+
+test('guard: S0545 the SubagentHandback call\'s `message` argument is the text the run note carries', async ($, on) => {
+  // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml S0545 (register.js:2451) "on(tool.call) e → .message": "the
+  // SubagentHandback tool and its message argument are absent from the generated types" — the engine's tool has
+  // exactly that parameter (false-premise.md §S0543, S0545).
+  const w = world(on, { nodes: { T5 } })
+  await w.start($)
+  await $.agent.spawn({ prompt: 'do T5', description: 'T5 worker', subagentType: 'baton:worker' } as any)
+  await w.settle(10)
+  const SECOND = 'not the return' // fixture: a second line, which a one-line return note drops (memory.test.ts "its first line")
+  await $.tool.call({ tool: HANDBACK, message: RETURN_LINE + '\n' + SECOND, agentId: 'a-T5-worker' } as any)
+  await w.settle(100)
+  const noted = w.notes.filter((n) => n.includes('T5 DONE'))
+  // the note carries the message's first line (RETURN_LINE, the fixture) and not its second
+  expect({ count: noted.length, carries: noted.some((n) => n.includes(RETURN_LINE)), second: noted.some((n) => n.includes(SECOND)) }).toEqual({ count: 1, carries: true, second: false })
+})
+
+test('guard: S0708 on the mobile surface the Pane draws its own Work and Memory views, and no hook is skipped', async ($, on) => {
+  // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml S0708 (register.js:2929) "$.ui.resolve → .Input": "on a mobile
+  // surface Input is undefined and the Pane render calls Input(…)". index.d.ts 'ui.resolve': a table "with a key left
+  // out" leaves "a fragment there"; the probe (false-premise.md §S0708) drew the Memory tab on mobile with no throw.
+  // A throw while drawn "draws the engine's" (index.d.ts 'ui.render'), the bottom hook's ENGINE text here.
+  const w = world(on, { nodes: { T5 } })
+  const ui: any = await w.pane($, 'mobile')
+  const seen: Record<string, boolean> = {}
+  for (const [tab, k] of [['work', '1'], ['memory', '2']] as const) {
+    const b = await keyButton(ui, k) // the pane's tabs, Work '1' and Memory '2' (mod/tests/interface.test.ts "Work and Memory draw on terminal and desktop")
+    if (b) await ui.press({ key: keyOf(b) })
+    let t = ''
+    try {
+      t = await shownText(ui)
+    } catch {}
+    seen[tab] = !!b && !!t && !engineDrawn(t)
+  }
+  const skipped = w.logs.filter((l) => /hook skipped|threw|TypeError/.test(l)) // Q-17.md's error text for a skipped render
+  expect({ seen, skipped }).toEqual({ seen: { work: true, memory: true }, skipped: [] })
 })
