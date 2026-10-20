@@ -109,19 +109,19 @@ const LIFECYCLE = /(?<![●◉○✗─])[●◉○✗]─[●◉○✗]─[●�
 // The prime's: the goal ladder's six steps, at building (E1 §m probes.md:417: `●─●─◉─○─○─○ building`).
 const PRIME_STEPS = '●─●─◉─○─○─○'
 
-function world(on: any) {
+function world(on: any, files: Record<string, string> = FILES, dirs: Record<string, any[]> = DIRS) {
   const find = (table: Record<string, any>, p: string) => Object.keys(table).find((k) => p === k || p.endsWith('/' + k))
   on('fs.read', (_$: any, e: any) => {
-    const k = find(FILES, e.path)
-    return k ? { value: FILES[k] } : { deny: 'ENOENT' }
+    const k = find(files, e.path)
+    return k ? { value: files[k] } : { deny: 'ENOENT' }
   })
   on('fs.list', (_$: any, e: any) => {
-    const k = find(DIRS, e.path)
-    return k ? { value: DIRS[k] } : { deny: 'ENOENT' }
+    const k = find(dirs, e.path)
+    return k ? { value: dirs[k] } : { deny: 'ENOENT' }
   })
   on('fs.exists', (_$: any, e: any) => {
     const p = String(e.path)
-    const hit = Object.keys(FILES).some((k) => p === k || p.endsWith('/' + k) || k.startsWith(p.replace(/^.*?(_orch\/)/, '$1') + '/'))
+    const hit = Object.keys(files).some((k) => p === k || p.endsWith('/' + k) || k.startsWith(p.replace(/^.*?(_orch\/)/, '$1') + '/'))
     return { value: hit }
   })
   on('fs.write', () => ({ value: undefined }))
@@ -273,57 +273,98 @@ test('the steps column is never dropped, at any pane width rendered', async ($, 
 })
 
 // R-C11-01 (L153); Q-15 answer: "Match the label's tokens against the run's real node ids (`_orch/nodes/*`,
-// `graph.yaml`) and phase ids."
-// The fixtures defeat any matcher that picks a token by its shape or its position instead of looking it up:
-// a real id first with an id-shaped non-node last ('PLAN for F99'), an id-shaped non-node first with a real id
-// last ('F99 for PLAN'), a real id followed by a capitalised non-id word ('fix XT17 TODO'), a real id that no
-// letters-then-digits pattern guesses (PLAN), labels whose only id-shaped token is fake ('F99 sweep', 'P9
-// sweep': they must stay unmatched), and a real phase id ('P2 phase').
-test("a row's label tokens are matched against the run's real node and phase ids", async ($, on) => {
-  world(on)
-  // Fixture ids (graph.yaml and _orch/nodes above): PLAN, XT17 and G1 are real nodes; F99 and TODO are no
-  // node (absent from graph.yaml and _orch/nodes). P2 is a real phase (_orch/phases/P2); P9 is id-shaped but
-  // is no phase and no node.
-  await spawn($, 's-p2b', 'P2 phase', 'baton:sub-orchestrator')
-  await spawn($, 'w-planf', 'PLAN for F99', 'baton:worker')
-  await spawn($, 'w-fplan', 'F99 for PLAN', 'baton:worker')
-  await spawn($, 'w-xtodo', 'fix XT17 TODO', 'baton:worker')
-  await spawn($, 'w-g1b', 'G1 answers', 'baton:worker')
-  await spawn($, 'w-f99', 'F99 sweep', 'baton:worker')
+// `graph.yaml`) and phase ids."; criterion 25 as rewritten under _orch/inbox/Q-T111-2.answer.md (option B):
+// "id-shaped labels that are NOT in the list (e.g. T999, P9, Q-NODE-X) must be rejected, and real ids from the
+// list that break the usual id pattern (lowercase, digits-first, long or hyphenated) must be accepted, so any
+// matcher that does not read the node list fails whatever its heuristic."
+// The fixture run below has its own node list (graph.yaml and _orch/nodes/*) and phases (P1, P2). Its listed ids
+// break every id pattern: `alpha` (lower-case), `9lives` (digits first), `CONSOLIDATE` (11 characters, longer
+// than 8), `fix-xt17` (hyphenated); XT17 is listed too, so a case-folding or sub-token guess at `fix-xt17` shows
+// XT17's stepper, not fix-xt17's. Each listed node sits at a stepper no lifecycle stepper (Q-15) can draw, and
+// the listed ids share their labels with unlisted id-shaped tokens (T999, Q-NODE-X) placed before and after them,
+// so a pick by position or shape lands on a token that is not in the list. Labels stay within 17 characters, so
+// the agent column draws each one whole.
+const C25_GRAPH = [
+  ['alpha', 1],
+  ['9lives', 1],
+  ['CONSOLIDATE', 2],
+  ['fix-xt17', 2],
+  ['XT17', 2],
+]
+  .map(([id, p]) => '- id: ' + id + '\n  kind: task\n  phase: ' + p + '\n')
+  .join('\n')
+const C25_FILES: Record<string, string> = {
+  '_orch/manifest.json': JSON.stringify(MANIFEST),
+  '_orch/plan/graph.yaml': C25_GRAPH,
+  '_orch/phases/P1/brief.md': '# P1',
+  '_orch/phases/P2/brief.md': '# P2',
+  // alpha: red only -> at `red` (1st of 4)
+  '_orch/nodes/alpha/handoff.md': '# alpha',
+  '_orch/nodes/alpha/work/red.txt': 'red',
+  // 9lives: rgb exempt and started -> `working` (1st of 2)
+  '_orch/nodes/9lives/handoff.md': '# 9lives\nrgb: exempt\n',
+  '_orch/nodes/9lives/work/applied.md': 'x',
+  // CONSOLIDATE: red only and BLOCKED (status.json, CONTRACT rule 2) -> at `red`, flagged
+  '_orch/nodes/CONSOLIDATE/handoff.md': '# CONSOLIDATE',
+  '_orch/nodes/CONSOLIDATE/work/red.txt': 'red',
+  '_orch/nodes/CONSOLIDATE/status.json': JSON.stringify({ node: 'CONSOLIDATE', verdict: 'BLOCKED' }),
+  // fix-xt17: rgb exempt and CONFIRMED -> `verified` (2nd of 2, every step reached)
+  '_orch/nodes/fix-xt17/handoff.md': '# fix-xt17\nrgb: exempt\n',
+  '_orch/nodes/fix-xt17/work/applied.md': 'x',
+  '_orch/verify/fix-xt17-verdict.json': JSON.stringify({ verdict: 'CONFIRMED', criteria: [] }),
+  // XT17: red and green -> at `green` (2nd of 4)
+  '_orch/nodes/XT17/handoff.md': '# XT17',
+  '_orch/nodes/XT17/work/red.txt': 'red',
+  '_orch/nodes/XT17/work/green.txt': 'green',
+}
+const C25_DIRS: Record<string, any[]> = {
+  // FsEntry.kind 'dir' (engine types index.d.ts:5066, quoted in E1 §m, probes.md:429)
+  '_orch/nodes': ['alpha', '9lives', 'CONSOLIDATE', 'fix-xt17', 'XT17'].map((name) => ({ name, kind: 'dir' })),
+  '_orch/phases': [{ name: 'P1', kind: 'dir' }, { name: 'P2', kind: 'dir' }],
+  '_orch/inbox': [],
+  '_orch/track': [],
+  '_orch/ledger': [],
+}
+
+test("a row label is matched only to the fixture run's listed node ids, whatever their shape", async ($, on) => {
+  world(on, C25_FILES, C25_DIRS)
+  // (a) labels whose only id-shaped tokens are in no list: T999 and Q-NODE-X are no node (absent from graph.yaml
+  // and _orch/nodes), P9 is no phase (_orch/phases holds P1 and P2 only) and no node.
+  await spawn($, 'w-t999', 'T999 sweep', 'baton:worker')
   await spawn($, 'w-p9', 'P9 sweep', 'baton:worker')
-  // Only the unmatched rows and the phase row return; every node-matched row stays live, so its own lifecycle
-  // (Q-15 ladder at `working`, `●─◉─○─○`) differs from the node stepper it must show.
-  for (const agentId of ['s-p2b', 'w-f99', 'w-p9'])
+  await spawn($, 'w-qnx', 'Q-NODE-X triage', 'baton:worker')
+  // (b) labels carrying a listed id that breaks the id pattern, beside unlisted id-shaped tokens.
+  await spawn($, 'w-alpha', 'rerun alpha', 'baton:worker')
+  await spawn($, 'w-9lives', '9lives after T999', 'baton:worker')
+  await spawn($, 'w-consol', 'CONSOLIDATE T999', 'baton:worker')
+  await spawn($, 'w-fixxt', 'Q-NODE-X fix-xt17', 'baton:worker')
+  // The (a) rows return, the (b) rows stay live: a (b) row's own lifecycle would be at `working` (`●─◉─○─○`),
+  // which is none of the listed nodes' steppers; an (a) row's at `returned` (`●─●─◉─○`), which is none either.
+  for (const agentId of ['w-t999', 'w-p9', 'w-qnx'])
     await $.turn.complete({ agentId, answer: 'done', durationMs: 5, isAborted: false, turnId: 't-' + agentId, reason: 'answer' } as any)
   const ui = await pane($)
   // A stepper drawn exactly so: not part of a longer one (E1 §m form, dots joined by `─`).
   const exactly = (dots: string) => new RegExp('(?<![●◉○✗─])' + dots + '(?![─●◉○✗])')
-  // expected: PLAN is a real node (_orch/nodes/PLAN, graph.yaml), so 'PLAN for F99' shows PLAN's stepper at blue
-  // (Q-15 "Match the label's tokens against the run's real node ids"; README.md:116). The id-shaped F99 after it
-  // is no node: a matcher taking the last id-shaped or capitalised token takes F99 and cannot draw this.
-  expect(await row(ui, /worker PLAN for F99/)).toMatch(exactly(STEPS.PLAN))
-  // expected: the same with the order reversed, 'F99 for PLAN' (Q-15; README.md:116): a matcher taking the first
-  // id-shaped token takes F99 and cannot draw PLAN's stepper.
-  expect(await row(ui, /worker F99 for PLAN/)).toMatch(exactly(STEPS.PLAN))
-  // expected: 'fix XT17 TODO' shows XT17's stepper at blue (Q-15; README.md:116); TODO is a capitalised word but
-  // no node, so a matcher taking the last capitalised token takes TODO and cannot draw this.
-  expect(await row(ui, /worker fix XT17 TODO/)).toMatch(exactly(STEPS.XT17))
-  // expected: G1, a real node, rgb exempt, at working (README.md:117 `working → verified`): two steps, which no
-  // four-step lifecycle stepper is.
-  expect(await row(ui, /worker G1 answers/)).toMatch(exactly(STEPS.G1))
-  // expected: F99 and P9 look like ids but match no real node or phase, so each row shows its own lifecycle
-  // stepper (Q-15 "A row that matches nothing shows its own lifecycle stepper (spawned → working → returned →
-  // verdict)"); returned, so spawned and working are behind it (Q-15 ladder order). A stepper of a guessed node
-  // or phase with nothing on record has no step reached and cannot draw this.
-  for (const label of [/worker F99 sweep/, /worker P9 sweep/]) {
+
+  // (b) expected: each row shows its listed node's stepper (Q-15 "Match the label's tokens against the run's real
+  // node ids"; Q-T111-2 B "real ids from the list that break the usual id pattern ... must be accepted"):
+  // alpha (lower-case) at red, node ladder `red → green → blue → verified` (README.md:116)
+  expect(await row(ui, /worker rerun alpha/)).toMatch(exactly('◉─○─○─○'))
+  // 9lives (digits first), rgb exempt and started: `working → verified` at working (README.md:117)
+  expect(await row(ui, /worker 9lives after T999/)).toMatch(exactly('◉─○'))
+  // CONSOLIDATE (11 characters), at red and BLOCKED: the current step drawn flagged, `✗` (E1 §m form; README.md:116)
+  expect(await row(ui, /worker CONSOLIDATE T999/)).toMatch(exactly('✗─○─○─○'))
+  // fix-xt17 (hyphenated), rgb exempt and CONFIRMED: `working → verified` with every step reached (README.md:117)
+  expect(await row(ui, /worker Q-NODE-X fix-xt17/)).toMatch(exactly('●─●'))
+
+  // (a) expected: matched to no node or phase, so each row shows its own lifecycle stepper (Q-15 "A row that
+  // matches nothing shows its own lifecycle stepper (spawned → working → returned → verdict)"); returned, so
+  // spawned and working are behind it (Q-15 ladder order). No listed node's stepper starts with two reached steps
+  // and has four steps (alpha `◉─○─○─○`, CONSOLIDATE `✗─○─○─○`, XT17 `●─◉─○─○`; 9lives and fix-xt17 have two).
+  for (const label of [/worker T999 sweep/, /worker P9 sweep/, /worker Q-NODE-X triage/]) {
     const r = await row(ui, label)
-    expect(r).toMatch(LIFECYCLE)
-    expect(r).toMatch(/●─●─[●◉✗]─[●◉○✗]/)
+    expect({ label: String(label), lifecycle: LIFECYCLE.test(r), returned: /●─●─[●◉✗]─[●◉○✗]/.test(r) }).toEqual({ label: String(label), lifecycle: true, returned: true })
   }
-  // expected: P2 is a real phase id, so its row shows P2's phase stepper `briefed → dispatched → verified →
-  // approved` (README.md:116; Q-15 "and phase ids"): briefed reached (_orch/phases/P2/brief.md exists), verified
-  // not (no phase verdict in the fixture). Its returned turn's own lifecycle (`●─●─◉─○`) would fail this.
-  expect(await row(ui, /sub-orch P2 phase/)).toMatch(/(?<![●◉○✗─])[●◉]─[●◉○]─○─○(?![─●◉○✗])/)
 })
 
 // R-C11-01 (L153 "... verifier ..."); Q-15 answer: "A verifier row shows the stepper of the node it verifies."
