@@ -392,19 +392,29 @@ test('t15-scroll: scrolling the list from its top to its bottom draws every agen
   expect(missing).toEqual([]) // spec L286: every agent stays listed, so each row is drawn at some scroll position
 })
 
-test('guard: T15-G1 while the list scrolls from its top to its bottom, no drawing shows one agent row twice', async ($, on) => {
-  // Requirement R-C16-03 (traceability.yaml): "Every agent stays listed." (spec L286); R-C16-32 (L375): "The strip keeps
-  // tree order" (a row is either in the window or in a strip). OQ7 (inbox/OQ7.answer.md): a guard; classed in
-  // work/guard-evidence.md (done-criterion 5, false premise at da5910c: no drawing there shows a row twice).
+test('t15-scroll: scrolling the list from its top to its bottom draws no finished agent row on two pages', async ($, on) => {
+  // Requirement R-C16-03 (traceability.yaml): "Every agent stays listed." (spec L286); R-C16-02 (L285): "When the agents
+  // do not fit, the list scrolls."; spec L369: "The engine's PageUp and PageDown scroll it by one window". Q-63
+  // (inbox/Q-63.answer.md): "the engine's PageUp/PageDown scroll by a page". Done-criterion 5 (an ordinary red test:
+  // at da5910c successive pages repeat rows, probe-da5910c.md P-4, work/guard-evidence.md).
   const w = world(on)
   await w.start($)
-  await agents($, w, 40, [1]) // fixture: wk01 running (so it can be pinned once scrolled out), 39 finished
+  await agents($, w, 40) // fixture: the c3/c4 fixture, prime + 40 finished agents, in a 20-line pane
   await w.pane($, 20)
+  const pages = new Map<string, number[]>()
+  let prev: string | null = null
   for (let i = 0; i < 25; i++) {
-    const labels = agentRows((await view(w)).shown).map((r) => r.label)
-    expect(labels.length, 'page ' + i).toBe(new Set(labels).size) // each agent row is drawn once per drawing
+    const { shown } = await view(w)
+    const sig = shown.map((l) => l.text).join('\n')
+    if (sig === prev) break // fixture: the drawing no longer changes, so the list is at its bottom
+    prev = sig
+    // Q-64 (inbox/Q-64.answer.md): only a running row is pinned and may be drawn again in a strip; the prime is the
+    // run's live root, so it is left out and only finished rows (wk01 … wk40, never pinned) are counted.
+    for (const r of agentRows(shown)) if (r.label !== 'prime') pages.set(r.label, [...(pages.get(r.label) ?? []), i])
     await pageDown($, w)
   }
+  const twice = [...pages].filter(([, p]) => p.length > 1).map(([l, p]) => l + '@' + p.join('/'))
+  expect(twice).toEqual([]) // spec L286 and L369: scrolling top to bottom by pages draws each agent row once
 })
 
 // ================================================================== finished rows are dimmed (Q-69)
@@ -709,21 +719,30 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   }
 })
 
-test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window and back in', async ($, on) => {
+test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window and back in at another place', async ($, on) => {
   // Requirement R-C16-40 (traceability.yaml): "A row's direct key stays with that row for as long as the row exists,"
   // (spec L383); R-C16-57 (L400): "a row keeps its key while scrolled out;". Q-67 (inbox/Q-67.answer.md): "hotkey letters
   // are fixed per row for as long as the row exists". OQ7: a guard (done-criterion 20, false premise at da5910c).
+  // The row comes back by ↑ from the first row shown (spec L289-290), so it is drawn at another place in the window
+  // than before: a key given by a row's place in the window would change there (verdict r1 c20, mutant "win").
   const w = world(on)
   await w.start($)
-  await agents($, w, LETTERED, LRUN)
+  await agents($, w, LETTERED, LRUN) // fixture: wk03 is finished (LRUN is wk06 … wk15), so it is never pinned (Q-64)
   await w.pane($, LOW)
-  const before = letterOf(lineOf((await view(w)).shown, 'wk02'))
-  await pageDown($, w)
-  await pageDown($, w)
-  await home($, w)
-  const l = lineOf((await view(w)).shown, 'wk02')
-  expect(!!l).toBe(true) // fixture: wk02 is drawn again at the top
-  expect(letterOf(l)).toBe(before) // Q-67: the same key as before it was scrolled out
+  const place = (ls: Line[]) => agentRows(ls).findIndex((r) => r.label === 'wk03') // its place among the rows drawn
+  const first = (await view(w)).shown
+  const before = letterOf(lineOf(first, 'wk03'))
+  const was = place(first)
+  expect(was).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn when the list is first shown
+  for (let i = 0; i < 3 && lineOf((await view(w)).shown, 'wk03'); i++) await pageDown($, w)
+  expect(lineOf((await view(w)).shown, 'wk03')).toBe(undefined) // fixture: wk03 is scrolled out of the window
+  const top = windowRows((await view(w)).shown)[0]
+  await focusOn($, w, enterKey(top.l)) // the focus on the first row shown
+  for (let i = 0; i < 40 && !lineOf((await view(w)).shown, 'wk03'); i++) await arrow($, w, -1) // ↑ until wk03 is back
+  const back = (await view(w)).shown
+  expect(place(back), 'wk03 not back:' + dump(back)).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn again
+  expect(place(back)).not.toBe(was) // fixture: at another place in the window than before
+  expect(letterOf(lineOf(back, 'wk03'))).toBe(before) // Q-67: the same key as before it was scrolled out
 })
 
 test('t15-scroll: pressing the direct key of a row scrolled out of the window opens that row', async ($, on) => {
@@ -986,14 +1005,26 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
   // r15 P3-3. Q-64 (inbox/Q-64.answer.md). OQ7: a guard (done-criterion 36, false premise at da5910c: no pinned strip).
   const w = world(on)
   await w.start($)
-  await agents($, w, 40, [1, 2])
+  await agents($, w, 40, [1, 2]) // fixture: wk01 and wk02 run, wk03 … wk40 finished
   await w.pane($, SHORT)
   await pageDown($, w)
   const { shown } = await view(w)
-  const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
-  const pinned = agentRows(shown).filter((r) => (r.label === 'wk01' || r.label === 'wk02') && win.length > 0 && r.i < win[0].i)
-  for (const p of pinned) expect(p.l.buttons.some((b: any) => String(b.props?.label ?? '').includes('›')), p.label).toBe(true) // L376: its ›
+  expect(stripRowsWithoutChevron(shown)).toEqual([]) // L376: every strip row draws its ›
 })
+
+/** Lines outside the window's rows that name a running row (wk01, wk02), found by their text alone, never by a ›
+ * Button (verdict r1 c36: a strip row drawn without its › must still be seen), and the labels of those lacking a ›. */
+function stripRowsWithoutChevron(shown: Line[]): string[] {
+  const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
+  if (!win.length) return []
+  const lo = win[0].i
+  const hi = win[win.length - 1].i
+  return shown
+    .map((l, i) => ({ l, i, m: /\b(wk01|wk02)\b/.exec(l.text) }))
+    .filter((x) => x.m && (x.i < lo || x.i > hi))
+    .filter((x) => !x.l.buttons.some((b: any) => String(b.props?.label ?? '').includes('›')))
+    .map((x) => x.m![1] + ':' + x.l.text)
+}
 
 test('t15-scroll: when the running rows do not all fit in the strip, its last line reads +<k> running', async ($, on) => {
   // Requirement R-C16-34 (traceability.yaml): "When the running rows do not all fit, the strip shows as many as fit and
