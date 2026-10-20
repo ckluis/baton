@@ -378,7 +378,7 @@ async function serveCodeTool($, e) {
 // 9 / 99 / 777, or a bell) the next time Claude Code hands a hook a chance to
 // emit one. Each event notifies once.
 
-const notices = { pending: [], sent: new Set(), term: null }
+const notices = { pending: [], sent: new Set() }
 
 async function notify($, key, text) {
   if (notices.sent.has(key)) return
@@ -389,21 +389,10 @@ async function notify($, key, text) {
   notices.pending.push(text)
 }
 
-async function terminalSequence($) {
+/** What is waiting, as one line for a native notification; null when nothing waits. */
+function pendingNotice() {
   if (!notices.pending.length) return null
-  const text = notices.pending.splice(0).join(' · ').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 240)
-  if (notices.term == null) {
-    try {
-      notices.term = String((await $.env.get('TERM_PROGRAM')) || '') + ' ' + String((await $.env.get('TERM')) || '')
-    } catch {
-      notices.term = ''
-    }
-  }
-  const t = notices.term.toLowerCase()
-  if (/ghostty|warp|rxvt/.test(t)) return '\x1b]777;notify;baton;' + text + '\x07'
-  if (/kitty/.test(t)) return '\x1b]99;;baton: ' + text + '\x1b\\'
-  if (/iterm|wezterm|windows|conemu/.test(t)) return '\x1b]9;baton: ' + text + '\x07'
-  return '\x07'
+  return notices.pending.splice(0).join(' · ').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 240)
 }
 
 // ------------------------------------------------------------------ doctor and pause
@@ -617,11 +606,29 @@ async function applyUpdate($) {
 // Pause: hold every new spawn and every gated command until /baton resume.
 const pause = { on: false, since: null, held: 0 }
 
-/** Stop and Notification: emit what is waiting as a desktop notification. */
+/** A Read result's text: the declared record's file.content (claude-code-tools Read), or a plain string. */
+function readResultText(res) {
+  if (typeof res === 'string') return res
+  const c = res && res.file && res.file.content
+  return typeof c === 'string' ? c : ''
+}
+
+/** A Bash result's output: the declared record's stdout (claude-code-tools Bash), or a plain string; null when neither. */
+function bashText(res) {
+  if (typeof res === 'string') return res
+  return res && typeof res.stdout === 'string' ? res.stdout : null
+}
+
+/** Stop and Notification: raise what is waiting as a native notification ($.ui.notify). */
 async function withNotice($, e, next) {
   const r = await next(e)
-  const seq = await terminalSequence($)
-  return seq ? { ...(r || {}), terminalSequence: seq } : r
+  const text = pendingNotice()
+  if (text) {
+    try {
+      await $.ui.notify(text, { title: 'baton' })
+    } catch {}
+  }
+  return r
 }
 
 async function registerMemoryTools($) {
@@ -1106,8 +1113,8 @@ function stepperRow({ Box, Text }, key, label, st, tl, tail = '') {
     key,
     flexDirection: 'row',
     children: [
-      Text({ key: key + '-l', bold: true, children: [label.padEnd(8).slice(0, 12) + ' '] }),
-      ...segs.map((x, i) => Text({ key: key + '-' + i, wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
+      Text({ bold: true, children: [label.padEnd(8).slice(0, 12) + ' '] }),
+      ...segs.map((x, i) => Text({ wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
     ],
   })
 }
@@ -1118,12 +1125,12 @@ function goalLinks({ Box, Text, Link }, key) {
   if (!v) return []
   const g = v.goal
   const kids = []
-  if (g.issue) kids.push(Link({ key: key + '-i', href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
-  else kids.push(Text({ key: key + '-t', bold: true, children: ['goal: ' + String(g.target || '').slice(0, 80)] }))
+  if (g.issue) kids.push(Link({ href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
+  else kids.push(Text({ bold: true, children: ['goal: ' + String(g.target || '').slice(0, 80)] }))
   if (v.pr) {
-    kids.push(Text({ key: key + '-s', dimColor: true, children: ['·'] }))
-    kids.push(Link({ key: key + '-p', href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
-    kids.push(Text({ key: key + '-c', dimColor: true, children: [v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : '')] }))
+    kids.push(Text({ dimColor: true, children: ['·'] }))
+    kids.push(Link({ href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
+    kids.push(Text({ dimColor: true, children: [v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : '')] }))
   }
   return [Box({ key, flexDirection: 'row', columnGap: 1, children: kids })]
 }
@@ -1173,24 +1180,24 @@ function workspaceBody($, ui) {
             flexDirection: 'row',
             columnGap: 1,
             children: [
-              Text({ key: 'w-fs' + i, color: f.severity === 'high' ? 'red' : f.severity === 'med' ? 'yellow' : undefined, ...(f.severity === 'low' ? { dimColor: true } : {}), children: ['         ' + f.severity.padEnd(4)] }),
-              href ? Link({ key: 'w-fl' + i, href, label: f.at + ' ↗' }) : Text({ key: 'w-fa' + i, children: [f.at] }),
-              Text({ key: 'w-ft' + i, wrap: 'truncate-end', dimColor: true, children: [f.text] }),
+              Text({ color: f.severity === 'high' ? 'red' : f.severity === 'med' ? 'yellow' : undefined, ...(f.severity === 'low' ? { dimColor: true } : {}), children: ['         ' + f.severity.padEnd(4)] }),
+              href ? Link({ href, label: f.at + ' ↗' }) : Text({ children: [f.at] }),
+              Text({ wrap: 'truncate-end', dimColor: true, children: [f.text] }),
             ],
           }),
         )
       })
     }
-    out.push(Text({ key: 'w-sp1', children: [' '] }))
+    out.push(Text({ children: [' '] }))
   }
   out.push(...agentsBody($, ui))
-  if (v) out.push(Text({ key: 'w-sp4', children: [' '] }), ...planSection($, ui, v))
+  if (v) out.push(Text({ children: [' '] }), ...planSection($, ui, v))
   if (v && (v.questions || []).length) {
-    out.push(Text({ key: 'w-sp2', children: [' '] }))
+    out.push(Text({ children: [' '] }))
     v.questions.forEach((q, i) => out.push(line('w-q' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
   }
   if (pane.rulings.length) {
-    out.push(Text({ key: 'w-sp3', children: [' '] }))
+    out.push(Text({ children: [' '] }))
     pane.rulings.slice(0, 3).forEach((r, i) => out.push(line('w-r' + i, 'ruling ' + rulingLine(r), { color: 'magenta' })))
     if (pane.rulings.length > 3) out.push(line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Memory (2)', { dimColor: true }))
   }
@@ -1214,7 +1221,7 @@ function workspaceLines() {
 }
 
 function usageRow({ Box, Text }, key) {
-  return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ key: key + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+  return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
 }
 
 /**
@@ -1229,7 +1236,7 @@ function planSection($, ui, v) {
       flexDirection: 'row',
       columnGap: 2,
       children: [
-        Text({ key: 'plan-t', bold: true, children: ['plan'] }),
+        Text({ bold: true, children: ['plan'] }),
         Button({ key: 'plan-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }),
       ],
     }),
@@ -1268,11 +1275,11 @@ function memoryTabBody($, ui) {
     const d = pane.mdetail
     const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
     return [
-      Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ key: 'md-t', bold: true, children: [d.title] })] }),
-      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ key: 'md-l' + i + 's' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ key: 'md-sp' + i, children: [' '] }))),
+      Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ bold: true, children: [d.title] })] }),
+      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
     ]
   }
-  return [Text({ key: 'mt-r', bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ key: 'mt-sp', children: [' '] }), Text({ key: 'mt-m', bold: true, children: ['memory'] }), ...memoryBody($, ui)]
+  return [Text({ bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ children: [' '] }), Text({ bold: true, children: ['memory'] }), ...memoryBody($, ui)]
 }
 
 // ------------------------------------------------------------------ detail views (Enter on a row)
@@ -1357,21 +1364,21 @@ function detailBody($, { Box, Text, Button, line }) {
       columnGap: 2,
       children: [
         Button({ key: 'd-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.detail = null), $.ui.invalidate('ui.render')) }),
-        Text({ key: 'd-t', bold: true, children: [d.view.title] }),
+        Text({ bold: true, children: [d.view.title] }),
         Button({ key: 'd-refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => openDetail($, d.kind, d.id) }),
       ],
     }),
   ]
   d.view.lines.forEach((segs, i) => {
-    if (!segs.length) out.push(Text({ key: 'd-sp' + i, children: [' '] }))
-    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ key: 'd-l' + i + 's' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
+    if (!segs.length) out.push(Text({ children: [' '] }))
+    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
   })
   // A running agent can be messaged from its own view.
   if (d.kind === 'agent') {
     const n = tree.nodes.get(d.id)
     if (n && n.endedAt == null) {
       pane.target = d.id
-      out.push(Text({ key: 'd-sp-m', children: [' '] }))
+      out.push(Text({ children: [' '] }))
     }
   }
   return out
@@ -1456,12 +1463,12 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   const rowsData = treeRows(tree)
   const t = agentTable(rowsData.map(agentRow), Math.max(60, (cols || 120) - 4))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ key: 'ah-pad', children: ['  '] }), ...t.header.map((x, j) => Text({ key: 'ah' + j, dimColor: true, children: [x.text] }))] }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x, j) => Text({ dimColor: true, children: [x.text] }))] }))
   t.lines.forEach((segs, i) => {
     const r = rowsData[i]
     // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
-    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ key: 'open-pad' + i, children: ['  '] })]
-    const children = [...open, ...segs.map((x, j) => Text({ key: 'a' + i + 'c' + j, wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
+    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
+    const children = [...open, ...segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
   })
@@ -1497,7 +1504,7 @@ function messageField($, { Text, Input }) {
       }),
     )
   } else {
-    out.push(Text({ key: 'agents-hint', dimColor: true, children: ['↑/↓ then Enter on › opens an agent · ✉ messages a running one · p shows every node · b goes back'] }))
+    out.push(Text({ dimColor: true, children: ['↑/↓ then Enter on › opens an agent · ✉ messages a running one · p shows every node · b goes back'] }))
   }
   return out
 }
@@ -2182,7 +2189,7 @@ async function observe($, force = false) {
   })()
   const phaseOfNode = graphPhases(graphText)
   const nodes = []
-  const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'directory').map((x) => x.name).sort(byId).slice(0, 400)
+  const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'dir').map((x) => x.name).sort(byId).slice(0, 400)
   for (const id of nodeDirs) {
     const base = '_orch/nodes/' + id
     const st = await readJson($, base + '/status.json')
@@ -2206,7 +2213,7 @@ async function observe($, force = false) {
   const phaseNums = new Set([...phaseOfNode.values()])
   for (const d of (await listDir($, '_orch/phases')) ?? []) {
     const mm = /^P(\d+)$/.exec(d.name)
-    if (d.kind === 'directory' && mm && Number(mm[1]) > 0) phaseNums.add(Number(mm[1]))
+    if (d.kind === 'dir' && mm && Number(mm[1]) > 0) phaseNums.add(Number(mm[1]))
   }
   const phases = []
   for (const n of [...phaseNums].sort((a, b) => a - b)) {
@@ -2602,7 +2609,7 @@ export function register(on, options) {
     const r = await next(e)
     try {
       if (r && !r.deny && config.readHintLines && langOf(e.file_path) && !e.offset && !e.limit) {
-        const text = typeof r.result === 'string' ? r.result : ''
+        const text = readResultText(r.result)
         const n = text ? text.split('\n').length : 0
         if (n > config.readHintLines) {
           kit.bigReads++
@@ -2619,23 +2626,26 @@ export function register(on, options) {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const r = await next(e)
     try {
-      if (!r || r.deny || !config.quietOutputLines || typeof r.result !== 'string' || /--json\b/.test(String(e.command)) || /^\s*[[{]/.test(r.result)) return r
-      const n = r.result.split('\n').length
+      const out = r && !r.deny ? bashText(r.result) : null
+      if (out == null || !config.quietOutputLines || /--json\b/.test(String(e.command)) || /^\s*[[{]/.test(out)) return r
+      const n = out.split('\n').length
       if (n <= config.quietOutputLines) return r
-      const dir = (await runActive($)) ? '_orch/out' : '.baton/out'
+      // Absolute, as memoryArgs resolves its directories: _orch under the working directory, .baton under the root.
+      const inRun = await runActive($)
+      const dir = inRun ? (await $.session.cwd()) + '/_orch/out' : (await $.session.root()) + '/.baton/out'
       const file = dir + '/' + new Date(Date.now()).toISOString().replace(/[-:.]/g, '') + '-' + (e.agentId ? String(e.agentId).slice(0, 8) : 'main') + '.log'
-      await $.fs.write(file, r.result)
-      if (dir === '.baton/out') {
+      await $.fs.write(file, out)
+      if (!inRun) {
         try {
-          if (!(await $.fs.exists('.baton/out/.gitignore'))) await $.fs.write('.baton/out/.gitignore', '*\n')
+          if (!(await $.fs.exists(dir + '/.gitignore'))) await $.fs.write(dir + '/.gitignore', '*\n')
         } catch {}
       }
-      const q = quietText(r.result, config.quietOutputLines, file)
+      const q = quietText(out, config.quietOutputLines, file)
       if (!q) return r
       kit.quieted++
       kit.quietLinesTotal += n
       kit.quietLinesKept += q.split('\n').length
-      return { ...r, result: q }
+      return { ...r, result: typeof r.result === 'string' ? q : { ...r.result, stdout: q } }
     } catch {
       return r
     }
@@ -2724,7 +2734,7 @@ export function register(on, options) {
   // ruling (in the background: the turn does not wait on the cheap model).
   // After a rotation, the prompt also carries the wake.
   on('prompt.submit', async ($, e, next) => {
-    if (!e.agentId && isOperatorPrompt(e.text, run.lastKickoff, e.origin) && (await runActive($))) {
+    if (isOperatorPrompt(e.text, run.lastKickoff, e.origin) && (await runActive($))) {
       const text = String(e.text)
       try {
         await appendNote($, 'run', text, 'operator')
@@ -2944,7 +2954,7 @@ export function register(on, options) {
     )
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
     tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
-    const line = (key, text, extra = {}) => Text({ key, wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
+    const line = (key, text, extra = {}) => Text({ wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     const body =
       pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui)
@@ -2988,11 +2998,11 @@ export function register(on, options) {
       } catch {}
       if (pane.waiting) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: '/baton opens the pane', color: undefined })
     }
-    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x, i) => Text({ key: 'b' + i, wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x, i) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
-    const flag = waiting.length ? [Text({ key: 'wait', wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Work (1)'] })] : []
+    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Work (1)'] })] : []
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
       const { Button } = $.ui.resolve(e)
@@ -3028,15 +3038,15 @@ export function register(on, options) {
           flexDirection: 'row',
           columnGap: 2,
           children: [
-            Text({ key: 'upd-t', color: 'cyan', children: [update.state === 'updating' ? 'baton: updating to ' + update.remote + '…' : 'baton ' + update.remote + ' is out (you have ' + update.local + ')'] }),
+            Text({ color: 'cyan', children: [update.state === 'updating' ? 'baton: updating to ' + update.remote + '…' : 'baton ' + update.remote + ' is out (you have ' + update.local + ')'] }),
             ...(update.state === 'available' ? [Button({ key: 'band-update', label: 'update now', hotkey: '9', plain: true, onPress: () => applyUpdate($) })] : []),
           ],
         }),
       )
-    } else if (update.state === 'installed' && update.message) flag.push(Text({ key: 'upd-done', color: 'green', wrap: 'truncate-end', children: [update.message] }))
-    if (pause.on) flag.unshift(Text({ key: 'pause', wrap: 'truncate-end', color: 'yellow', children: ['⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume'] }))
+    } else if (update.state === 'installed' && update.message) flag.push(Text({ color: 'green', wrap: 'truncate-end', children: [update.message] }))
+    if (pause.on) flag.unshift(Text({ wrap: 'truncate-end', color: 'yellow', children: ['⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume'] }))
     const dw = doctorWarning()
-    if (dw) flag.push(Text({ key: 'doctor', wrap: 'truncate-end', color: 'red', children: [dw] }))
+    if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [dw] }))
     return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
   })
 

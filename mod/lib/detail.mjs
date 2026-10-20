@@ -9,7 +9,7 @@ import { shortTokens } from './ledger.mjs'
 import { elapsed } from './agents.mjs'
 import { sparkline } from './table.mjs'
 
-const L = (...segs) => segs.map((s) => (typeof s === 'string' ? { text: s } : s))
+const L = (...segs) => segs.filter((s) => s != null).map((s) => (typeof s === 'string' ? { text: s } : s))
 const dim = (text) => ({ text, tone: 'rail' })
 const head = (text) => ({ text, tone: 'head' })
 
@@ -139,7 +139,7 @@ export function nodeDetail(nd, x = {}) {
     for (const r of rows) {
       const v = String(r.verdict).toUpperCase()
       const mark = v === 'CONFIRMED' ? { text: '  ✓ ', tone: 'green' } : v === 'REFUTED' ? { text: '  ✗ ', tone: 'red' } : { text: '  ? ', tone: 'yellow' }
-      lines.push(L(mark, r.criterion))
+      lines.push(L(mark, r.criterion ?? crit[Number(r.n) - 1] ?? (r.n != null ? 'criterion ' + r.n : null))) // a row may name its criterion by number
       if (r.probe) lines.push(L(dim('      ' + String(r.probe).slice(0, 140))))
     }
   }
