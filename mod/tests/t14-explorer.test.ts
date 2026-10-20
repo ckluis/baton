@@ -803,12 +803,13 @@ test('c40 after a summary over unmarked notes is marked ✅, its range draws exa
   await focusRow($, ui, w, '4-5')
   await key(ui, w, 'c')
   const wake = await ui.drawn()
-  const wakeCount = Array.from(cells(wake)).filter((c) => c === '✅').length
-  const onRow = glyphOf(rowLine(wake, '4-5'))
+  const table: Record<string, string | undefined> = {}
+  for (const id of Object.keys(ROWS)) table[id] = glyphOf(rowLine(wake, id)) // the mark cell of every table row (not the key line's `c: ✅ confirm`)
   await drill(ui, w, '4-5') // the summary's range opened: its notes #4 and #5
   const inner = await ui.drawn()
   const notes = [4, 5].map((i) => glyphOf(rowWith(inner, textOf(i))?.line))
-  expect({ wakeCount, onRow, notes }).toEqual({ wakeCount: 1, onRow: '✅', notes: ['', ''] }) // Q-75: only the summary's own row; its notes stay unmarked
+  // Q-75: exactly one ✅, on the summary's own row (fixture WAKE rows); its notes #4 and #5 stay unmarked
+  expect({ table, notes }).toEqual({ table: { '0-3': '', '4-5': '✅', '6-7': '', '8': '', '9': '', '10': '' }, notes: ['', ''] })
 })
 
 // ================================================================== guard (OQ7; work/guard-evidence.md G1)
