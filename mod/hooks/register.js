@@ -644,6 +644,39 @@ async function withNotice($, e, next) {
   return r
 }
 
+// ------------------------------------------------------------------ failure handling
+//
+// Every gating hook carries a `.catch` (spec T2; the K2 table). Fail closed where a failure must
+// not open a door: once the hook had called next, what ran stands; before that, refuse when `door()`
+// says this call is one the hook guards (a door that cannot tell is shut). "During a run" is read
+// afresh with runActive: the hook may have failed before it asked. Fail open everywhere
+// else: the call goes on as if the hook were absent, but the hook's own handler answers.
+
+/** Does this Bash command discard work (the gates a checkpoint snapshots before)? */
+function discards(e) {
+  const g = gateFor(e.command)
+  return !!g && (g.id === 'reset' || g.id === 'rm')
+}
+
+async function failClosed(e, next, what, door) {
+  if (next.called) return next(e)
+  let shut = true
+  try {
+    shut = await door()
+  } catch {}
+  if (!shut) return next(e)
+  return { deny: 'baton: ' + what + ' failed (' + next.error.kind + '), so this call was refused. Do not retry it another way: return BLOCKED with the exact command or dispatch.' }
+}
+
+async function failOpen($, e, next) {
+  return next(e)
+}
+
+/** A baton tool's own hook failed: answer with why, so the caller carries on without it. */
+async function failOpenTool($, e, next) {
+  return { result: 'baton: ' + e.tool + ' failed (' + next.error.kind + (next.error.message ? ': ' + next.error.message : '') + '); carry on without it.' }
+}
+
 async function registerMemoryTools($) {
   if (memory.toolsRegistered) return
   for (const t of MEMORY_TOOLS) await $.tool.register(t)
@@ -2528,7 +2561,7 @@ export function register(on, options) {
 
   // ---------------------------------------------------------------- memory tools
 
-  on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e))
+  on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e)).catch(failOpenTool)
 
   // ---------------------------------------------------------------- approvals
 
@@ -2543,14 +2576,22 @@ export function register(on, options) {
     if (!hits.length) return next(e)
     if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
     return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
-  })
+  }).catch(($, e, next) =>
+    failClosed(e, next, 'the forbidden-file check', () => {
+      try {
+        return forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles).length > 0
+      } catch {
+        return /\bgit\b[\s\S]*\badd\b/.test(String(e.command))
+      }
+    }),
+  )
 
   // Pause holds gated commands too, from any agent.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     if (!pause.on || !gateFor(e.command)) return next(e)
     pause.held++
     return { deny: 'baton is paused by the operator. This command waits: return BLOCKED with it, and it is re-dispatched after /baton resume.' }
-  })
+  }).catch(($, e, next) => failClosed(e, next, 'the pause check', () => pause.on && !!gateFor(e.command)))
 
   // The command gate: an irreversible shell command from any agent, at any
   // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
@@ -2589,16 +2630,24 @@ export function register(on, options) {
       }
     }
     return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
-  })
+  }).catch(($, e, next) =>
+    failClosed(e, next, 'the command gate', async () => {
+      const gate = gateFor(e.command)
+      return config.approvals && !!gate && !approvals.always.has(gate.id) && (await runActive($))
+    }),
+  )
 
   // Checkpoints: a command that discards work snapshots the tree first (after the gate let it through).
+  // During a run, no snapshot means no discard: the command is refused (fail closed).
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const g = gateFor(e.command)
-    if (!g || (g.id !== 'reset' && g.id !== 'rm')) return next(e)
+    if (!discards(e)) return next(e)
     const id = await checkpoint($, (e.agentId ? chain(tree, e.agentId) : 'session') + ': ' + String(e.command).slice(0, 160))
+    if (!id && (await runActive($))) {
+      return { deny: 'baton: the checkpoint snapshot before this command failed, so it was refused and nothing was discarded. Do not retry it another way: return BLOCKED with the exact command.' }
+    }
     const r = await next(e)
     return id ? withContext(r, 'baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back.') : r
-  })
+  }).catch(($, e, next) => failClosed(e, next, 'the checkpoint', async () => discards(e) && (await runActive($))))
 
   // The phase gate: once a sub-orchestrator reports DONE, the prime's next
   // dispatch waits until the operator approves that phase or sends it back.
@@ -2606,9 +2655,11 @@ export function register(on, options) {
     if (!isPrimeCall(e) || !config.phaseGate || !approvals.queue.length || !(await runActive($))) return next(e)
     while (approvals.queue.length) {
       const item = approvals.queue[0]
+      // Built outside the try: a question that cannot be built is the gate failing (its .catch), not a dismissal.
+      const question = phaseQuestion(item, await rulingLines($, 5))
       let answer = null
       try {
-        answer = await $.ui.ask(phaseQuestion(item, await rulingLines($, 5)), [APPROVE, SEND_BACK])
+        answer = await $.ui.ask(question, [APPROVE, SEND_BACK])
       } catch {
         answer = null
       }
@@ -2639,11 +2690,11 @@ export function register(on, options) {
       }
     }
     return next(e)
-  })
+  }).catch(($, e, next) => failClosed(e, next, 'the phase gate', async () => isPrimeCall(e) && config.phaseGate && approvals.queue.length > 0 && (await runActive($))))
 
   // ---------------------------------------------------------------- the kit
 
-  on('tool.call', { tool: /^mcp__baton__code_/ }, async ($, e) => serveCodeTool($, e))
+  on('tool.call', { tool: /^mcp__baton__code_/ }, async ($, e) => serveCodeTool($, e)).catch(failOpenTool)
 
   // A Read of a large source file runs as asked; its result carries a pointer to
   // code_fetch, and the mod counts it (the experiment in #48 decides whether this
@@ -2663,7 +2714,7 @@ export function register(on, options) {
       }
     } catch {}
     return r
-  })
+  }).catch(failOpen)
 
   // Quiet output: a long shell result is cut to head, failures and tail; the whole goes to a file.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -2692,11 +2743,11 @@ export function register(on, options) {
     } catch {
       return r
     }
-  })
+  }).catch(failOpen)
 
   // Notifications reach the desktop when Claude Code next lets a hook emit one.
-  on('classic.Stop', withNotice)
-  on('classic.Notification', withNotice)
+  on('classic.Stop', withNotice).catch(failOpen)
+  on('classic.Notification', withNotice).catch(failOpen)
 
   // Enforced rulings: a standing ruling with a pattern refuses matching shell
   // commands outright, run or no run, after the permission rules decide.
@@ -2705,7 +2756,7 @@ export function register(on, options) {
     const hit = enforcedHit(await loadRulings($), e.input && e.input.command)
     if (!hit) return decided
     return { decision: 'deny', reason: 'baton ruling #' + hit.n + ' (enforced): ' + hit.text }
-  })
+  }).catch(async ($, e, next) => ((await runActive($)) ? { decision: 'deny', reason: 'baton: the enforced-rulings check failed (' + next.error.kind + '), so this command was refused during the run.' } : next(e)))
 
   // ---------------------------------------------------------------- rotation
 
@@ -2745,7 +2796,7 @@ export function register(on, options) {
     rotation.awaitingCompact = false
     if (r && !r.skip) await countRotation($, asked ? 'baton rotate + /compact' : e.trigger)
     return r
-  })
+  }).catch(failOpen)
 
   // After a compaction the engine raises SessionStart with source "compact":
   // hand the prime the wake instruction there.
@@ -2764,14 +2815,14 @@ export function register(on, options) {
       'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
     await noteQuietly($, 'a new session picked the run up (' + e.source + ')', 'handoff')
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), text] }
-  })
+  }).catch(failOpen)
 
   on('classic.SessionStart', { source: 'compact' }, async ($, e, next) => {
     const r = await next(e)
     const wake = (await runActive($)) ? takeWake() : null
     if (!wake) return r
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), wake] }
-  })
+  }).catch(failOpen)
 
   // The operator's words become run notes, and any standing rule in them a
   // ruling (in the background: the turn does not wait on the cheap model).
@@ -2801,7 +2852,7 @@ export function register(on, options) {
     const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
     if (!wake) return next(e)
     return next({ ...e, context: [...(e.context ?? []), wake] })
-  })
+  }).catch(failOpen)
 
   // ---------------------------------------------------------------- /baton
 
@@ -2975,7 +3026,7 @@ export function register(on, options) {
       }
     }
     return next(e)
-  })
+  }).catch(failOpen)
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
     if (e.requestId !== PANE) return next(e)
@@ -3220,5 +3271,16 @@ export function register(on, options) {
       }
     }
     return r
+  }).catch(async ($, e, next) => {
+    // The doors fail closed: pause, and during a run a review/fix round whose budget cannot be read
+    // as unspent. Lessons, binding and the rest fail open: the spawn goes on as asked.
+    if (next.called) return next(e)
+    if (pause.on) return { deny: 'baton is paused by the operator (/baton pause). Do not start new work: wait for /baton resume.' }
+    let shut = await runActive($)
+    try {
+      shut = shut && isRoundSpawn(e) && budgetNow().status === 'exceeded'
+    } catch {}
+    if (shut) return { deny: 'baton: the goal-budget check failed (' + next.error.kind + '), so this review or fix round was refused. Brief the operator before starting another.' }
+    return next(e)
   })
 }
