@@ -21,24 +21,34 @@ const spawnPrompts = []
 const updates = []
 let FAKE_REMOTE = '0.0.1'
 const BIG = (n, mark) => Array.from({ length: n }, (_, i) => (i === Math.floor(n / 2) ? mark : 'line ' + i)).join('\n')
-const terminal = { 'tool.call': (e) => (e.tool === 'Read' && /big\.ts$/.test(e.file_path) ? { result: BIG(700, 'x') } : e.tool === 'Bash' && e.command === 'make test' ? { result: BIG(1200, 'FAIL cart.test.ts > empty cart') } : { result: 'ran' }), 'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => (spawnPrompts.push(e.prompt || ''), { agentId: e._id, model: e.model }) }
+// amended by verifier (XT11): Read and Bash answer with the declared result records, not strings (mismatches X1, X3, S0598; R-C1-05, R-C1-06):
+// amended by verifier (XT11): Read is claude-code-tools/index.d.ts:5032 `Read: { type: 'text', file: { filePath, content, numLines, startLine, totalLines } }`,
+// amended by verifier (XT11): Bash is claude-code-tools/index.d.ts:4440 `Bash: { stdout, stderr, interrupted, … }` (index.d.ts:13559 `result: ToolResultOf<Name>`).
+const readResult = (filePath, content) => ({ type: 'text', file: { filePath, content, numLines: content.split('\n').length, startLine: 1, totalLines: content.split('\n').length } }) // amended by verifier (XT11): X1, R-C1-05
+const bashResult = (stdout) => ({ stdout, stderr: '', interrupted: false }) // amended by verifier (XT11): X3, S0598, R-C1-05
+const terminal = { 'tool.call': (e) => (e.tool === 'Read' ? { result: readResult(e.file_path, /big\.ts$/.test(e.file_path) ? BIG(700, 'x') : 'ran') } : e.tool === 'Bash' ? { result: bashResult(e.command === 'make test' ? BIG(1200, 'FAIL cart.test.ts > empty cart') : 'ran') } : { result: 'ran' }), // amended by verifier (XT11): declared Read/Bash records (X1, X3, S0598; R-C1-05)
+  'tool.check': () => ({ decision: 'allow' }), 'agent.spawn': (e) => (spawnPrompts.push(e.prompt || ''), { agentId: e._id, model: e.model }) }
 async function fire(ev, e) {
   const hs = hooks[ev] ?? []
   const go = async (i, x) => { for (; i < hs.length; i++) if (match(hs[i].m, x)) return hs[i].f($, x, (y) => go(i + 1, y)); return terminal[ev] ? terminal[ev](x) : x }
   return go(0, e)
 }
 let surfaces = ['terminal'], answers = [], asked = [], sent = [], submitted = [], toasts = [], opened = []
+const notified = [] // amended by verifier (XT11): native notifications raised through the declared $.ui.notify (mismatch X2; R-C1-04, R-C1-06)
 const timers = []
 const $ = {
   plugin: { root: MOD },
   env: { get: async () => undefined },
   fs: { read: async (p) => fs.readFileSync(path.resolve(W, p), 'utf8'), write: async (p, t) => { fs.mkdirSync(path.dirname(path.resolve(W, p)), { recursive: true }); fs.writeFileSync(path.resolve(W, p), t) }, exists: async (p) => fs.existsSync(p),
-        list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'directory' : 'file' })) },
+        // amended by verifier (XT11): a directory is listed as the declared kind 'dir', index.d.ts:5093 `kind: 'file' | 'dir' | 'other'` (mismatches S0489, S0494; R-C1-05, R-C1-06)
+        list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'dir' : 'file' })) },
   session: { cwd: async () => W, root: async () => W, surfaces: async () => surfaces, version: async () => ({ base: '2.1.287' }), send: async (x) => (sent.push(x), { isDelivered: true }) },
   process: { run: async (argv, o) => { if (argv[0] === 'curl') return { exitCode: 0, stdout: JSON.stringify({ version: FAKE_REMOTE }), stderr: '' }; if (argv[0] === 'claude' && argv[1] === 'plugin' && argv[2] === 'update') return (updates.push(argv.join(' ')), { exitCode: 0, stdout: 'updated', stderr: '' }); try { return { exitCode: 0, stdout: execFileSync(argv[0], argv.slice(1), { input: o?.stdin ?? '', cwd: W, stdio: ['pipe', 'pipe', 'pipe'] }).toString(), stderr: '' } } catch (err) { return { exitCode: 1, stdout: '', stderr: String(err.stderr) } } } },
   model: { complete: async () => ({ isAnswered: true, text: 'NONE' }) },
   clock: { after: (ms, f) => timers.push(f), every: () => ({ cancel() {} }) },
   ui: { log: () => {}, invalidate: () => {}, toast: (t) => toasts.push(t), open: async (x) => (opened.push(x), { isPlaced: true }),
+        // amended by verifier (XT11): the declared way to raise a desktop notification, index.d.ts `notify: (text: string, options?: NotifyOptions) => Promise<UiNotifyResult>` (X2; R-C1-06)
+        notify: async (text, o) => (notified.push({ text: String(text), ...(o || {}) }), { isSent: true, channel: 'terminal' }),
         ask: async (q, opts) => { asked.push({ q, opts }); const a = answers.shift(); if (a === undefined) throw new Error('dismissed'); return typeof a === 'function' ? a(opts) : a },
         resolve: () => new Proxy({}, { get: (_, type) => (props) => ({ type, props }) }) },
   prompt: { submit: async (x) => (submitted.push(x), {}) },
@@ -59,7 +69,7 @@ await fire('tool.call', { agentId: 'w1', tool: 'Read', file_path: 'x' })
 // command gate
 answers = ['Approve']
 let r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'git push origin v7' })
-ok(r.result === 'ran', 'approved push runs')
+ok(r.result?.stdout === 'ran', 'approved push runs') // amended by verifier (XT11): the Bash result is the declared record (S0598; R-C1-05)
 ok(/prime › P3 › T7 wants to git push/.test(asked[0].q), 'question names the chain: ' + asked[0].q.split('\n')[0])
 answers = ['not from a worker']
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'gh pr create --base main' })
@@ -67,9 +77,9 @@ ok(/refused "open, merge or close a PR": not from a worker/.test(r.deny), 'refus
 answers = [(opts) => opts[1]]
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf build' })
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf dist' })
-ok(r.result === 'ran' && asked.length === 3, 'approve-for-run skips the second ask')
+ok(r.result?.stdout === 'ran' && asked.length === 3, 'approve-for-run skips the second ask') // amended by verifier (XT11): the Bash result is the declared record (S0598; R-C1-05)
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'npm test' })
-ok(r.result === 'ran' && asked.length === 3, 'ordinary command not gated')
+ok(r.result?.stdout === 'ran' && asked.length === 3, 'ordinary command not gated') // amended by verifier (XT11): the Bash result is the declared record (S0598; R-C1-05)
 surfaces = []
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'git push' })
 ok(/nobody can be asked/.test(r.deny), 'headless: refused, fail closed')
@@ -172,15 +182,19 @@ ok(/is not a prime tool/.test(k.deny || ''), 'the prime may not read code, even 
 k = await fire('tool.call', { agentId: 'w1', tool: 'Read', file_path: W + '/src/big.ts' })
 ok((k.context || []).some((c) => /all 700 lines/.test(c) && /code_fetch/.test(c)), 'a large source Read runs, with a pointer to code_fetch')
 k = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'make test' })
-const kept = (k.result || '').split('\n').length
-const logs = fs.readdirSync(W + '/_orch/out')
-ok(kept < 120 && /601\| FAIL cart\.test\.ts > empty cart/.test(k.result) && logs.length === 1 && fs.readFileSync(W + '/_orch/out/' + logs[0], 'utf8').split('\n').length === 1200, 'quiet output: 1200 lines → ' + kept + ', the failure kept, the whole saved')
+const kept = (k.result?.stdout || '').split('\n').length // amended by verifier (XT11): the quieted Bash result is the declared record, its stdout cut (S0598, X3; R-C1-05)
+const logs = fs.existsSync(W + '/_orch/out') ? fs.readdirSync(W + '/_orch/out') : [] // amended by verifier (XT11): no saved output is a failed check, not a crash, so the record-shaped Bash result (S0598, X3; R-C1-05) fails by an assertion
+ok(kept < 120 && /601\| FAIL cart\.test\.ts > empty cart/.test(k.result?.stdout) && // amended by verifier (XT11): stdout of the declared Bash record (S0598, X3; R-C1-05)
+   logs.length === 1 && fs.readFileSync(W + '/_orch/out/' + logs[0], 'utf8').split('\n').length === 1200, 'quiet output: 1200 lines → ' + kept + ', the failure kept, the whole saved')
 const st = (await fire('command.run', { command: 'baton', args: 'status' })).text
 ok(/code tools 2 calls · large reads 1 \(700 lines\) · quieted 1 outputs \(1200 → \d+ lines\)/.test(st), 'status counts the kit: ' + st.split('\n').find((l) => /^code tools/.test(l)))
 const stop = await fire('classic.Stop', {})
-ok(typeof stop.terminalSequence === 'string' && stop.terminalSequence.length > 0, 'a waiting phase reaches the desktop as a terminal notification')
+// amended by verifier (XT11): terminalSequence is not a declared classic.Stop result field (index.d.ts:1422 ClassicResultOf; mismatch X2; R-C1-04, R-C1-06):
+// amended by verifier (XT11): the waiting phase (P4) reaches the desktop through $.ui.notify instead, once (mod/README.md "Notifications": "at the next Stop or Notification, once each")
+const p4 = () => notified.filter((n) => /P4/.test(n.text)).length // amended by verifier (XT11): X2, R-C1-06
+ok(!(stop && 'terminalSequence' in stop) && p4() === 1, 'a waiting phase reaches the desktop as a native notification') // amended by verifier (XT11): X2, R-C1-04, R-C1-06
 const stop2 = await fire('classic.Stop', {})
-ok(!stop2 || !stop2.terminalSequence, 'and only once')
+ok(!(stop2 && 'terminalSequence' in stop2) && p4() === 1, 'and only once') // amended by verifier (XT11): X2, R-C1-06
 
 // ---- every session: the band carries plan usage
 await fire('session.measure', { context: { tokens: 240000, window: 1000000, percent: 24 }, rateLimits: [{ kind: 'five_hour', percentUsed: 42.5, resetsAt: '2026-10-05T14:20:00Z' }, { kind: 'seven_day', percentUsed: 18 }, { kind: 'seven_day_fable', percentUsed: 3 }], changed: ['context', 'rateLimits'] })

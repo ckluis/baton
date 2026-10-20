@@ -50,7 +50,7 @@ test('a worker two levels down asks before git push; Approve runs it and notes t
   expect(r.result).toBe('ran')
   // the worker never sees the dialog, so its result says the operator approved
   expect(r.context).toContain('baton: the operator approved this "git push" command before it ran.')
-  expect(w.asked[0].q).toContain('prime › P3 › T7 wants to git push')
+  expect(w.asked[0]!.q).toContain('prime › P3 › T7 wants to git push') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   expect(w.notes.at(-1)!.tag).toBe('approval')
 })
 
@@ -81,7 +81,7 @@ test('a sub-orchestrator reporting DONE holds the next dispatch until the operat
   await $.turn.complete({ agentId: 's1', answer: 'P3 DONE+CONFIRMED 4/4', durationMs: 1, isAborted: false, turnId: 'x', reason: 'answer' } as any)
   const r: any = await $.tool.call({ tool: 'Agent', prompt: 'P4', description: 'P4' } as any)
   expect(r.deny).toContain('sent back P3 — "the criteria are vacuous"')
-  expect(w.asked[0].q).toContain('P3 reports:')
+  expect(w.asked[0]!.q).toContain('P3 reports:') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   expect(((await $.tool.call({ tool: 'Agent', prompt: 'P3b', description: 'P3' } as any)) as any).result).toBe('ran')
 })
 
