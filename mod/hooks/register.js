@@ -1182,8 +1182,8 @@ function workspaceBody($, ui) {
   const v = track.view
   const out = []
   // Direct keys (T9): in tree order the prime, the phase rows, then the other agent rows.
-  const agentIds = treeRows(tree).filter((r) => r.id).map((r) => r.id)
-  assignLetters(pane.letters, [...agentIds.filter((id) => id === PRIME), ...(v ? v.phases.map((p) => 'phase:' + p.id) : []), ...agentIds.filter((id) => id !== PRIME)].map((id) => (id.startsWith('phase:') ? id : 'agent:' + id)))
+  const agents = treeRows(tree).filter((r) => r.id && r.id !== PRIME).map((r) => 'agent:' + r.id)
+  assignLetters(pane.letters, ['agent:' + PRIME, ...(v ? v.phases.map((p) => 'phase:' + p.id) : []), ...agents])
   if (v) {
     out.push(...goalLinks(ui, 'w-links'))
     out.push(stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget)))
