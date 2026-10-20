@@ -228,3 +228,28 @@ export function compareVersions(a, b) {
 export function installedCopy(pluginRoot) {
   return /\/\.claude\/plugins\/(cache|marketplaces)\//.test(String(pluginRoot ?? ''))
 }
+
+/** The row letters (Q-12), in order: the alphabet without b, p and r (the pane's own keys) and x (a ruling's retract). */
+export const ROW_LETTERS = 'acdefghijklmnoqstuvwyz'.split('')
+
+/** The accent the engine draws a plain Button's hotkey in (E1 §k); the focus keys ↑/↓, Enter, b and + are drawn in it too. */
+export const KEY_ACCENT = '#99CCFF'
+
+/**
+ * Give each row a direct key of its own (T9). `held` maps a row's identity to its letter and is
+ * updated in place: a row that left `ids` frees its letter, a row that is still there keeps it, and a
+ * new row, in `ids` order, takes the lowest free letter. Past the pool a row has none.
+ */
+export function assignLetters(held, ids, pool = ROW_LETTERS) {
+  const listed = new Set(ids)
+  for (const id of [...held.keys()]) if (!listed.has(id)) held.delete(id)
+  const taken = new Set(held.values())
+  for (const id of ids) {
+    if (held.has(id)) continue
+    const free = pool.find((l) => !taken.has(l))
+    if (!free) break
+    held.set(id, free)
+    taken.add(free)
+  }
+  return held
+}
