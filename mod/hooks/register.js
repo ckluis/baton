@@ -1114,7 +1114,7 @@ function stepperRow({ Box, Text }, key, label, st, tl, tail = '') {
     flexDirection: 'row',
     children: [
       Text({ bold: true, children: [label.padEnd(8).slice(0, 12) + ' '] }),
-      ...segs.map((x, i) => Text({ wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
+      ...segs.map((x) => Text({ wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
     ],
   })
 }
@@ -1221,7 +1221,7 @@ function workspaceLines() {
 }
 
 function usageRow({ Box, Text }, key) {
-  return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x, i) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+  return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
 }
 
 /**
@@ -1276,7 +1276,7 @@ function memoryTabBody($, ui) {
     const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
     return [
       Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ bold: true, children: [d.title] })] }),
-      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
+      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
     ]
   }
   return [Text({ bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ children: [' '] }), Text({ bold: true, children: ['memory'] }), ...memoryBody($, ui)]
@@ -1371,7 +1371,7 @@ function detailBody($, { Box, Text, Button, line }) {
   ]
   d.view.lines.forEach((segs, i) => {
     if (!segs.length) out.push(Text({ children: [' '] }))
-    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
+    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
   })
   // A running agent can be messaged from its own view.
   if (d.kind === 'agent') {
@@ -1463,12 +1463,12 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   const rowsData = treeRows(tree)
   const t = agentTable(rowsData.map(agentRow), Math.max(60, (cols || 120) - 4))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x, j) => Text({ dimColor: true, children: [x.text] }))] }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
   t.lines.forEach((segs, i) => {
     const r = rowsData[i]
     // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
     const open = r.id ? [Button({ key: 'open-a' + i, label: '›', plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
-    const children = [...open, ...segs.map((x, j) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
+    const children = [...open, ...segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
   })
@@ -2998,7 +2998,7 @@ export function register(on, options) {
       } catch {}
       if (pane.waiting) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: '/baton opens the pane', color: undefined })
     }
-    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x, i) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
