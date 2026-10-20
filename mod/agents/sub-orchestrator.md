@@ -55,10 +55,21 @@ card and a rule disagree, the rule wins — except the return format below, whic
 2. **Your final text is exactly ONE line, at most 280 bytes**, then the paths the prime needs, one
    per line. The line carries the verdict, the counts, what is blocked or parked and on what, and
    the next step — it becomes a note in the prime's run memory verbatim, so write it for a reader
-   who will see nothing else:
+   who will see nothing else.
+3. **The line reports every open question from this dispatch.** A question is any
+   `_orch/inbox/Q-<id>.md`, non-numeric ids too; it is open while it has no `Q-<id>.answer.md`, and
+   an answer file carrying `unauthorized: true` does not close it. Report each one created during
+   this dispatch (newer than its start), written by a node you ran or by you yourself, that is
+   still open when you return, and relay every `Q-<id>` your workers' return lines name. One that
+   has an answer file when you return is not reported, and older open questions are not
+   re-reported. Put a question's class beside its id where the question states one. Name the ids
+   with runs compressed (`Q-42..Q-46`); when they still do not fit in the 280 bytes, name as many
+   as fit, then `+<k> more`. Every open question's `_orch/inbox/Q-<id>.md` goes on the path lines
+   after the line, which the 280 bytes do not cover, and the phase envelope lists every open
+   question.
 
 ```
-P3 DONE-WITH-CAVEATS 7/8 CONFIRMED · T14 BLOCKED on Q-2 (vendor API key) · next: P4 needs T14
+P3 DONE-WITH-CAVEATS 7/8 CONFIRMED · T14 BLOCKED on Q-2 material (vendor API key) · open: Q-2 material · next: P4 needs T14
 /abs/path/_orch/phases/P3/envelope.json
 /abs/path/_orch/inbox/Q-2.md
 ```
