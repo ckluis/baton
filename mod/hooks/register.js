@@ -1639,26 +1639,23 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
     )
   }
   out.push(Box({ key: 'mem-nav', flexDirection: 'row', columnGap: 2, children: nav }))
-  const table = memTable(pane.memLines)
-  table.forEach((l, j) => {
+  memTable(pane.memLines).forEach((l, j) => {
     const t = pane.memTiles[j]
-    const children = []
-    if (!(t && t.level > 0)) children.push(Text({ children: [' '] }))
-    else
-      children.push(
-        Button({
-          key: 'mem-open-' + j,
-          label: '+',
-          plain: true,
-          onPress: () => {
-            browse.search = null
-            browse.stack.push(t.lo + '-' + (t.hi - 1))
-            return reload()
-          },
-        }),
-      )
-    children.push(line('m' + j, l))
-    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children }))
+    // the first column: a summary's + opens it; a note keeps the column blank so the table lines up
+    const first =
+      t && t.level > 0
+        ? Button({
+            key: 'mem-open-' + j,
+            label: '+',
+            plain: true,
+            onPress: () => {
+              browse.search = null
+              browse.stack.push(t.lo + '-' + (t.hi - 1))
+              return reload()
+            },
+          })
+        : Text({ children: [' '] })
+    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children: [first, line('m' + j, l)] }))
   })
   if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then '], ['Enter', ' opens a block · '], ['b', ' goes back']]))
   return out
