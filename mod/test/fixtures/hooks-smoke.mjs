@@ -75,9 +75,11 @@ answers = ['not from a worker']
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'gh pr create --base main' })
 ok(/refused "open, merge or close a PR": not from a worker/.test(r.deny), 'refusal carries the reason')
 answers = [(opts) => opts[1]]
+// amended by verifier (XT12): W is not a git repo yet (git init comes later), so the checkpoint snapshot fails; Q-1 option 1 (/Users/clank/Desktop/projects/baton/_orch/inbox/Q-1.answer.md) "checkpoints (:2545: refuse the rm/reset when the snapshot failed)"; R-C2-02, R-C2-10, R-C2-11
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf build' })
+ok(typeof r.deny === 'string' && r.result === undefined, 'approved rm whose checkpoint snapshot failed is refused (fail closed)') // amended by verifier (XT12): rm refused when the snapshot failed (Q-1 option 1; R-C2-02, R-C2-10)
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'rm -rf dist' })
-ok(r.result?.stdout === 'ran' && asked.length === 3, 'approve-for-run skips the second ask') // amended by verifier (XT11): the Bash result is the declared record (S0598; R-C1-05)
+ok(typeof r.deny === 'string' && r.result === undefined && asked.length === 3, 'approve-for-run skips the second ask; its rm is still refused while the snapshot fails') // amended by verifier (XT12): was r.result?.stdout === 'ran' (XT11, S0598; R-C1-05); the rm is now refused because the snapshot failed (Q-1 option 1; R-C2-02, R-C2-10, R-C2-11)
 r = await fire('tool.call', { agentId: 'w1', tool: 'Bash', command: 'npm test' })
 ok(r.result?.stdout === 'ran' && asked.length === 3, 'ordinary command not gated') // amended by verifier (XT11): the Bash result is the declared record (S0598; R-C1-05)
 surfaces = []
