@@ -109,6 +109,7 @@ type Opts = {
   returns?: Record<string, string> // agent description -> final text (it returns before the pane opens)
   rulings?: any[]
   subOrchs?: Record<string, string> // phase label -> the line its sub-orchestrator returns before the pane opens (a queued phase)
+  handoffs?: Record<string, string> // node id -> handoff.md text (default: '# HANDOFF — <id>' and one line)
 }
 
 function world(on: any, opts: Opts = {}) {
@@ -125,7 +126,7 @@ function world(on: any, opts: Opts = {}) {
   dirs.set('_orch/nodes', Object.keys(nodes).map((id) => ({ name: id, kind: 'dir' })))
   for (const [id, st] of Object.entries(nodes)) {
     dirs.set('_orch/nodes/' + id, [{ name: 'handoff.md', kind: 'file' }, { name: 'status.json', kind: 'file' }])
-    files.set('_orch/nodes/' + id + '/handoff.md', '# HANDOFF — ' + id + '\n\nExport the report.\n')
+    files.set('_orch/nodes/' + id + '/handoff.md', opts.handoffs?.[id] ?? '# HANDOFF — ' + id + '\n\nExport the report.\n')
     files.set('_orch/nodes/' + id + '/status.json', JSON.stringify(st, null, 2) + '\n')
   }
   for (const [f, text] of Object.entries(opts.inbox ?? {})) files.set('_orch/inbox/' + f, text)
@@ -392,14 +393,17 @@ test('missing #2 (c5): a blocked row\'s brief shows the Blocked by line its stat
 // ================================================================== 3 · the brief shows the node id and its envelope summary
 
 test('missing #3 (c40): a node row\'s blocked brief shows the node id', async ($, on) => {
-  // R-C14-05 (L202). Q-38.md option 1: the brief shows "the node id, its envelope summary ...". The fixture's summary does
-  // not name T5, so the id shown is the brief's own.
-  const w = world(on, { nodes: { T5 }, inbox: { 'Q-72.md': Q72 } })
+  // R-C14-05 (L202). Q-38.md option 1: the brief shows "the node id, its envelope summary ...". No other text the view
+  // could show names T5 on a line of its own: the fixture's summary does not, Q-72's one line naming T5 ('**Nodes it blocks:** T5.')
+  // is excluded below, as is any line naming Q-72, and T5's handoff here is T5_HANDOFF, which does not either (attempt 2, verdict r2 c40: the default
+  // handoff's '# HANDOFF — T5' let a brief without the id pass). So a line naming T5 is the brief's own.
+  const T5_HANDOFF = '# HANDOFF\n\nExport the report without the legacy column.\n' // fixture: a handoff that does not name its node
+  const w = world(on, { nodes: { T5 }, inbox: { 'Q-72.md': Q72 }, handoffs: { T5: T5_HANDOFF } })
   const ui: any = await w.pane($)
   await enter(ui, await nodeRow(ui, 'T5'))
   const lines = shownLines(await ui.drawn())
   const briefShown = lines.some((l) => l.includes(flat(T5_SUMMARY)))
-  expect({ briefShown, id: lines.some((l) => idRe('T5').test(l) && !l.includes('Q-72')) }).toEqual({ briefShown: true, id: true }) // Q-38.md option 1: "the node id"
+  expect({ briefShown, id: lines.some((l) => idRe('T5').test(l) && !l.includes('Q-72') && !l.includes('Nodes it blocks')) }).toEqual({ briefShown: true, id: true }) // Q-38.md option 1: "the node id"
 })
 
 test('missing #3 (c41): a node row\'s blocked brief shows its envelope summary', async ($, on) => {
