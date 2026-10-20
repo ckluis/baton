@@ -40,7 +40,10 @@ export function newestOf(family, known) {
     const hit = FAMILY_ID.exec(String(id))
     if (!hit || hit[1].toLowerCase() !== family.toLowerCase()) continue
     const v = Number(hit[2]) * 100 + Number(hit[3] || 0)
-    if (v > bv) [best, bv] = [baseModel(id), v]
+    if (v > bv) {
+      best = baseModel(id)
+      bv = v
+    }
   }
   return best
 }

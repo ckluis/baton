@@ -1648,8 +1648,8 @@ function workState(agentId) {
   return null
 }
 
-/** In a run this session is the prime of (T7's membership): the main row is the prime's, else the session's. */
-const inRunNow = () => !!(run.active || run.startedHere)
+/** The main row's glyph and name: the prime's in a run this session is the prime of (T7's membership), else the session's (T8). */
+const mainRow = () => (run.active || run.startedHere ? { glyph: '◆', name: 'prime' } : { glyph: '◇', name: 'session' })
 
 const KNOWN_MODELS = [...Object.keys(PRICES), FRONTIER, CHEAP, MECH]
 
@@ -1672,7 +1672,7 @@ function mismatchLines() {
   for (const r of treeRows(tree)) {
     const n = r.id ? tree.nodes.get(r.id) : null
     const m = n && modelOf(n)
-    if (m && m.mismatch) out.push('model mismatch ' + (n.id === PRIME ? agentRow(r).label.trim() : n.label) + ': requested ' + m.expected + ', served ' + m.served)
+    if (m && m.mismatch) out.push('model mismatch ' + (n.id === PRIME ? mainRow().name : n.label) + ': requested ' + m.expected + ', served ' + m.served)
   }
   return out
 }
@@ -1682,8 +1682,8 @@ function agentRow(r) {
   const n = r.id ? tree.nodes.get(r.id) : null
   if (!n) return { label: r.text.trim(), tone: 'rail' }
   const m = modelOf(n)
-  const glyph = n.id === PRIME ? (inRunNow() ? '◆' : '◇') : r.live ? '●' : r.color === 'red' ? '✗' : '✓'
-  const name = n.id === PRIME ? (inRunNow() ? 'prime' : 'session') : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
+  const glyph = n.id === PRIME ? mainRow().glyph : r.live ? '●' : r.color === 'red' ? '✗' : '✓'
+  const name = n.id === PRIME ? mainRow().name : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
   const st = workState(r.id)
   const mini = st ? stepperMini(st) : null
   const pct = ctxPct(n)
