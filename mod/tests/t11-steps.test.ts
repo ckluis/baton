@@ -25,6 +25,13 @@
 // Labels use this run's ids (F17, XT17, LV7, G1, PLANV, V1.R-C7-01), which `workOf` does not match
 // (lib/ledger.mjs:135-140), per the T111 handoff and roadmap.md:69.
 import { expect, mock, test } from 'claude-code/testing'
+// Criterion 25 (c): the matchers that refuted c25 in verdicts r1-r4 (_orch/verify/T111-verdict.r{1,2,3,4}.json), as
+// test-only fixtures beside this file; each must fail the two-list differential check below.
+import * as C25_R1 from './t11-steps-mutants/r1.mjs'
+import * as C25_R2 from './t11-steps-mutants/r2.mjs'
+import * as C25_R3 from './t11-steps-mutants/r3.mjs'
+import * as C25_R4 from './t11-steps-mutants/r4.mjs'
+const C25_MUTANTS = [C25_R1, C25_R2, C25_R3, C25_R4]
 
 // An active prime run (the tracker only observes during a run).
 const MANIFEST = { run_id: 'build-20261019T125436Z', mode: 'BUILD', target: './mod', prime: true, phase: 'P2' }
@@ -125,7 +132,7 @@ function world(on: any, files: Record<string, string> = FILES, dirs: Record<stri
     return { value: hit }
   })
   on('fs.write', () => ({ value: undefined }))
-  mock.clock(on)
+  const clock = mock.clock(on)
   on('turn.complete', () => ({ text: '' }))
   on('ui.render', ($: any, e: any) => {
     const { Text } = $.ui.resolve(e)
@@ -141,6 +148,7 @@ function world(on: any, files: Record<string, string> = FILES, dirs: Record<stri
   on('command.run', () => ({ text: 'core' }))
   on('tool.call', () => ({ result: 'ran' }))
   on('agent.spawn', (_$: any, e: any) => ({ model: e.model ?? 'claude-opus-5-5', agentId: e.prompt }))
+  return clock
 }
 
 // The drawn tree's text, one entry per Box that holds text directly or through its descendants.
@@ -273,98 +281,191 @@ test('the steps column is never dropped, at any pane width rendered', async ($, 
 })
 
 // R-C11-01 (L153); Q-15 answer: "Match the label's tokens against the run's real node ids (`_orch/nodes/*`,
-// `graph.yaml`) and phase ids."; criterion 25 as rewritten under _orch/inbox/Q-T111-2.answer.md (option B):
-// "id-shaped labels that are NOT in the list (e.g. T999, P9, Q-NODE-X) must be rejected, and real ids from the
-// list that break the usual id pattern (lowercase, digits-first, long or hyphenated) must be accepted, so any
-// matcher that does not read the node list fails whatever its heuristic."
-// The fixture run below has its own node list (graph.yaml and _orch/nodes/*) and phases (P1, P2). Its listed ids
-// break every id pattern: `alpha` (lower-case), `9lives` (digits first), `CONSOLIDATE` (11 characters, longer
-// than 8), `fix-xt17` (hyphenated); XT17 is listed too, so a case-folding or sub-token guess at `fix-xt17` shows
-// XT17's stepper, not fix-xt17's. Each listed node sits at a stepper no lifecycle stepper (Q-15) can draw, and
-// the listed ids share their labels with unlisted id-shaped tokens (T999, Q-NODE-X) placed before and after them,
-// so a pick by position or shape lands on a token that is not in the list. Labels stay within 17 characters, so
-// the agent column draws each one whole.
-const C25_GRAPH = [
-  ['alpha', 1],
-  ['9lives', 1],
-  ['CONSOLIDATE', 2],
-  ['fix-xt17', 2],
-  ['XT17', 2],
+// `graph.yaml`) and phase ids."; criterion 25 as rewritten under _orch/inbox/Q-T111-3.answer.md (option D): "the
+// same row labels run through the matcher twice, with node lists L1 and L2 — labels that are nodes in L1 but not L2
+// (and the reverse) must give different results in the two runs, each agreeing with list membership; labels in both
+// lists or in neither must give the same answer in both runs; the four refuting matchers (r1-r4) are fixtures that
+// must fail."
+//
+// One fixed label set (C25_LABELS) is drawn twice: once over fixture run L1, once over fixture run L2, each with its
+// own graph.yaml and _orch/nodes/*. L1-only ids: PLAN, alpha. L2-only ids: F99, fix-xt17. In both: F17, CONSOLIDATE.
+// In neither: T999, Q-NODE-X, P9 (no phase either: both runs hold P1 and P2), XX, TODO. Four labels carry an L1-only
+// id and an L2-only id together ('F99 for PLAN', 'PLAN for F99', 'alpha fix-xt17', 'fix-xt17 alpha'): the right
+// answer swaps between the runs, so any matcher that picks its token without reading the run's node list (by
+// shape, position or length) is wrong in one of the two runs, whatever token it picks.
+// Each node sits at a step whose drawn stepper is unique within its run and is not the lifecycle stepper of a live
+// row (`●─◉─○─○`, spawned reached, working current: Q-15 ladder order), so the steps cell names the matched node.
+// Labels stay within 17 characters, so the agent column draws each one whole.
+const C25_LABELS = [
+  'rerun PLAN', // L1 only
+  'F99 after T999', // L2 only (T999 in neither)
+  'F99 for PLAN', // L2 only + L1 only: swaps
+  'PLAN for F99', // L1 only + L2 only: swaps
+  'alpha fix-xt17', // L1 only + L2 only: swaps (lower-case, hyphenated)
+  'fix-xt17 alpha', // L2 only + L1 only: swaps
+  'F17 after T999', // both (T999 in neither)
+  'T999 CONSOLIDATE', // both (T999 in neither)
+  'T999 sweep', // neither
+  'Q-NODE-X P9', // neither (P9 is no node and no phase)
+  'XX for TODO', // neither
 ]
-  .map(([id, p]) => '- id: ' + id + '\n  kind: task\n  phase: ' + p + '\n')
-  .join('\n')
-const C25_FILES: Record<string, string> = {
-  '_orch/manifest.json': JSON.stringify(MANIFEST),
-  '_orch/plan/graph.yaml': C25_GRAPH,
-  '_orch/phases/P1/brief.md': '# P1',
-  '_orch/phases/P2/brief.md': '# P2',
-  // alpha: red only -> at `red` (1st of 4)
-  '_orch/nodes/alpha/handoff.md': '# alpha',
-  '_orch/nodes/alpha/work/red.txt': 'red',
-  // 9lives: rgb exempt and started -> `working` (1st of 2)
-  '_orch/nodes/9lives/handoff.md': '# 9lives\nrgb: exempt\n',
-  '_orch/nodes/9lives/work/applied.md': 'x',
-  // CONSOLIDATE: red only and BLOCKED (status.json, CONTRACT rule 2) -> at `red`, flagged
+type C25Run = { name: string; nodes: string[]; phases: string[]; steps: Record<string, string>; files: Record<string, string>; dirs: Record<string, any[]> }
+function c25Run(name: string, nodes: [string, number, Record<string, string>, string][]): C25Run {
+  const files: Record<string, string> = {
+    '_orch/manifest.json': JSON.stringify(MANIFEST),
+    '_orch/plan/graph.yaml': nodes.map(([id, p]) => '- id: ' + id + '\n  kind: task\n  phase: ' + p + '\n').join('\n'),
+    '_orch/phases/P1/brief.md': '# P1',
+    '_orch/phases/P2/brief.md': '# P2',
+  }
+  for (const [, , f] of nodes) Object.assign(files, f)
+  return {
+    name,
+    nodes: nodes.map(([id]) => id),
+    phases: ['P1', 'P2'],
+    steps: Object.fromEntries(nodes.map(([id, , , s]) => [id, s])),
+    files,
+    dirs: {
+      // FsEntry.kind 'dir' (engine types index.d.ts:5066, quoted in E1 §m, probes.md:429)
+      '_orch/nodes': nodes.map(([id]) => ({ name: id, kind: 'dir' })),
+      '_orch/phases': [{ name: 'P1', kind: 'dir' }, { name: 'P2', kind: 'dir' }],
+      '_orch/inbox': [],
+      '_orch/track': [],
+      '_orch/ledger': [],
+    },
+  }
+}
+// Node records (README.md:116-117: node `red → green → blue → verified`, `working → verified` when exempt; computed
+// from work/red.txt, green.txt, blue.txt, rgb: exempt and the verdict; CONTRACT rule 2 status.json for BLOCKED).
+// The nodes in both lists have the same record in both runs, so a correct matcher draws the same stepper twice.
+const C25_F17: [string, number, Record<string, string>, string] = ['F17', 2, {
+  '_orch/nodes/F17/handoff.md': '# F17',
+  '_orch/nodes/F17/work/red.txt': 'red',
+  '_orch/nodes/F17/work/green.txt': 'green',
+  '_orch/nodes/F17/work/blue.txt': 'blue',
+  '_orch/verify/F17-verdict.json': JSON.stringify({ verdict: 'CONFIRMED', criteria: [] }),
+}, '●─●─●─●'] // expected: CONFIRMED -> verified, every step reached (README.md:116)
+const C25_CONSOLIDATE: [string, number, Record<string, string>, string] = ['CONSOLIDATE', 2, {
   '_orch/nodes/CONSOLIDATE/handoff.md': '# CONSOLIDATE',
   '_orch/nodes/CONSOLIDATE/work/red.txt': 'red',
   '_orch/nodes/CONSOLIDATE/status.json': JSON.stringify({ node: 'CONSOLIDATE', verdict: 'BLOCKED' }),
-  // fix-xt17: rgb exempt and CONFIRMED -> `verified` (2nd of 2, every step reached)
-  '_orch/nodes/fix-xt17/handoff.md': '# fix-xt17\nrgb: exempt\n',
-  '_orch/nodes/fix-xt17/work/applied.md': 'x',
-  '_orch/verify/fix-xt17-verdict.json': JSON.stringify({ verdict: 'CONFIRMED', criteria: [] }),
-  // XT17: red and green -> at `green` (2nd of 4)
-  '_orch/nodes/XT17/handoff.md': '# XT17',
-  '_orch/nodes/XT17/work/red.txt': 'red',
-  '_orch/nodes/XT17/work/green.txt': 'green',
+}, '✗─○─○─○'] // expected: at red and BLOCKED, the current step flagged `✗` (E1 §m form; README.md:116)
+const C25_L1 = c25Run('L1', [
+  ['PLAN', 1, {
+    '_orch/nodes/PLAN/handoff.md': '# PLAN',
+    '_orch/nodes/PLAN/work/red.txt': 'red',
+  }, '◉─○─○─○'], // expected: red only -> at red (README.md:116)
+  ['alpha', 1, {
+    '_orch/nodes/alpha/handoff.md': '# alpha\nrgb: exempt\n',
+    '_orch/nodes/alpha/work/applied.md': 'x',
+    '_orch/verify/alpha-verdict.json': JSON.stringify({ verdict: 'CONFIRMED', criteria: [] }),
+  }, '●─●'], // expected: exempt and CONFIRMED -> `working → verified`, both reached (README.md:117)
+  C25_F17,
+  C25_CONSOLIDATE,
+])
+const C25_L2 = c25Run('L2', [
+  ['F99', 1, {
+    '_orch/nodes/F99/handoff.md': '# F99\nrgb: exempt\n',
+    '_orch/nodes/F99/work/applied.md': 'x',
+  }, '◉─○'], // expected: exempt and started -> at working (README.md:117)
+  ['fix-xt17', 1, {
+    '_orch/nodes/fix-xt17/handoff.md': '# fix-xt17',
+    '_orch/nodes/fix-xt17/work/red.txt': 'red',
+    '_orch/nodes/fix-xt17/work/green.txt': 'green',
+    '_orch/nodes/fix-xt17/work/blue.txt': 'blue',
+  }, '●─●─◉─○'], // expected: red, green, blue -> at blue (README.md:116; E1 §m `●─●─◉─○ blue`)
+  C25_F17,
+  C25_CONSOLIDATE,
+])
+const NO_NODE = 'no node'
+
+/** What a label should match in a run, from that run's node list only: the label's token that is a listed node. */
+function c25Expected(run: C25Run, label: string): string {
+  const hits = label.split(/\s+/).filter((t) => run.nodes.includes(t))
+  if (hits.length > 1) throw new Error('fixture: ' + label + ' names two nodes of ' + run.name)
+  return hits[0] ?? NO_NODE // Q-15: "A row that matches nothing" -> no node's stepper
 }
-const C25_DIRS: Record<string, any[]> = {
-  // FsEntry.kind 'dir' (engine types index.d.ts:5066, quoted in E1 §m, probes.md:429)
-  '_orch/nodes': ['alpha', '9lives', 'CONSOLIDATE', 'fix-xt17', 'XT17'].map((name) => ({ name, kind: 'dir' })),
-  '_orch/phases': [{ name: 'P1', kind: 'dir' }, { name: 'P2', kind: 'dir' }],
-  '_orch/inbox': [],
-  '_orch/track': [],
-  '_orch/ledger': [],
-}
 
-test("a row label is matched only to the fixture run's listed node ids, whatever their shape", async ($, on) => {
-  world(on, C25_FILES, C25_DIRS)
-  // (a) labels whose only id-shaped tokens are in no list: T999 and Q-NODE-X are no node (absent from graph.yaml
-  // and _orch/nodes), P9 is no phase (_orch/phases holds P1 and P2 only) and no node.
-  await spawn($, 'w-t999', 'T999 sweep', 'baton:worker')
-  await spawn($, 'w-p9', 'P9 sweep', 'baton:worker')
-  await spawn($, 'w-qnx', 'Q-NODE-X triage', 'baton:worker')
-  // (b) labels carrying a listed id that breaks the id pattern, beside unlisted id-shaped tokens.
-  await spawn($, 'w-alpha', 'rerun alpha', 'baton:worker')
-  await spawn($, 'w-9lives', '9lives after T999', 'baton:worker')
-  await spawn($, 'w-consol', 'CONSOLIDATE T999', 'baton:worker')
-  await spawn($, 'w-fixxt', 'Q-NODE-X fix-xt17', 'baton:worker')
-  // The (a) rows return, the (b) rows stay live: a (b) row's own lifecycle would be at `working` (`●─◉─○─○`),
-  // which is none of the listed nodes' steppers; an (a) row's at `returned` (`●─●─◉─○`), which is none either.
-  for (const agentId of ['w-t999', 'w-p9', 'w-qnx'])
-    await $.turn.complete({ agentId, answer: 'done', durationMs: 5, isAborted: false, turnId: 't-' + agentId, reason: 'answer' } as any)
-  const ui = await pane($)
-  // A stepper drawn exactly so: not part of a longer one (E1 §m form, dots joined by `─`).
-  const exactly = (dots: string) => new RegExp('(?<![●◉○✗─])' + dots + '(?![─●◉○✗])')
-
-  // (b) expected: each row shows its listed node's stepper (Q-15 "Match the label's tokens against the run's real
-  // node ids"; Q-T111-2 B "real ids from the list that break the usual id pattern ... must be accepted"):
-  // alpha (lower-case) at red, node ladder `red → green → blue → verified` (README.md:116)
-  expect(await row(ui, /worker rerun alpha/)).toMatch(exactly('◉─○─○─○'))
-  // 9lives (digits first), rgb exempt and started: `working → verified` at working (README.md:117)
-  expect(await row(ui, /worker 9lives after T999/)).toMatch(exactly('◉─○'))
-  // CONSOLIDATE (11 characters), at red and BLOCKED: the current step drawn flagged, `✗` (E1 §m form; README.md:116)
-  expect(await row(ui, /worker CONSOLIDATE T999/)).toMatch(exactly('✗─○─○─○'))
-  // fix-xt17 (hyphenated), rgb exempt and CONFIRMED: `working → verified` with every step reached (README.md:117)
-  expect(await row(ui, /worker Q-NODE-X fix-xt17/)).toMatch(exactly('●─●'))
-
-  // (a) expected: matched to no node or phase, so each row shows its own lifecycle stepper (Q-15 "A row that
-  // matches nothing shows its own lifecycle stepper (spawned → working → returned → verdict)"); returned, so
-  // spawned and working are behind it (Q-15 ladder order). No listed node's stepper starts with two reached steps
-  // and has four steps (alpha `◉─○─○─○`, CONSOLIDATE `✗─○─○─○`, XT17 `●─◉─○─○`; 9lives and fix-xt17 have two).
-  for (const label of [/worker T999 sweep/, /worker P9 sweep/, /worker Q-NODE-X triage/]) {
-    const r = await row(ui, label)
-    expect({ label: String(label), lifecycle: LIFECYCLE.test(r), returned: /●─●─[●◉✗]─[●◉○✗]/.test(r) }).toEqual({ label: String(label), lifecycle: true, returned: true })
+/**
+ * The differential check of criterion 25 over the two runs' match results (label -> node id, or anything else for
+ * "no node"). Returns every violation; [] when the matcher follows each run's own node list.
+ */
+function c25Differential(r1: Record<string, string>, r2: Record<string, string>): string[] {
+  const bad: string[] = []
+  const asNode = (run: C25Run, r: string) => (run.nodes.includes(r) ? r : NO_NODE)
+  for (const label of C25_LABELS) {
+    const e1 = c25Expected(C25_L1, label)
+    const e2 = c25Expected(C25_L2, label)
+    const toks = label.split(/\s+/)
+    const oneList = toks.some((t) => C25_L1.nodes.includes(t) !== C25_L2.nodes.includes(t))
+    const got = 'L1=' + r1[label] + ' L2=' + r2[label]
+    if (oneList) {
+      // (a) a label naming a node in exactly one list: a different result in each run, each agreeing with membership
+      if (r1[label] === r2[label]) bad.push('(a) same result in both runs for "' + label + '": ' + got)
+      if (asNode(C25_L1, r1[label]) !== e1) bad.push('(a) L1 "' + label + '": expected ' + e1 + ', ' + got)
+      if (asNode(C25_L2, r2[label]) !== e2) bad.push('(a) L2 "' + label + '": expected ' + e2 + ', ' + got)
+    } else {
+      // (b) every id-shaped token in both lists or in neither: the same result in both runs
+      if (r1[label] !== r2[label]) bad.push('(b) different results for "' + label + '": ' + got)
+      if (asNode(C25_L1, r1[label]) !== e1 || asNode(C25_L2, r2[label]) !== e2) bad.push('(b) "' + label + '": expected L1=' + e1 + ' L2=' + e2 + ', ' + got)
+    }
   }
+  return bad
+}
+
+/** A refuting matcher's results in a run: its picked token, looked up in that run's node list, then phases (da5910c
+ * workOf's /\b(P\d+)\b/ phase pick, ledger.mjs:138, kept beside the mutated node pick); else its fallback. */
+function c25ViaPick(m: { pick: (s: string) => string | null; fallback: boolean }, run: C25Run): Record<string, string> {
+  return Object.fromEntries(
+    C25_LABELS.map((label) => {
+      const tok = m.pick(label)
+      const ph = /\b(P\d+)\b/.exec(label)
+      const r = tok && run.nodes.includes(tok) ? tok : ph && run.phases.includes(ph[1]) ? 'phase ' + ph[1] : m.fallback ? 'lifecycle' : 'nothing'
+      return [label, r]
+    }),
+  )
+}
+
+/** The node a drawn row's steps cell names in a run: the one node whose stepper it draws exactly, else what it draws. */
+function c25Decode(run: C25Run, text: string): string {
+  const exactly = (dots: string) => new RegExp('(?<![●◉○✗─])' + dots + '(?![─●◉○✗])')
+  const ids = run.nodes.filter((id) => exactly(run.steps[id]).test(text))
+  if (ids.length === 1) return ids[0]
+  if (ids.length > 1) return 'ambiguous ' + ids.join('+')
+  const any = /(?<![●◉○✗─])[●◉○✗](─[●◉○✗])+(?![─●◉○✗])/.exec(text)
+  return any ? (LIFECYCLE.test(text) ? 'lifecycle ' : 'stepper ') + any[0] : 'nothing'
+}
+
+test("two node lists: a row label's match follows each run's own node list (differential)", async ($, on) => {
+  // (c) each refuting matcher of verdicts r1-r4, committed beside this test, fails the differential check: it picks
+  // its token without reading the node list, so a swapping label is wrong in one of the two runs.
+  for (const m of C25_MUTANTS) {
+    const bad = c25Differential(c25ViaPick(m, C25_L1), c25ViaPick(m, C25_L2))
+    expect({ mutant: m.id, verdict: m.verdict, fails: bad.length > 0 }).toEqual({ mutant: m.id, verdict: m.verdict, fails: true })
+  }
+
+  // The plugin's own matcher, drawn over L1 and then over L2 (the same agents, the same labels).
+  const files: Record<string, string> = { ...C25_L1.files }
+  const dirs: Record<string, any[]> = { ...C25_L1.dirs }
+  const clock = world(on, files, dirs)
+  for (const [i, label] of C25_LABELS.entries()) await spawn($, 'w-c25-' + i, label, 'baton:worker')
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const results: Record<string, Record<string, string>> = {}
+  for (const run of [C25_L1, C25_L2]) {
+    for (const k of Object.keys(files)) delete files[k]
+    for (const k of Object.keys(dirs)) delete dirs[k]
+    Object.assign(files, run.files)
+    Object.assign(dirs, run.dirs)
+    // Re-read the run's record before drawing: `/baton status` makes the tracker observe afresh (how to drive it:
+    // register.js statusText calls observe($, true) at da5910c; no expected value comes from it).
+    await clock.advance(61000)
+    await $.command.run({ command: 'baton', args: 'status' } as any)
+    const ui = await pane($)
+    results[run.name] = {}
+    for (const label of C25_LABELS) results[run.name][label] = c25Decode(run, await row(ui, new RegExp('worker ' + esc(label) + '(?!\\S)')))
+    await ui.unmount()
+  }
+  // (a) and (b): expected, every label's result follows its run's node list (Q-15; Q-T111-3 D)
+  expect(c25Differential(results.L1, results.L2)).toEqual([])
 })
 
 // R-C11-01 (L153 "... verifier ..."); Q-15 answer: "A verifier row shows the stepper of the node it verifies."
