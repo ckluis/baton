@@ -114,7 +114,7 @@ r = await fire('tool.call', { agentId: 'w2', tool: 'Bash', command: 'git push or
 ok(r.result === 'ran', 'after /approve push on the thread, push runs')
 r = await fire('tool.call', { agentId: 'w2', tool: 'Bash', command: 'rm -rf build' })
 ok(!!r.deny, '/approve from a non-answerer is ignored')
-ok(models.some((x) => x.model === 'claude-haiku-4-5-20251001' && /unicode/.test(x.prompt)), 'a human remark is condensed by Haiku')
+ok(models.some((x) => x.model === 'claude-haiku-5-5' && /unicode/.test(x.prompt)), 'a human remark is condensed by Haiku') // amended by verifier (XT13): MECH becomes claude-haiku-5-5 (R-C3-01)
 const wake = execFileSync('node', [MOD + '/bin/memo.mjs', '--dir', W + '/_orch/memory', 'wake'], { encoding: 'utf8' })
 ok(/\[review\] PR #47 review round 1: CHANGES \(1 high, 1 med/.test(wake) && /\[github\] PR #47 chris: chris asks to also handle unicode/.test(wake) && /ignored \/approve rm from mallory/.test(wake), 'review, remark and ignored command are notes')
 s = await status()
