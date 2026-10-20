@@ -9,7 +9,7 @@
 // "prime": true (what /baton start writes), or /baton start ran here.
 
 import { agentIdVerified, guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
-import { clampBytes, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
+import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
@@ -174,6 +174,11 @@ const mirror = { label: null, labelsEnsured: false, board: null, boardWarned: fa
 const track = { snap: {}, rows: [], loadedFor: null, at: 0, view: null, dirty: true }
 const TRACK_TTL_MS = 10000
 
+// Tags the mod writes itself; a caller's memory_note may not take one (Q-3).
+const RESERVED_TAGS = ['operator', 'prime-reply', 'ruling', 'ruling-hand', 'handoff', 'approval', 'budget', 'sub', 'prime']
+const RESERVED_TAGS_TEXT = RESERVED_TAGS.join(', ') + ', L<k> (L followed by digits)'
+const isReservedTag = (tag) => RESERVED_TAGS.includes(tag) || /^L\d+$/.test(tag)
+
 const MEMORY_TOOLS = [
   {
     name: 'memory_wake',
@@ -185,7 +190,14 @@ const MEMORY_TOOLS = [
     name: 'memory_note',
     description:
       "baton run memory: append ONE line (≤280 bytes; longer is cut) — a decision, a parked node, what you are waiting on, a route you chose. The operator's prompts, sub-orchestrator returns and the first line of each of your replies are noted automatically; do not repeat them.",
-    inputSchema: { type: 'object', properties: { text: { type: 'string', description: 'one line, at most 280 bytes' } }, required: ['text'] },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'one line, at most 280 bytes' },
+        tag: { type: 'string', description: 'optional tag, e.g. decision ([A-Za-z0-9:_.-], 16 bytes); default your role. Reserved: ' + RESERVED_TAGS_TEXT },
+      },
+      required: ['text'],
+    },
   },
   {
     name: 'memory_zoom',
@@ -716,6 +728,14 @@ async function noteQuietly($, text, tag) {
   } catch (err) {
     $.ui.log('baton: could not note (' + tag + '): ' + err.message)
   }
+}
+
+/** The default note tag for a caller (Q-26): prime, its spawn type minus baton: (sub-orchestrator → sub), or agent. */
+function callerRole(agentId) {
+  if (!agentId) return 'prime'
+  const n = tree.nodes.get(agentId)
+  if (!n) return 'agent'
+  return n.role === 'sub-orchestrator' ? 'sub' : n.role.slice(0, 16)
 }
 
 /** Note the one-line return of a subagent the prime dispatched. True when a note was written. */
@@ -1663,8 +1683,13 @@ async function serveMemoryTool($, e) {
     switch (name) {
       case 'memory_wake':
         return { result: (await rulingsBlock($)) + (await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)])) }
-      case 'memory_note':
-        return { result: await appendNote($, 'run', String(e.text ?? ''), e.agentId ? 'agent' : 'prime') }
+      case 'memory_note': {
+        const tag = e.tag == null || e.tag === '' ? callerRole(e.agentId) : cleanTag(e.tag)
+        if (e.tag != null && e.tag !== '' && isReservedTag(tag)) {
+          return { result: 'baton: tag "' + tag + '" is reserved (' + RESERVED_TAGS_TEXT + '); no note written. Use another tag, or none for your role.' }
+        }
+        return { result: await appendNote($, 'run', String(e.text ?? ''), tag) }
+      }
       case 'memory_zoom':
         return { result: await memoRun($, [...(await memoryArgs($, 'run')), 'zoom', '--budget', String(budget), '--', String(e.range ?? '')]) }
       case 'memory_recall':
