@@ -16,7 +16,7 @@ import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, finishAgent, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, chain, finishAgent, lifecycle, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
@@ -1600,13 +1600,19 @@ function detailBody($, { Box, Text, Button, line }) {
   return out
 }
 
+/** The run's own node and phase ids, what a row's label is matched against (Q-15); undefined outside a run. */
+function runIds(v = track.view) {
+  if (!v) return undefined
+  return { nodes: [...v.phases.flatMap((p) => p.nodes.map((x) => x.id)), ...(v.unphased || []).map((x) => x.id)], phases: v.phases.map((p) => p.id) }
+}
+
 /** The computed state an agent's row shows: its node's, else its phase's; the goal's for the prime. */
 function workState(agentId) {
   const v = track.view
   if (!v || !agentId) return null
   if (agentId === PRIME) return v.goal
   const n = tree.nodes.get(agentId)
-  const w = workOf(n ? n.label : '')
+  const w = workOf(n ? n.label : '', runIds(v))
   if (w.node) {
     for (const p of v.phases) {
       const x = p.nodes.find((y) => y.id === w.node)
@@ -1657,6 +1663,8 @@ function agentRow(r) {
   const name = n.id === PRIME ? mainRow().name : (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label
   const st = workState(r.id)
   const mini = st ? stepperMini(st) : null
+  // A row that works on no node or phase shows its own lifecycle's steps; its state cell stays what it is doing.
+  const own = !mini && n.id !== PRIME ? stepperMini(lifecycle(n)) : null
   const pct = ctxPct(n)
   const thr = thresholdFor(n)
   return {
@@ -1670,7 +1678,7 @@ function agentRow(r) {
     modelTone: m.mismatch ? 'red' : undefined,
     acc: n.spend || null,
     cost: n.spend ? shortUsd(costOf(n.spend, config.prices)) : '',
-    steps: mini ? mini.slice(0, -1) : [],
+    steps: (mini || own || []).slice(0, -1),
     state: mini ? mini.at(-1).text.trim() : r.live ? (n.lastTool ? 'now ' + n.lastTool : 'starting') : String(n.verdict || '').toLowerCase(),
     stateTone: mini ? mini.at(-1).tone : r.live ? 'current' : r.color,
   }

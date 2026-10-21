@@ -143,12 +143,25 @@ export function isRoundSpawn(e) {
   return type === 'pr-reviewer' || /\b(steward|fix[- ]round|review round)\b/i.test(label)
 }
 
-/** Which node or phase an agent works for, from its name/description ("T14 …", "P3 phase"). */
-export function workOf(label) {
+/**
+ * Which node or phase an agent works for, from its name/description ("F17 impl", "verify XT17", "P3 phase").
+ * With the run's own ids (`ids.nodes`, `ids.phases`: _orch/nodes/*, graph.yaml and the phase ids, Q-15) a
+ * label's token names a node or phase only when the run has that id, whatever its shape; without them, by
+ * shape alone (`T<n>` a node, `P<n>` a phase).
+ */
+export function workOf(label, ids) {
   const s = String(label ?? '')
-  const node = /\b(T\d+[a-z]?)\b/.exec(s)
-  const phase = /\b(P\d+)\b/.exec(s)
-  return { node: node ? node[1] : null, phase: phase ? phase[1] : null }
+  if (!ids) {
+    const node = /\b(T\d+[a-z]?)\b/.exec(s)
+    const phase = /\b(P\d+)\b/.exec(s)
+    return { node: node ? node[1] : null, phase: phase ? phase[1] : null }
+  }
+  const tokens = s.split(/[\s,;:()[\]{}<>"'`|/]+/).flatMap((t) => [t, t.replace(/\.+$/, '')]).filter(Boolean)
+  const pick = (list) => {
+    const known = new Set(list ?? [])
+    return tokens.find((t) => known.has(t)) ?? null
+  }
+  return { node: pick(ids.nodes), phase: pick(ids.phases) }
 }
 
 /** The PR's spend comment (marker first, so the mod can find and edit it). */

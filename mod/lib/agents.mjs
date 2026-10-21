@@ -132,6 +132,18 @@ export function finishAgent(t, agentId, { line, aborted = false, at = Date.now()
   n.verdict = aborted ? 'ABORTED' : v ? v[1] : 'returned'
 }
 
+const FLAGGED = new Set(['ABORTED', 'BLOCKED', 'REFUTED', 'FAILED'])
+
+/**
+ * An agent's own lifecycle, spawned → working → returned → verdict (Q-15), for a row whose label names
+ * no node or phase of the run: working while it runs, returned once it has, at its verdict when its
+ * line carried one (flagged for a failing one).
+ */
+export function lifecycle(n) {
+  const state = !n || n.endedAt == null ? 'working' : !n.verdict || n.verdict === 'returned' ? 'returned' : 'verdict'
+  return { ladder: 'agent', state, flag: state === 'verdict' && FLAGGED.has(n.verdict) ? n.verdict.toLowerCase() : null }
+}
+
 /** The label chain from the prime down to an agent: "prime › P3 › worker". */
 export function chain(t, agentId) {
   const out = []
