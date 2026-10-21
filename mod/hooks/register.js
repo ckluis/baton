@@ -16,13 +16,13 @@ import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, finishAgent, modelMismatch, newTree, PRIME, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, chain, finishAgent, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
-import { agentTable, components, tableText } from '../lib/table.mjs'
+import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
 import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, rulingDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
@@ -1398,16 +1398,16 @@ function workspaceBody($, ui) {
   }
   const v = track.view
   const out = []
-  // Direct keys (T9): in tree order the prime, the phase rows, then the other agent rows.
-  const agents = treeRows(tree).filter((r) => r.id && r.id !== PRIME).map((r) => 'agent:' + r.id)
-  assignLetters(pane.letters, ['agent:' + PRIME, ...(v ? v.phases.map((p) => 'phase:' + p.id) : []), ...agents])
   if (v) {
     out.push(...goalLinks(ui, 'w-links'))
     out.push(stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget)))
     if (v.pr) out.push(stepperRow(ui, 'w-pr', 'PR', v.pr, v.pr.tl))
     const ml = mergeLine(v)
     if (ml) out.push(line('w-merge', '         ' + ml.text, ml.color ? { color: ml.color } : { dimColor: true }))
+    // With p on, every merge-ready row, under the merge-ready line (T10 amendment, Q-56).
+    if (pane.planOpen && v.pr && v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '         ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
     if (v.pr && v.pr.ready && v.pr.ready.diagnosis) out.push(line('w-diag', '         ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
+    if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
     // The reviewer's findings, each a link to its line on GitHub.
     const rv = v.pr && v.pr.review
     if (rv && rv.verdict === 'CHANGES' && (rv.findings || []).length) {
@@ -1433,7 +1433,6 @@ function workspaceBody($, ui) {
     out.push(Text({ children: [' '] }))
   }
   out.push(...agentsBody($, ui))
-  if (v) out.push(Text({ children: [' '] }), ...planSection($, ui, v))
   if (v && (v.questions || []).length) {
     out.push(Text({ children: [' '] }))
     v.questions.forEach((q, i) => out.push(line('w-q' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
@@ -1454,9 +1453,11 @@ function workspaceLines() {
     if (v.pr) out.push('PR #' + v.pr.number + ' ' + v.pr.url + '  ' + stepperText(v.pr, v.pr.tl))
     const ml = mergeLine(v)
     if (ml) out.push('         ' + ml.text)
+    if (pane.planOpen && v.pr && v.pr.ready) for (const r of v.pr.ready.rows) out.push('         ' + (r.ok ? '✓ ' : '✗ ') + r.row)
+    if (gh.queue.length) out.push('queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next')
     out.push('')
   }
-  out.push(...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)), ...mismatchLines())
+  out.push(...queueLines(), ...treeText(), ...mismatchLines())
   if (v) for (const q of v.questions || []) out.push('? ' + questionLine(q))
   for (const r of pane.rulings.slice(0, 3)) out.push('ruling ' + rulingLine(r))
   return out
@@ -1464,40 +1465,6 @@ function workspaceLines() {
 
 function usageRow({ Box, Text }, key) {
   return Box({ key, flexDirection: 'row', children: usageSegs(usage.limits, usage.cost).map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
-}
-
-/**
- * The plan inside Work: one line per phase (its steps, durations, spend, how many nodes are
- * verified, which are blocked); `p` opens every node with its own steps and the full merge rows.
- */
-function planSection($, ui, v) {
-  const { Box, Text, Button, line } = ui
-  const out = [
-    Box({
-      key: 'plan-h',
-      flexDirection: 'row',
-      columnGap: 2,
-      children: [
-        Text({ bold: true, children: ['plan'] }),
-        Button({ key: 'plan-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }),
-      ],
-    }),
-  ]
-  for (const p of v.phases) {
-    const ver = p.nodes.filter((x) => x.state === 'verified').length
-    const stuck = p.nodes.filter((x) => x.flag && x.flag !== 'pending').map((x) => x.id + ' ' + x.flag)
-    const tail = (p.nodes.length ? ' · ' + ver + '/' + p.nodes.length + ' verified' : '') + (stuck.length ? ' · ' + stuck.slice(0, 3).join(', ') : '') + spendTail(v.spend.byPhase[p.id])
-    out.push(Box({ key: 'pr-' + p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + p.id, label: '›', ...letterKey('phase:' + p.id), plain: true, onPress: () => openDetail($, 'phase', p.id) }), stepperRow(ui, 't-' + p.id, p.id, p, p.tl, tail)] }))
-    if (pane.planOpen) {
-      p.nodes.slice(0, 12).forEach((x) => out.push(Box({ key: 'nr-' + x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.id, label: '›', plain: true, onPress: () => openDetail($, 'node', x.id) }), stepperRow(ui, 't-' + x.id, '  ' + x.id, x, x.tl, spendTail(v.spend.byNode[x.id]))] })))
-      if (p.nodes.length > 12) out.push(line('t-more-' + p.id, '    … ' + (p.nodes.length - 12) + ' more nodes', { dimColor: true }))
-    }
-  }
-  if (!v.phases.length) out.push(line('t-nophase', '  no phases yet: the bootstrap writes the plan', { dimColor: true }))
-  if (pane.planOpen && v.pr && v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '  ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
-  if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
-  if (pane.planOpen) out.push(line('t-foot', 'states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet'), { dimColor: true }))
-  return out
 }
 
 /** Open a ruling's view in Memory: what it says, the message it came from, its enforcement. */
@@ -1569,7 +1536,11 @@ async function buildDetail($, kind, id) {
     const p = (v.phases || []).find((x) => x.id === id)
     if (!p) return null
     const nodes = (p.nodes || []).map((x) => ({ ...x, spendText: spendTail(v.spend.byNode[x.id]).replace(/^ · /, '') }))
-    return phaseDetail({ ...p, nodes }, { brief: await readText($, '_orch/phases/' + id + '/brief.md', 2000), envelope: await readJson($, '_orch/phases/' + id + '/envelope.json'), spend: spendTail(v.spend.byPhase[id]).replace(/^ · /, '') })
+    // Its spend is its row's roll-up: every sub-orchestrator subtree under it (Q-54, D-T10-rollup-inclusive).
+    const ids = (v.phases || []).map((x) => x.id)
+    const roll = rollOf(tree.nodes.get(PRIME).children.filter((c) => phaseOwner(c, ids) === id))
+    const spent = roll ? shortTokens(tokensIn(components(roll))) + ' tokens · ' + shortUsd(costOf(roll, config.prices)) : spendTail(v.spend.byPhase[id]).replace(/^ · /, '')
+    return phaseDetail({ ...p, nodes }, { brief: await readText($, '_orch/phases/' + id + '/brief.md', 2000), envelope: await readJson($, '_orch/phases/' + id + '/envelope.json'), spend: spent })
   }
   if (kind === 'node') {
     const nd = findNode(id)
@@ -1734,21 +1705,162 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
       }),
     )
   }
-  // One row per agent: its own context against its own budget, its model, its tokens by kind, its cost,
-  // and the parcel steps of what it works on (its node, else its phase; the goal for the prime).
-  const rowsData = treeRows(tree)
-  const t = agentTable(rowsData.map(agentRow), Math.max(60, (cols || 120) - 4))
+  // The one tree (T10 amendment): the prime, the phase rows, their sub-orchestrators and agents, each
+  // row with its own context against its own budget, its model, its tokens by kind, its `this agent`
+  // and `roll-up` groups, and the parcel steps of what it works on.
+  const items = workTree()
+  // Direct keys (T9, Q-60): every agent and phase row, top to bottom in tree order.
+  assignLetters(pane.letters, items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])))
+  const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
+  if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
+  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
   out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
-  t.lines.forEach((segs, i) => {
-    const r = rowsData[i]
+  let a = 0
+  for (const x of items) {
+    if (x.kind === 'note') {
+      out.push(Box({ key: x.key, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] }))
+      continue
+    }
+    const cells = lineOf.get(x).map((y) => Text({ wrap: 'truncate-end', ...tone(y), children: [y.text] }))
+    if (x.kind === 'phase') {
+      // Enter on a phase row's › opens the phase view: its steps, its nodes with their states, its spend (Q-54).
+      out.push(Box({ key: 'pr-' + x.p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + x.p.id, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells] }))
+      continue
+    }
+    if (x.kind === 'node') {
+      out.push(Box({ key: 'nr-' + x.x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.x.id, label: '›', plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells] }))
+      continue
+    }
+    const r = x.r
+    const i = a++
     // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
     const open = r.id ? [Button({ key: 'open-a' + i, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
-    const children = [...open, ...segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] }))]
+    const children = [...open, ...cells]
     if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
     out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
-  })
+  }
   out.push(...messageField($, { Box, Text, Input }))
+  return out
+}
+
+/** The legend above the agent table (T10 amendment, Q-55): the tree's levels, and what a phase is. */
+const LEGEND = 'the tree: prime › P<n>, a phase: a unit of the plan › its sub-orchestrator › agent (worker, verifier)'
+
+/**
+ * The phase each of the prime's children belongs to (Q-58: a sub-orchestrator by its `P<n>` or its
+ * phase brief's path), or P0 for one tied to no phase when the plan has a P0 (D-P1-tree-unphased);
+ * null when it stays directly under the prime.
+ */
+function phaseOwner(id, phaseIds) {
+  return phaseOfAgent(tree.nodes.get(id), phaseIds) ?? (phaseIds.includes('P0') ? 'P0' : null)
+}
+
+/**
+ * The one tree, in drawn order (T10 amendment, spec L309-340): the prime; then each phase of the plan
+ * in plan order as a row of its own, under it (with `p` on) its node rows, at most 12 and then
+ * `… N more nodes`, and then the sub-orchestrator(s) that ran it, siblings in spawn order, newest last,
+ * each with its workers and verifiers; then the agents tied to no phase. Before the plan exists, a dim
+ * `no phases yet` row stands under the prime.
+ * Items: { kind: 'agent', r, depth } | { kind: 'phase', p, heads, depth } | { kind: 'node', x, depth } | { kind: 'note', key, text, depth }.
+ */
+function workTree() {
+  const v = track.view
+  const rows = treeRows(tree).map((r) => ({ kind: 'agent', r, depth: r.depth }))
+  if (!v) return rows
+  const [prime, ...rest] = rows
+  if (!v.phases.length) return [prime, { kind: 'note', key: 't-nophase', text: 'no phases yet: the bootstrap writes the plan', depth: 1 }, ...rest]
+  // The prime's children as subtrees, each led by its depth-1 row; the fold line stays last.
+  const groups = []
+  const tail = []
+  for (const x of rest) {
+    if (!x.r.id) tail.push(x)
+    else if (x.depth === 1 || !groups.length) groups.push([x])
+    else groups.at(-1).push(x)
+  }
+  const ids = v.phases.map((p) => p.id)
+  const owners = groups.map((g) => phaseOwner(g[0].r.id, ids))
+  const out = [prime]
+  for (const p of v.phases) {
+    const mine = groups.filter((_, i) => owners[i] === p.id)
+    out.push({ kind: 'phase', p, heads: mine.map((g) => g[0].r.id), depth: 1 })
+    if (pane.planOpen) {
+      for (const x of p.nodes.slice(0, 12)) out.push({ kind: 'node', x, depth: 2 })
+      if (p.nodes.length > 12) out.push({ kind: 'note', key: 't-more-' + p.id, text: '… ' + (p.nodes.length - 12) + ' more nodes', depth: 2 })
+    }
+    for (const g of mine) out.push(...g.map((x) => ({ ...x, depth: x.depth + 1 })))
+  }
+  groups.forEach((g, i) => {
+    if (!owners[i]) out.push(...g)
+  })
+  return [...out, ...tail]
+}
+
+/** A subtree's spend as one account (the `roll-up` group), or null when nothing in it was metered. */
+function rollOf(heads) {
+  const accs = heads.flatMap((id) => subtree(tree, id)).map((n) => n.spend).filter(Boolean)
+  return accs.length ? sumAccounts(accs) : null
+}
+
+/** One item of the tree as a table row. */
+function treeItemRow(x) {
+  if (x.kind === 'agent') {
+    const row = agentRow({ ...x.r, depth: x.depth })
+    const n = x.r.id ? tree.nodes.get(x.r.id) : null
+    // Q-57: a row with no children leaves its roll-up empty; otherwise its subtree, itself included.
+    const roll = n && n.children.length ? rollOf([n.id]) : null
+    return { ...row, roll, rollCost: roll ? shortUsd(costOf(roll, config.prices)) : '' }
+  }
+  const indent = '  '.repeat(x.depth)
+  if (x.kind === 'node') {
+    const mini = stepperMini(x.x)
+    const mark = x.x.state === 'verified' ? '✓' : x.x.flag === 'pending' ? '○' : x.x.flag ? '✗' : '●'
+    return { label: indent + mark + ' ' + x.x.id, tone: x.x.flag && x.x.flag !== 'pending' ? 'red' : undefined, ctxPct: null, noContext: true, model: '', steps: mini.slice(0, -1), state: mini.at(-1).text.trim(), stateTone: mini.at(-1).tone }
+  }
+  // A phase row (D-T10-phase-row-cells): labelled P<n>; its this-agent group, model and context empty;
+  // its roll-up the spend of the sub-orchestrator subtrees under it. Not started and with no
+  // sub-orchestrator yet, it is pending: dim, marked ○, `pending`, the stepper with no step reached (Q-62).
+  const p = x.p
+  const pending = p.flag === 'pending' && !x.heads.length
+  const roll = rollOf(x.heads)
+  const mini = stepperMini(pending ? { ...p, flag: 'pending' } : p)
+  const flagged = !!p.flag && p.flag !== 'pending'
+  const [mark, tone] = pending ? ['○', 'rail'] : p.state === 'approved' ? ['✓', 'green'] : flagged ? ['✗', 'red'] : ['●', 'cyan']
+  return {
+    label: indent + mark + ' ' + p.id,
+    tone,
+    ctxPct: null,
+    noContext: true,
+    model: '',
+    roll,
+    rollCost: roll ? shortUsd(costOf(roll, config.prices)) : '',
+    steps: mini.slice(0, -1).map((y) => (pending ? { ...y, tone: 'rail' } : y)),
+    state: pending ? 'pending' : mini.at(-1).text.trim(),
+    stateTone: pending ? 'rail' : mini.at(-1).tone,
+  }
+}
+
+/** The tree's table rows (every item but a note) as one table, and each item's line of it. */
+function treeTable(items, widthOf) {
+  const drawn = items.filter((x) => x.kind !== 'note')
+  const data = drawn.map(treeItemRow)
+  const t = agentTable(data, widthOf(data))
+  return { t, lineOf: new Map(drawn.map((x, i) => [x, t.lines[i]])) }
+}
+
+/** The width the pane draws its table at: the pane's, but never under the width every kept column needs whole. */
+function tableWidth(data, cols) {
+  const widest = (f) => Math.max(0, ...data.map((r) => [...String(f(r) || '')].length))
+  return Math.max(tableFloor(widest((r) => r.model), widest((r) => r.label)), (cols || 120) - 4)
+}
+
+/** The tree as text (the -p form, Q-70): the legend, the group line, the column names, the rows. */
+function treeText() {
+  const items = workTree()
+  const { t, lineOf } = treeTable(items, () => 200)
+  const text = (segs) => segs.map((y) => y.text).join('').trimEnd()
+  const out = [...(track.view ? [LEGEND] : []), text(t.groups), text(t.header)]
+  for (const x of items) out.push(x.kind === 'note' ? '  '.repeat(x.depth) + x.text : text(lineOf.get(x)))
   return out
 }
 
@@ -1759,8 +1871,8 @@ function letterKey(id) {
 }
 
 /** A hint line: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32). */
-function keyHint({ Box, Text }, key, parts) {
-  return Box({ key, flexDirection: 'row', children: parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]) })
+function keyHint({ Box, Text }, key, parts, tail = '') {
+  return Box({ key, flexDirection: 'row', children: [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])] })
 }
 
 /** The field that messages the targeted running agent (✉ on its row, or its open view). */
@@ -1791,7 +1903,9 @@ function messageField($, { Box, Text, Input }) {
       }),
     )
   } else {
-    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']]))
+    // With p on, the old plan section's footer joins the hint line (T10 amendment, Q-56).
+    const foot = pane.planOpen && track.view ? ' · states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet') : ''
+    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot))
   }
   return out
 }
@@ -1930,9 +2044,9 @@ function paneText() {
 
 /** A tab's text, for -p and for the tabs drawn as plain lines. */
 function tabLines(id) {
-  if (id === 'work') return [...workspaceLines(), ...(track.view ? ['', 'plan:', ...trackLines(track.view).filter((l) => /^P\d|^    \S|^ {11}[✓✗]/.test(l))] : [])]
+  if (id === 'work') return workspaceLines()
   if (id === 'memory') return ['rulings:', ...(pane.data.rulings ?? []), '', ...(pane.data.memory ?? []), ...pane.memLines]
-  if (id === 'agents') return [...queueLines(), ...tableText(agentTable(treeRows(tree).map(agentRow), 160)), ...mismatchLines()]
+  if (id === 'agents') return [...queueLines(), ...treeText(), ...mismatchLines()]
   if (id === 'memory') return [...(pane.data.memory ?? []), ...pane.memLines]
   return pane.data[id] ?? []
 }
@@ -2487,8 +2601,11 @@ async function observe($, force = false) {
   })()
   const phaseOfNode = graphPhases(graphText)
   const nodes = []
-  const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'dir').map((x) => x.name).sort(byId).slice(0, 400)
-  for (const id of nodeDirs) {
+  // The nodes: every one the plan names (a phase row's node rows come from the plan, T10 amendment) and
+  // every directory under _orch/nodes, listed as the declared kind 'dir'.
+  const nodeDirs = ((await listDir($, '_orch/nodes')) ?? []).filter((x) => x.kind === 'dir').map((x) => x.name)
+  const nodeIds = [...new Set([...phaseOfNode.keys(), ...nodeDirs])].filter((id) => /^[A-Za-z0-9._-]+$/.test(id)).sort(byId).slice(0, 400)
+  for (const id of nodeIds) {
     const base = '_orch/nodes/' + id
     const st = await readJson($, base + '/status.json')
     const vd = await readJson($, '_orch/verify/' + id + '-verdict.json')
@@ -3297,6 +3414,8 @@ export function register(on, options) {
     )
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
     tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
+    // p shows or hides the node rows under every phase row of the tree (T10 amendment, Q-59).
+    if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
     const line = (key, text, extra = {}) => Text({ wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     const body =
@@ -3513,7 +3632,7 @@ export function register(on, options) {
     const r = await next(input)
     if (r && r.agentId) {
       probe.spawned.add(r.agentId)
-      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, model: r.model || input.model, requested: input.model, prompt: input.prompt })
+      addSpawn(tree, { id: r.agentId, parent: e.parentAgentId, type: e.subagentType, label: e.name || e.description, description: e.description, model: r.model || input.model, requested: input.model, prompt: input.prompt })
       if (!pane.open) $.clock.after(0, () => autoOpenPane($).catch(() => {}))
       if (!e.parentAgentId) {
         spawnedByPrime.set(r.agentId, { type: e.subagentType, description: e.description, name: e.name })

@@ -60,12 +60,40 @@ export function modelMismatch(expected, served, known = []) {
   return !!want && want !== baseModel(served)
 }
 
-export function addSpawn(t, { id, parent, type, label, model, requested = null, prompt = '', at = Date.now() }) {
+export function addSpawn(t, { id, parent, type, label, description = '', model, requested = null, prompt = '', at = Date.now() }) {
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME
   const role = String(type ?? 'agent').replace(/^baton:/, '')
-  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
+  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), description: String(description || '').slice(0, 200), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
   t.nodes.get(p).children.push(id)
+}
+
+/**
+ * The phase a sub-orchestrator ran, among the plan's phase ids (spec T10 amendment, Q-58, the Q-14
+ * rule): its role is sub-orchestrator and its label or description has the token `P<n>`, or its spawn
+ * prompt names `_orch/phases/P<n>/`. Any other agent, or a phase not in the plan: null.
+ */
+export function phaseOfAgent(n, phaseIds) {
+  if (!n || n.role !== 'sub-orchestrator') return null
+  const known = new Set(phaseIds)
+  for (const text of [n.label, n.description]) {
+    for (const m of String(text ?? '').matchAll(/\bP(\d+)\b/g)) if (known.has('P' + Number(m[1]))) return 'P' + Number(m[1])
+  }
+  for (const m of String(n.prompt ?? '').matchAll(/_orch\/phases\/P(\d+)\//g)) if (known.has('P' + Number(m[1]))) return 'P' + Number(m[1])
+  return null
+}
+
+/** Every agent of a subtree, the root included, depth first. */
+export function subtree(t, id) {
+  const out = []
+  const walk = (x) => {
+    const n = t.nodes.get(x)
+    if (!n) return
+    out.push(n)
+    for (const c of n.children) walk(c)
+  }
+  walk(id)
+  return out
 }
 
 /** One line for a tool call: what it touched, not its whole input. */
