@@ -230,7 +230,8 @@ s = await status()
 await poll()
 surfaces = []
 const tl = (await fire('command.run', { command: 'baton', args: '' })).text
-ok(/worker T2\s.*●─●─●─●\s+verified/.test(tl), 'Agents rows carry their node’s steps: ' + ((tl.split('## Work')[1] || '').split('\n').find((l) => /T2/.test(l)) || '').trim())
+const t2Row = tl.split('\n').find((l) => /\bworker T2\b/.test(l)) || '' // amended by verifier (XT111): the worker row is found by its label, and only its steps cell is read, never the whole row string, since C8-C11 all change the row (H28; spec L153, Q-15; R-C11-01)
+ok(/(?<![●◉○✗─])●─●─●─●(?![─●◉○✗])/.test(t2Row), 'Agents rows carry their node’s steps: ' + t2Row.trim()) // amended by verifier (XT111): the T2 worker row shows its node's stepper, four steps all reached (verified), as the Track tab draws it (spec L153-154, H26, Q-15; R-C11-01)
 ok(/\? Q-4 Which vendor key do we use\?  — blocked by _orch\/nodes\/T9\/handoff\.md:"use the vendor API" \(explicit: fix the cause\)/.test(tl), 'open question shown with what it rests on')
 put('_orch/inbox/Q-4.answer.md', 'key B')
 

@@ -26,7 +26,7 @@ test('budget: off, ok, warn at 80%, exceeded at 100%', () => {
   assert.deepEqual(budgetCheck(1200, 1000), { status: 'exceeded', used: 1200, limit: 1000, pct: 120 })
 })
 
-test('round spawns and what an agent works on', () => {
+test('guard: round spawns and what an agent works on', () => { // amended by verifier (XT111): renamed guard: because it passes at da5910c; T14 and P3 stay matched when the label match becomes a match against the run's real node and phase ids, so these values hold under the new rule (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md; Q-15; R-C11-01)
   assert.equal(isRoundSpawn({ subagentType: 'baton:pr-reviewer' }), true)
   assert.equal(isRoundSpawn({ subagentType: 'baton:sub-orchestrator', description: 'PR steward round 2' }), true)
   assert.equal(isRoundSpawn({ subagentType: 'baton:sub-orchestrator', description: 'P3 phase' }), false)
