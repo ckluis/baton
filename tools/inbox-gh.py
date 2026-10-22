@@ -181,6 +181,22 @@ class Inbox(object):
             self.state["questions"][qid] = {"comment_id": data.get("id"), "url": data.get("html_url"),
                                             "answered": False}
             self.save()
+            self.write_asked(qid, data.get("html_url"))
+
+    def write_asked(self, qid, url):
+        """The asked record (T13 addendum, Q-42): written once, when the question is put on the thread; never overwritten."""
+        path = os.path.join(self.inbox, qid + ".asked.md")
+        if os.path.exists(path) or self.gh.dry_run:
+            return
+        lines = ["asked_at: %s" % now_utc(), "asked_via: thread"]
+        if url:
+            lines.append("comment_url: %s" % url)
+        try:
+            with open(path, "x", encoding="utf-8") as fh:  # "x": an existing record is never overwritten
+                fh.write("\n".join(lines) + "\n")
+            self.log("write %s" % os.path.relpath(path, self.root))
+        except FileExistsError:
+            pass
 
     def authorized(self, assignees):
         allowed = set(a.get("login") for a in (assignees or []) if a.get("login"))

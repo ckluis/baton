@@ -281,3 +281,11 @@ export function memTable(lines, now = Date.now()) {
   const pad = (t, n) => t + ' '.repeat(n - [...t].length)
   return rows.map((r) => [0, 1, 2].filter((c) => w[c] > 0).map((c) => pad(r[c], w[c]) + '  ').join('') + r[3])
 }
+
+/**
+ * The direct keys of Work's rows, in the order they are handed out (T9, Q-39): every agent and phase
+ * row in tree order, then the `?` rows in the order shown, then the blocked node rows.
+ */
+export function rowKeyIds({ tree = [], questions = [], blocked = [] }) {
+  return [...tree, ...questions.map((id) => 'q:' + id), ...blocked.map((id) => 'blocked:' + id)]
+}

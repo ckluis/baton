@@ -167,3 +167,100 @@ export function rulingDetail(r, source = null) {
   lines.push([], L(head('what you can do')), L('  ', dim('x'), ' retracts it (the log keeps it)', dim('  ·  '), dim('/baton enforce ' + r.n + ' <regex>'), ' makes it refuse matching commands'))
   return { title: 'ruling #' + r.n, lines }
 }
+
+// ------------------------------------------------------------------ questions and blocked rows (T13)
+
+/** The last `Blocked by: …` line of a text (rule 10 step 1), trimmed; null when it has none. */
+export function blockedByLine(text) {
+  const all = String(text ?? '').match(/^[ \t]*Blocked by:.*$/gim)
+  return all ? all[all.length - 1].trim() : null
+}
+
+/** The node ids a question names on its `**Nodes it blocks:**` line (rule 10 step 1). */
+export function nodesBlocked(text) {
+  const m = /^\s*\**Nodes it blocks:?\**:?\s*(.+)$/im.exec(String(text ?? ''))
+  return m ? [...new Set(m[1].match(/\b[A-Z][A-Za-z0-9_-]*\d[A-Za-z0-9_-]*\b/g) || [])] : []
+}
+
+/**
+ * A question's numbered options (Q-35): its `**Options**` list, else its first numbered list. Each is
+ * { n, label, recommended }, the label its text with the markdown marks and `(recommended)` taken out.
+ * `labels` are what the dialog offers: at most `max`, the recommended one first.
+ */
+export function questionOptions(text, max = 4) {
+  const lines = String(text ?? '').split('\n')
+  const head = lines.findIndex((l) => /^\s*(\*\*Options\*\*|#{1,6}\s*Options\b)/i.test(l))
+  const options = []
+  for (const l of lines.slice(head >= 0 ? head + 1 : 0)) {
+    const m = /^\s*(\d+)[.)]\s+(.+)$/.exec(l)
+    if (m) {
+      const recommended = /\(recommended\)/i.test(m[2])
+      const label = m[2].replace(/\*{0,2}\(recommended\)\*{0,2}/gi, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+      if (label) options.push({ n: Number(m[1]), label, recommended })
+    } else if (options.length && !/^\s{2,}\S/.test(l)) break // the list ends at its first line that is neither an item nor an item's continuation
+  }
+  const ordered = [...options.filter((o) => o.recommended), ...options.filter((o) => !o.recommended)]
+  return { options, labels: ordered.slice(0, max).map((o) => o.label + (o.recommended ? ' (recommended)' : '')) }
+}
+
+/** What the run assumes if a question goes unanswered (rule 10 step 1), with the option it names spelled out. */
+export function questionDefault(text) {
+  const m = /^\s*\**If unanswered, the run assumes:?\**:?\s*(.+)$/im.exec(String(text ?? ''))
+  if (!m) return null
+  const said = m[1].replace(/\*\*/g, '').trim()
+  const n = /\boption\s+(\d+)/i.exec(said)
+  const o = n ? questionOptions(text, 99).options.find((x) => x.n === Number(n[1])) : null
+  return o ? said.replace(/\.$/, '') + ' (' + o.label + ')' : said
+}
+
+/**
+ * A question's brief (Q-40): its `Blocked by:` line first, in the `?` row's colour, then the whole
+ * file as written, markdown as plain text, each line wrapping to the pane's width; an unauthorized
+ * answer on file is shown under it (Q-48). Opened from its `?` row; `a` answers it, `b` goes back.
+ */
+export function questionDetail(q, x = {}) {
+  const lines = []
+  const tone = q.asked ? q.color : 'rail'
+  const text = String(x.text ?? '')
+  const by = blockedByLine(text)
+  if (by) lines.push(L({ text: by, tone, wrap: true }))
+  const state = q.asked
+    ? 'waiting for you: put to the operator' + (x.asked ? ' (' + x.asked.replace(/\s*\n\s*/g, ' · ').trim() + ')' : '')
+    : q.gate != null
+      ? 'queued for G' + q.gate + ': not yet put to the operator; answering it here puts it (asked_via: pane)'
+      : 'queued: no gate found in _orch/plan/graph.yaml; answering it here puts it (asked_via: pane)'
+  lines.push(L(dim(state)), [])
+  let skipped = false
+  for (const l of text.replace(/\n+$/, '').split('\n')) {
+    if (by && !skipped && l.trim() === by) {
+      skipped = true
+      continue
+    }
+    lines.push(l.trim() ? L({ text: l, wrap: true }) : [])
+  }
+  if (x.unauthorized) {
+    lines.push([], L(head('an unauthorized answer is on file'), dim('  (not applied: rule 10; the question stays open)')))
+    for (const l of String(x.unauthorized).replace(/\n+$/, '').split('\n')) lines.push(l.trim() ? L({ text: '  ' + l, tone: 'yellow', wrap: true }) : [])
+  }
+  if (x.note) lines.push([], L({ text: x.note, tone: x.noteTone || 'green', wrap: true }))
+  lines.push([], L(dim('a answers it here (its options, or Other for your own words) · b goes back')))
+  return { title: q.id + ' · ' + (q.asked ? 'waiting for you' : q.gate != null ? 'queued for G' + q.gate : 'queued'), lines, keys: [{ hotkey: 'a', label: 'answer', act: 'answer' }] }
+}
+
+/**
+ * The brief a blocked row's view opens with (Q-38): the node id and verdict, what it is blocked on
+ * (its envelope summary, or an agent's last line), its `Blocked by:` line, and what approving grants
+ * here (Q-37) or what must be fixed instead. Keys: `y` (and `w`) only where the grant allows.
+ */
+export function blockedBrief(b) {
+  const lines = []
+  lines.push(L(head('blocked'), dim('  ' + b.id + ' · ' + (b.verdict || 'BLOCKED'))))
+  if (b.summary) lines.push(L(dim('  blocked on  '), { text: b.summary, wrap: true }))
+  if (b.line) lines.push(L(dim('  returned    '), { text: b.line, wrap: true }))
+  if (b.blockedBy) lines.push(L({ text: '  ' + b.blockedBy, tone: b.kind === 'interpreted' ? 'yellow' : 'red', wrap: true }))
+  else lines.push(L(dim('  no Blocked by: line in its envelope or in an inbox question that names it')))
+  if (b.grant && b.grant.says) lines.push(L({ text: '  ' + b.grant.says, wrap: true }))
+  if (b.note) lines.push(L({ text: '  ' + b.note, tone: 'green', wrap: true }))
+  lines.push([])
+  return lines
+}
