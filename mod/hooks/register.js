@@ -1993,6 +1993,8 @@ function hiddenKey($, x, Button) {
 
 const LIST = Symbol('the agent list')
 const GAP = Symbol('a spacer line the list may take')
+// The empty bottom rows the pane keeps while the list scrolls (Q-F115-1 A); none while it fits.
+const SPARE_ROWS = 1
 
 /** A list item's identity, what the window's top row is held by (Q-65). */
 function itemId(x) {
@@ -2004,18 +2006,18 @@ function itemId(x) {
  * A list that fits is drawn whole. One that does not is a window from its top row, with its pinned
  * strips and more lines (lib/view.mjs listWindow); the spacer above it and the `no phases yet` row go,
  * and the pane's last row stays empty, so the engine's Home and End (`contentRows`) are told from its
- * PageUp and PageDown (`bodyRows`) (D-T15-spare-row).
+ * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row).
  */
 function placeList(body, rows, { Text, Box }) {
   const L = pane.list
   const at = body.findIndex((x) => x && x[LIST])
-  const unwrap = () => body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
   L.on = at >= 0
-  if (!L.on) return unwrap()
+  if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
   const { items, draw, hidden } = body[at][LIST]
+  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries.
   const others = 2 + body.length - 1
   const gaps = body.filter((x) => x && x[GAP]).length
-  const area = rows - 1 - others + gaps
+  const area = rows - SPARE_ROWS - others + gaps
   const fits = items.length <= rows - others || area < 3
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
