@@ -118,7 +118,8 @@ let t = await render()
 await byKey(t, 'tab-work').props.onPress()
 t = await render()
 const at = text(t)
-ok(/agent\s+context\s+(budget\s+)?model/.test(at) && /◆ prime/.test(at) && /✓ sub-orch P3\s+—\s+(50%\s+)?opus 5\.5(?!\S)/.test(at) && /✓ worker-cheap T7\s+—\s+(50%\s+)?sonnet 5\.5(?!\S)/.test(at), 'Agents tab draws the tree as a table') // amended by verifier (XT18): the model reads `opus 5.5` / `sonnet 5.5` whole, and the wider model column may push budget out at 116 columns, which Q-11 drops before model (spec L111-112, Q-10, Q-11; R-C8-01, R-C8-03, R-C8-04)
+// amended by verifier (XT115): a finished row draws its ✓/✗ mark and its label as two Texts (the label dims, the mark keeps its colour; Q-69, R-C16-48, R-C16-49), which `text()` joins with a newline, so the mark and the label now match within one row across whitespace (`✓\s+sub-orch P3`) instead of in one Text; not a `guard:`: it fails at da5910c (XT18's `opus 5.5` model cell), and F18's landing made it pass
+ok(/agent\s+context\s+(budget\s+)?model/.test(at) && /◆ prime/.test(at) && /✓\s+sub-orch P3\s+—\s+(50%\s+)?opus 5\.5(?!\S)/.test(at) && /✓\s+worker-cheap T7\s+—\s+(50%\s+)?sonnet 5\.5(?!\S)/.test(at), 'Agents tab draws the tree as a table') // amended by verifier (XT18): the model reads `opus 5.5` / `sonnet 5.5` whole, and the wider model column may push budget out at 116 columns, which Q-11 drops before model (spec L111-112, Q-10, Q-11; R-C8-01, R-C8-03, R-C8-04)
 // a live agent to message
 await fire('agent.spawn', { _id: 's2', subagentType: 'baton:sub-orchestrator', description: 'P4' })
 t = await render()
