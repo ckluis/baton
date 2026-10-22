@@ -81,6 +81,7 @@ test('the agent table: every column when wide, the least useful dropped when nar
   const ORDER = ['cacheWrite', 'trend', 'input', 'budget', 'output', 'cacheRead', 'ctx'] // amended by verifier (XT18): the drop order cacheWrite, trend, input, budget, output, cacheRead, context (Q-11, Q-57, D-T10-group-cells; R-C8-04)
   const dropped = ORDER.filter((id) => !narrow.includes(id)) // amended by verifier (XT18): what 90 columns dropped, in drop order (Q-11; R-C8-04)
   assert.deepEqual(dropped, ORDER.slice(0, dropped.length), 'dropped from the front of the drop order: ' + narrow.join(',')) // amended by verifier (XT18): columns leave in the Q-11/Q-57 order only (R-C8-04)
+  for (const w of [60, 40, 20, 0]) { const kept = fitColumns(w).map((c) => c.id); for (const id of ['agent', 'model', 'steps', 'state']) assert.ok(kept.includes(id), id + ' is kept at ' + w + ': ' + kept.join(',')) } // amended by verifier (XT111): every row keeps its steps at any width; model, steps, agent and state never drop, however narrow the pane (spec L153, Q-11; R-C11-01)
   const acc = { byModel: { 'claude-opus-5-5': { input: 2000, output: 400, cacheWrite: 0, cacheRead: 1210000 } } }
   const t = agentTable([{ label: '● worker T10', ctxHist: [10, 30, 61], ctxPct: 61, ctxTone: 'red', threshold: 50, model: 'opus 5.5', acc, cost: '$0.26', steps: [{ text: '●─●─◉─○', tone: 'current' }], state: 'blue' }], 210) // amended by verifier (XT18): the formatted model is `opus 5.5`, family and version (spec L111-112; R-C8-01, R-C8-02)
   const [head, row] = tableText(t)

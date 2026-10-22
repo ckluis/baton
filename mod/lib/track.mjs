@@ -13,6 +13,8 @@ export const LADDERS = {
   phase: ['briefed', 'dispatched', 'verified', 'approved'],
   node: ['red', 'green', 'blue', 'verified'],
   'node-exempt': ['working', 'verified'],
+  // An agent row that works on no node or phase of the run: its own lifecycle (Q-15).
+  agent: ['spawned', 'working', 'returned', 'verdict'],
 }
 
 // ------------------------------------------------------------------ derive

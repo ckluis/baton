@@ -5,6 +5,8 @@
 // its latest tool, turn.complete closes it with its first line and a verdict.
 
 export const PRIME = 'prime'
+/** The verdicts a finished row is marked ✗ for. */
+const FLAGGED = new Set(['ABORTED', 'BLOCKED', 'REFUTED', 'FAILED'])
 const VERDICT = /\b(DONE\+CONFIRMED|CONFIRMED|DONE|PARTIAL|BLOCKED|REFUTED|FAILED|IDLE|UNSETTLEABLE)\b/
 
 export function newTree(now = Date.now()) {
@@ -132,6 +134,16 @@ export function finishAgent(t, agentId, { line, aborted = false, at = Date.now()
   n.verdict = aborted ? 'ABORTED' : v ? v[1] : 'returned'
 }
 
+/**
+ * An agent's own lifecycle, spawned → working → returned → verdict (Q-15), for a row whose label names
+ * no node or phase of the run: working while it runs, returned once it has, at its verdict when its
+ * line carried one (flagged for a failing one).
+ */
+export function lifecycle(n) {
+  const state = !n || n.endedAt == null ? 'working' : !n.verdict || n.verdict === 'returned' ? 'returned' : 'verdict'
+  return { ladder: 'agent', state, flag: state === 'verdict' && FLAGGED.has(n.verdict) ? n.verdict.toLowerCase() : null }
+}
+
 /** The label chain from the prime down to an agent: "prime › P3 › worker". */
 export function chain(t, agentId) {
   const out = []
@@ -172,7 +184,7 @@ export function treeRows(t, now = Date.now(), { max = 40, keepDone = 12 } = {}) 
     bits.push(elapsed((n.endedAt ?? now) - n.startedAt))
     bits.push(n.tools + ' tool' + (n.tools === 1 ? '' : 's'))
     if (live && n.lastTool) bits.push('now ' + n.lastTool)
-    const mark = n.id === PRIME ? '◆' : live ? '●' : n.verdict === 'ABORTED' || n.verdict === 'BLOCKED' || n.verdict === 'REFUTED' || n.verdict === 'FAILED' ? '✗' : '✓'
+    const mark = n.id === PRIME ? '◆' : live ? '●' : FLAGGED.has(n.verdict) ? '✗' : '✓'
     const tail = !live && n.line ? ' — ' + n.line : ''
     rows.push({
       id: n.id,
