@@ -27,15 +27,16 @@ test('the tree nests by parent, counts tools, and closes with a verdict', () => 
   assert.equal(rows[iS + 1].color, 'red') // amended by verifier (XT110): the worker's row, one level under its sub-orchestrator (spec L309, L319-325; R-C10-29, R-C10-42, R-C10-44)
 })
 
-test('old finished agents fold into a count', () => {
+test('old finished agents are never folded: every agent stays listed', () => { // amended by verifier (XT115): finished agents no longer fold into a count; every agent stays listed (spec L286, L288; R-C16-03, R-C16-06)
   const t = newTree(0)
   for (let i = 0; i < 5; i++) {
     addSpawn(t, { id: 'a' + i, type: 'baton:worker', label: 'w' + i, at: i })
     finishAgent(t, 'a' + i, { line: 'DONE', at: 10 + i })
   }
   const rows = treeRows(t, 100, { keepDone: 2 })
-  assert.equal(rows.length, 4)
-  assert.equal(rows.at(-1).text, '  … 3 earlier finished agents folded')
+  const ids = rows.map((r) => r.id).filter(Boolean) // amended by verifier (XT115): the agent rows by id, whatever non-agent line may stand under the prime (spec L286, L288; R-C16-03, R-C16-06)
+  assert.deepEqual(['a0', 'a1', 'a2', 'a3', 'a4'].filter((id) => !ids.includes(id)), [], 'every finished agent has its own row: ' + rows.map((r) => r.text).join(' / ')) // amended by verifier (XT115): every agent stays listed, so none of the five finished agents is folded away, even past an old keepDone of 2 (spec L286; R-C16-03)
+  assert.deepEqual(rows.filter((r) => /earlier finished agent/.test(r.text)).map((r) => r.text), []) // amended by verifier (XT115): the `… N earlier finished agents folded` line goes away (spec L288; R-C16-06)
 })
 
 test('helpers: shortModel, elapsed', () => {
