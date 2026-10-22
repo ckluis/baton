@@ -24,11 +24,11 @@ import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, g
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
-import { agentDetail, detailText, nodeDetail, phaseDetail, resolveTarget, rulingDetail } from '../lib/detail.mjs'
-import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nodeState, parseCommands, phaseState, prState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
-import { alwaysLabel, APPROVE, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
+import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail } from '../lib/detail.mjs'
+import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
+import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, memTable, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, memTable, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -153,7 +153,7 @@ const pane = {
   memLines: [],
   rulings: [], // the standing rulings, for the Rulings tab
   target: null, // the agent the Agents tab's message field writes to
-  letters: new Map(), // Work: each row's direct key ('agent:<id>' or 'phase:<id>' -> a letter of ROW_LETTERS), held while the row is listed
+  letters: new Map(), // Work: each row's direct key ('agent:<id>', 'phase:<id>', 'q:<question id>' or 'blocked:<node id>' -> a letter of ROW_LETTERS), held while the row is listed
 }
 
 // What the prime is doing now, for the spinner: its live dispatches.
@@ -165,6 +165,7 @@ let tree = newTree()
 // Approvals: command gates remembered for this run, and phases waiting on the operator.
 const approvals = {
   always: new Set(), // gate ids the operator approved for the rest of the run
+  once: new Set(), // exact commands the operator approved once from a blocked row's brief (T13, Q-37); each lets one call through
   asked: 0,
   approved: 0,
   refused: 0,
@@ -1111,12 +1112,19 @@ function makeRunId(mode, iso) {
 
 const MODES = ['BUILD', 'DOGFOOD', 'GENERIC', 'IMPROVE', 'MIGRATE', 'REVIEW', 'ROADMAP', 'TEST']
 
+/**
+ * The prime's guidance on putting a question (T13 addendum, Q-42): the asked record is what turns a queued `?`
+ * row into `waiting for you`. inbox-gh.py sync writes it for a question it posts; the pane, for one answered there.
+ */
+const ASKED_GUIDANCE = 'When you put an open question to the operator (rule 10 step 2, at a gate), write _orch/inbox/Q-<id>.asked.md for it (through the sub-orchestrator that runs the gate, since you never edit): the lines asked_at: <measured UTC time>, asked_via: terminal|thread|pane and gate: G<n>. It is written once and never overwritten; until it exists the question is queued, not waiting for you.'
+
 function kickoff(m) {
   const base =
     'baton v7 run ' + m.run_id + ' started — MODE ' + m.mode + ', TARGET ' + m.target + '. You are the PRIME orchestrator. ' +
     'Load the baton prime skill (Skill "baton:prime") for your standing orders. In short: you never read, run or edit anything — the mod refuses it; ' +
     'you dispatch. First dispatch one baton:sub-orchestrator to bootstrap the run (directive from the mode file, plan, plan verification) ' +
-    'and return one line. Then dispatch one sub-orchestrator per phase. Note decisions with memory_note; after a rotation call memory_wake first.'
+    'and return one line. Then dispatch one sub-orchestrator per phase. Note decisions with memory_note; after a rotation call memory_wake first. ' +
+    ASKED_GUIDANCE
   if (!m.issue) return base
   return (
     base +
@@ -1200,6 +1208,7 @@ async function batonStart($, args) {
   forgetRunCache()
   tree = newTree()
   approvals.always.clear()
+  approvals.once.clear()
   approvals.queue = []
   approvals.approvedPhases.clear()
   approvals.sentBack.clear()
@@ -1389,7 +1398,7 @@ function mergeLine(v) {
  * line), the agent table, what waits for you, and the newest rulings.
  */
 function workspaceBody($, ui) {
-  const { Box, Text, Link, line } = ui
+  const { Box, Text, Button, Link, line } = ui
   if (pane.detail) {
     const d = detailBody($, ui)
     const n = pane.detail.kind === 'agent' ? tree.nodes.get(pane.detail.id) : null
@@ -1435,7 +1444,20 @@ function workspaceBody($, ui) {
   out.push(...agentsBody($, ui))
   if (v && (v.questions || []).length) {
     out.push(Text({ children: [' '] }))
-    v.questions.forEach((q, i) => out.push(line('w-q' + i, '? ' + questionLine(q), { color: q.blockedBy && q.blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })))
+    // Each `?` row opens its brief by Enter on its › or by its own letter (T13, Q-39). Put to the operator, it keeps
+    // its red or yellow; queued, it is dim (Q-49).
+    v.questions.forEach((q, i) =>
+      out.push(
+        Box({
+          key: 'w-q' + i,
+          flexDirection: 'row',
+          children: [
+            Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) }),
+            line('w-qt' + i, '? ' + questionLine(q), q.asked ? { color: q.color } : { dimColor: true }),
+          ],
+        }),
+      ),
+    )
   }
   if (pane.rulings.length) {
     out.push(Text({ children: [' '] }))
@@ -1502,7 +1524,7 @@ async function readText($, path, max = 6000) {
 }
 
 /** Build the view for one target from what the mod already holds plus the files it names. */
-async function buildDetail($, kind, id) {
+async function buildDetail($, kind, id, extra = {}) {
   const v = track.view || { phases: [], unphased: [] }
   const findNode = (nid) => {
     for (const p of v.phases || []) {
@@ -1518,7 +1540,7 @@ async function buildDetail($, kind, id) {
     const thr = thresholdFor(n)
     const st = workState(id)
     const m = modelOf(n)
-    return agentDetail(n, {
+    const view = agentDetail(n, {
       chain: chain(tree, id),
       model: shortModel(m.shown) || null,
       mismatch: m.mismatch ? { requested: m.expected, served: m.served } : null,
@@ -1531,7 +1553,17 @@ async function buildDetail($, kind, id) {
       steps: st,
       stepsTl: st && st.tl,
     })
+    // An agent that returned BLOCKED is a blocked row (Q-38): its view gains the brief at its top.
+    if (n.endedAt != null && n.verdict === 'BLOCKED') {
+      const bb = parseBlockedBy(n.blockedBy)
+      const target = workOf(n.label, runIds(v)).node || n.label
+      const grant = blockGrant({ text: (n.line || '') + '\n' + (n.blockedBy || ''), blockedBy: bb, who: target })
+      view.lines = [...blockedBrief({ id: n.label, verdict: 'BLOCKED', line: n.line, blockedBy: n.blockedBy, kind: bb && bb.kind, grant, note: extra.note }), ...view.lines]
+      Object.assign(view, { grant, target, keys: grantKeys(grant) })
+    }
+    return view
   }
+  if (kind === 'question') return questionView($, id, extra)
   if (kind === 'phase') {
     const p = (v.phases || []).find((x) => x.id === id)
     if (!p) return null
@@ -1540,7 +1572,15 @@ async function buildDetail($, kind, id) {
     const ids = (v.phases || []).map((x) => x.id)
     const roll = rollOf(tree.nodes.get(PRIME).children.filter((c) => phaseOwner(c, ids) === id))
     const spent = roll ? shortTokens(tokensIn(components(roll))) + ' tokens · ' + shortUsd(costOf(roll, config.prices)) : spendTail(v.spend.byPhase[id]).replace(/^ · /, '')
-    return phaseDetail({ ...p, nodes }, { brief: await readText($, '_orch/phases/' + id + '/brief.md', 2000), envelope: await readJson($, '_orch/phases/' + id + '/envelope.json'), spend: spent })
+    const view = phaseDetail({ ...p, nodes }, { brief: await readText($, '_orch/phases/' + id + '/brief.md', 2000), envelope: await readJson($, '_orch/phases/' + id + '/envelope.json'), spend: spent })
+    // A phase waiting for the operator's check: its brief approves it as band 1 does (Q-37).
+    const q = approvals.queue.find((x) => phaseOf(x.label) === id)
+    if (q) {
+      view.lines = [[{ text: '⚑ ' + q.label + ': ' + q.line, tone: 'yellow', wrap: true }], [{ text: 'y approves it, as band 1 does; 2 on the band sends it back with a reason', tone: 'rail' }], [], ...view.lines]
+      view.keys = [{ hotkey: 'y', label: 'approve', act: 'phase' }]
+    }
+    if (extra.note) view.lines = [[{ text: extra.note, tone: 'green', wrap: true }], [], ...view.lines]
+    return view
   }
   if (kind === 'node') {
     const nd = findNode(id)
@@ -1548,7 +1588,7 @@ async function buildDetail($, kind, id) {
     const handoff = await readText($, base + '/handoff.md')
     const exempt = handoff && /\brgb:\s*exempt\s*[—-]?\s*(.*)/i.exec(handoff)
     const mine = (lessons.notes || []).map((n) => parseLessonNote(n.text).text).filter((t) => t.startsWith(id + ':'))
-    return nodeDetail(nd, {
+    const view = nodeDetail(nd, {
       handoff,
       exempt: exempt ? exempt[1] || 'yes' : null,
       red: await readText($, base + '/work/red.txt', 600),
@@ -1558,15 +1598,162 @@ async function buildDetail($, kind, id) {
       lessons: mine,
       spend: spendTail(v.spend && v.spend.byNode[id]).replace(/^ · /, ''),
     })
+    // A node whose envelope is BLOCKED or ESCALATE is a blocked row (Q-38): its view opens with the brief.
+    const st = await readJson($, base + '/status.json')
+    if (st && isBlocked({ status: st.verdict })) {
+      const b = await nodeBlock($, id, st)
+      view.lines = [...blockedBrief({ ...b, note: extra.note }), ...view.lines]
+      Object.assign(view, { grant: b.grant, target: id, keys: grantKeys(b.grant) })
+    }
+    return view
   }
   return null
 }
 
-async function openDetail($, kind, id) {
+async function openDetail($, kind, id, extra = {}) {
   if (kind === 'node') await loadLessons($)
-  const view = await buildDetail($, kind, id)
+  const view = await buildDetail($, kind, id, extra)
   pane.detail = view ? { kind, id, view } : null
   $.ui.invalidate('ui.render')
+}
+
+// ------------------------------------------------------------------ T13: questions and blocked rows, acted on from the pane
+
+/** Every string an envelope holds, one per line (a `Blocked by:` line may sit in any of its fields). */
+function envelopeText(x, out = []) {
+  if (typeof x === 'string') out.push(x)
+  else if (Array.isArray(x)) x.forEach((y) => envelopeText(y, out))
+  else if (x && typeof x === 'object') Object.values(x).forEach((y) => envelopeText(y, out))
+  return out
+}
+
+/** The inbox questions that name a node on their `Nodes it blocks:` line, open ones first: [{ id, text }]. */
+async function questionsNaming($, nodeId) {
+  const names = ((await listDir($, '_orch/inbox')) ?? []).filter((x) => x.kind === 'file').map((x) => x.name)
+  const out = []
+  for (const f of names.filter((n) => /^Q-[^.]+\.md$/.test(n)).sort(byId)) {
+    const text = await readText($, '_orch/inbox/' + f, 20000)
+    if (text && nodesBlocked(text).includes(nodeId)) out.push({ id: f.replace(/\.md$/, ''), text, open: !names.includes(f.replace(/\.md$/, '.answer.md')) })
+  }
+  return [...out.filter((q) => q.open), ...out.filter((q) => !q.open)]
+}
+
+/**
+ * What a blocked node is blocked on (Q-38): its envelope summary and the `Blocked by:` line read from its
+ * status.json, else from the inbox question that names it; and what approving it grants (Q-37).
+ */
+async function nodeBlock($, id, st) {
+  const env = envelopeText(st).join('\n')
+  const asks = await questionsNaming($, id)
+  const line = blockedByLine(env) || (asks.map((q) => blockedByLine(q.text)).find(Boolean) ?? null)
+  const bb = parseBlockedBy(line)
+  const grant = blockGrant({ text: env + '\n' + (line || ''), blockedBy: bb, who: id, fallback: asks.length ? questionDefault(asks[0].text) : null })
+  return { id, verdict: st.verdict, summary: st.summary, blockedBy: line, kind: bb && bb.kind, grant }
+}
+
+/** The keys a blocked row's brief draws: `y` and `w` only where the grant keeps them (Q-37, Q-39). */
+function grantKeys(grant) {
+  return (grant ? grant.keys : []).map((k) => (k === 'w' ? { hotkey: 'w', label: 'approve for the run', act: 'w' } : { hotkey: 'y', label: grant.kind === 'interpreted' ? 'overrule' : 'approve once', act: 'y' }))
+}
+
+/** A question's brief (Q-40), from its file, its asked record and any answer on file. */
+async function questionView($, id, extra = {}) {
+  const base = '_orch/inbox/' + id
+  const text = await readText($, base + '.md', 20000)
+  if (text == null) return null
+  const asked = await readText($, base + '.asked.md', 600)
+  const answer = await readText($, base + '.answer.md', 4000)
+  const unauthorized = unauthorizedAnswer(answer) ? answer : null
+  const shown = ((track.view && track.view.questions) || []).find((q) => q.id === id)
+  const q = { id, asked: asked != null, gate: shown ? shown.gate : null, color: questionColor(parseBlockedBy(text)) }
+  const note = extra.note ?? (answer && !unauthorized ? alreadyAnswered(id) : null)
+  return questionDetail(q, { text, asked, unauthorized, note, noteTone: extra.noteTone })
+}
+
+/** What the brief says when an answer file is already there (Q-41): it is never overwritten. */
+const alreadyAnswered = (id) => 'already answered: _orch/inbox/' + id + '.answer.md is the record, and it is never overwritten'
+
+/** The live agents working on a node (their label names it), for a message with the answer (Q-36). */
+function liveAgentsOn(nodeId) {
+  const ids = runIds()
+  return [...tree.nodes.values()].filter((n) => n.id !== PRIME && n.endedAt == null && workOf(n.label, ids).node === nodeId)
+}
+
+/**
+ * Answer a question from its brief (T13; Q-35, Q-36, Q-41, Q-45): ask through the engine's dialog with
+ * its options, write Q-<id>.asked.md first if it was only queued, then Q-<id>.answer.md (never over an
+ * existing one), then note for the prime to re-dispatch the node it names, and message its agent if live.
+ */
+async function answerQuestion($, id) {
+  const base = '_orch/inbox/' + id
+  const said = (note, tone = 'yellow') => openDetail($, 'question', id, { note, noteTone: tone })
+  if (await exists($, base + '.answer.md')) return said(alreadyAnswered(id))
+  const text = (await readText($, base + '.md', 20000)) ?? ''
+  const first = firstLine(text) || id
+  const { labels } = questionOptions(text)
+  let answer = null
+  try {
+    answer = String(await $.ui.ask(first, labels.length >= 2 ? labels : ['Accept the default', 'Other']))
+  } catch {
+    return said('not answered: the dialog was dismissed, or nobody can be asked here')
+  }
+  if (labels.length < 2 && answer === 'Other') return said('not answered: type your answer under Other')
+  if (!answer.trim()) return said('not answered: the answer was empty')
+  if (await exists($, base + '.answer.md')) return said(alreadyAnswered(id))
+  const at = new Date(Date.now()).toISOString()
+  const shown = ((track.view && track.view.questions) || []).find((q) => q.id === id)
+  try {
+    // Put first (Q-45): a queued question answered here was put to the operator here.
+    if (!(await exists($, base + '.asked.md'))) await $.fs.write(base + '.asked.md', askedRecord({ at, via: 'pane', gate: shown ? shown.gate : null }))
+    await $.fs.write(base + '.answer.md', answerRecord({ id, answer, at, session: await sessionId($) }))
+  } catch (err) {
+    return said('not answered: could not write ' + base + '.answer.md (' + err.message + ')')
+  }
+  const nodes = nodesBlocked(text)
+  await noteQuietly($, 'answered ' + id + ' from the pane: ' + first + '. Re-dispatch ' + (nodes.join(', ') || 'the node that asked') + ' with it', 'operator')
+  for (const nid of nodes) {
+    for (const n of liveAgentsOn(nid)) {
+      try {
+        await $.session.send({ to: { agentId: n.id }, text: 'baton: the operator answered ' + id + ' (' + first + '): ' + answer })
+      } catch {}
+    }
+  }
+  if (track.view) track.view.questions = (track.view.questions || []).filter((q) => q.id !== id)
+  track.dirty = true
+  return said('answered: ' + answer + ' — written to ' + base + '.answer.md; the prime is told to re-dispatch ' + (nodes.join(', ') || 'the node that asked'), 'green')
+}
+
+/** Approve what a blocked row is blocked on, from its brief, with the narrowest grant its kind allows (Q-37). */
+async function approveFromBrief($, d, act) {
+  const g = d.view.grant
+  const who = d.view.target
+  if (!g || !g.keys.includes(act)) return
+  let text = null
+  if (g.kind === 'command' && act === 'y') {
+    approvals.once.add(g.command)
+    text = 'operator approved `' + g.command + '` once for ' + who + ', from its brief in the pane. Re-dispatch ' + who + ' with it.'
+  } else if (g.kind === 'command' && act === 'w') {
+    approvals.always.add(g.gate.id)
+    text = 'operator approved every "' + g.gate.label + '" for this run, from ' + who + "'s brief in the pane. Re-dispatch " + who + ' with `' + g.command + '`.'
+  } else if (g.kind === 'interpreted' && act === 'y') {
+    text = 'operator overruled ' + who + "'s block (interpreted), from its brief in the pane. Re-dispatch " + who + ' to proceed on ' + (g.default ? 'the default its question states: ' + g.default : 'the default it recommended') + '.'
+  }
+  if (!text) return
+  approvals.approved++
+  await noteQuietly($, text, 'approval')
+  track.dirty = true
+  await openDetail($, d.kind, d.id, { note: 'done: ' + text.replace(/^operator /, '') + ' The row stays until its status changes.' })
+}
+
+/** A key of an open view's brief: answer (a), approve once or overrule (y), approve for the run (w), or approve a queued phase (y). */
+async function detailAct($, d, k) {
+  if (k.act === 'answer') return answerQuestion($, d.id)
+  if (k.act === 'phase') {
+    const i = approvals.queue.findIndex((x) => phaseOf(x.label) === d.id)
+    if (i >= 0) await resolveQueued($, i, 'approve')
+    return openDetail($, d.kind, d.id, i >= 0 ? { note: 'approved ' + d.id + ', as band 1 does' } : {})
+  }
+  return approveFromBrief($, d, k.act)
 }
 
 /** The open view, drawn in Work: a back button, the title, then its lines. */
@@ -1581,13 +1768,15 @@ function detailBody($, { Box, Text, Button, line }) {
       children: [
         Button({ key: 'd-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.detail = null), $.ui.invalidate('ui.render')) }),
         Text({ bold: true, children: [d.view.title] }),
+        // The brief's own keys (T13, Q-39), drawn as 1, 2 and r are: a answers, y approves once (or overrules), w for the run.
+        ...(d.view.keys || []).map((k) => Button({ key: 'd-key-' + k.hotkey, label: k.label, hotkey: k.hotkey, plain: true, onPress: () => detailAct($, d, k) })),
         Button({ key: 'd-refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => openDetail($, d.kind, d.id) }),
       ],
     }),
   ]
   d.view.lines.forEach((segs, i) => {
     if (!segs.length) out.push(Text({ children: [' '] }))
-    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }))
+    else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: x.wrap ? 'wrap' : 'truncate-end', ...tone(x), children: [x.text] })) }))
   })
   // A running agent can be messaged from its own view.
   if (d.kind === 'agent') {
@@ -1717,8 +1906,17 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // row with its own context against its own budget, its model, its tokens by kind, its `this agent`
   // and `roll-up` groups, and the parcel steps of what it works on.
   const items = workTree()
-  // Direct keys (T9, Q-60): every agent and phase row, top to bottom in tree order.
-  assignLetters(pane.letters, items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])))
+  // Direct keys (T9, Q-60): every agent and phase row, top to bottom in tree order; then the `?` rows and the
+  // blocked node rows drawn (T13, Q-39).
+  const v = track.view
+  assignLetters(
+    pane.letters,
+    rowKeyIds({
+      tree: items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])),
+      questions: v ? (v.questions || []).map((q) => q.id) : [],
+      blocked: items.filter((x) => x.kind === 'node' && isBlocked(x.x)).map((x) => x.x.id),
+    }),
+  )
   const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
@@ -1737,7 +1935,8 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
       continue
     }
     if (x.kind === 'node') {
-      out.push(Box({ key: 'nr-' + x.x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.x.id, label: '›', plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells] }))
+      // A blocked node row (Q-38) also holds a direct key; its view opens with the brief.
+      out.push(Box({ key: 'nr-' + x.x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.x.id, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells] }))
       continue
     }
     const r = x.r
@@ -1871,6 +2070,9 @@ function treeText() {
   for (const x of items) out.push(x.kind === 'note' ? '  '.repeat(x.depth) + x.text : text(lineOf.get(x)))
   return out
 }
+
+/** A blocked row (Q-38): a node whose envelope is BLOCKED or ESCALATE. */
+const isBlocked = (x) => !!x && (x.status === 'BLOCKED' || x.status === 'ESCALATE')
 
 /** A row's direct key, if it holds one: its letter as the `hotkey` of the Button that opens it (T9). */
 function letterKey(id) {
@@ -2631,7 +2833,7 @@ async function observe($, force = false) {
       status: st && st.verdict,
       verdict: vd && vd.verdict,
     }
-    nodes.push({ id, phase: phaseOfNode.get(id) ?? null, ...nodeState(facts), status: facts.status })
+    nodes.push({ id, phase: phaseOfNode.get(id) ?? null, ...nodeState(facts), status: facts.status, verified: facts.verdict === 'CONFIRMED' })
   }
   const phaseNums = new Set([...phaseOfNode.values()])
   for (const d of (await listDir($, '_orch/phases')) ?? []) {
@@ -2679,16 +2881,24 @@ async function observe($, force = false) {
   track.snap = next
   await mirrorGoal($, goal.state, goal.flag)
   // Open questions, with the line each one rests on (explicit: a person fixes the cause; interpreted: a person may overrule it).
+  // Any Q-<id>.md is a question; an answer file closes it unless it is marked unauthorized (Q-48). It is put to the operator
+  // once its asked record Q-<id>.asked.md exists (Q-42), and queued until then, for the next gate (Q-43) or none (Q-44).
   const questions = []
   const inbox = ((await listDir($, '_orch/inbox')) ?? []).filter((x) => x.kind === 'file').map((x) => x.name)
+  const gate = graphText ? nextGate(nodes) : null
   for (const f of inbox.filter((n) => /^Q-[^.]+\.md$/.test(n)).sort(byId)) {
-    if (inbox.includes(f.replace(/\.md$/, '.answer.md'))) continue
+    const id = f.replace(/\.md$/, '')
+    // An answer file closes the question unless it is marked unauthorized (Q-48).
+    const unauthorized = inbox.includes(id + '.answer.md')
+    if (unauthorized && !unauthorizedAnswer(await readText($, '_orch/inbox/' + id + '.answer.md', 4000))) continue
     let text = ''
     try {
       text = await $.fs.read('_orch/inbox/' + f)
     } catch {}
-    questions.push({ id: f.replace(/\.md$/, ''), first: firstLine(text), blockedBy: parseBlockedBy(text) })
-    await notify($, 'q:' + (m.run_id || '') + f, 'a question waits for you: ' + firstLine(text).slice(0, 120))
+    const asked = inbox.includes(id + '.asked.md')
+    const blockedBy = parseBlockedBy(text)
+    questions.push({ id, first: firstLine(text), blockedBy, asked, gate: asked ? null : gate, unauthorized, nodes: nodesBlocked(text), color: questionColor(blockedBy) })
+    await notify($, 'q:' + (m.run_id || '') + f + (asked ? ':asked' : ''), (asked ? 'a question waits for you: ' : 'a question is ' + questionState({ asked, gate }) + ': ') + firstLine(text).slice(0, 120))
   }
   await loadSpend($)
   const now = Date.now()
@@ -2712,8 +2922,9 @@ function spendTail(acc, budget) {
   return ' · ' + shortTokens(acc.fresh) + (budget && budget.status !== 'off' ? ' of ' + shortTokens(budget.limit) + ' (' + budget.pct + '%)' : '') + (c ? ' · ' + c : '')
 }
 
+/** A `?` row's text: the id, its state right after it (Q-49), the first line, and the line it rests on. */
 function questionLine(q) {
-  return q.id + ' ' + q.first + (q.blockedBy ? '  — blocked by ' + q.blockedBy.where + ' (' + q.blockedBy.kind + (q.blockedBy.kind === 'interpreted' ? ': you may overrule it' : ': fix the cause') + ')' : '')
+  return q.id + ' · ' + questionState(q) + ' · ' + q.first + (q.blockedBy ? '  — blocked by ' + q.blockedBy.where + ' (' + q.blockedBy.kind + (q.blockedBy.kind === 'interpreted' ? ': you may overrule it' : ': fix the cause') + ')' : '')
 }
 
 function trackLines(v) {
@@ -2959,6 +3170,8 @@ export function register(on, options) {
     if (!config.approvals || !(await runActive($))) return next(e)
     const gate = gateFor(e.command)
     if (!gate || approvals.always.has(gate.id)) return next(e)
+    // Approved once from a blocked row's brief (T13, Q-37): that exact command passes, once.
+    if (approvals.once.delete(String(e.command).trim())) return withContext(await next(e), 'baton: the operator approved this exact command once, from the pane.')
     const who = chain(tree, isPrimeCall(e) ? PRIME : e.agentId)
     approvals.asked++
     let answer = null
@@ -3473,7 +3686,9 @@ export function register(on, options) {
     const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
-    if (v && (v.questions || []).length) waiting.push(v.questions.length + ' question' + (v.questions.length === 1 ? '' : 's'))
+    // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work.
+    const askedN = v ? (v.questions || []).filter((q) => q.asked).length : 0
+    if (askedN) waiting.push(askedN + ' question' + (askedN === 1 ? '' : 's'))
     const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Work (1)'] })] : []
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
@@ -3537,6 +3752,9 @@ export function register(on, options) {
     track.dirty = true
     if (e.agentId) {
       finishAgent(tree, e.agentId, { line: firstLine(e.answer), aborted: e.isAborted })
+      // A BLOCKED return's `Blocked by:` line, for its brief (Q-38): the line its final text ends with.
+      const ended = tree.nodes.get(e.agentId)
+      if (ended) ended.blockedBy = blockedByLine(e.answer)
       const who = spawnedByPrime.get(e.agentId)
       if (who && !e.isAborted && config.phaseGate && String(who.type ?? '').replace(/^baton:/, '') === 'sub-orchestrator' && claimsDone(firstLine(e.answer)) && (await interactive($))) {
         approvals.queue.push({ agentId: e.agentId, label: who.name || who.description || 'a phase', line: firstLine(e.answer), at: Date.now() })

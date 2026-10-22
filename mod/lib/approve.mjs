@@ -61,3 +61,38 @@ export function claimsDone(line) {
   const m = /\b(DONE(?:\+CONFIRMED|-WITH-CAVEATS)?|PARTIAL|BLOCKED|REFUTED|FAILED|IDLE|UNSETTLEABLE)\b/.exec(String(line ?? ''))
   return !!m && m[1].startsWith('DONE')
 }
+
+// ------------------------------------------------------------------ approving from a blocked row's brief (T13, Q-37)
+
+/**
+ * What approving grants for a blocked node, per kind and never wider (Q-37): a command gate approves
+ * that exact command once (`y`) or every command of its gate for the run (`w`, as /approve <gate>);
+ * an `interpreted` block is overruled (`y`); a pause, an `explicit` block, a forbidden file or an
+ * enforced ruling get no approve key, and `says` what must be done instead. `text` is everything the
+ * envelope (or the agent's answer) says; `blockedBy` is parseBlockedBy of its line.
+ */
+export function blockGrant({ text = '', blockedBy = null, who = 'it', fallback = null }) {
+  const t = String(text ?? '')
+  if (/\bpaused\b/i.test(t)) return { kind: 'pause', keys: [], says: 'held by the pause: no approve key here. /baton resume lifts it, and ' + who + ' is re-dispatched after it.' }
+  const file = /([^\s"'`]+)\s+matches a forbidden-file pattern/i.exec(t)
+  if (file || /forbidden[- ]file/i.test(t)) return { kind: 'forbidden', keys: [], file: file ? file[1] : null, says: 'a forbidden file: no approve key. To fix it, ' + (file ? file[1] + ' must stay out of the commit' : 'the forbidden file must stay out of the commit') + ' (secrets, keys and env files are never committed): change the work so it does not need it.' }
+  const ruling = /\bruling #(\d+)\b(?:\s*\(enforced\))?:?\s*([^"\n]*)/i.exec(t)
+  if (ruling) return { kind: 'ruling', keys: [], ruling: Number(ruling[1]), says: 'an enforced ruling: no approve key. To fix it, retract or narrow ruling #' + ruling[1] + (ruling[2].trim() ? ' (' + ruling[2].trim() + ')' : '') + ' in Memory (2), or change the work so it keeps the ruling.' }
+  for (const m of t.matchAll(/`([^`\n]+)`/g)) {
+    const gate = gateFor(m[1])
+    if (gate) return { kind: 'command', keys: ['y', 'w'], command: m[1].trim(), gate, says: 'held at the "' + gate.label + '" gate: y approves `' + m[1].trim() + '` once and ' + who + ' is re-dispatched with it · w approves every "' + gate.label + '" for this run (as /approve ' + gate.id + ').' }
+  }
+  if (blockedBy && blockedBy.kind === 'explicit') return { kind: 'explicit', keys: [], says: 'explicit: no approve key. A person has to fix the cause: ' + blockedBy.where + '.' }
+  if (blockedBy && blockedBy.kind === 'interpreted') return { kind: 'interpreted', keys: ['y'], default: fallback, says: 'interpreted: y overrules it, and ' + who + ' is re-dispatched to proceed on ' + (fallback ? 'the default its question states: ' + fallback : 'the default it recommended') + '.' }
+  return { kind: 'none', keys: [], says: 'no Blocked by: line to act on, so nothing to approve here; its envelope says what it needs.' }
+}
+
+/** The asked record (Q-42): written once, when a question is put to the operator. */
+export function askedRecord({ at, via, gate = null }) {
+  return 'asked_at: ' + at + '\nasked_via: ' + via + '\n' + (gate != null ? 'gate: G' + gate + '\n' : '')
+}
+
+/** A pane-written answer file (Q-41): the heading, rule 10's provenance lines, then the answer verbatim. */
+export function answerRecord({ id, answer, at, session }) {
+  return ['# ' + id + ' answer (binding, operator, ' + String(at).slice(0, 10) + ')', '', 'answered_by: operator', 'answered_via: pane', 'answered_at: ' + at, 'session: ' + (session || 'unknown'), '', '**Answer:** ' + answer, ''].join('\n')
+}

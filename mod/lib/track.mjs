@@ -257,3 +257,26 @@ export function stepperMini({ ladder, state, flag }) {
 }
 
 export const stepperMiniText = (st) => stepperMini(st).map((x) => x.text).join('')
+
+// ------------------------------------------------------------------ questions (T13)
+
+/**
+ * The gate a queued question waits for (Q-43): the lowest phase that holds a node not DONE with
+ * CONFIRMED (its status.json missing or not DONE, or its verifier not CONFIRMED). `nodes` are
+ * { phase, status, verified }. null when no plan names a phase or every node is done (Q-44).
+ */
+export function nextGate(nodes) {
+  const open = (nodes || []).filter((n) => n.phase != null && !(/^DONE/.test(String(n.status || '')) && n.verified))
+  return open.length ? Math.min(...open.map((n) => n.phase)) : null
+}
+
+/** A `?` row's state (spec T13 addendum, Q-42, Q-44): put to the operator, queued for its gate, or queued with no gate found. */
+export function questionState(q) {
+  return q.asked ? 'waiting for you' : q.gate != null ? 'queued for G' + q.gate : 'queued'
+}
+
+/** The colour a `?` row put to the operator keeps (Q-49): yellow when its Blocked by line is interpreted, else red. */
+export const questionColor = (blockedBy) => (blockedBy && blockedBy.kind === 'interpreted' ? 'yellow' : 'red')
+
+/** Does an answer file carry `unauthorized: true` (rule 10)? Such an answer does not close its question (Q-48). */
+export const unauthorizedAnswer = (text) => /^\s*unauthorized:\s*true\s*$/im.test(String(text ?? ''))
