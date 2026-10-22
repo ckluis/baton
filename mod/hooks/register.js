@@ -2052,9 +2052,11 @@ function placeList(body, rows, { Text, Box }) {
   W.below.forEach((i, j) => lines.push(draw(its[i], 'sb' + j)))
   if (W.plusBelow && W.stripBelow) lines.push(Text({ color: 'cyan', children: ['  +' + W.plusBelow + ' running'] }))
   if (W.hiddenBelow) lines.push(dim('↓ ' + W.hiddenBelow + ' more' + (W.plusBelow && !W.stripBelow ? running(W.plusBelow) : ''), 'l-down', out(W.top + W.size, its.length).flatMap(hidden)))
-  const slot = (s) => { const k = lineKeys(its[W.top + s] || { kind: 'agent' }, String(s)); return [k.open, k.msg] }
+  // The keys a list line's elements are drawn under (its › and ✉), at a window slot or a strip place.
+  const keysAt = (x, at) => { const k = lineKeys(x || { kind: 'agent' }, at); return [k.open, k.msg] }
+  const slot = (s) => keysAt(its[W.top + s], String(s))
   const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
-  const strip = [...W.above.map((i, j) => lineKeys(its[i], 'sa' + j)), ...W.below.map((i, j) => lineKeys(its[i], 'sb' + j))].flatMap((k) => [k.open, k.msg])
+  const strip = [...W.above.flatMap((i, j) => keysAt(its[i], 'sa' + j)), ...W.below.flatMap((i, j) => keysAt(its[i], 'sb' + j))]
   Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
   return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : []) : [x]))
 }
