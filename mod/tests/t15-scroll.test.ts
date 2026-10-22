@@ -354,7 +354,8 @@ const treeOrder = (n: number) => ['prime', ...Array.from({ length: n }, (_, i) =
 
 // ================================================================== the list's window (Q-68)
 
-test('t15-scroll: with more agents than fit, the drawn pane fills its height exactly, at two heights', async ($, on) => {
+// amended by verifier (XT115): Q-F115-1 A, D-P2-24 — while the list scrolls the pane keeps one empty bottom row (End/Home told from PageDown/PageUp), so c3 expects `rows - 1` lines while scrolling and exactly `rows` when the list fits the pane; renamed from `… fills its height exactly, at two heights`
+test('t15-scroll: with more agents than fit, the drawn pane fills its height less one empty row, at two heights, and exactly when the list fits', async ($, on) => {
   // Requirement R-C16-01 (traceability.yaml): "The agent list uses the pane's full height." (spec L284)
   // R-C16-25: "The list takes the rows that are left." (spec L368). Q-68 (inbox/Q-68.answer.md): "the agent list is its
   // own scrolling window; the lines above and below it stay drawn". Done-criterion 3.
@@ -366,13 +367,24 @@ test('t15-scroll: with more agents than fit, the drawn pane fills its height exa
     const { all } = await view(w)
     // spec L368: the list takes the rows the other lines leave, so the pane's lines are exactly its height: no fixed
     // count of agent rows that leaves lines empty (fewer) or pushes the lines below it out of the pane (more).
-    expect(all.length, 'pane of ' + rows + ' lines drew ' + all.length + ':' + dump(all)).toBe(rows) // spec L368: exactly the pane's height
+    expect(all.length, 'pane of ' + rows + ' lines drew ' + all.length + ':' + dump(all)).toBe(rows - 1) // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — the list scrolls, so the pane's height less its one empty bottom row
     // and those lines hold agent rows wherever the other parts leave room: the agent rows are one block in the pane
     const ar = agentRows(all)
     const block = all.slice(ar[0].i, ar[ar.length - 1].i + 1).filter((l) => !rowLabel(l) && !UP_MORE.test(l.text) && !DOWN_MORE.test(l.text) && !PLUS_RUNNING.test(l.text))
     expect(block.map((l) => l.text)).toEqual([]) // spec L368: no other line inside the list's window
     await w.eng.ui.unmount()
   }
+  // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — when the list does not scroll it fills the pane exactly: measure the
+  // whole tree in a pane tall enough for it, then mount a pane of exactly that height
+  await w.pane($, 120)
+  const whole = (await view(w)).all.length
+  expect(whole, 'the 41-row tree fits a 120-line pane' + dump((await view(w)).all)).toBeLessThan(120) // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — the fixture's tree fits, so this pane does not scroll
+  await w.eng.ui.unmount()
+  await w.pane($, whole)
+  const fit = (await view(w)).all
+  expect(fit.length, 'pane of ' + whole + ' lines drew ' + fit.length + ':' + dump(fit)).toBe(whole) // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — the list fits, so no empty row: exactly the pane's height
+  expect(fit.filter((l) => UP_MORE.test(l.text) || DOWN_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — the list fits, so it does not scroll
+  await w.eng.ui.unmount()
 })
 
 test('t15-scroll: scrolling the list from its top to its bottom draws every agent row', async ($, on) => {
