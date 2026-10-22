@@ -158,7 +158,8 @@ const pane = {
   lettersSaved: null, // stored letters of rows not listed again yet: identity -> letter
   lettersText: null, // what was last stored
   // Work: the agent list's window (T15): its top row by identity (Q-65) and index, and its last layout.
-  list: { top: 0, topKey: null, on: false, fits: true, n: 0, area: 0, size: 0, ids: [], pins: [], items: [], win: new Set(), first: new Set(), last: new Set(), ring: [], focus: null },
+  // `alias`: the list keys Home and End swapped so the key the ring holds is drawn on the row it moves to (drawn <- natural).
+  list: { top: 0, topKey: null, on: false, fits: true, n: 0, area: 0, size: 0, ids: [], pins: [], items: [], win: new Set(), keys: new Set(), first: new Set(), last: new Set(), ring: [], focus: null, alias: new Map() },
 }
 
 // What the prime is doing now, for the spinner: its live dispatches.
@@ -1960,9 +1961,23 @@ function finishedRow(x) {
  * The focus stays on a place as the window moves under it.
  */
 function lineKeys(x, at) {
-  if (/^s[ab]/.test(at)) return { box: 'st-' + at, open: 'open-' + at, msg: 'msg-' + at }
+  const a = (k) => pane.list.alias.get(k) ?? k
+  if (/^s[ab]/.test(at)) return { box: 'st-' + at, open: a('open-' + at), msg: a('msg-' + at) }
   const k = { agent: ['ar', 'open-a'], phase: ['pr', 'open-p'], node: ['nr', 'open-n'], note: ['nt', ''] }[x.kind]
-  return { box: k[0] + at, open: k[1] + at, msg: 'msg-' + at }
+  return { box: k[0] + at, open: a(k[1] + at), msg: a('msg-' + at) }
+}
+
+/**
+ * Swap two drawn list keys (Home, End): the focus ring holds an element by its key, and a plugin's
+ * `$.ui.focus` is refused while the person, not the plugin, holds the keyboard; so the row the focus
+ * moves to is drawn with the key the ring holds, and the row that had it takes that row's key.
+ */
+function swapKeys(a, b) {
+  const al = pane.list.alias
+  const natural = (d) => [...al].find(([, v]) => v === d)?.[0] ?? d
+  const [na, nb] = [natural(a), natural(b)]
+  al.set(na, b).set(nb, a)
+  for (const [k, v] of al) if (k === v) al.delete(k)
 }
 
 /** One line of the list: its row with its `›` (and ✉ while it runs). */
@@ -2038,7 +2053,9 @@ function placeList(body, rows, { Text, Box }) {
   if (W.plusBelow && W.stripBelow) lines.push(Text({ color: 'cyan', children: ['  +' + W.plusBelow + ' running'] }))
   if (W.hiddenBelow) lines.push(dim('↓ ' + W.hiddenBelow + ' more' + (W.plusBelow && !W.stripBelow ? running(W.plusBelow) : ''), 'l-down', out(W.top + W.size, its.length).flatMap(hidden)))
   const slot = (s) => { const k = lineKeys(its[W.top + s] || { kind: 'agent' }, String(s)); return [k.open, k.msg] }
-  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(Array.from({ length: W.size }, (_, s) => slot(s)).flat()), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
+  const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
+  const strip = [...W.above.map((i, j) => lineKeys(its[i], 'sa' + j)), ...W.below.map((i, j) => lineKeys(its[i], 'sb' + j))].flatMap((k) => [k.open, k.msg])
+  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
   return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : []) : [x]))
 }
 
@@ -3751,7 +3768,7 @@ export function register(on, options) {
         if (!surfaces.length) return { text: (await statusText($)) + '\n\n' + paneText() }
         pane.open = true
         pane.waiting = false
-        Object.assign(pane.list, { top: 0, topKey: null, focus: null })
+        Object.assign(pane.list, { top: 0, topKey: null, focus: null, alias: new Map() })
         await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
         try {
           if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
@@ -3828,10 +3845,16 @@ export function register(on, options) {
     $.ui.invalidate('ui.render')
     if (focusAt !== null) {
       const w = listWindow(L.n, top, L.area, pin)
-      L.focus = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
-      try {
-        Promise.resolve($.ui.focus({ requestId: PANE, key: L.focus })).catch(() => {})
-      } catch {}
+      const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
+      // The ring is on a list row: its key is drawn on the first or last row now (swapKeys).
+      if (L.focus && L.keys.has(L.focus)) {
+        if (L.focus !== key) swapKeys(key, L.focus)
+      } else {
+        L.focus = key
+        try {
+          Promise.resolve($.ui.focus({ requestId: PANE, key })).catch(() => {})
+        } catch {}
+      }
     }
     return {}
   }).catch(failOpen)
