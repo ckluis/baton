@@ -274,3 +274,9 @@ export function nextGate(nodes) {
 export function questionState(q) {
   return q.asked ? 'waiting for you' : q.gate != null ? 'queued for G' + q.gate : 'queued'
 }
+
+/** The colour a `?` row put to the operator keeps (Q-49): yellow when its Blocked by line is interpreted, else red. */
+export const questionColor = (blockedBy) => (blockedBy && blockedBy.kind === 'interpreted' ? 'yellow' : 'red')
+
+/** Does an answer file carry `unauthorized: true` (rule 10)? Such an answer does not close its question (Q-48). */
+export const unauthorizedAnswer = (text) => /^\s*unauthorized:\s*true\s*$/im.test(String(text ?? ''))

@@ -4,7 +4,7 @@
 // (done | current | flagged | future | rail) or a color name. The mod draws them in the pane, the
 // -p text and /baton show print them, and the page's demo renders the same views.
 
-import { stepper } from './track.mjs'
+import { questionState, stepper } from './track.mjs'
 import { shortTokens } from './ledger.mjs'
 import { elapsed } from './agents.mjs'
 import { sparkline } from './table.mjs'
@@ -244,7 +244,7 @@ export function questionDetail(q, x = {}) {
   }
   if (x.note) lines.push([], L({ text: x.note, tone: x.noteTone || 'green', wrap: true }))
   lines.push([], L(dim('a answers it here (its options, or Other for your own words) · b goes back')))
-  return { title: q.id + ' · ' + (q.asked ? 'waiting for you' : q.gate != null ? 'queued for G' + q.gate : 'queued'), lines, keys: [{ hotkey: 'a', label: 'answer', act: 'answer' }] }
+  return { title: q.id + ' · ' + questionState(q), lines, keys: [{ hotkey: 'a', label: 'answer', act: 'answer' }] }
 }
 
 /**

@@ -25,7 +25,7 @@ import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
 import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail } from '../lib/detail.mjs'
-import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionState, stepper, stepperText, timeline, transitions } from '../lib/track.mjs'
+import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
 import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, memTable, rowKeyIds, usageSegs } from '../lib/view.mjs'
@@ -1663,13 +1663,15 @@ async function questionView($, id, extra = {}) {
   if (text == null) return null
   const asked = await readText($, base + '.asked.md', 600)
   const answer = await readText($, base + '.answer.md', 4000)
-  const unauthorized = answer && /^\s*unauthorized:\s*true\s*$/im.test(answer) ? answer : null
+  const unauthorized = unauthorizedAnswer(answer) ? answer : null
   const shown = ((track.view && track.view.questions) || []).find((q) => q.id === id)
-  const bb = parseBlockedBy(text)
-  const q = { id, asked: asked != null, gate: shown ? shown.gate : null, color: bb && bb.kind === 'interpreted' ? 'yellow' : 'red' }
-  const note = extra.note ?? (answer && !unauthorized ? 'already answered: ' + base + '.answer.md is the record, and it is never overwritten' : null)
+  const q = { id, asked: asked != null, gate: shown ? shown.gate : null, color: questionColor(parseBlockedBy(text)) }
+  const note = extra.note ?? (answer && !unauthorized ? alreadyAnswered(id) : null)
   return questionDetail(q, { text, asked, unauthorized, note, noteTone: extra.noteTone })
 }
+
+/** What the brief says when an answer file is already there (Q-41): it is never overwritten. */
+const alreadyAnswered = (id) => 'already answered: _orch/inbox/' + id + '.answer.md is the record, and it is never overwritten'
 
 /** The live agents working on a node (their label names it), for a message with the answer (Q-36). */
 function liveAgentsOn(nodeId) {
@@ -1685,7 +1687,7 @@ function liveAgentsOn(nodeId) {
 async function answerQuestion($, id) {
   const base = '_orch/inbox/' + id
   const said = (note, tone = 'yellow') => openDetail($, 'question', id, { note, noteTone: tone })
-  if (await exists($, base + '.answer.md')) return said('already answered: ' + base + '.answer.md is the record, and it is never overwritten')
+  if (await exists($, base + '.answer.md')) return said(alreadyAnswered(id))
   const text = (await readText($, base + '.md', 20000)) ?? ''
   const first = firstLine(text) || id
   const { labels } = questionOptions(text)
@@ -1697,7 +1699,7 @@ async function answerQuestion($, id) {
   }
   if (labels.length < 2 && answer === 'Other') return said('not answered: type your answer under Other')
   if (!answer.trim()) return said('not answered: the answer was empty')
-  if (await exists($, base + '.answer.md')) return said('already answered: ' + base + '.answer.md is the record, and it is never overwritten')
+  if (await exists($, base + '.answer.md')) return said(alreadyAnswered(id))
   const at = new Date(Date.now()).toISOString()
   const shown = ((track.view && track.view.questions) || []).find((q) => q.id === id)
   try {
@@ -2886,21 +2888,17 @@ async function observe($, force = false) {
   const gate = graphText ? nextGate(nodes) : null
   for (const f of inbox.filter((n) => /^Q-[^.]+\.md$/.test(n)).sort(byId)) {
     const id = f.replace(/\.md$/, '')
-    let unauthorized = null
-    if (inbox.includes(id + '.answer.md')) {
-      const ans = await readText($, '_orch/inbox/' + id + '.answer.md', 4000)
-      if (!ans || !/^\s*unauthorized:\s*true\s*$/im.test(ans)) continue
-      unauthorized = ans
-    }
+    // An answer file closes the question unless it is marked unauthorized (Q-48).
+    const unauthorized = inbox.includes(id + '.answer.md')
+    if (unauthorized && !unauthorizedAnswer(await readText($, '_orch/inbox/' + id + '.answer.md', 4000))) continue
     let text = ''
     try {
       text = await $.fs.read('_orch/inbox/' + f)
     } catch {}
     const asked = inbox.includes(id + '.asked.md')
     const blockedBy = parseBlockedBy(text)
-    questions.push({ id, first: firstLine(text), blockedBy, asked, gate: asked ? null : gate, unauthorized: !!unauthorized, nodes: nodesBlocked(text), color: blockedBy && blockedBy.kind === 'interpreted' ? 'yellow' : 'red' })
-    const qState = questionState({ asked, gate: asked ? null : gate })
-    await notify($, 'q:' + (m.run_id || '') + f + (asked ? ':asked' : ''), (asked ? 'a question waits for you: ' : 'a question is ' + qState + ': ') + firstLine(text).slice(0, 120))
+    questions.push({ id, first: firstLine(text), blockedBy, asked, gate: asked ? null : gate, unauthorized, nodes: nodesBlocked(text), color: questionColor(blockedBy) })
+    await notify($, 'q:' + (m.run_id || '') + f + (asked ? ':asked' : ''), (asked ? 'a question waits for you: ' : 'a question is ' + questionState({ asked, gate }) + ': ') + firstLine(text).slice(0, 120))
   }
   await loadSpend($)
   const now = Date.now()
