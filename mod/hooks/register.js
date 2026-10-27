@@ -1717,7 +1717,7 @@ async function refreshPane($, paneRows) {
   // Plan
   d.plan = trackLines(await observe($))
   // Rulings
-  pane.rulings = await loadRulings($)
+  pane.rulings = await loadRulings($, false, RULINGS_PANE_TTL_MS)
   d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
   pane.data = d
   pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
@@ -3104,25 +3104,53 @@ async function recordRuling($, text, tag = 'ruling', source = null) {
   return r
 }
 
-const rulingsCache = { at: -1e12, list: [] }
+// The rulings memo (T6, R-C6-05). A read spawns memo (about 70 ms on the call's path), so a list
+// younger than RULINGS_TTL_MS is used as is, and an older one is still used while a fresh read runs
+// in the background; only a cold memo (none yet, or a rulings write since) or one older than
+// RULINGS_MAX_AGE_MS waits for the read. Every rulings write clears it (forgetRulings), and a read
+// begun before a write never lands after it (gen).
+const rulingsCache = { at: -1e12, list: [], gen: 0, pending: null }
 const RULINGS_TTL_MS = 3000
+const RULINGS_PANE_TTL_MS = 60000
+const RULINGS_MAX_AGE_MS = 120000
 
-/** The standing rulings, newest first (retracted ones dropped, enforcement attached). Cached briefly. */
-async function loadRulings($, fresh = false) {
-  if (!fresh && Date.now() - rulingsCache.at < RULINGS_TTL_MS) return rulingsCache.list
-  try {
-    const args = await memoryArgs($, 'project', RULINGS_NS)
-    const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', '2000', '--', '.']))
-    rulingsCache.list = activeRulings(r.notes ?? [])
-  } catch {
-    rulingsCache.list = []
-  }
-  rulingsCache.at = Date.now()
+/** One memo read of the rulings at a time per write generation; it lands only if no write came since. */
+function readRulings($) {
+  const gen = rulingsCache.gen
+  if (rulingsCache.pending && rulingsCache.pending.gen === gen) return rulingsCache.pending.p
+  const entry = { gen, p: null }
+  entry.p = (async () => {
+    let list
+    try {
+      const args = await memoryArgs($, 'project', RULINGS_NS)
+      const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', '2000', '--', '.']))
+      list = activeRulings(r.notes ?? [])
+    } catch {
+      list = []
+    }
+    if (rulingsCache.gen === gen) {
+      rulingsCache.list = list
+      rulingsCache.at = Date.now()
+    }
+    return list
+  })().finally(() => {
+    if (rulingsCache.pending === entry) rulingsCache.pending = null
+  })
+  rulingsCache.pending = entry
+  return entry.p
+}
+
+/** The standing rulings, newest first (retracted ones dropped, enforcement attached). Memoized, see above. */
+async function loadRulings($, fresh = false, ttl = RULINGS_TTL_MS) {
+  const age = Date.now() - rulingsCache.at
+  if (fresh || age >= RULINGS_MAX_AGE_MS) return readRulings($)
+  if (age >= ttl) readRulings($)
   return rulingsCache.list
 }
 
 function forgetRulings() {
   rulingsCache.at = -1e12
+  rulingsCache.gen++
 }
 
 /** The newest rulings, newest first, as lines; [] when there are none or the memory is unreadable. */
