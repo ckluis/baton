@@ -12,7 +12,7 @@
 // directory after a cd.
 
 import { agentIdVerified, guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
-import { clampBytes, cleanTag, cutBytes, fallbackMerge, idRange, isRejectedReply, isStale, lastMark, markId, markLines, markOf, voidsIn, MARK_GLYPH, MARK_VALUES, MARK_WORD, MERGE_STRICT, MERGE_SYSTEM, mergePrompt, rebuildReason, currentMarks, supersededLine, toRegex } from '../lib/memcore.mjs'
+import { clampBytes, cleanTag, currentMarks, cutBytes, fallbackMerge, idRange, isRejectedReply, lastMark, MARK_GLYPH, MARK_VALUES, MARK_WORD, markId, markLines, markOf, MERGE_STRICT, MERGE_SYSTEM, mergePrompt, rebuildReason, supersededLine, toRegex, voidsIn } from '../lib/memcore.mjs'
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
@@ -28,7 +28,7 @@ import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodes
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTable, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -1144,16 +1144,14 @@ async function withMarks($, args, out, { includeVoid = false, pattern = null, wh
   const end = out.endsWith('\n') ? '\n' : ''
   const lines = markLines(out.replace(/\n$/, '').split('\n'), view.cur, view.superseded, includeVoid)
   if (pattern !== null) {
-    let old = 0
-    if (includeVoid) {
-      const re = toRegex(pattern)
-      for (const x of view.superseded) if (x && re.test(String(x.text ?? ''))) old += lines.push(supersededLine(x)) && 1
-    }
+    const re = toRegex(pattern)
+    const old = includeVoid ? view.superseded.filter((x) => x && re.test(String(x.text ?? ''))) : []
+    lines.push(...old.map(supersededLine))
     // The header counts what is shown; it does not echo the pattern, which may be a ❌ note's words.
     if (/^recall \//.test(lines[0] ?? '')) {
       const shown = lines.slice(1).filter((l) => /^#\d+ /.test(l)).length
       const blocks = lines.slice(1).filter((l) => /^#\d+-\d+[ :]/.test(l) && !l.includes(') superseded · ')).length
-      lines[0] = 'recall: ' + shown + ' note(s), ' + blocks + ' summary block(s)' + (includeVoid ? ', ' + old + ' superseded' : ', ❌ void left out')
+      lines[0] = 'recall: ' + shown + ' note(s), ' + blocks + ' summary block(s)' + (includeVoid ? ', ' + old.length + ' superseded' : ', ❌ void left out')
     }
   }
   // A ❌ whose rebuilds are not done and not queued (a session ended mid-rebuild): queue them now.

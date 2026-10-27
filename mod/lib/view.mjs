@@ -356,7 +356,7 @@ function memGrid(lines, now, marks) {
   const header = marks ? shown.map((c) => pad(cols[c], Math.max(w[c], cols[c].length)) + '  ').join('') + 'text' : ''
   if (marks) for (const c of shown) w[c] = Math.max(w[c], cols[c].length)
   // one string per shown column (its padding and gap included), then the text: they join to the row
-  return { header, cells: rows.map((r) => [...[0, ...cols.slice(1).map((_, k) => k + 1)].map((c) => (shown.includes(c) ? pad(r[c], w[c]) + '  ' : '')), r[last]]) }
+  return { header, cells: rows.map((r) => [...cols.map((_, c) => (shown.includes(c) ? pad(r[c], w[c]) + '  ' : '')), r[last]]) }
 }
 
 /**
