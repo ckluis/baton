@@ -119,17 +119,25 @@ test('guard: a sub-orchestrator reporting DONE holds the next dispatch until the
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+// amended by verifier (XT16): still a guard: with the XT16 amendment applied it passes at da5910c (work/red.txt da5910c: run, work/guards.txt), so it is a preservation guard, exempt from red (C6, spec L80, R-C6-05; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: an enforced ruling refuses a matching command at tool.check; others keep their decision', async ($, on) => {
-  world(on, {
+  const rulings = [ // amended by verifier (XT16): the rulings store is a live list the test appends to, so a later write reaches the next recall (C6 may memo rulings longer, spec L80, R-C6-05; D-T6-loadRulings-fix)
+    { index: 0, ts: '2026-10-04T00:00:00Z', tag: 'ruling', text: 'never push to main' },
+    { index: 1, ts: '2026-10-04T00:00:00Z', tag: 'enforce', text: 'enforce #0 /git push.*\\bmain\\b/' },
+  ] // amended by verifier (XT16): end of the live rulings list (spec L80, R-C6-05)
+  const w = world(on, { // amended by verifier (XT16): keep the notes sink, to see the retract written (spec L80, R-C6-05)
     member: true, // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
-    rulings: [
-      { index: 0, ts: '2026-10-04T00:00:00Z', tag: 'ruling', text: 'never push to main' },
-      { index: 1, ts: '2026-10-04T00:00:00Z', tag: 'enforce', text: 'enforce #0 /git push.*\\bmain\\b/' },
-    ],
+    rulings, // amended by verifier (XT16): the live list above (spec L80, R-C6-05)
   })
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   const r: any = await $.tool.check({ tool: 'Bash', input: { command: 'git push origin main' } } as any)
   expect(r).toEqual({ decision: 'deny', reason: 'baton ruling #0 (enforced): never push to main' })
   expect(((await $.tool.check({ tool: 'Bash', input: { command: 'git push origin v7' } } as any)) as any).decision).toBe('allow')
+  // amended by verifier (XT16): the rulings memo is now warm with #0 enforced; a retract written through /baton must take effect at the very next tool.check, with no clock advance — a longer memo that skipped the invalidation on a rulings write would still refuse (C6 fixes overhead only, spec L80, R-C6-05; D-T6-loadRulings-fix)
+  const out: any = await $.command.run({ command: 'baton', args: 'retract 0' } as any) // amended by verifier (XT16): retract through the command, which writes the note (spec L80, R-C6-05)
+  expect(out.text).toBe('baton: ruling #0 retracted') // amended by verifier (XT16): the command retracted #0 (spec L80, R-C6-05)
+  expect(w.notes.at(-1)).toEqual({ tag: 'retract', text: 'retract #0: never push to main' }) // amended by verifier (XT16): the retract note it wrote (spec L80, R-C6-05)
+  rulings.push({ index: 2, ts: '2026-10-04T00:00:00Z', tag: 'retract', text: 'retract #0: never push to main' }) // amended by verifier (XT16): the store now holds that note, as memo would (spec L80, R-C6-05)
+  expect(((await $.tool.check({ tool: 'Bash', input: { command: 'git push origin main' } } as any)) as any).decision).toBe('allow') // amended by verifier (XT16): a retracted ruling no longer refuses, at once (spec L80, R-C6-05)
 })

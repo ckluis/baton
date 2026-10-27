@@ -99,6 +99,8 @@ ok(r.result === 'ran', 'queue empty: dispatch goes')
 // rulings + enforcement
 r = await fire('command.run', { command: 'baton', args: 'rule never push to main' })
 ok(/ruling noted #0/.test(r.text), 'rule recorded')
+r = await fire('tool.check', { tool: 'Bash', input: { command: 'git push origin main' } }) // amended by verifier (XT16): warm the rulings memo with #0 not yet enforced, so the refusal below proves the enforce write invalidated it (C6 may memo rulings longer, spec L80, R-C6-05; D-T6-loadRulings-fix)
+ok(r.decision === 'allow', 'before enforcement the command is allowed (rulings memo warm)') // amended by verifier (XT16): spec L80, R-C6-05
 r = await fire('command.run', { command: 'baton', args: 'enforce 0 git push.*\\bmain\\b' })
 ok(/is enforced/.test(r.text), 'enforced: ' + r.text)
 r = await fire('tool.check', { tool: 'Bash', input: { command: 'git push origin main' } })
@@ -155,6 +157,8 @@ t = await render()
 ok(/^ruling #\d+/m.test(text(t)) && /by hand/.test(text(t)) && !!flat(t).find((n) => n.props?.key === 'md-back'), 'Enter on a ruling opens its view: where it came from, b back')
 await flat(t).find((n) => n.props?.key === 'md-back').props.onPress()
 t = await render()
+r = await fire('tool.check', { tool: 'Bash', input: { command: 'git push origin main' } }) // amended by verifier (XT16): warm the rulings memo with #0 enforced, so the allow after the pane retract proves that write invalidated it (C6 may memo rulings longer, spec L80, R-C6-05; D-T6-loadRulings-fix)
+ok(r.decision === 'deny' && /ruling #0/.test(r.reason), 'still refused just before the retract (rulings memo warm)') // amended by verifier (XT16): spec L80, R-C6-05
 await byKey(t, 'retract-0').props.onPress()
 t = await render()
 ok(!/never push to main/.test(text(t)), 'retract removes the ruling')
