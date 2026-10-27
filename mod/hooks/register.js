@@ -16,7 +16,7 @@ import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, finishAgent, lifecycle, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, chain, effortOf, finishAgent, lifecycle, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
@@ -823,6 +823,7 @@ function bashText(res) {
 
 /** Stop and Notification: raise what is waiting as a native notification ($.ui.notify). */
 async function withNotice($, e, next) {
+  servedEffort($, e) // a Stop input carries the turn's served effort too (C8E)
   const r = await next(e)
   const text = pendingNotice()
   if (text) {
@@ -1849,6 +1850,40 @@ function mismatchLines() {
   return out
 }
 
+/**
+ * An agent's model cell: its model, then its effort after ` · ` (served, or configured marked `cfg`), red on
+ * a model or an effort mismatch (T8, C8E). No effort known: the model alone.
+ */
+function modelCell(n, m = modelOf(n)) {
+  const model = shortModel(m.shown) || ''
+  const ef = effortOf(n)
+  const text = model && ef.text ? model + ' · ' + ef.text + (ef.cfg ? ' cfg' : '') : model
+  return { model: text, modelMark: model && ef.cfg ? 'cfg' : '', modelTone: m.mismatch || ef.mismatch ? 'red' : undefined }
+}
+
+/** Record an effort on the agent it belongs to (no id: the main loop's, the prime's or `session` row). */
+function noteEffort(agentId, field, value) {
+  if (value === undefined || value === null || value === '') return
+  const n = tree.nodes.get(agentId || PRIME)
+  if (n) n[field] = value
+}
+
+/** A classic hook's handler: note the served effort its input carries (C8E), then pass the input on. */
+async function withServedEffort($, e, next) {
+  servedEffort($, e)
+  return next(e)
+}
+
+/** The served effort a classic hook input carries (C8E), on the agent its agent_id names (none: the main loop). */
+function servedEffort($, e) {
+  try {
+    if (e && e.effort && e.effort.level) {
+      noteEffort(e.agent_id, 'effortServed', e.effort.level)
+      if (pane.open) $.ui.invalidate('ui.render')
+    }
+  } catch {}
+}
+
 /** One agent as a table row. */
 function agentRow(r) {
   const n = r.id ? tree.nodes.get(r.id) : null
@@ -1869,8 +1904,7 @@ function agentRow(r) {
     ctxHist: n.ctxHist || [],
     ctxTone: ctxTone(pct, thr),
     threshold: thr,
-    model: shortModel(m.shown) || '',
-    modelTone: m.mismatch ? 'red' : undefined,
+    ...modelCell(n, m),
     acc: n.spend || null,
     cost: n.spend ? shortUsd(costOf(n.spend, config.prices)) : '',
     steps: (mini || own || []).slice(0, -1),
@@ -3493,6 +3527,12 @@ export function register(on, options) {
     }
   }).catch(failOpen)
 
+  // The served effort (C8E): a classic hook input in a tool-use context carries the effort applied to the
+  // turn, after any silent downgrade, with the subagent's agent_id (none: the main loop). Stop is read by withNotice.
+  on('classic.PostToolUse', withServedEffort).catch(failOpen)
+  on('classic.PostToolUseFailure', withServedEffort).catch(failOpen)
+  on('classic.SubagentStop', withServedEffort).catch(failOpen)
+
   // Notifications reach the desktop when Claude Code next lets a hook emit one.
   on('classic.Stop', withNotice).catch(failOpen)
   on('classic.Notification', withNotice).catch(failOpen)
@@ -4028,6 +4068,8 @@ export function register(on, options) {
   // Spend: every model request, metered by the agent that made it. The response
   // streams on untouched; only its usage is read.
   on('turn.step', async function* ($, e, next) {
+    // The configured effort (C8E): what this request asks for, the session's setting or the model's default.
+    noteEffort(e.agentId, 'effortConfigured', e.effort)
     const result = yield* next(e)
     try {
       if (result && result.usage) {
