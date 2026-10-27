@@ -112,6 +112,14 @@ export function sumAccounts(accs) {
   return out
 }
 
+/** The model cell's parts: a configured-only effort's closing mark (`cfg`) is drawn dim, apart from the rest (C8E). */
+function modelParts(r) {
+  const text = String(r.model || '')
+  const mark = r.modelMark || ''
+  if (!mark || !text.endsWith(mark)) return [{ text, tone: r.modelTone }]
+  return [{ text: text.slice(0, -mark.length), tone: r.modelTone }, { text: mark, tone: 'rail' }]
+}
+
 /**
  * rows: [{ label, tone, ctxPct, ctxTone, threshold, model, modelTone, modelMark, acc, cost, roll, rollCost, steps: [{ text, tone }], state, stateTone, noContext }]
  * `acc` is the row's own account (its `this agent` cells), `roll` its subtree's (the `roll-up` cells,
@@ -131,8 +139,7 @@ export function agentTable(rows, width = 140) {
       ctx: [{ text: r.ctxPct == null ? (r.noContext ? '' : '—') : r.ctxPct + '%', tone: r.ctxTone }],
       trend: [{ text: sparkline(r.ctxHist || []), tone: r.ctxTone }],
       budget: [{ text: r.threshold == null ? '' : r.threshold + '%', tone: 'rail' }],
-      // A configured-only effort ends in its mark (`cfg`), drawn dim apart from the rest of the cell (C8E).
-      model: r.modelMark && String(r.model || '').endsWith(r.modelMark) ? [{ text: r.model.slice(0, -r.modelMark.length), tone: r.modelTone }, { text: r.modelMark, tone: 'rail' }] : [{ text: r.model || '', tone: r.modelTone }],
+      model: modelParts(r),
       input: [{ text: r.acc ? shortTokens(k.input) : '', tone: undefined }],
       cacheWrite: [{ text: r.acc ? shortTokens(k.cacheWrite) : '', tone: 'rail' }],
       cacheRead: [{ text: r.acc ? shortTokens(k.cacheRead) : '', tone: 'rail' }],
