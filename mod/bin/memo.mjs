@@ -16,6 +16,12 @@
 //                                  or plain lines in queue order); without it a
 //                                  deterministic fallback merge is used
 //   stats                          counts: notes, summaries, pending, levels
+//   mark <id> ok|void|clear --who W [--session S] [--reason R | -]
+//                                  append one mark record (T14); id is a note number or lo-hi
+//   marks [<id>]                   every mark record (of that id), oldest first
+//   rebuild <lo>-<hi> --reason R - replace a summary with the text on stdin; its old text
+//                                  goes to the superseded log with the reason
+//   superseded                     every superseded summary text, oldest first
 //
 // --dir defaults to $BATON_MEMORY_DIR, else _orch/memory under the cwd.
 // --project uses the project memory: <root>/<memoryDir> (default .baton/memory).
@@ -29,7 +35,7 @@ import { fallbackMerge, clampBytes } from '../lib/memcore.mjs'
 function parseArgs(argv) {
   const flags = {}
   const rest = []
-  const takesValue = new Set(['dir', 'root', 'ns', 'tag', 'budget', 'limit', 'max', 'memory-dir'])
+  const takesValue = new Set(['dir', 'root', 'ns', 'tag', 'budget', 'limit', 'max', 'memory-dir', 'who', 'session', 'reason'])
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--') {
@@ -75,7 +81,7 @@ function main(argv) {
   const { flags, rest } = parseArgs(argv)
   const cmd = rest.shift()
   if (!cmd || flags.help || cmd === 'help') {
-    process.stdout.write(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(1, 22).map((l) => l.slice(3)).join('\n') + '\n')
+    process.stdout.write(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).slice(1, 28).map((l) => l.slice(3)).join('\n') + '\n')
     return 0
   }
   const mem = new Memory(resolveDir(flags))
@@ -157,8 +163,30 @@ function main(argv) {
       out(flags, s, `${s.notes} notes, ${s.summaries}/${s.treeCapacity} summaries, ${s.levels} levels, ${s.pending} pending (${s.ready} ready) — ${s.dir}`)
       return 0
     }
+    case 'mark': {
+      const [id, value, dash] = rest
+      const reason = flags.reason !== undefined ? String(flags.reason) : dash === '-' ? readStdin() : ''
+      const r = mem.mark(id, String(value ?? ''), { who: flags.who || '', session: flags.session, reason })
+      out(flags, r, `marked #${r.id} ${r.mark}`)
+      return 0
+    }
+    case 'marks': {
+      const list = mem.marks(rest[0] ?? null)
+      out(flags, list, list.length ? list.map((m) => `#${m.id} ${m.ts} ${m.mark} ${m.who}${m.reason ? ' — ' + m.reason : ''}`).join('\n') : 'no marks')
+      return 0
+    }
+    case 'rebuild': {
+      const r = mem.rebuild(rest[0], readStdin(), flags.reason || '')
+      out(flags, r, `rebuilt #${r.lo}-${r.hi}`)
+      return 0
+    }
+    case 'superseded': {
+      const list = mem.superseded()
+      out(flags, list, list.length ? list.map((x) => `#${x.lo}-${x.hi} (L${x.level}) ${x.ts} ${x.reason} · ${x.text}`).join('\n') : 'none')
+      return 0
+    }
     default:
-      process.stderr.write(`memo: unknown command "${cmd}" (note, wake, zoom, recall, pending, merge, stats)\n`)
+      process.stderr.write(`memo: unknown command "${cmd}" (note, wake, zoom, recall, pending, merge, stats, mark, marks, rebuild, superseded)\n`)
       return 2
   }
 }

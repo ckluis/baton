@@ -12,7 +12,7 @@
 // directory after a cd.
 
 import { agentIdVerified, guardDecision, isPrimeCall, manifestIsPrime, VERIFIED_AGENTID_VERSION } from '../lib/guard.mjs'
-import { clampBytes, cleanTag, fallbackMerge, MERGE_SYSTEM, mergePrompt } from '../lib/memcore.mjs'
+import { clampBytes, cleanTag, cutBytes, fallbackMerge, idRange, isRejectedReply, isStale, lastMark, markId, markLines, markOf, voidsIn, MARK_GLYPH, MARK_VALUES, MARK_WORD, MERGE_STRICT, MERGE_SYSTEM, mergePrompt, rebuildReason, currentMarks, supersededLine, toRegex } from '../lib/memcore.mjs'
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
@@ -24,11 +24,11 @@ import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, g
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
-import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail } from '../lib/detail.mjs'
+import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTable, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTable, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -144,11 +144,19 @@ const pane = {
   tab: 'work',
   planOpen: false, // Work: every node of every phase, not just one line per phase
   detail: null, // Work: { kind: agent|phase|node, id, view } opened with Enter on a row; b closes it
-  mdetail: null, // Memory: a ruling's view, opened with Enter on its row
+  mdetail: null, // Memory: a ruling's view, or a note's or summary's (with .mem, its row), opened with Enter on its row
+  memStore: 'run', // Memory: the store the explorer shows, 'run' or 'project' (Q-92); the view opens on the run's
+  memFilter: null, // Memory: null, 'ok' (confirmed only, 3) or 'void' (void only, 4)
+  memHint: null, // Memory: the hint line, what the last mark key did or why it did nothing
+  memFocusRow: null, // Memory: the row the focus ring is on (Q-71), kept while it is on the c, v, u keys
+  memRowKeys: new Map(), // Memory: each drawn row Button's key -> its row
+  memRows: [], // Memory: one row per table line { which, ns, id, lo, hi, level }
+  memViews: {}, // Memory: 'run|' or 'project|<ns>' -> its marks (markView)
   timer: null,
   refreshedAt: null,
   data: { plan: ['(not read yet)'], memory: ['(not read yet)'], rulings: ['(not read yet)'], track: ['no run is active here'] },
   memoryNotes: null, // run-memory note count, for the band
+  marksSeen: 0, // bumped by every mark and rebuild, so the Memory view reads its marks again
   memTiles: [], // the memory tab's blocks, parallel to its view lines
   memLines: [],
   rulings: [], // the standing rulings, for the Rulings tab
@@ -237,12 +245,30 @@ const MEMORY_TOOLS = [
   {
     name: 'memory_zoom',
     description: 'baton run memory: open a stretch of notes back up, e.g. "40-71" (inclusive note numbers from memory_wake). A wide range is shown within the budget, finest at its end.',
-    inputSchema: { type: 'object', properties: { range: { type: 'string', description: 'lo-hi, as the #lo-hi labels in memory_wake' }, budget: { type: 'integer', minimum: 4, maximum: 400 } }, required: ['range'] },
+    inputSchema: {
+      type: 'object',
+      properties: { range: { type: 'string', description: 'lo-hi, as the #lo-hi labels in memory_wake' }, budget: { type: 'integer', minimum: 4, maximum: 400 }, include_void: { type: 'boolean', description: 'also show ❌ notes, with their reason (default false)' } },
+      required: ['range'],
+    },
   },
   {
     name: 'memory_recall',
     description: 'baton run memory: every note and summary matching a regex (case-insensitive), newest notes last. Use it for a node id, a question id, a criterion, an operator decision.',
-    inputSchema: { type: 'object', properties: { pattern: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 } }, required: ['pattern'] },
+    inputSchema: { type: 'object', properties: { pattern: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 }, include_void: { type: 'boolean', description: 'also return ❌ notes and the old text of rebuilt summaries (default false)' } }, required: ['pattern'] },
+  },
+  {
+    name: 'memory_mark',
+    description:
+      'baton run memory: mark a note or a summary ✅ (ok: confirmed), ❌ (void) or clear it, with a one-line reason. A ❌ note leaves memory_wake, memory_recall and the summaries, which are rebuilt without it in the background; nothing is deleted. A mark the operator made cannot be replaced.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'a note number such as 48, or a summary range such as 48-51, as memory_wake prints them' },
+        mark: { type: 'string', enum: MARK_VALUES },
+        reason: { type: 'string', description: 'one line: why (the operator\'s words when you mark on their word)' },
+      },
+      required: ['id', 'mark', 'reason'],
+    },
   },
   {
     name: 'project_wake',
@@ -259,7 +285,21 @@ const MEMORY_TOOLS = [
   {
     name: 'project_recall',
     description: 'baton project memory (spans runs): notes and summaries matching a regex; optional namespace as in project_wake.',
-    inputSchema: { type: 'object', properties: { pattern: { type: 'string' }, namespace: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 } }, required: ['pattern'] },
+    inputSchema: { type: 'object', properties: { pattern: { type: 'string' }, namespace: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 }, include_void: { type: 'boolean', description: 'also return ❌ notes (default false)' } }, required: ['pattern'] },
+  },
+  {
+    name: 'project_mark',
+    description: "baton project memory (spans runs): mark a note or a summary ✅ (ok), ❌ (void) or clear it, as memory_mark does; optional namespace as in project_wake. Rulings are not marked: they are retracted.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'a note number, or a summary range lo-hi, as project_wake prints them' },
+        mark: { type: 'string', enum: MARK_VALUES },
+        reason: { type: 'string', description: 'one line: why' },
+        namespace: { type: 'string' },
+      },
+      required: ['id', 'mark', 'reason'],
+    },
   },
 ]
 
@@ -915,24 +955,12 @@ async function mergePass($) {
         const ready = JSON.parse(await memoRun($, [...args, '--json', 'pending', '--ready', '--texts']))
         if (!ready.length) continue
         const lines = []
-        for (const item of ready.slice(0, 16)) {
-          let summary = null
-          try {
-            const r = await $.model.complete({
-              model: CHEAP_MODEL,
-              system: MERGE_SYSTEM,
-              prompt: mergePrompt(item, item.texts),
-              maxTokens: 200,
-              effort: 'low',
-              timeoutMs: 45000,
-            })
-            if (r.isAnswered) summary = clampBytes(r.text.split('\n').map((x) => x.trim()).filter(Boolean).join(' ')).text
-          } catch {}
-          if (!summary) summary = fallbackMerge(item.texts)
-          lines.push(JSON.stringify({ level: item.level, index: item.index, summary }))
-        }
+        for (const item of ready.slice(0, 16)) lines.push(JSON.stringify({ level: item.level, index: item.index, summary: await summarize($, item, item.texts) }))
         await memoRun($, [...args, '--json', 'merge', '--summarize'], lines.join('\n') + '\n')
         did += lines.length
+        // A new summary over a ❌ note holds it: rebuild it without (spec L423).
+        const view = await markView($, args)
+        for (const item of ready.slice(0, 16)) for (const [id] of voidsIn(view.cur, item.lo, item.hi)) scheduleRebuild($, job.which, job.namespace, id)
         mergeQueue.set(job.which + '|' + (job.namespace ?? ''), job) // its parents may be ready now
       }
       if (!did && !memory.again) break
@@ -943,6 +971,341 @@ async function mergePass($) {
     memory.merging = false
     $.ui.invalidate('ui.render')
   }
+}
+
+/**
+ * One summary from the cheap model, with the strict ≤280-byte prompt. A reply that talks about its
+ * own input (Q-78's patterns) is retried once with a stricter prompt; a second one, or no answer,
+ * stores the deterministic fallbackMerge of the inputs, so the tree never stalls.
+ */
+async function summarize($, item, texts) {
+  for (const system of [MERGE_SYSTEM, MERGE_STRICT]) {
+    let reply = null
+    try {
+      const r = await $.model.complete({ model: CHEAP_MODEL, system, prompt: mergePrompt(item, texts), maxTokens: 200, effort: 'low', timeoutMs: 45000 })
+      if (r.isAnswered) reply = clampBytes(r.text.split('\n').map((x) => x.trim()).filter(Boolean).join(' ')).text
+    } catch {}
+    if (!reply) break
+    if (!isRejectedReply(reply)) return reply
+  }
+  return fallbackMerge(texts)
+}
+
+// ------------------------------------------------------------------ marks (T14)
+//
+// A note or a summary is marked ✅ (ok), ❌ (void) or cleared, with a one-line reason and who
+// marked it: an appended record in the store's mark log (memo mark/marks, Q-74). The mod applies
+// the marks: memory_wake, memory_zoom, memory_recall and their project twins leave a ❌ note out,
+// and a summary over one is rebuilt without it, bottom up, in the background (Q-75, Q-76), its old
+// text kept in the superseded log (Q-84). Only the operator (from the pane) and the run's prime
+// (memory_mark, project_mark) mark (Q-73); rulings are retracted, not marked (Q-86).
+
+const MARK_REFUSED = {
+  agent: 'refused: only the operator and the prime mark (Q-73)',
+  operator: "refused: the operator's mark stands (Q-74)",
+  rulings: 'refused: rulings are retracted, not marked',
+}
+
+/** A memo answer as JSON, or `fallback` when the store cannot give one. */
+async function memoJson($, args, fallback) {
+  try {
+    const v = JSON.parse(await memoRun($, args))
+    return v ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+/** A store's mark records, its current marks and (when anything is marked) its superseded log. */
+async function markView($, args) {
+  const recs = await memoJson($, [...args, '--json', 'marks'], [])
+  const records = Array.isArray(recs) ? recs : []
+  const sup = records.length ? await memoJson($, [...args, '--json', 'superseded'], []) : []
+  return { records, cur: currentMarks(records), superseded: Array.isArray(sup) ? sup : [] }
+}
+
+/** The refusal for a session that is not the run's own (T7, Q-80), or null. */
+async function outsideRun($) {
+  if (!(membership.recorded && !membership.member)) return null
+  const here = membership.runId || ((await readManifest($, null)) || {}).run_id || '?'
+  return 'refused: this session is not in run ' + here + ' (T7)'
+}
+
+/**
+ * A hook that would have noted on its own, in a session that is not the run's own (Q-80): it
+ * writes nothing and logs one line. Silent where no run is here at all.
+ */
+async function notNoted($, what) {
+  if (!(membership.recorded && !membership.member)) return
+  const why = await outsideRun($)
+  if (!membership.runId && !isOpenPrime(await readManifest($, null))) return
+  $.ui.log('baton: ' + what + ' was not noted: ' + why.replace(/^refused: /, ''))
+}
+
+/** Write one mark record: `who` is operator or prime. A ❌ queues the rebuilds above it. */
+async function writeMark($, which, namespace, id, mark, reason, who, session) {
+  const args = await memoryArgs($, which, namespace)
+  await memoRun($, [...args, '--json', '--who', who, ...(session ? ['--session', String(session)] : []), 'mark', '--', id, mark, '-'], reason)
+  pane.marksSeen++
+  if (mark === 'void') scheduleRebuild($, which, namespace, id)
+  $.ui.invalidate('ui.render')
+}
+
+/** memory_mark and project_mark: the prime's mark (Q-73), refused for anyone else. */
+async function markTool($, e, which) {
+  if (e.agentId) return { deny: MARK_REFUSED.agent }
+  const outside = await outsideRun($)
+  if (outside) return { deny: outside }
+  const namespace = which === 'project' ? cleanNamespace(e.namespace) : null
+  if (namespace === RULINGS_NS) return { deny: MARK_REFUSED.rulings }
+  const id = markId(e.id)
+  if (!id) return { deny: 'baton: "' + String(e.id ?? '') + '" is not a note number or a summary range lo-hi, as ' + (which === 'project' ? 'project_wake' : 'memory_wake') + ' prints them; no mark made' }
+  const mark = String(e.mark ?? '')
+  if (!MARK_VALUES.includes(mark)) return { deny: 'baton: mark is ' + MARK_VALUES.join(', ') + '; no mark made' }
+  const reason = cutBytes(e.reason)
+  if (!reason && mark !== 'clear') return { deny: 'baton: a mark needs a one-line reason; no mark made' }
+  const args = await memoryArgs($, which, namespace)
+  const last = lastMark(await memoJson($, [...args, '--json', 'marks'], []), id)
+  if (last && last.who === 'operator' && last.mark !== 'clear') return { deny: MARK_REFUSED.operator }
+  await writeMark($, which, namespace, id, mark, reason, 'prime', membership.id || (await sessionId($)))
+  return { result: 'marked #' + id + ' ' + MARK_WORD[mark] + (mark === 'void' ? '; the summaries above it are rebuilt without it, in the background' : '') }
+}
+
+const rebuilds = { queue: [], running: false, inFlight: new Set() }
+
+/** Queue the rebuild of every summary above `id` (a note, or a summary and those above it), bottom up (Q-76). */
+function scheduleRebuild($, which, namespace, id) {
+  const key = which + '|' + (namespace ?? '') + '|' + id
+  if (rebuilds.inFlight.has(key)) return
+  rebuilds.inFlight.add(key)
+  rebuilds.queue.push({ key, which, namespace, id })
+  if (rebuilds.running) return
+  rebuilds.running = true
+  $.clock.after(0, () => rebuildPass($))
+}
+
+/** A summary's text, or a note's, read back through memo zoom (one block, or its two halves). */
+async function blockLines($, args, lo, hi, budget) {
+  const z = await memoJson($, [...args, '--json', 'zoom', '--budget', String(budget), '--', lo + '-' + hi], null)
+  return z && Array.isArray(z.lines) ? z.lines.map((l, j) => ({ tile: z.tiles && z.tiles[j], text: lineText(l) })) : []
+}
+
+/** The text of a memo line: a note's after its tag, a summary's after its count. */
+function lineText(l) {
+  const n = /^#\d+ \S+ \[[^\]]*\] ?(.*)$/.exec(l)
+  if (n) return n[1]
+  const b = /^#\d+-\d+ \(\d+ notes\) ?(.*)$/.exec(l)
+  return b ? (b[1].startsWith('(not merged yet)') ? null : b[1]) : null
+}
+
+async function rebuildPass($) {
+  try {
+    while (rebuilds.queue.length) {
+      const job = rebuilds.queue.shift()
+      try {
+        await rebuildAbove($, job)
+      } catch (err) {
+        $.ui.log('baton: memory rebuild failed: ' + (err && err.message ? err.message : String(err)))
+      } finally {
+        rebuilds.inFlight.delete(job.key)
+      }
+    }
+  } finally {
+    rebuilds.running = false
+    pane.marksSeen++
+    $.ui.invalidate('ui.render')
+  }
+}
+
+/** Rebuild the summaries above one ❌, lowest first, each from its children without the ❌ notes. */
+async function rebuildAbove($, { which, namespace, id }) {
+  const args = await memoryArgs($, which, namespace)
+  const n = Number((await memoJson($, [...args, '--json', 'stats'], {})).notes) || 0
+  let [lo, hi] = idRange(id)
+  let size = hi - lo + 1
+  if (size === 1) [lo, hi, size] = [lo - (lo % 2), lo - (lo % 2) + 1, 2] // a note: from the L1 above it
+  for (; hi < n; size *= 2, lo = lo - (lo % size), hi = lo + size - 1) {
+    const level = Math.log2(size)
+    const own = await blockLines($, args, lo, hi, 1)
+    if (!own.length || own[0].text == null || !own[0].tile || own[0].tile.level !== level) continue // no summary there: nothing to rebuild
+    const { cur } = await markView($, args)
+    const halves = await blockLines($, args, lo, hi, 2)
+    const texts = halves.filter((h) => h.text != null && !(h.tile && h.tile.level === 0 && (cur.get(String(h.tile.lo)) || {}).mark === 'void')).map((h) => h.text)
+    const text = texts.length ? await summarize($, { level, index: lo / size, lo, hi, ready: true }, texts) : 'every note of #' + lo + '-' + hi + ' is ❌ void'
+    await memoRun($, [...args, '--json', 'rebuild', lo + '-' + hi, '--reason', rebuildReason(id), '-'], text)
+  }
+}
+
+/** memo's wake, zoom or recall text with the marks applied (Q-76, Q-77, Q-84, Q-90); unchanged when nothing is marked. */
+async function withMarks($, args, out, { includeVoid = false, pattern = null, which = 'run', namespace = null } = {}) {
+  if (namespace === RULINGS_NS) return out
+  const view = await markView($, args)
+  if (!view.records.length) return out
+  const end = out.endsWith('\n') ? '\n' : ''
+  const lines = markLines(out.replace(/\n$/, '').split('\n'), view.cur, view.superseded, includeVoid)
+  if (pattern !== null) {
+    let old = 0
+    if (includeVoid) {
+      const re = toRegex(pattern)
+      for (const x of view.superseded) if (x && re.test(String(x.text ?? ''))) old += lines.push(supersededLine(x)) && 1
+    }
+    // The header counts what is shown; it does not echo the pattern, which may be a ❌ note's words.
+    if (/^recall \//.test(lines[0] ?? '')) {
+      const shown = lines.slice(1).filter((l) => /^#\d+ /.test(l)).length
+      const blocks = lines.slice(1).filter((l) => /^#\d+-\d+[ :]/.test(l) && !l.includes(') superseded · ')).length
+      lines[0] = 'recall: ' + shown + ' note(s), ' + blocks + ' summary block(s)' + (includeVoid ? ', ' + old + ' superseded' : ', ❌ void left out')
+    }
+  }
+  // A ❌ whose rebuilds are not done and not queued (a session ended mid-rebuild): queue them now.
+  if (!includeVoid) for (const [id, r] of view.cur) if (r.mark === 'void' && lines.some((l) => l.endsWith(': rebuilding (a note was voided)'))) scheduleRebuild($, which, namespace, id)
+  return lines.join('\n') + end
+}
+
+// ------------------------------------------------------------------ approval notes (T14, Q-81)
+//
+// The note at approval records what the shell would run, parsed so that a heredoc body and a quoted
+// string are data: `cat > f <<EOF … git push … EOF` reads `writes f`, not a push. The command gate's
+// own matching is unchanged (Q-87). The note after the command records its exit code and what it
+// changed that the mod can see: the files it wrote and the refs it pushed.
+
+/** Split a command line into simple commands of words, with quotes removed and heredoc bodies skipped. */
+function shellCommands(command) {
+  const src = String(command ?? '')
+  const cmds = []
+  let words = []
+  let word = null
+  let heredocs = []
+  const endWord = () => {
+    if (word !== null) words.push(word)
+    word = null
+  }
+  const endCmd = () => {
+    endWord()
+    if (words.length) cmds.push(words)
+    words = []
+  }
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i]
+    if (c === '\n') {
+      endCmd()
+      // the bodies of the heredocs opened on this line are data, up to each one's terminator line
+      let j = i + 1
+      for (const tag of heredocs) {
+        for (;;) {
+          const e = src.indexOf('\n', j)
+          const l = src.slice(j, e < 0 ? src.length : e)
+          j = e < 0 ? src.length : e + 1
+          if (e < 0 || l.replace(/^\t+/, '') === tag) break
+        }
+      }
+      heredocs = []
+      i = j - 1
+      continue
+    }
+    if (c === "'" || c === '"') {
+      const close = src.indexOf(c, i + 1)
+      const end = close < 0 ? src.length : close
+      word = (word ?? '') + src.slice(i + 1, end)
+      i = end
+      continue
+    }
+    if (c === '\\') {
+      word = (word ?? '') + (src[i + 1] ?? '')
+      i++
+      continue
+    }
+    if (c === '<' && src[i + 1] === '<' && src[i + 2] !== '<') {
+      endWord()
+      let j = i + 2
+      if (src[j] === '-') j++
+      while (src[j] === ' ') j++
+      const m = /^(['"]?)([A-Za-z0-9_.-]+)\1/.exec(src.slice(j))
+      if (m) {
+        heredocs.push(m[2])
+        words.push('<<')
+        i = j + m[0].length - 1
+        continue
+      }
+    }
+    if (c === ';' || c === '&' || c === '|' || c === '(' || c === ')') {
+      endCmd()
+      continue
+    }
+    if (c === '>' || c === '<') {
+      endWord()
+      let op = c
+      if (src[i + 1] === '>' || src[i + 1] === '|') op += src[++i]
+      if (src[i + 1] === '&') {
+        i++ // >&2, 2>&1: to another descriptor, not a file
+        while (/[0-9-]/.test(src[i + 1] ?? '')) i++
+        continue
+      }
+      words.push(op)
+      continue
+    }
+    if (c === ' ' || c === '\t') {
+      endWord()
+      continue
+    }
+    word = (word ?? '') + c
+  }
+  endCmd()
+  return cmds
+}
+
+/** What a command does, as the approval notes say it: writes <file>, pushes <remote> <ref>, runs <name>. */
+function commandEffects(command) {
+  const out = []
+  const add = (x) => (out.some((y) => y.kind === x.kind && y.what === x.what) ? null : out.push(x))
+  for (const words of shellCommands(command)) {
+    const plain = []
+    let wrote = false
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i]
+      if (/^[0-9]*>{1,2}\|?$/.test(w) || w === '>' || w === '>>' || w === '>|') {
+        const f = words[++i]
+        if (f && f !== '/dev/null') add({ kind: 'writes', what: f })
+        wrote = true
+      } else if (w === '<' || w === '<<') i += w === '<' ? 1 : 0
+      else if (/^[0-9]+$/.test(w) && /^>/.test(words[i + 1] ?? '')) continue
+      else plain.push(w)
+    }
+    let k = 0
+    while (k < plain.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(plain[k])) k++
+    const name = plain[k]
+    if (!name || name === 'cd') continue
+    if (name === 'tee') {
+      for (const f of plain.slice(k + 1)) if (!f.startsWith('-')) add({ kind: 'writes', what: f })
+      continue
+    }
+    let g = k + 1
+    while (name === 'git' && g < plain.length && plain[g].startsWith('-')) g += plain[g] === '-C' || plain[g] === '-c' ? 2 : 1
+    if (name === 'git' && plain[g] === 'push') {
+      const args = plain.slice(g + 1).filter((a) => !a.startsWith('-'))
+      add({ kind: 'pushes', what: args.join(' '), remote: args[0] || null, refs: args.slice(1).map((r) => r.replace(/^\+/, '').split(':').pop()) })
+      continue
+    }
+    if (!wrote) add({ kind: 'runs', what: name.split('/').pop() })
+  }
+  return out
+}
+
+const effectsText = (effects) => (effects.length ? effects.map((x) => x.kind + (x.what ? ' ' + x.what : '')).join('; ') : 'runs nothing the mod can name')
+
+/** The note after an approved command: its exit code and what it changed that the mod can see. */
+function afterNote(who, effects, r) {
+  if (!r || r.deny) return 'approved command for ' + who + ' did not run' + (r && r.deny ? ': ' + firstLine(String(r.deny)) : '')
+  const res = r.result && typeof r.result === 'object' ? r.result : {}
+  const code = Number.isInteger(res.exitCode) ? res.exitCode : r.isError ? 1 : res.interrupted ? null : 0
+  const parts = ['approved command for ' + who + ' finished: exit ' + (code === null ? '?' : code)]
+  if (code === 0) {
+    for (const x of effects) if (x.kind === 'writes') parts.push('wrote ' + x.what)
+    const seen = new Set()
+    for (const m of String(res.stderr ?? '').matchAll(/->\s+(\S+)/g)) seen.add(m[1])
+    for (const x of effects) if (x.kind === 'pushes') for (const ref of x.refs) seen.add(ref)
+    for (const ref of seen) parts.push('pushed ' + ref)
+  }
+  return parts.join('; ')
 }
 
 /** A run note that never throws (the caller has already decided). */
@@ -1320,31 +1683,38 @@ async function refreshPane($, paneRows) {
   const d = {}
   // Memory: the wake view, a zoomed range from the browse stack, or a search. Skipped when no note
   // was written and the browse state is the same (the pane refreshes every five seconds).
-  const memKey = memory.notes + '|' + browse.stack.join(',') + '|' + (browse.search || '') + '|' + budget
+  const memKey = memory.notes + '|' + pane.marksSeen + '|' + pane.memStore + '|' + browse.stack.join(',') + '|' + (browse.search || '') + '|' + budget
   if (pane.memKey === memKey && pane.memAt && Date.now() - pane.memAt < 60000) d.memory = pane.data.memory
   else try {
     pane.memKey = memKey
     pane.memAt = Date.now()
-    const args = await memoryArgs($, 'run')
-    const s = JSON.parse(await memoRun($, [...args, '--json', 'stats']))
-    pane.memoryNotes = s.notes
-    const head = 'tree: ' + s.notes + ' notes · ' + s.summaries + '/' + s.treeCapacity + ' summaries · ' + s.levels + ' levels · ' + s.pending + ' merges pending'
-    if (browse.search) {
-      const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', String(budget), '--', browse.search]))
-      d.memory = [head, 'search /' + browse.search + '/i: ' + r.total + ' note(s), ' + r.blocks.length + ' summary block(s)']
-      pane.memTiles = [...r.blocks.map((b) => ({ level: b.level, lo: b.lo, hi: b.hi + 1 })), ...r.notes.map((x) => ({ level: 0, lo: x.index, hi: x.index + 1 }))]
-      pane.memLines = [...r.blocks.map((b) => '#' + b.lo + '-' + b.hi + ' (L' + b.level + ') ' + b.text), ...r.notes.map((x) => '#' + x.index + ' ' + x.ts + ' [' + x.tag + '] ' + x.text)]
-    } else {
-      const range = browse.stack.at(-1)
-      const w = JSON.parse(await memoRun($, [...args, '--json', ...(range ? ['zoom', '--budget', String(budget), '--', range] : ['wake', '--budget', String(budget)])]))
-      d.memory = [head, (range ? 'notes #' + range + ' (' + w.tiles.length + ' blocks)' : 'wake view (' + w.tiles.length + ' blocks, budget ' + budget + ')') + ':']
-      pane.memTiles = w.tiles
-      pane.memLines = w.lines
+    pane.memViews = {}
+    if (pane.memStore === 'project') d.memory = await readProjectMemory($, budget)
+    else {
+      const args = await memoryArgs($, 'run')
+      const s = JSON.parse(await memoRun($, [...args, '--json', 'stats']))
+      pane.memoryNotes = s.notes
+      const head = 'tree: ' + s.notes + ' notes · ' + s.summaries + '/' + s.treeCapacity + ' summaries · ' + s.levels + ' levels · ' + s.pending + ' merges pending'
+      if (browse.search) {
+        const r = JSON.parse(await memoRun($, [...args, '--json', 'recall', '--limit', String(budget), '--', browse.search]))
+        d.memory = [head, 'search /' + browse.search + '/i: ' + r.total + ' note(s), ' + r.blocks.length + ' summary block(s)']
+        pane.memTiles = [...r.blocks.map((b) => ({ level: b.level, lo: b.lo, hi: b.hi + 1 })), ...r.notes.map((x) => ({ level: 0, lo: x.index, hi: x.index + 1 }))]
+        pane.memLines = [...r.blocks.map((b) => '#' + b.lo + '-' + b.hi + ' (L' + b.level + ') ' + b.text), ...r.notes.map((x) => '#' + x.index + ' ' + x.ts + ' [' + x.tag + '] ' + x.text)]
+      } else {
+        const range = browse.stack.at(-1)
+        const w = JSON.parse(await memoRun($, [...args, '--json', ...(range ? ['zoom', '--budget', String(budget), '--', range] : ['wake', '--budget', String(budget)])]))
+        d.memory = [head, (range ? 'notes #' + range + ' (' + w.tiles.length + ' blocks)' : 'wake view (' + w.tiles.length + ' blocks, budget ' + budget + ')') + ':']
+        pane.memTiles = w.tiles
+        pane.memLines = w.lines
+      }
+      pane.memRows = pane.memTiles.map((t) => memRowOf('run', null, t))
+      pane.memViews['run|'] = await markView($, args)
     }
   } catch (err) {
-    d.memory = ['run memory unreadable: ' + err.message]
+    d.memory = [(pane.memStore === 'project' ? 'project' : 'run') + ' memory unreadable: ' + err.message]
     pane.memTiles = []
     pane.memLines = []
+    pane.memRows = []
   }
   // Plan
   d.plan = trackLines(await observe($))
@@ -1502,22 +1872,25 @@ async function openRuling($, r) {
   try {
     src = await $.store.get('ruling-src:' + r.n)
   } catch {}
-  pane.mdetail = rulingDetail(r, src)
+  pane.mdetail = { ...rulingDetail(r, src), ruling: true }
   $.ui.invalidate('ui.render')
 }
 
 /** Memory: your rulings first (what governs the run), then the memory itself (what happened). */
 function memoryTabBody($, ui) {
   const { Text, Box, Button } = ui
+  pane.memRowKeys = new Map()
+  const hint = pane.memHint ? [ui.line('mem-hint', pane.memHint, { color: 'yellow' })] : []
   if (pane.mdetail) {
     const d = pane.mdetail
     const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
     return [
+      ...hint,
       Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ bold: true, children: [d.title] })] }),
       ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
     ]
   }
-  return [Text({ bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ children: [' '] }), Text({ bold: true, children: ['memory'] }), ...memoryBody($, ui)]
+  return [...hint, Text({ bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ children: [' '] }), Text({ bold: true, children: [pane.memStore === 'project' ? 'project memory' : 'memory'] }), ...memoryBody($, ui)]
 }
 
 // ------------------------------------------------------------------ detail views (Enter on a row)
@@ -2357,6 +2730,135 @@ async function resolveQueued($, i, how, who = 'operator') {
     .catch((err) => $.ui.log('baton: could not hand the send-back to the prime: ' + err.message))
 }
 
+/** A table row of the explorer: which store and namespace it is in, its mark id and its range. */
+function memRowOf(which, ns, t) {
+  const lo = t.lo
+  const hi = t.hi - 1
+  return { which, ns: ns || null, lo, hi, level: t.level, id: t.level > 0 ? lo + '-' + hi : String(lo) }
+}
+
+const memViewKey = (row) => row.which + '|' + (row.ns ?? '')
+
+/** The glyph a row's mark cell draws (D-T14-mark-glyphs): ✅, ❌ or nothing. */
+function rowGlyph(row) {
+  const v = row && pane.memViews[memViewKey(row)]
+  if (!v) return ''
+  return MARK_GLYPH[markOf(v.cur, v.superseded, row.id)] || ''
+}
+
+/**
+ * The project memory in the explorer (Q-92, D-T14-project-view): its default store and every named
+ * namespace but `rulings`, one table; a namespace's rows start their text with `[<namespace>]`. A
+ * drilled range (browse.stack: '<ns>|<lo-hi>') shows that namespace's stretch only.
+ */
+async function readProjectMemory($, budget) {
+  const base = await memoryArgs($, 'project')
+  const entries = (await listDir($, base[1] + '/ns')) || []
+  const names = entries.filter((x) => x && x.kind !== 'file' && cleanNamespace(x.name) === x.name && x.name !== RULINGS_NS).map((x) => x.name).sort()
+  const top = browse.stack.at(-1)
+  const [topNs, range] = top ? [top.slice(0, top.indexOf('|')) || null, top.slice(top.indexOf('|') + 1)] : [null, null]
+  const tiles = []
+  const lines = []
+  const rowsOut = []
+  let notes = 0
+  for (const ns of [null, ...names]) {
+    if (top && ns !== topNs) continue
+    const args = await memoryArgs($, 'project', ns)
+    let w
+    try {
+      w = JSON.parse(await memoRun($, [...args, '--json', ...(range ? ['zoom', '--budget', String(budget), '--', range] : ['wake', '--budget', String(budget)])]))
+    } catch {
+      continue
+    }
+    pane.memViews['project|' + (ns ?? '')] = await markView($, args)
+    ;(w.tiles || []).forEach((t, j) => {
+      const l = String((w.lines || [])[j] ?? '')
+      tiles.push(t)
+      rowsOut.push(memRowOf('project', ns, t))
+      lines.push(ns ? l.replace(/^(#\d+ \S+ \[[^\]]*\] ?|#\d+-\d+ )/, '$1[' + ns + '] ') : l)
+      if (t.level === 0) notes++
+    })
+  }
+  pane.memTiles = tiles
+  pane.memLines = lines
+  pane.memRows = rowsOut
+  return ['project memory: ' + (names.length ? 'the default store and ' + names.map((x) => '[' + x + ']').join(' ') : 'the default store') + ' (rulings are below, retracted not marked)', (range ? 'notes #' + range + (topNs ? ' [' + topNs + ']' : '') : 'wake view') + ' (' + tiles.length + ' blocks):']
+}
+
+const MEM_MARK_KEYS = new Set(['mem-key-c', 'mem-key-v', 'mem-key-u'])
+const REASON_LABELS = ['Type the reason under Other', 'Make no mark']
+
+/** The Memory view's own keys, on the key line after r (D-T14-project-toggle, D-T14-filter-keys, D-T14-mark-letters). */
+function memoryKeys($, Button, rows) {
+  const k = (key, label, hotkey, onPress) => Button({ key, label, hotkey, plain: true, onPress })
+  return [
+    k('mem-store', pane.memStore === 'project' ? 'run memory' : 'project memory', 's', () => toggleStore($, rows)),
+    k('mem-filter-ok', 'confirmed only', '3', () => setFilter($, 'ok')),
+    k('mem-filter-void', 'void only', '4', () => setFilter($, 'void')),
+    k('mem-key-c', '✅ confirm', 'c', () => paneMark($, 'ok', rows)),
+    k('mem-key-v', '❌ void', 'v', () => paneMark($, 'void', rows)),
+    k('mem-key-u', 'clear', 'u', () => paneMark($, 'clear', rows)),
+  ]
+}
+
+/** s: the run's memory or the project memory (Q-92). */
+function toggleStore($, rows) {
+  pane.memStore = pane.memStore === 'project' ? 'run' : 'project'
+  Object.assign(browse, { stack: [], search: null })
+  Object.assign(pane, { mdetail: null, memFocusRow: null, memHint: null })
+  $.ui.invalidate('ui.render')
+  return refreshPane($, rows)
+}
+
+/** 3 and 4: confirmed only, void only; the active one's key again shows every row. */
+function setFilter($, f) {
+  pane.memFilter = pane.memFilter === f ? null : f
+  $.ui.invalidate('ui.render')
+}
+
+function memHint($, text) {
+  pane.memHint = text
+  $.ui.invalidate('ui.render')
+}
+
+/**
+ * c, v, u from the pane (Q-71, Q-72, Q-73): on the opened note or summary, else on the focused row;
+ * the reason is asked in a `reason:` dialog and required. The mark records `operator`.
+ */
+async function paneMark($, mark, rows) {
+  const d = pane.mdetail
+  const row = d ? d.mem || (d.ruling ? { ruling: true } : null) : pane.memFocusRow
+  if (!row) return memHint($, 'focus a note or summary row to mark it')
+  if (row.ruling) return memHint($, 'no mark: rulings are retracted, not marked')
+  let answer = ''
+  try {
+    answer = String(await $.ui.ask('reason:', REASON_LABELS))
+  } catch {
+    answer = ''
+  }
+  const reason = REASON_LABELS.includes(answer.trim()) ? '' : cutBytes(answer)
+  if (!reason) return memHint($, 'no mark: a reason is needed')
+  try {
+    await writeMark($, row.which, row.ns, row.id, mark, reason, 'operator')
+  } catch (err) {
+    return memHint($, 'no mark: ' + (err && err.message ? err.message : String(err)))
+  }
+  pane.memHint = (row.ns ? '[' + row.ns + '] ' : '') + '#' + row.id + ' ' + MARK_WORD[mark] + (mark === 'void' ? '; the summaries above it are rebuilt without it' : '')
+  await refreshPane($, rows)
+  if (pane.mdetail && pane.mdetail.mem) await openMemRow($, pane.mdetail.mem)
+}
+
+/** Enter on a row's › : the note's or summary's view, its text, its mark and every mark record (Q-71, Q-74, Q-90). */
+async function openMemRow($, row) {
+  const args = await memoryArgs($, row.which, row.ns)
+  const records = await memoJson($, [...args, '--json', 'marks', row.id], [])
+  const j = pane.memRows.findIndex((r) => r.which === row.which && r.ns === row.ns && r.id === row.id)
+  const line = j >= 0 ? String(pane.memLines[j] ?? '') : ''
+  const text = (lineText(line) ?? line).replace(row.ns ? '[' + row.ns + '] ' : '\u0000', '')
+  pane.mdetail = { ...memDetail({ ...row, text, store: row.which === 'project' ? 'project memory' : 'run memory' }, Array.isArray(records) ? records : []), mem: row }
+  $.ui.invalidate('ui.render')
+}
+
 /** Memory: open a block (+), go back (b), or search; notes and summaries as a table (T12). */
 function memoryBody($, { Box, Text, Button, Input, line, rows }) {
   const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
@@ -2390,8 +2892,19 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
     )
   }
   out.push(Box({ key: 'mem-nav', flexDirection: 'row', columnGap: 2, children: nav }))
-  memTable(pane.memLines).forEach((l, j) => {
+  if (pane.memFilter) out.push(line('mem-filter', pane.memFilter === 'ok' ? 'confirmed only' : 'void only', { bold: true }))
+  // The rows a filter keeps (3: ✅ only, 4: ❌ only), with their mark cells (T14).
+  const glyphs = pane.memLines.map((_, j) => rowGlyph(pane.memRows[j]))
+  const keep = pane.memLines.map((_, j) => j).filter((j) => !pane.memFilter || glyphs[j] === MARK_GLYPH[pane.memFilter])
+  const shown = keep.map((j) => pane.memLines[j])
+  const marks = keep.map((j) => glyphs[j])
+  const cells = memTableCells(shown, Date.now(), marks)
+  if (shown.length) out.push(Box({ key: 'mem-head', flexDirection: 'row', children: [Text({ children: ['    '] }), line('mem-head-l', memTableHeader(shown, Date.now(), marks), { dimColor: true })] }))
+  cells.forEach(([idCell, markCell, rest], at) => {
+    const j = keep[at]
     const t = pane.memTiles[j]
+    const row = pane.memRows[j]
+    const isVoid = marks[at] === MARK_GLYPH.void
     // the first column: a summary's + opens it; a note keeps the column blank so the table lines up
     const first =
       t && t.level > 0
@@ -2401,12 +2914,33 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
             plain: true,
             onPress: () => {
               browse.search = null
-              browse.stack.push(t.lo + '-' + (t.hi - 1))
+              browse.stack.push((pane.memStore === 'project' ? (row && row.ns ? row.ns : '') + '|' : '') + t.lo + '-' + (t.hi - 1))
               return reload()
             },
           })
         : Text({ children: [' '] })
-    out.push(Box({ key: 'mr' + j, flexDirection: 'row', columnGap: 1, children: [first, line('m' + j, l)] }))
+    // then the row's open control (D-T14-row-open-control): Enter opens the note's or summary's view
+    const open = Button({ key: 'mem-row-' + j, label: '›', plain: true, onPress: () => openMemRow($, row) })
+    if (row) {
+      pane.memRowKeys.set('mem-open-' + j, row)
+      pane.memRowKeys.set('mem-row-' + j, row)
+    }
+    const dim = isVoid ? { dimColor: true } : {}
+    out.push(
+      Box({
+        key: 'mr' + j,
+        flexDirection: 'row',
+        children: [
+          first,
+          Text({ children: [' '] }),
+          open,
+          Text({ children: [' '] }),
+          Text({ wrap: 'truncate-end', ...dim, children: [idCell] }),
+          Text({ wrap: 'truncate-end', ...(isVoid ? { color: 'red' } : {}), children: [markCell] }),
+          line('m' + j, rest, dim),
+        ],
+      }),
+    )
   })
   if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then '], ['Enter', ' opens a block · '], ['b', ' goes back']]))
   return out
@@ -2431,6 +2965,8 @@ function rulingsBody($, { Box, Button, Input, line, rows }) {
   ]
   if (!pane.rulings.length) out.push(line('r-none', pane.data.rulings[0] ?? 'no rulings yet', { dimColor: true }))
   pane.rulings.forEach((r) => {
+    pane.memRowKeys.set('open-r-' + r.n, { ruling: true })
+    pane.memRowKeys.set('retract-' + r.n, { ruling: true })
     out.push(
       Box({
         key: 'rr' + r.n,
@@ -2481,14 +3017,19 @@ async function serveMemoryTool($, e) {
   const budget = Number.isInteger(e.budget) ? e.budget : config.wakeBudgetLines
   try {
     switch (name) {
-      case 'memory_wake':
-        return { result: (await rulingsBlock($)) + (await memoRun($, [...(await memoryArgs($, 'run')), 'wake', '--budget', String(budget)])) }
+      case 'memory_wake': {
+        const args = await memoryArgs($, 'run')
+        const rules = await rulingsBlock($)
+        return { result: rules + (await withMarks($, args, await memoRun($, [...args, 'wake', '--budget', String(budget)]))) }
+      }
+      case 'memory_mark':
+        return await markTool($, e, 'run')
+      case 'project_mark':
+        return await markTool($, e, 'project')
       case 'memory_note': {
         // Only the run's own session writes run notes (T7); Q-80: an error result, nothing written.
-        if (membership.recorded && !membership.member) {
-          const here = membership.runId || ((await readManifest($, null)) || {}).run_id || '?'
-          return { deny: 'refused: this session is not in run ' + here + ' (T7)' }
-        }
+        const outside = await outsideRun($)
+        if (outside) return { deny: outside }
         const given = e.tag != null && e.tag !== ''
         const tag = given ? cleanTag(e.tag) : callerRole(e.agentId)
         if (given && isReservedTag(tag)) {
@@ -2496,16 +3037,26 @@ async function serveMemoryTool($, e) {
         }
         return { result: await appendNote($, 'run', String(e.text ?? ''), tag) }
       }
-      case 'memory_zoom':
-        return { result: await memoRun($, [...(await memoryArgs($, 'run')), 'zoom', '--budget', String(budget), '--', String(e.range ?? '')]) }
-      case 'memory_recall':
-        return { result: await memoRun($, [...(await memoryArgs($, 'run')), 'recall', '--limit', String(e.limit ?? 20), '--', String(e.pattern ?? '')]) }
-      case 'project_wake':
-        return { result: await memoRun($, [...(await memoryArgs($, 'project', e.namespace)), 'wake', '--budget', String(budget)]) }
+      case 'memory_zoom': {
+        const args = await memoryArgs($, 'run')
+        return { result: await withMarks($, args, await memoRun($, [...args, 'zoom', '--budget', String(budget), '--', String(e.range ?? '')]), { includeVoid: e.include_void === true }) }
+      }
+      case 'memory_recall': {
+        const args = await memoryArgs($, 'run')
+        const pattern = String(e.pattern ?? '')
+        return { result: await withMarks($, args, await memoRun($, [...args, 'recall', '--limit', String(e.limit ?? 20), '--', pattern]), { includeVoid: e.include_void === true, pattern }) }
+      }
+      case 'project_wake': {
+        const args = await memoryArgs($, 'project', e.namespace)
+        return { result: await withMarks($, args, await memoRun($, [...args, 'wake', '--budget', String(budget)]), { which: 'project', namespace: cleanNamespace(e.namespace) }) }
+      }
       case 'project_note':
         return { result: await appendNote($, 'project', String(e.text ?? ''), e.agentId ? 'agent' : 'prime', e.namespace) }
-      case 'project_recall':
-        return { result: await memoRun($, [...(await memoryArgs($, 'project', e.namespace)), 'recall', '--limit', String(e.limit ?? 20), '--', String(e.pattern ?? '')]) }
+      case 'project_recall': {
+        const args = await memoryArgs($, 'project', e.namespace)
+        const pattern = String(e.pattern ?? '')
+        return { result: await withMarks($, args, await memoRun($, [...args, 'recall', '--limit', String(e.limit ?? 20), '--', pattern]), { includeVoid: e.include_void === true, pattern, which: 'project', namespace: cleanNamespace(e.namespace) }) }
+      }
       default:
         return { result: 'baton: no memory tool named ' + name }
     }
@@ -3380,7 +3931,11 @@ export function register(on, options) {
     const gate = gateFor(e.command)
     if (!gate || approvals.always.has(gate.id)) return next(e)
     // Approved once from a blocked row's brief (T13, Q-37): that exact command passes, once.
-    if (approvals.once.delete(String(e.command).trim())) return withContext(await next(e), 'baton: the operator approved this exact command once, from the pane.')
+    if (approvals.once.delete(String(e.command).trim())) {
+      const r = await next(e)
+      await noteQuietly($, afterNote(chain(tree, isPrimeCall(e) ? PRIME : e.agentId), commandEffects(e.command), r), 'approval')
+      return withContext(r, 'baton: the operator approved this exact command once, from the pane.')
+    }
     const who = chain(tree, isPrimeCall(e) ? PRIME : e.agentId)
     approvals.asked++
     let answer = null
@@ -3394,9 +3949,13 @@ export function register(on, options) {
     if (verdict === 'approve' || verdict === 'always') {
       if (verdict === 'always') approvals.always.add(gate.id)
       approvals.approved++
-      await noteQuietly($, 'operator approved (' + gate.id + (verdict === 'always' ? ', for the run' : '') + ') for ' + who + ': ' + e.command, 'approval')
+      // Q-81: what the shell would run, heredoc bodies and quoted strings read as data; the gate is not named (D-T14-approval-notes).
+      const effects = commandEffects(e.command)
+      await noteQuietly($, 'operator approved for ' + who + (verdict === 'always' ? ' (and every command of this kind for the run)' : '') + ': ' + effectsText(effects), 'approval')
+      const r = await next(e)
+      await noteQuietly($, afterNote(who, effects, r), 'approval')
       // The agent never sees the dialog: tell it the operator approved, so its report is true.
-      return withContext(await next(e), 'baton: the operator approved this "' + gate.label + '" command before it ran' + (verdict === 'always' ? ', and every "' + gate.label + '" for the rest of the run' : '') + '.')
+      return withContext(r, 'baton: the operator approved this "' + gate.label + '" command before it ran' + (verdict === 'always' ? ', and every "' + gate.label + '" for the rest of the run' : '') + '.')
     }
     approvals.refused++
     const reason = verdict.refuse
@@ -3629,7 +4188,9 @@ export function register(on, options) {
   // ruling (in the background: the turn does not wait on the cheap model).
   // After a rotation, the prompt also carries the wake.
   on('prompt.submit', async ($, e, next) => {
-    if (isOperatorPrompt(e.text, run.lastKickoff, e.origin) && (await runActive($))) {
+    const operatorPrompt = isOperatorPrompt(e.text, run.lastKickoff, e.origin)
+    if (operatorPrompt && !(await runActive($))) await notNoted($, 'the operator prompt')
+    else if (operatorPrompt) {
       const text = String(e.text)
       try {
         await appendNote($, 'run', text, 'operator')
@@ -3806,6 +4367,11 @@ export function register(on, options) {
         try {
           surfaces = await $.session.surfaces()
         } catch {}
+        // The Memory view opens on the run's memory every time the pane is opened (D-T14-project-toggle).
+        if (pane.memStore !== 'run') {
+          Object.assign(pane, { memStore: 'run', mdetail: pane.mdetail && pane.mdetail.mem ? null : pane.mdetail, memFocusRow: null })
+          Object.assign(browse, { stack: [], search: null })
+        }
         await refreshPane($, 30)
         if (!surfaces.length) return { text: (await statusText($)) + '\n\n' + paneText() }
         pane.open = true
@@ -3851,6 +4417,7 @@ export function register(on, options) {
     )
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
     tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
+    if (pane.tab === 'memory') tabs.push(...memoryKeys($, Button, rows))
     // p shows or hides the node rows under every phase row of the tree (T10 amendment, Q-59).
     if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
     const line = (key, text, extra = {}) => Text({ wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
@@ -3860,7 +4427,7 @@ export function register(on, options) {
     const root = Box({
       flexDirection: 'column',
       children: [
-        Box({ flexDirection: 'row', columnGap: 3, children: tabs }),
+        Box({ flexDirection: 'row', columnGap: 3, ...(pane.tab === 'memory' ? { flexWrap: 'wrap' } : {}), children: tabs }),
         Text({ dimColor: true, children: ['read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes'] }),
         ...body,
       ],
@@ -3905,6 +4472,12 @@ export function register(on, options) {
   // the focus on it (spec L289-290, L371); any other move of the ring is the engine's.
   on('ui.focus', { component: 'Pane' }, async ($, e, next) => {
     if (e.requestId !== PANE) return next(e)
+    // Memory (Q-71): the focused row is the one whose Button the ring is on; it stays while the ring is on c, v, u.
+    if (pane.tab === 'memory') {
+      const el = e.element ?? null
+      if (pane.memRowKeys.has(el)) pane.memFocusRow = pane.memRowKeys.get(el)
+      else if (!MEM_MARK_KEYS.has(el)) pane.memFocusRow = null
+    }
     const L = pane.list
     const step = e.origin && e.origin.kind === 'person' && pane.tab === 'work' && !pane.detail ? edgeStep(L.focus, e.element) : null
     const target = step === 'down' ? L.top + L.size : step === 'up' ? L.top - 1 : -1
@@ -4040,6 +4613,7 @@ export function register(on, options) {
     // A subagent the prime dispatched returned: its one line becomes a note
     // (unless its SubagentHandback call already carried it).
     // The prime's own reply: its first line is the decision it just made.
+    if (!e.agentId && !e.isAborted && !(await runActive($)) && firstLine(e.answer)) await notNoted($, 'the reply')
     if (!e.agentId && !e.isAborted && (await runActive($))) {
       const line = firstLine(e.answer)
       if (line) {

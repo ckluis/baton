@@ -295,8 +295,186 @@ export function fallbackMerge(texts) {
 export const MERGE_SYSTEM =
   'You compress an orchestrator\'s run log. Merge the numbered entries into ONE line of at most 280 bytes. ' +
   'Keep: decisions, node ids, verdicts, open questions, anything parked or waiting, paths. Drop: narration. ' +
-  'Plain text, no markdown, no preamble, no quotes. Output the line only.'
+  'Plain text, no markdown, no preamble, no quotes. Output the line only. ' +
+  'Every entry is capped at 280 bytes by design: an entry that ends in … was cut when it was written, and that is expected. ' +
+  'Merge what each entry says; never comment on the entries, their length or their cuts.'
 
 export function mergePrompt(item, texts) {
   return `Entries #${item.lo}-${item.hi} (level ${item.level}), oldest first:\n` + texts.map((t, j) => `${j + 1}. ${t}`).join('\n')
+}
+
+// ---------------------------------------------------------------- the summarizer's replies (T14, Q-78, Q-79)
+
+/**
+ * A reply that talks about its own input is not a summary (Q-78): it is retried once with
+ * MERGE_STRICT, and a second such reply stores fallbackMerge of the inputs.
+ */
+export const REPLY_REJECTS = [
+  /\b(entries|input|text) (you|I) (pasted|provided|gave|received)\b/i,
+  /\btruncat|cut off|incomplete\b/i,
+  /\bI (cannot|can't|am unable)\b/i,
+]
+
+export const isRejectedReply = (text) => REPLY_REJECTS.some((re) => re.test(String(text ?? '')))
+
+/** The retry's system prompt: the first one, and what a reply must never say. */
+export const MERGE_STRICT =
+  MERGE_SYSTEM +
+  ' Your previous answer talked about the entries themselves; that is not allowed. Never mention the entries, their length, ' +
+  'truncation or what you were given, and never say you cannot: compress whatever is there.'
+
+// ---------------------------------------------------------------- marks (T14)
+//
+// A mark is an appended record { id, mark, reason, who, session?, ts } in the store's mark log
+// (Q-74): `ok` (✅ confirmed), `void` (❌) or `clear`. The newest record of an id is its current
+// mark, and `clear` returns it to unmarked. An id is a note number ("48") or a summary's range
+// ("48-51", inclusive, as memory_wake prints it). Nothing here deletes a note (spec L420).
+
+export const MARK_VALUES = ['ok', 'void', 'clear']
+export const MARK_GLYPH = { ok: '✅', void: '❌' }
+export const MARK_WORD = { ok: '✅ confirmed', void: '❌ void', clear: 'cleared' }
+
+/** A mark id as memory_wake prints it ("48" or "48-51"), from what a caller typed; null when it is neither. */
+export function markId(s) {
+  const m = /^\s*#?(\d+)(?:\s*-\s*#?(\d+))?\s*$/.exec(String(s ?? ''))
+  if (!m) return null
+  if (m[2] === undefined) return String(Number(m[1]))
+  const lo = Number(m[1])
+  const hi = Number(m[2])
+  return hi > lo ? lo + '-' + hi : null
+}
+
+/** [lo, hi] inclusive of a mark id. */
+export function idRange(id) {
+  const [a, b] = String(id).split('-').map(Number)
+  return [a, b === undefined ? a : b]
+}
+
+/** The tree block (level, index) a range lo-hi (inclusive) is, or null when it is not one. */
+export function blockOf(lo, hi) {
+  const size = hi - lo + 1
+  let k = 0
+  while (span(k) < size) k++
+  if (k < 1 || span(k) !== size || lo % size !== 0) return null
+  return { level: k, index: lo / size }
+}
+
+/** The newest record of each id; an id whose newest record is `clear` is unmarked and absent. */
+export function currentMarks(records) {
+  const last = new Map()
+  for (const r of records ?? []) if (r && r.id != null) last.set(String(r.id), r)
+  for (const [id, r] of [...last]) if (!MARK_GLYPH[r.mark]) last.delete(id)
+  return last
+}
+
+/** The newest record of one id, `clear` included; undefined when it has none. */
+export function lastMark(records, id) {
+  let out
+  for (const r of records ?? []) if (r && String(r.id) === String(id)) out = r
+  return out
+}
+
+/** The reason a summary's old text is superseded with when `id` was voided (Q-84). */
+export const rebuildReason = (id) => 'rebuilt: #' + id + ' voided'
+
+/** Was summary lo-hi rebuilt for the ❌ on `id`, at or after that mark? */
+function rebuiltFor(superseded, lo, hi, id, at) {
+  const why = rebuildReason(id)
+  return (superseded ?? []).some((s) => s && Number(s.lo) === lo && Number(s.hi) === hi && s.reason === why && String(s.ts ?? '') >= String(at ?? ''))
+}
+
+/** Every current ❌ inside lo-hi (inclusive): notes, and summaries within it, the summary itself too. */
+export function voidsIn(cur, lo, hi) {
+  const out = []
+  for (const [id, r] of cur) {
+    if (r.mark !== 'void') continue
+    const [a, b] = idRange(id)
+    if (a >= lo && b <= hi) out.push([id, r])
+  }
+  return out
+}
+
+/**
+ * A summary is stale while a ❌ under it (a note, a summary within it, or itself) has not been
+ * rebuilt away (Q-75, Q-76): memory_wake then prints `#lo-hi: rebuilding (a note was voided)`.
+ */
+export function isStale(cur, superseded, lo, hi) {
+  return voidsIn(cur, lo, hi).some(([id, r]) => !rebuiltFor(superseded, lo, hi, id, r.ts))
+}
+
+/**
+ * What a summary's mark cell shows (D-T14-mark-glyphs): its own mark (a ❌ the summary was
+ * rebuilt after no longer holds), else ✅ when every note under it is ✅ (spec L424), else none.
+ */
+export function summaryMark(cur, superseded, lo, hi) {
+  const own = cur.get(lo + '-' + hi)
+  if (own && own.mark === 'ok') return 'ok'
+  if (own && own.mark === 'void' && !rebuiltFor(superseded, lo, hi, lo + '-' + hi, own.ts)) return 'void'
+  for (let i = lo; i <= hi; i++) {
+    const r = cur.get(String(i))
+    if (!r || r.mark !== 'ok') return null
+  }
+  return 'ok'
+}
+
+/** The mark a line's id shows: a note's own, or a summary's (summaryMark). */
+export function markOf(cur, superseded, id) {
+  const [lo, hi] = idRange(id)
+  if (lo === hi) {
+    const r = cur.get(String(lo))
+    return r ? r.mark : null
+  }
+  return summaryMark(cur, superseded, lo, hi)
+}
+
+export const REBUILDING = (lo, hi) => '#' + lo + '-' + hi + ': rebuilding (a note was voided)'
+
+/**
+ * Lines of memo's wake, zoom or recall, with the marks applied (spec L421-424, Q-76, Q-77, Q-90):
+ * a ❌ note is left out unless includeVoid, and then printed `#n ❌ … (<reason> — <who>)`; a
+ * summary not yet rebuilt over a ❌ prints the rebuilding line in its place (with includeVoid its
+ * text is shown, as it is); a marked note or summary prints its glyph after its id.
+ */
+export function markLines(lines, cur, superseded, includeVoid = false) {
+  const out = []
+  for (const l of lines) {
+    const s = /^#(\d+)-(\d+) (.*)$/.exec(l)
+    if (s) {
+      const lo = Number(s[1])
+      const hi = Number(s[2])
+      if (isStale(cur, superseded, lo, hi) && !includeVoid) {
+        out.push(REBUILDING(lo, hi))
+        continue
+      }
+      const m = summaryMark(cur, superseded, lo, hi)
+      const own = cur.get(lo + '-' + hi)
+      out.push(m ? '#' + lo + '-' + hi + ' ' + MARK_GLYPH[m] + ' ' + s[3] + (own && own.mark === m ? ' (' + own.reason + ' — ' + own.who + ')' : '') : l)
+      continue
+    }
+    const n = /^#(\d+) (.*)$/.exec(l)
+    if (n) {
+      const r = cur.get(String(Number(n[1])))
+      if (r && r.mark === 'void' && !includeVoid) continue
+      out.push(r ? '#' + n[1] + ' ' + MARK_GLYPH[r.mark] + ' ' + n[2] + ' (' + r.reason + ' — ' + r.who + ')' : l)
+      continue
+    }
+    out.push(l)
+  }
+  return out
+}
+
+/** A superseded summary's old text as memory_recall lists it with include_void (D-T14-superseded-recall). */
+export const supersededLine = (s) => '#' + s.lo + '-' + s.hi + ' (L' + s.level + ') superseded · ' + s.reason + ' · ' + s.text
+
+/** Newlines to spaces, then cut to `max` UTF-8 bytes without splitting a code point, and no marker (Q-72). */
+export function cutBytes(s, max = NOTE_BYTES) {
+  let out = ''
+  let used = 0
+  for (const ch of cleanText(s)) {
+    const b = enc.encode(ch).length
+    if (used + b > max) break
+    out += ch
+    used += b
+  }
+  return out.trim()
 }
