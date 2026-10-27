@@ -254,6 +254,55 @@ export function assignLetters(held, ids, pool = ROW_LETTERS) {
   return held
 }
 
+/**
+ * The agent list's window (T15; Q-64, Q-66, Q-68): how `n` list rows are drawn in `area` lines with row
+ * `top` the window's first. A running row (`pin(i)`) scrolled out is drawn in a strip at that edge, in
+ * tree order; both strips together take at most a third of the area. When one side's running rows do not
+ * all fit, its strip ends with `+<k> running`, which joins that side's more line when no strip row fits.
+ * A `↑/↓ <k> more` line stands at an edge only while rows there are not drawn (k counts those,
+ * D-T15-more-count). The window takes the lines left. A list that fits is drawn whole from its top.
+ */
+export function listWindow(n, top, area, pin = () => false) {
+  if (n <= area) return { top: 0, size: n, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: 0, hiddenBelow: 0, fits: true }
+  const t = Math.max(0, Math.min(Number(top) || 0, n - 1))
+  const cap = Math.floor(area / 3)
+  const running = (a, b) => {
+    const out = []
+    for (let i = a; i < b; i++) if (pin(i)) out.push(i)
+    return out
+  }
+  const strip = (rs, room) => (rs.length <= room ? { rows: rs, plus: 0, lines: rs.length } : room >= 2 ? { rows: rs.slice(0, room - 1), plus: rs.length - room + 1, lines: room } : { rows: [], plus: rs.length, lines: 0 })
+  const sa = strip(running(0, t), cap)
+  for (let size = Math.min(area, n - t); size >= 1; size--) {
+    const sb = strip(running(t + size, n), cap - sa.lines)
+    const hiddenAbove = t - sa.rows.length
+    const hiddenBelow = n - t - size - sb.rows.length
+    if ((hiddenAbove > 0 ? 1 : 0) + sa.lines + size + sb.lines + (hiddenBelow > 0 ? 1 : 0) <= area) {
+      return { top: t, size, above: sa.rows, below: sb.rows, plusAbove: sa.plus, plusBelow: sb.plus, stripAbove: sa.lines, stripBelow: sb.lines, hiddenAbove, hiddenBelow, fits: false }
+    }
+  }
+  return { top: t, size: 1, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: t, hiddenBelow: n - t - 1, fits: false }
+}
+
+/** The first top row at which the list's last row is in the window (End, Q-63). */
+export function listEnd(n, area, pin = () => false) {
+  for (let t = Math.max(0, n - area); t < n; t++) {
+    const w = listWindow(n, t, area, pin)
+    if (w.top + w.size >= n) return w.top
+  }
+  return Math.max(0, n - 1)
+}
+
+/** The top row that brings row `i` into the window from `top`, moving it as little as it can (L289-290). */
+export function listReveal(n, top, area, i, pin = () => false) {
+  if (i < top) return Math.max(0, i)
+  for (let t = top; t <= i; t++) {
+    const w = listWindow(n, t, area, pin)
+    if (i < w.top + w.size) return w.top
+  }
+  return i
+}
+
 /** A memory line's time cell: HH:MM, with the date before it when it is not today (Q-23). */
 export function memTime(ts, now = Date.now()) {
   const d = new Date(ts)

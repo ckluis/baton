@@ -163,22 +163,15 @@ export function elapsed(ms) {
 }
 
 /**
- * Rows for the pane, depth first, newest children last. Finished subtrees
- * older than the newest `keepDone` finished agents are folded into a count.
+ * Rows for the pane, depth first, newest children last: every agent, finished ones too (T15, spec
+ * L286, L288: nothing is folded; the pane's list scrolls instead).
  * Each row: { id, depth, live, text, color }.
  */
-export function treeRows(t, now = Date.now(), { max = 40, keepDone = 12 } = {}) {
-  const done = [...t.nodes.values()].filter((n) => n.endedAt != null).sort((a, b) => b.endedAt - a.endedAt)
-  const shown = new Set(done.slice(0, keepDone).map((n) => n.id))
+export function treeRows(t, now = Date.now()) {
   const rows = []
-  let folded = 0
   const walk = (id, depth) => {
     const n = t.nodes.get(id)
     const live = n.endedAt == null
-    if (!live && !shown.has(id) && id !== PRIME) {
-      folded++
-      return
-    }
     const bits = [n.id === PRIME ? 'prime' : n.role + ' ' + n.label]
     if (n.model) bits.push(n.model)
     bits.push(elapsed((n.endedAt ?? now) - n.startedAt))
@@ -196,6 +189,5 @@ export function treeRows(t, now = Date.now(), { max = 40, keepDone = 12 } = {}) 
     for (const c of n.children) walk(c, depth + 1)
   }
   walk(PRIME, 0)
-  if (folded) rows.push({ id: null, depth: 0, live: false, text: '  … ' + folded + ' earlier finished agent' + (folded === 1 ? '' : 's') + ' folded', color: undefined })
-  return rows.slice(0, max)
+  return rows
 }

@@ -28,7 +28,7 @@ import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodes
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, memTable, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTable, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -154,6 +154,12 @@ const pane = {
   rulings: [], // the standing rulings, for the Rulings tab
   target: null, // the agent the Agents tab's message field writes to
   letters: new Map(), // Work: each row's direct key ('agent:<id>', 'phase:<id>', 'q:<question id>' or 'blocked:<node id>' -> a letter of ROW_LETTERS), held while the row is listed
+  lettersRun: null, // the run whose stored letters were read back (Q-82)
+  lettersSaved: null, // stored letters of rows not listed again yet: identity -> letter
+  lettersText: null, // what was last stored
+  // Work: the agent list's window (T15): its top row by identity (Q-65) and index, and its last layout.
+  // `alias`: the list keys Home and End swapped so the key the ring holds is drawn on the row it moves to (drawn <- natural).
+  list: { top: 0, topKey: null, on: false, fits: true, n: 0, area: 0, size: 0, ids: [], pins: [], items: [], win: new Set(), keys: new Set(), first: new Set(), last: new Set(), ring: [], focus: null, alias: new Map() },
 }
 
 // What the prime is doing now, for the spinner: its live dispatches.
@@ -1439,7 +1445,7 @@ function workspaceBody($, ui) {
         )
       })
     }
-    out.push(Text({ children: [' '] }))
+    out.push({ [GAP]: Text({ children: [' '] }) })
   }
   out.push(...agentsBody($, ui))
   if (v && (v.questions || []).length) {
@@ -1907,48 +1913,217 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // and `roll-up` groups, and the parcel steps of what it works on.
   const items = workTree()
   // Direct keys (T9, Q-60): every agent and phase row, top to bottom in tree order; then the `?` rows and the
-  // blocked node rows drawn (T13, Q-39).
+  // blocked node rows drawn (T13, Q-39). A row keeps its letter while it exists, across a reload or a
+  // restart too (Q-67, Q-82).
   const v = track.view
-  assignLetters(
-    pane.letters,
-    rowKeyIds({
-      tree: items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])),
-      questions: v ? (v.questions || []).map((q) => q.id) : [],
-      blocked: items.filter((x) => x.kind === 'node' && isBlocked(x.x)).map((x) => x.x.id),
-    }),
-  )
+  const ids = rowKeyIds({
+    tree: items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])),
+    questions: v ? (v.questions || []).map((q) => q.id) : [],
+    blocked: items.filter((x) => x.kind === 'node' && isBlocked(x.x)).map((x) => x.x.id),
+  })
+  restoreLetters(ids)
+  assignLetters(pane.letters, ids)
+  saveLetters($)
   const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
   out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
   out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
-  let a = 0
-  for (const x of items) {
-    if (x.kind === 'note') {
-      out.push(Box({ key: x.key, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] }))
-      continue
-    }
-    const cells = lineOf.get(x).map((y) => Text({ wrap: 'truncate-end', ...tone(y), children: [y.text] }))
-    if (x.kind === 'phase') {
-      // Enter on a phase row's › opens the phase view: its steps, its nodes with their states, its spend (Q-54).
-      out.push(Box({ key: 'pr-' + x.p.id, flexDirection: 'row', children: [Button({ key: 'open-p-' + x.p.id, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells] }))
-      continue
-    }
-    if (x.kind === 'node') {
-      // A blocked node row (Q-38) also holds a direct key; its view opens with the brief.
-      out.push(Box({ key: 'nr-' + x.x.id, flexDirection: 'row', children: [Button({ key: 'open-n-' + x.x.id, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells] }))
-      continue
-    }
-    const r = x.r
-    const i = a++
-    // ↑/↓ moves over the rows' › buttons; Enter opens that agent's view.
-    const open = r.id ? [Button({ key: 'open-a' + i, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
-    const children = [...open, ...cells]
-    if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: 'msg-' + i, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
-    out.push(Box({ key: 'ar' + i, flexDirection: 'row', children }))
-  }
+  // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
+  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text))
+  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button) } })
   out.push(...messageField($, { Box, Text, Input }))
   return out
+}
+
+/** A list row's table cells. A finished agent row's text is dim, its ✓ or ✗ keeping its colour (Q-69). */
+function rowCells(x, segs, labelFirst, tone, Text) {
+  const cell = (y, extra = {}) => Text({ wrap: 'truncate-end', ...tone(y), ...extra, children: [y.text] })
+  if (!finishedRow(x)) return segs.map((y) => cell(y))
+  return segs.flatMap((y, i) => {
+    if (i > 0 || !labelFirst) return [cell(y, { dimColor: true })]
+    const m = /^(\s*\S)([\s\S]*)$/.exec(y.text)
+    return m ? [cell({ ...y, text: m[1] }), Text({ wrap: 'truncate-end', dimColor: true, children: [m[2]] })] : [cell(y, { dimColor: true })]
+  })
+}
+
+/** An agent row that has returned, other than a blocked one that still waits for the operator (Q-69). */
+function finishedRow(x) {
+  if (x.kind !== 'agent' || !x.r.id || x.r.id === PRIME || x.r.live) return false
+  const n = tree.nodes.get(x.r.id)
+  const waits = n && n.verdict === 'BLOCKED' && (!track.view || (track.view.questions || []).length > 0)
+  return !waits
+}
+
+/**
+ * A list line's keys, by where it is drawn: a window row by its place in the window (`ar3`, `open-a3`;
+ * `pr`/`open-p` for a phase, `nr`/`open-n` for a node), a strip row by its strip (`st-sa0`, `open-sa0`).
+ * The focus stays on a place as the window moves under it.
+ */
+function lineKeys(x, at) {
+  const a = (k) => pane.list.alias.get(k) ?? k
+  if (/^s[ab]/.test(at)) return { box: 'st-' + at, open: a('open-' + at), msg: a('msg-' + at) }
+  const k = { agent: ['ar', 'open-a'], phase: ['pr', 'open-p'], node: ['nr', 'open-n'], note: ['nt', ''] }[x.kind]
+  return { box: k[0] + at, open: a(k[1] + at), msg: a('msg-' + at) }
+}
+
+/**
+ * Swap two drawn list keys (Home, End): the focus ring holds an element by its key, and a plugin's
+ * `$.ui.focus` is refused while the person, not the plugin, holds the keyboard; so the row the focus
+ * moves to is drawn with the key the ring holds, and the row that had it takes that row's key.
+ */
+function swapKeys(a, b) {
+  const al = pane.list.alias
+  const natural = (d) => [...al].find(([, v]) => v === d)?.[0] ?? d
+  const [na, nb] = [natural(a), natural(b)]
+  al.set(na, b).set(nb, a)
+  for (const [k, v] of al) if (k === v) al.delete(k)
+}
+
+/** One line of the list: its row with its `›` (and ✉ while it runs). */
+function itemLine($, x, at, { Box, Text, Button }, cells) {
+  const k = lineKeys(x, at)
+  if (x.kind === 'note') return Box({ key: k.box, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] })
+  // Enter on a row's › opens its view: an agent's, a phase's (its steps, nodes and spend, Q-54), a node's.
+  if (x.kind === 'phase') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells()] })
+  // A blocked node row (Q-38) also holds a direct key; its view opens with the brief.
+  if (x.kind === 'node') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells()] })
+  const r = x.r
+  const open = r.id ? [Button({ key: k.open, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
+  const children = [...open, ...cells()]
+  if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: k.msg, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
+  return Box({ key: k.box, flexDirection: 'row', children })
+}
+
+/** A row scrolled out of view keeps its direct key: a Button on its edge's more line carries it (Q-67). */
+function hiddenKey($, x, Button) {
+  const id = x.kind === 'agent' && x.r.id ? 'agent:' + x.r.id : x.kind === 'phase' ? 'phase:' + x.p.id : x.kind === 'node' && isBlocked(x.x) ? 'blocked:' + x.x.id : null
+  const k = id && pane.letters.get(id)
+  if (!k) return []
+  const open = x.kind === 'phase' ? () => openDetail($, 'phase', x.p.id) : x.kind === 'node' ? () => openDetail($, 'node', x.x.id) : () => openDetail($, 'agent', x.r.id)
+  return [Button({ key: 'hk-' + k, label: '', hotkey: k, plain: true, dimColor: true, onPress: open })]
+}
+
+// ------------------------------------------------------------------ the agent list's window (T15)
+
+const LIST = Symbol('the agent list')
+const GAP = Symbol('a spacer line the list may take')
+// The empty bottom rows the pane keeps while the list scrolls (Q-F115-1 A); none while it fits.
+const SPARE_ROWS = 1
+
+/** A list item's identity, what the window's top row is held by (Q-65). */
+function itemId(x) {
+  return x.kind === 'agent' ? 'agent:' + (x.r.id ?? x.r.text) : x.kind === 'phase' ? 'phase:' + x.p.id : x.kind === 'node' ? 'node:' + x.x.id : 'note:' + x.key
+}
+
+/**
+ * Draw the agent list into the rows the pane has left (Q-68): the lines above and below it stay whole.
+ * A list that fits is drawn whole. One that does not is a window from its top row, with its pinned
+ * strips and more lines (lib/view.mjs listWindow); the spacer above it and the `no phases yet` row go,
+ * and the pane's last row stays empty, so the engine's Home and End (`contentRows`) are told from its
+ * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row).
+ */
+function placeList(body, rows, { Text, Box }) {
+  const L = pane.list
+  const at = body.findIndex((x) => x && x[LIST])
+  L.on = at >= 0
+  if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
+  const { items, draw, hidden } = body[at][LIST]
+  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries.
+  const others = 2 + body.length - 1
+  const gaps = body.filter((x) => x && x[GAP]).length
+  const area = rows - SPARE_ROWS - others + gaps
+  const fits = items.length <= rows - others || area < 3
+  const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
+  const ids = its.map(itemId)
+  const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)
+  const pin = (i) => pins[i]
+  const found = L.topKey ? ids.indexOf(L.topKey) : -1
+  const W = fits ? listWindow(its.length, 0, its.length) : listWindow(its.length, found >= 0 ? found : L.top, area, pin)
+  const lines = []
+  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ dimColor: true, children: ['  ' + text] }), ...keys] })
+  const running = (k) => ' · +' + k + ' running'
+  const shown = new Set([...W.above, ...W.below])
+  const out = (a, b) => its.slice(a, b).filter((_, j) => !shown.has(a + j))
+  if (W.hiddenAbove) lines.push(dim('↑ ' + W.hiddenAbove + ' more' + (W.plusAbove && !W.stripAbove ? running(W.plusAbove) : ''), 'l-up', out(0, W.top).flatMap(hidden)))
+  W.above.forEach((i, j) => lines.push(draw(its[i], 'sa' + j)))
+  if (W.plusAbove && W.stripAbove) lines.push(Text({ color: 'cyan', children: ['  +' + W.plusAbove + ' running'] }))
+  for (let s = 0; s < W.size; s++) lines.push(draw(its[W.top + s], String(s)))
+  W.below.forEach((i, j) => lines.push(draw(its[i], 'sb' + j)))
+  if (W.plusBelow && W.stripBelow) lines.push(Text({ color: 'cyan', children: ['  +' + W.plusBelow + ' running'] }))
+  if (W.hiddenBelow) lines.push(dim('↓ ' + W.hiddenBelow + ' more' + (W.plusBelow && !W.stripBelow ? running(W.plusBelow) : ''), 'l-down', out(W.top + W.size, its.length).flatMap(hidden)))
+  // The keys a list line's elements are drawn under (its › and ✉), at a window slot or a strip place.
+  const keysAt = (x, at) => { const k = lineKeys(x || { kind: 'agent' }, at); return [k.open, k.msg] }
+  const slot = (s) => keysAt(its[W.top + s], String(s))
+  const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
+  const strip = [...W.above.flatMap((i, j) => keysAt(its[i], 'sa' + j)), ...W.below.flatMap((i, j) => keysAt(its[i], 'sb' + j))]
+  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
+  return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : []) : [x]))
+}
+
+/** The keys of the elements the ring walks, in document order (Buttons, Inputs, Selects). */
+function focusRing(el, out = []) {
+  if (Array.isArray(el)) {
+    for (const c of el) focusRing(c, out)
+    return out
+  }
+  if (!el || typeof el !== 'object') return out
+  const p = el.props || {}
+  if (p.key != null && (typeof p.onPress === 'function' || typeof p.onSubmit === 'function' || typeof p.onChange === 'function')) out.push(String(p.key))
+  focusRing(p.children, out)
+  return out
+}
+
+/** Did the person's ↑ or ↓ step the ring from the window's edge row to an element outside the window? */
+function edgeStep(prev, next) {
+  const L = pane.list
+  if (!L.on || L.fits || !prev || !next || !L.win.has(prev) || L.win.has(next)) return null
+  const i = L.ring.indexOf(prev)
+  const j = L.ring.indexOf(next)
+  if (i >= 0 && j >= 0) {
+    const n = L.ring.length
+    return j === (i + 1) % n ? 'down' : j === (i - 1 + n) % n ? 'up' : null
+  }
+  return L.last.has(prev) ? 'down' : L.first.has(prev) ? 'up' : null
+}
+
+/** Letters stored with the run (Q-82), read back once per run before the first letters are given. */
+async function loadLetters($) {
+  const id = (run.manifest && run.manifest.run_id) || membership.runId || null
+  if (!id || pane.lettersRun === id) return
+  pane.lettersRun = id
+  pane.lettersSaved = new Map()
+  try {
+    const saved = await $.store.get('letters:' + id)
+    if (saved && typeof saved === 'object') pane.lettersSaved = new Map(Object.entries(saved).filter(([, l]) => ROW_LETTERS.includes(l)))
+  } catch {}
+}
+
+/** A listed row that held a stored letter gets it back while no other row holds it (Q-82). */
+function restoreLetters(ids) {
+  const s = pane.lettersSaved
+  if (!s || !s.size) return
+  const taken = new Set(pane.letters.values())
+  for (const id of ids) {
+    const l = s.get(id)
+    if (l && !pane.letters.has(id) && !taken.has(l)) {
+      pane.letters.set(id, l)
+      taken.add(l)
+    }
+    if (l) s.delete(id)
+  }
+}
+
+/** Store the row-to-letter map with the run's state when it changed (Q-82). */
+function saveLetters($) {
+  if (!pane.lettersRun) return
+  const all = { ...Object.fromEntries(pane.lettersSaved || []), ...Object.fromEntries(pane.letters) }
+  const text = JSON.stringify(all)
+  if (text === pane.lettersText) return
+  pane.lettersText = text
+  try {
+    Promise.resolve($.store.set('letters:' + pane.lettersRun, all)).catch(() => {})
+  } catch {}
 }
 
 /** The legend above the agent table (T10 amendment, Q-55): the tree's levels, and what a phase is. */
@@ -3595,6 +3770,7 @@ export function register(on, options) {
         if (!surfaces.length) return { text: (await statusText($)) + '\n\n' + paneText() }
         pane.open = true
         pane.waiting = false
+        Object.assign(pane.list, { top: 0, topKey: null, focus: null, alias: new Map() })
         await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
         try {
           if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
@@ -3639,9 +3815,9 @@ export function register(on, options) {
     if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
     const line = (key, text, extra = {}) => Text({ wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
-    const body =
-      pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui)
-    return Box({
+    if (pane.tab !== 'memory') await loadLetters($)
+    const body = placeList(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui), rows, ui)
+    const root = Box({
       flexDirection: 'column',
       children: [
         Box({ flexDirection: 'row', columnGap: 3, children: tabs }),
@@ -3649,7 +3825,60 @@ export function register(on, options) {
         ...body,
       ],
     })
+    pane.list.ring = focusRing(root)
+    return root
   })
+
+  // The agent list scrolls itself (T15): PageUp and PageDown move its window by one window, Home and
+  // End to its first and last row, with the focus there (Q-63); the wheel moves it row by row.
+  on('ui.scroll', { component: 'Pane' }, async ($, e, next) => {
+    const L = pane.list
+    if (e.requestId !== PANE || pane.tab !== 'work' || pane.detail || !L.on || L.fits) return next(e)
+    const by = Number(e.by) || 0
+    const pin = (i) => L.pins[i]
+    const end = listEnd(L.n, L.area, pin)
+    let top = L.top
+    let focusAt = null
+    if (e.contentRows !== e.bodyRows && Math.abs(by) === e.contentRows) [top, focusAt] = by < 0 ? [0, 0] : [end, L.n - 1]
+    else if (Math.abs(by) === e.bodyRows) top = by < 0 ? Math.max(0, L.top - L.size) : L.top + L.size < L.n ? L.top + L.size : L.top
+    else top = Math.max(0, Math.min(L.top + by, Math.max(end, L.top)))
+    L.top = top
+    L.topKey = L.ids[top] ?? null
+    $.ui.invalidate('ui.render')
+    if (focusAt !== null) {
+      const w = listWindow(L.n, top, L.area, pin)
+      const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
+      // The ring is on a list row: its key is drawn on the first or last row now (swapKeys).
+      if (L.focus && L.keys.has(L.focus)) {
+        if (L.focus !== key) swapKeys(key, L.focus)
+      } else {
+        L.focus = key
+        try {
+          Promise.resolve($.ui.focus({ requestId: PANE, key })).catch(() => {})
+        } catch {}
+      }
+    }
+    return {}
+  }).catch(failOpen)
+
+  // ↑ or ↓ past the window's first or last row scrolls the list so the next row comes into view, with
+  // the focus on it (spec L289-290, L371); any other move of the ring is the engine's.
+  on('ui.focus', { component: 'Pane' }, async ($, e, next) => {
+    if (e.requestId !== PANE) return next(e)
+    const L = pane.list
+    const step = e.origin && e.origin.kind === 'person' && pane.tab === 'work' && !pane.detail ? edgeStep(L.focus, e.element) : null
+    const target = step === 'down' ? L.top + L.size : step === 'up' ? L.top - 1 : -1
+    if (target < 0 || target >= L.n) {
+      L.focus = e.element ?? null
+      return next(e)
+    }
+    const top = listReveal(L.n, L.top, L.area, target, (i) => L.pins[i])
+    L.top = top
+    L.topKey = L.ids[top] ?? null
+    L.focus = lineKeys(L.items[target], String(target - top)).open
+    $.ui.invalidate('ui.render')
+    return next({ ...e, element: L.focus })
+  }).catch(failOpen)
 
   // The band above the prompt: the prime's context gauge and rotation count.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
