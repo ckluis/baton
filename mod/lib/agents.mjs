@@ -62,6 +62,21 @@ export function modelMismatch(expected, served, known = []) {
   return !!want && want !== baseModel(served)
 }
 
+/**
+ * The effort an agent's model cell shows after its model (T8 amendment, C8E): the served effort (the
+ * latest classic hook input's `effort.level`) when one has been seen, else the configured one (the
+ * latest `turn.step` `effort`) marked `cfg`; nothing when neither is known. An integer budget shows as
+ * its digits. Served and configured both known and different is a mismatch.
+ */
+export function effortOf(n) {
+  const has = (v) => v !== undefined && v !== null && v !== ''
+  const served = n && has(n.effortServed) ? String(n.effortServed) : null
+  const configured = n && has(n.effortConfigured) ? String(n.effortConfigured) : null
+  if (served) return { text: served, cfg: false, mismatch: !!configured && configured !== served }
+  if (configured) return { text: configured, cfg: true, mismatch: false }
+  return { text: '', cfg: false, mismatch: false }
+}
+
 export function addSpawn(t, { id, parent, type, label, description = '', model, requested = null, prompt = '', at = Date.now() }) {
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME

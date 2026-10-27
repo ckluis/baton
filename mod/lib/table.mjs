@@ -113,7 +113,7 @@ export function sumAccounts(accs) {
 }
 
 /**
- * rows: [{ label, tone, ctxPct, ctxTone, threshold, model, modelTone, acc, cost, roll, rollCost, steps: [{ text, tone }], state, stateTone, noContext }]
+ * rows: [{ label, tone, ctxPct, ctxTone, threshold, model, modelTone, modelMark, acc, cost, roll, rollCost, steps: [{ text, tone }], state, stateTone, noContext }]
  * `acc` is the row's own account (its `this agent` cells), `roll` its subtree's (the `roll-up` cells,
  * left empty when absent); `noContext` leaves the context cell empty rather than `—` (a phase or node row).
  * Returns { header: [{ text, tone }], lines: [[{ text, tone }]] }; tones are the stepper's
@@ -131,7 +131,8 @@ export function agentTable(rows, width = 140) {
       ctx: [{ text: r.ctxPct == null ? (r.noContext ? '' : '—') : r.ctxPct + '%', tone: r.ctxTone }],
       trend: [{ text: sparkline(r.ctxHist || []), tone: r.ctxTone }],
       budget: [{ text: r.threshold == null ? '' : r.threshold + '%', tone: 'rail' }],
-      model: [{ text: r.model || '', tone: r.modelTone }],
+      // A configured-only effort ends in its mark (`cfg`), drawn dim apart from the rest of the cell (C8E).
+      model: r.modelMark && String(r.model || '').endsWith(r.modelMark) ? [{ text: r.model.slice(0, -r.modelMark.length), tone: r.modelTone }, { text: r.modelMark, tone: 'rail' }] : [{ text: r.model || '', tone: r.modelTone }],
       input: [{ text: r.acc ? shortTokens(k.input) : '', tone: undefined }],
       cacheWrite: [{ text: r.acc ? shortTokens(k.cacheWrite) : '', tone: 'rail' }],
       cacheRead: [{ text: r.acc ? shortTokens(k.cacheRead) : '', tone: 'rail' }],
