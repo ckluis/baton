@@ -264,3 +264,35 @@ export function blockedBrief(b) {
   lines.push([])
   return lines
 }
+
+const MARK_LINE = { ok: '✅ confirmed', void: '❌ void', clear: 'cleared' }
+const MARK_TONE = { ok: 'green', void: 'red', clear: 'rail' }
+
+/** A mark record's time cell: hh:mm (Q-90). */
+function markTime(ts) {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return String(ts ?? '?')
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
+const markRecordLine = (r) => MARK_LINE[r.mark] + ' · ' + (r.reason || '') + ' · ' + (r.who || '?') + ' · ' + markTime(r.ts)
+
+/**
+ * A note's or a summary's view in the memory explorer (T14): its text, its current mark (Q-90's
+ * `mark:` line) and every mark record, newest first (Q-74, D-T14-mark-history).
+ * row: { id, lo, hi, ns, store, text }; records: the id's mark records, oldest first.
+ */
+export function memDetail(row, records = []) {
+  const lines = []
+  for (const l of wrap(row.text || '', 100)) lines.push(L(l))
+  const last = records.length ? records[records.length - 1] : null
+  const current = last && last.mark !== 'clear' ? last : null
+  lines.push([], L(dim('mark: '), current ? { text: markRecordLine(current), tone: MARK_TONE[current.mark] } : dim('unmarked')))
+  if (records.length) {
+    lines.push([], L(dim('marks')))
+    for (const r of [...records].reverse()) lines.push(L({ text: markRecordLine(r), tone: MARK_TONE[r.mark] }))
+  }
+  lines.push([], L(dim('c confirms ✅ · v voids ❌ · u clears · each asks for a reason · b goes back')))
+  const kind = row.lo === row.hi ? 'note' : 'summary'
+  return { title: kind + ' #' + row.id + (row.ns ? ' [' + row.ns + ']' : '') + (row.store ? ' · ' + row.store : ''), lines }
+}

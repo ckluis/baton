@@ -4,6 +4,8 @@
 //   log.dat        the notes, RECORD_BYTES each, append-only
 //   tree/L<k>.dat  level-k summaries, record i at byte i * RECORD_BYTES (sparse)
 //   lock           present while a writer holds the memory (O_EXCL create)
+//   marks.jsonl    the mark log (T14, Q-74): one JSON record per line, append-only
+//   superseded.jsonl  the old text of every rebuilt summary, with the reason (Q-84), append-only
 //
 // Writers (append, putSummary) take the lock. Readers never do: a record is
 // read only when it is whole (memcore.isWhole), and the note count is
@@ -28,6 +30,12 @@ import {
   completeAt,
   fullTreeSize,
   blockRange,
+  blockOf,
+  cutBytes,
+  idRange,
+  isoSeconds,
+  markId,
+  MARK_VALUES,
 } from './memcore.mjs'
 
 const sleepBuf = new Int32Array(new SharedArrayBuffer(4))
@@ -55,6 +63,8 @@ export class Memory {
     this.logPath = path.join(this.dir, 'log.dat')
     this.treeDir = path.join(this.dir, 'tree')
     this.lockPath = path.join(this.dir, 'lock')
+    this.marksPath = path.join(this.dir, 'marks.jsonl')
+    this.supersededPath = path.join(this.dir, 'superseded.jsonl')
     this.lockTimeoutMs = opts.lockTimeoutMs ?? 10000
     this.staleMs = opts.staleMs ?? 30000
     this.now = opts.now ?? Date.now
@@ -247,6 +257,68 @@ export class Memory {
     return done
   }
 
+  // ------------------------------------------------------------ marks (T14)
+
+  /** Does `id` name a note or a written summary of this memory? */
+  hasId(id, n = this.count()) {
+    const [lo, hi] = idRange(id)
+    if (lo === hi) return lo < n
+    const b = blockOf(lo, hi)
+    return !!b && hi < n && this.hasSummary(b.level, b.index)
+  }
+
+  /**
+   * Append one mark record under the lock (Q-74): nothing is replaced, the newest record is the
+   * current mark. Returns the record.
+   */
+  mark(rawId, mark, { who = '', session, reason = '' } = {}) {
+    const id = markId(rawId)
+    if (!id) throw new Error(`"${rawId}" is not a note number or a summary range lo-hi`)
+    if (!MARK_VALUES.includes(mark)) throw new Error(`a mark is ${MARK_VALUES.join(', ')}, not "${mark}"`)
+    if (!this.hasId(id)) throw new Error(`#${id} is not a note or a summary of this memory`)
+    const rec = { id, mark, reason: cutBytes(reason), who: String(who), ...(session ? { session: String(session) } : {}), ts: isoSeconds(this.now()) }
+    this.withLock(() => fs.appendFileSync(this.marksPath, JSON.stringify(rec) + '\n'))
+    return rec
+  }
+
+  /** Every mark record (of one id), oldest first. */
+  marks(id = null) {
+    const want = id == null ? null : markId(id)
+    return readJsonl(this.marksPath).filter((r) => want === null || r.id === want)
+  }
+
+  /**
+   * Replace summary lo-hi with `text` under the lock (a ❌ rebuild, Q-75, Q-76): its old text is
+   * appended to the superseded log first, with the reason, so nothing is deleted (Q-84).
+   */
+  rebuild(range, text, reason = '') {
+    const id = markId(range)
+    const [lo, hi] = id ? idRange(id) : [0, 0]
+    const b = id && lo !== hi ? blockOf(lo, hi) : null
+    if (!b) throw new Error(`"${range}" is not a summary range lo-hi`)
+    const body = clampBytes(text).text
+    if (!body) throw new Error('empty summary')
+    const rec = encodeRecord({ text: body, tag: `L${b.level}`, ts: this.now() })
+    return this.withLock(() => {
+      const old = this.getSummary(b.level, b.index)
+      if (old === null) throw new Error(`#${id} has no summary to rebuild`)
+      const entry = { level: b.level, index: b.index, lo, hi, text: old, reason: String(reason), ts: isoSeconds(this.now()) }
+      fs.appendFileSync(this.supersededPath, JSON.stringify(entry) + '\n')
+      const fd = fs.openSync(this.summaryPath(b.level), 'r+')
+      try {
+        fs.writeSync(fd, rec, 0, RECORD_BYTES, b.index * RECORD_BYTES)
+      } finally {
+        fs.closeSync(fd)
+      }
+      return { level: b.level, index: b.index, lo, hi, old, text: body }
+    })
+  }
+
+  /** Every superseded summary text, oldest first. */
+  superseded() {
+    return readJsonl(this.supersededPath)
+  }
+
   // ------------------------------------------------------------ views
 
   stats() {
@@ -320,6 +392,24 @@ export class Memory {
     }
     return { pattern: re.source, total: notes.length, notes: notes.slice(-limit), blocks: blocks.slice(-limit) }
   }
+}
+
+/** The whole JSON lines of a log; a torn last line (a crash mid-append) is skipped. */
+function readJsonl(file) {
+  let text = ''
+  try {
+    text = fs.readFileSync(file, 'utf8')
+  } catch {
+    return []
+  }
+  const out = []
+  for (const l of text.split('\n')) {
+    if (!l.trim()) continue
+    try {
+      out.push(JSON.parse(l))
+    } catch {}
+  }
+  return out
 }
 
 function readRecordFd(fd, i) {

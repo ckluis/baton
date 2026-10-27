@@ -36,7 +36,11 @@ function world(on: any, manifest: string | null) {
   on('session.cwd', () => ({ value: '/work' }))
   on('session.root', () => ({ value: '/work' }))
   on('ui.invalidate', () => ({ value: undefined }))
-  on('process.run', () => ({ value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: 'x', truncated: false, merges: [] }), stderr: '' } }))
+  on('process.run', (_$: any, e: any) => { // amended by verifier (XT114): the memo stub now tells the store's mark-record reads from its other calls (C15, spec L413-414, L418, L507, Q-74, Q-86; R-C15-05, R-C15-15, R-C15-116)
+    const argv: string[] = [...(e?.argv ?? [])] // amended by verifier (XT114): the call's argv, to find its command (C15, spec L413-414, Q-74; R-C15-05)
+    if (argv.includes('marks') || argv.includes('superseded')) return { value: { exitCode: 0, stdout: argv.includes('--json') ? '[]' : 'none', stderr: '' } } // amended by verifier (XT114): no mark and no superseded summary: every note is unmarked, the default, so memory_wake and project_wake skip nothing (C15, spec L413-414, L418, L423, L507, Q-74, Q-84, Q-86; R-C15-05, R-C15-15, R-C15-107, R-C15-116)
+    return { value: { exitCode: 0, stdout: JSON.stringify({ index: 0, text: 'x', truncated: false, merges: [] }), stderr: '' } } // amended by verifier (XT114): every other memo call answers as before (C15; R-C15-05)
+  }) // amended by verifier (XT114): end of the memo stub (C15; R-C15-05)
   on('tool.call', () => ({ result: 'ran' }))
 }
 

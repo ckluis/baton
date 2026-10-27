@@ -313,22 +313,50 @@ export function memTime(ts, now = Date.now()) {
   return day(d) === day(new Date(now)) ? hm : day(d) + ' ' + hm
 }
 
+/** Terminal cells of a table cell: the mark glyphs ✅ and ❌ are two cells wide, as wide characters are. */
+const cellsOf = (t) => [...t].reduce((n, c) => n + (c === '✅' || c === '❌' ? 2 : 1), 0)
+
 /**
  * The memory explorer as a table (T12, Q-23): each line (`#n ts [tag] text`, or `#lo-hi text` for a
  * summary) split into id, time, source and text cells, each column as wide as its widest value shown,
  * two cells apart. Returns one string per line, in order; a line of another shape is all text.
+ *
+ * With `marks` (T14, one glyph per line: '✅', '❌' or ''), a mark column follows the id column
+ * (D-T14-mark-column), and `memTableHeader` gives the header line over the same columns.
  */
-export function memTable(lines, now = Date.now()) {
-  const rows = (lines ?? []).map((l) => {
+export function memTable(lines, now = Date.now(), marks = null) {
+  return memGrid(lines, now, marks).cells.map((c) => c.join(''))
+}
+
+/** memTable's rows as their three parts: the id cell, the mark cell (each with its gap), and the rest. */
+export function memTableCells(lines, now = Date.now(), marks = null) {
+  return memGrid(lines, now, marks).cells.map((c) => (marks ? [c[0], c[1], c.slice(2).join('')] : [c[0], '', c.slice(1).join('')]))
+}
+
+/** The header line of memTable's columns: `id  mark  time  source  text`. */
+export function memTableHeader(lines, now = Date.now(), marks = null) {
+  return memGrid(lines, now, marks).header
+}
+
+function memGrid(lines, now, marks) {
+  const cols = marks ? ['id', 'mark', 'time', 'source'] : ['id', 'time', 'source']
+  const rows = (lines ?? []).map((l, j) => {
     const s = String(l ?? '')
+    const m = marks ? [String(marks[j] ?? '')] : []
     const n = /^(#\d+) (\S+) \[([^\]]*)\] ?(.*)$/.exec(s)
-    if (n) return [n[1], memTime(n[2], now), n[3], n[4]]
+    if (n) return [n[1], ...m, memTime(n[2], now), n[3], n[4]]
     const b = /^(#\d+-\d+) ?(.*)$/.exec(s)
-    return b ? [b[1], '', '', b[2]] : ['', '', '', s]
+    return b ? [b[1], ...m, '', '', b[2]] : ['', ...m, '', '', s]
   })
-  const w = [0, 1, 2].map((c) => Math.max(0, ...rows.map((r) => [...r[c]].length)))
-  const pad = (t, n) => t + ' '.repeat(n - [...t].length)
-  return rows.map((r) => [0, 1, 2].filter((c) => w[c] > 0).map((c) => pad(r[c], w[c]) + '  ').join('') + r[3])
+  const last = cols.length
+  const w = cols.map((h, c) => Math.max(0, ...rows.map((r) => cellsOf(r[c]))))
+  if (marks) w[1] = Math.max(w[1], 2)
+  const shown = cols.map((_, c) => c).filter((c) => w[c] > 0)
+  const pad = (t, n) => t + ' '.repeat(Math.max(0, n - cellsOf(t)))
+  const header = marks ? shown.map((c) => pad(cols[c], Math.max(w[c], cols[c].length)) + '  ').join('') + 'text' : ''
+  if (marks) for (const c of shown) w[c] = Math.max(w[c], cols[c].length)
+  // one string per shown column (its padding and gap included), then the text: they join to the row
+  return { header, cells: rows.map((r) => [...cols.map((_, c) => (shown.includes(c) ? pad(r[c], w[c]) + '  ' : '')), r[last]]) }
 }
 
 /**

@@ -33,7 +33,7 @@ function world(on: any, opts: { pending?: any[]; member?: boolean } = {}) { // a
   on('process.run', (_$: any, e: any) => {
     const argv = [...e.argv]
     calls.push({ argv, stdin: e.init?.stdin })
-    const cmd = argv.find((a: string) => ['note', 'wake', 'zoom', 'recall', 'pending', 'merge', 'stats'].includes(a))
+    const cmd = argv.find((a: string) => ['note', 'wake', 'zoom', 'recall', 'pending', 'merge', 'stats', 'marks', 'superseded'].includes(a)) // amended by verifier (XT114): the store now also answers its mark records and its superseded log (C15, spec L413-414, L420-423, Q-74, Q-84; R-C15-05, R-C15-77, R-C15-107)
     let stdout = ''
     if (cmd === 'note') {
       const index = notes++
@@ -43,6 +43,8 @@ function world(on: any, opts: { pending?: any[]; member?: boolean } = {}) { // a
       stdout = JSON.stringify(pending)
       pending = []
     } else if (cmd === 'merge') stdout = JSON.stringify({ merged: 1, pending: 0 })
+    else if (cmd === 'marks') stdout = argv.includes('--json') ? '[]' : 'no marks' // amended by verifier (XT114): this fixture's store holds no mark: every note is unmarked, the default (C15, spec L413-414, Q-74; R-C15-05, R-C15-77)
+    else if (cmd === 'superseded') stdout = argv.includes('--json') ? '[]' : 'none' // amended by verifier (XT114): nothing was rebuilt, so the superseded log is empty (C15, spec L423, Q-84; R-C15-107)
     else stdout = cmd + ' output'
     return { value: { exitCode: 0, stdout, stderr: '' } }
   })
@@ -68,11 +70,14 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
 } // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: session.start registers the memory tools when a run is active', async ($, on) => {
+// amended by verifier (XT114): the guard: prefix is dropped: with memory_mark and project_mark required it fails at da5910c, so it is no longer a preservation guard but red for F114 (C15, spec L419, L510; R-C15-12, R-C15-121; D-T14-tool-names, D-T14-project-mark; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
+test('session.start registers the memory tools when a run is active', async ($, on) => { // amended by verifier (XT114): name without guard: (see the line above; C15, spec L419, L510; R-C15-12, R-C15-121)
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (Q-7 claim) (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): session.start in the run dir with a session.id mock (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await $.session.start({ cwd: '/work', surface: null } as any)
-  expect(w.registered).toEqual(['code_search', 'code_fetch', 'code_refs', 'code_explore', 'memory_wake', 'memory_note', 'memory_zoom', 'memory_recall', 'project_wake', 'project_note', 'project_recall'])
+  const MARK_TOOLS = ['memory_mark', 'project_mark'] // amended by verifier (XT114): T14 adds the prime's mark tools, memory_mark and project_mark (C15, spec L419, L510; D-T14-tool-names, D-T14-project-mark; R-C15-12, R-C15-121)
+  expect(w.registered.filter((n) => !MARK_TOOLS.includes(n))).toEqual(['code_search', 'code_fetch', 'code_refs', 'code_explore', 'memory_wake', 'memory_note', 'memory_zoom', 'memory_recall', 'project_wake', 'project_note', 'project_recall']) // amended by verifier (XT114): the earlier tools keep their order; where the two new ones go is F114's (C15, spec L419, L510; R-C15-12, R-C15-121)
+  for (const t of MARK_TOOLS) expect(w.registered.filter((n) => n === t), t).toHaveLength(1) // amended by verifier (XT114): each mark tool is registered once (C15, spec L419, L510; D-T14-tool-names, D-T14-project-mark; R-C15-12, R-C15-121)
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
@@ -100,9 +105,9 @@ test('guard: memory_wake uses the configured budget; zoom and recall pass their 
   expect(((await $.tool.call({ tool: 'mcp__baton__memory_wake' } as any)) as any).result).toBe('wake output')
   expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(2)).toEqual(['--dir', '/work/_orch/memory', 'wake', '--budget', '96'])
   await $.tool.call({ tool: 'mcp__baton__memory_zoom', range: '10-20' } as any)
-  expect(w.calls.at(-1)!.argv.slice(-2)).toEqual(['--', '10-20'])
+  expect(w.calls.filter((c) => c.argv.includes('zoom')).at(-1)!.argv.slice(-2)).toEqual(['--', '10-20']) // amended by verifier (XT114): the zoom call itself, found by its command: zoom now skips ❌ notes, so it may read the mark records in a call of its own before or after (C15, spec L418-419, Q-77; R-C15-110)
   await $.tool.call({ tool: 'mcp__baton__memory_recall', pattern: '--evil' } as any)
-  expect(w.calls.at(-1)!.argv.slice(-2)).toEqual(['--', '--evil'])
+  expect(w.calls.filter((c) => c.argv.includes('recall')).at(-1)!.argv.slice(-2)).toEqual(['--', '--evil']) // amended by verifier (XT114): the recall call itself, found by its command: recall now skips ❌ notes, so it may read the mark records in a call of its own before or after (C15, spec L421; R-C15-16)
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
@@ -125,7 +130,7 @@ test('guard: project memory: memoryDir from config, a namespace', { options: { m
   expect(w.calls[0]!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', 'rulings']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   expect(w.calls[0]!.argv).toContain('prime') // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
   await $.tool.call({ tool: 'mcp__baton__project_wake', namespace: '../../etc' } as any)
-  expect(w.calls[1]!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc']) // amended by verifier (XT11): type-only fix for tsc -p mod, no expectation changed (inbox/Q-9.answer.md; R-C1-06)
+  expect(w.calls.find((c) => c.argv.includes('wake'))!.argv.slice(2, 6)).toEqual(['--dir', '/work/mem/proj', '--ns', '....etc']) // amended by verifier (XT114): project_wake's wake call, found by its command, not by its index: project_wake now skips ❌ notes, so it may read the namespace's mark records in a call of its own first (C15, spec L507, Q-86; R-C15-116). Earlier: XT11 type-only fix (inbox/Q-9.answer.md; R-C1-06)
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
