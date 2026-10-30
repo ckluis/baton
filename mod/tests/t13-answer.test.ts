@@ -714,6 +714,7 @@ test('guard: c42 when Q-<n>.answer.md already exists, the answer key leaves it b
   const HAND = '# Q-71 answer (binding, operator, 2026-10-19)\n\nanswered_via: terminal\n\n**Answer:** the house style.\n' // fixture
   w.files.set('_orch/inbox/Q-71.answer.md', HAND)
   await w.settle(61000)
+  expect((await hotkeyButtons(ui)).some((b: any) => b.props.hotkey === 'a'), "Q-71's brief is open and draws its answer key a").toBe(true) // amended by GV4: openBrief and pressAnswer do nothing when nothing is drawn, so without this the key was never pressed and the checks below held by default (P2 gate item 4: no guard passes with zero assertions)
   await pressAnswer(w, ui)
   await w.settle(61000)
   expect(answerFile(w, 'Q-71')).toBe(HAND) // Q-41: never overwritten, byte for byte
