@@ -414,7 +414,10 @@ test('guard: G6 every direct row key is shown the way 1, 2 and r are shown', asy
   const one = hk.find((b: any) => b.props.hotkey === '1')
   expect(one ? one.props.plain : 'no `1`').toBe(true) // E1 §k / P-3: `1` is a plain hotkey Button (tab-work=1:plain)
   const rows = hk.filter((b: any) => POOL.includes(String(b.props.hotkey)))
-  expect(rows.filter((b: any) => b.props.plain !== one.props.plain).map((b: any) => b.props.hotkey)).toEqual([]) // each drawn as `1` is: plain, the hotkey in the accent
+  expect(rows.length).toBe(7) // fixture: the prime, P1-P3 and three agent rows each carry a pool letter (key-scheme.md)
+  // each drawn as `1` (the Work tab, shown) is: plain, and not dim, so the hotkey stands in the accent. The engine
+  // refuses a row Button that is not plain, so `dimColor` is the part of "shown the same way" a row can get wrong.
+  expect(rows.filter((b: any) => b.props.plain !== one.props.plain || !!b.props.dimColor !== !!one.props.dimColor).map((b: any) => b.props.hotkey)).toEqual([])
 })
 
 test('guard: G7 a row keeps its letter when a row above it is added', async ($, on) => {

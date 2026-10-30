@@ -571,16 +571,9 @@ test('the error a memory_mark call carrying an agentId returns reads the Q-73 re
 
 // ------------------------------------------------------------------ ❌ in the shared fixture: wake, rebuilds, recall
 
-// R-C15-13, R-C15-14 · spec L420 "Nothing is deleted. A ❌ note stays in the run's memory log."
-// guard per _orch/inbox/OQ7.answer.md (deviation from spec L19-20, L100): at da5910c nothing deletes a note
-// (work/probe-da5910c.md P-C14); it pins that marking ❌ keeps holding it.
-test('guard: after a note is marked ❌ the run\'s memory log still holds that note', SLOW, async ($, on) => {
-  const w = world(on)
-  await voidTheNote($, w)
-  await w.drain()
-  expect(w.run().notes.slice(0, NOTES.length).map((n) => n.text)).toEqual(NOTES.map((n) => n.text)) // L420 "Nothing is deleted": the eight fixture notes, in place
-  expect(w.run().notes[VOID_NOTE].text).toBe(NOTES[VOID_NOTE].text) // L420 "A ❌ note stays in the run's memory log"
-})
+// R-C15-13, R-C15-14 · spec L420 "Nothing is deleted." GV3 removed the guard that read the fixture store's notes after
+// a ❌: that store is append-only and the mod reaches it only through memo, so no change to the mod could fail it. The
+// mod's side is held by t14-project-mark.test.ts c4 (the shared writeMark) and the include_void recall test below.
 
 // R-C15-15, R-C15-42 · spec L421 "`memory_wake` and the summaries skip a ❌ note." · L448 "in a fixture, marking a
 // note ❌ removes it from `memory_wake`;"
@@ -781,16 +774,9 @@ test('memory_mark with mark clear returns a marked note to unmarked', SLOW, asyn
   expect(line).not.toContain('❌') // nor void
 })
 
-// R-C15-81 · Q-74 "Every record stays in the log" · spec L479.
-// guard per _orch/inbox/OQ7.answer.md (deviation from spec L19-20, L100): at da5910c no call removes a mark record
-// (work/probe-da5910c.md P-C34); it pins that a clear keeps them.
-test('guard: after a clear the mark log still holds every earlier record of the note', SLOW, async ($, on) => {
-  const seed = [rec('3', 'ok', 'prime', 'checked by the prime', PRIME), rec('3', 'void', 'prime', 'the check was wrong', PRIME)]
-  const w = world(on, { marks: seed })
-  await w.begin($)
-  await mark($, '3', 'clear', 'not checked after all')
-  expect(w.marksOf('3').slice(0, 2)).toEqual(seed) // Q-74 "Every record stays in the log"
-})
+// R-C15-81 · Q-74 "Every record stays in the log". GV3 removed the guard that read the fixture's mark records after a
+// clear: the fixture store only appends, and the real log (lib/memstore.mjs) cannot be loaded here (a test file may
+// import only relative files and claude-code, and memstore imports node:fs), so no change could fail it.
 
 // R-C15-83, R-C15-167 · Q-74 "A mark by the prime cannot replace one by the operator" · spec L480-481.
 test('a memory_mark call from the prime on a note the operator marked returns an error result', SLOW, async ($, on) => {
