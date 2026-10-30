@@ -66,6 +66,9 @@ test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, T
     expect(r.deny, tool).toBeUndefined()
     expect(String(r.result), tool).not.toContain('error')
   }
+  // GV4 (P3-d3): the premise, "during a run": the same session's guard is armed, so a reading tool is refused
+  const read: any = await $.tool.call({ tool: 'Read', file_path: 'src/a.ts' } as any)
+  expect(read.deny, 'premise: the guard is armed in this session').toMatch(/dispatch a sub-orchestrator/)
 })
 
 test('with no run the guard is invisible', async ($, on) => {

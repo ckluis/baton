@@ -450,7 +450,8 @@ test('guard: S0708 on the mobile surface the Pane draws its own Work and Memory 
     try {
       t = await shownText(ui)
     } catch {}
-    seen[tab] = !!b && !!t && !engineDrawn(t)
+    const cur = await keyButton(ui, k)
+    seen[tab] = !!b && !!t && !engineDrawn(t) && !!cur && !cur.props.dimColor
   }
   const skipped = w.logs.filter((l) => /hook skipped|threw|TypeError/.test(l)) // Q-17.md's error text for a skipped render
   expect({ seen, skipped }).toEqual({ seen: { work: true, memory: true }, skipped: [] })
