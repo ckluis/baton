@@ -542,6 +542,7 @@ test('guard: T15-G5 with more agents than fit, the goal row above the list is dr
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /^\s*goal\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the goal row stays drawn
 })
 
@@ -553,6 +554,7 @@ test('guard: T15-G6 with more agents than fit and an open PR, the PR row above t
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /^\s*PR\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the PR row stays drawn
 })
 
@@ -564,6 +566,7 @@ test('guard: T15-G7 with more agents than fit and merge-ready rows, the merge li
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /merge-ready/.test(l.text)), dump(shown)).toBe(true) // Q-68: the merge rows stay drawn
 })
 
@@ -726,7 +729,9 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   await w.pane($, LOW)
   for (let i = 0; i < 3; i++) {
     await pageDown($, w)
-    const letters = agentRows((await view(w)).shown).map((r) => letterOf(r.l)).filter((x) => x !== undefined)
+    const now = (await view(w)).shown
+    expect(now.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll:' + dump(now)).toBe(true) // fixture: P3-d3, the list has scrolled, so rows are hidden above
+    const letters = agentRows(now).map((r) => letterOf(r.l)).filter((x) => x !== undefined)
     expect(letters.length, 'fewer than two rows drawn with a key, so nothing to compare').toBeGreaterThan(1) // fixture: 22 lettered rows, so every page shows several keys
     expect(letters.length).toBe(new Set(letters).size) // Q-12: no two rows share a key
   }
@@ -1016,6 +1021,7 @@ test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct
     const l = lineOf(shown, r)
     expect(was[r], r + ' has no direct key at the list top:' + dump(top)).not.toBe(undefined) // fixture: it holds a key in the list
     expect(!!l, r + ' not drawn after the scroll:' + dump(shown)).toBe(true) // fixture: Q-64, it is drawn in the pinned strip
+    expect(shown.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll, so no strip is drawn:' + dump(shown)).toBe(true) // fixture: P3-d3, rows are hidden above, so wk01 is in the strip, not at the list top
     expect(letterOf(l)).toBe(was[r]) // Q-64/Q-67: the same key in the strip
   }
 })
@@ -1032,6 +1038,7 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
   const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
   const pinned = ['wk01', 'wk02'].map((r) => indexOf(shown, r))
   expect(win.length > 0 && pinned.every((i) => i >= 0 && i < win[0].i), 'wk01 and wk02 not drawn in a strip above the window:' + dump(shown)).toBe(true) // fixture: Q-64, both are in the strip, so the check below has rows to look at
+  expect(shown.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll, so no strip is drawn:' + dump(shown)).toBe(true) // fixture: P3-d3, rows are hidden above, so wk01 and wk02 are in the strip, not at the list top
   expect(stripRowsWithoutChevron(shown)).toEqual([]) // L376: every strip row draws its ›
 })
 
@@ -1136,6 +1143,7 @@ test('guard: T15-G18 with no row hidden below the window, no ↓ more line is dr
   await w.pane($, 20)
   await end($, w) // the list at its bottom: the last row is drawn
   const { shown } = await view(w)
+  expect([indexOf(shown, 'wk40') >= 0, shown.some((l) => UP_MORE.test(l.text))], 'the list is not drawn as a window at its bottom:' + dump(shown)).toEqual([true, true]) // fixture: P3-d3, the last row wk40 is drawn and rows are hidden above
   expect(shown.filter((l) => DOWN_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none below, no ↓ line
 })
 
@@ -1147,6 +1155,7 @@ test('guard: T15-G19 with no row hidden above the window, no ↑ more line is dr
   await agents($, w, 40)
   await w.pane($, 20) // the list at its top
   const { shown } = await view(w)
+  expect([indexOf(shown, 'wk01') >= 0, shown.some((l) => DOWN_MORE.test(l.text))], 'the list is not drawn as a window at its top:' + dump(shown)).toEqual([true, true]) // fixture: P3-d3, the first row wk01 is drawn and rows are hidden below
   expect(shown.filter((l) => UP_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none above, no ↑ line
 })
 

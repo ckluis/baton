@@ -792,7 +792,8 @@ test('guard: after the prime\'s refused call the note\'s current mark is still t
   const seed = [rec('3', 'ok', 'operator', 'checked by hand')] // fixture: #3 ✅ by the operator
   const w = world(on, { marks: seed })
   await w.begin($)
-  await mark($, '3', 'void', 'looks wrong')
+  const r = await mark($, '3', 'void', 'looks wrong')
+  expect([isErrorResult(r), errorText(r)], 'the memory_mark call was not refused').toEqual([true, "refused: the operator's mark stands (Q-74)"]) // fixture: P3-d3, the prime's call was refused (Q-74)
   expect(w.marksOf('3')).toEqual(seed) // the operator's record is still the newest, so the current mark (Q-74)
 })
 
@@ -808,6 +809,7 @@ test('guard: a child note marked ✅ before its summary is marked ❌ is still �
   await w.begin($)
   await mark($, '4-5', 'void', 'the summary misreads #5')
   await w.drain()
+  expect(w.marksOf('4-5').map((m) => m.mark), 'the summary #4-5 was not marked ❌').toEqual(['void']) // fixture: P3-d3, the summary over #4 carries the ❌
   expect(w.marksOf('4')).toEqual(seed) // Q-75 "their marks unchanged": #4's newest record is still ✅
 })
 

@@ -355,6 +355,7 @@ test('guard: configured and served both high leave the model cell not red', SLOW
   await w.served($, 'r2', 'high') // served high
   const ui = await w.pane($)
   const c = await cellOf(ui, 'T8E-equal')
+  expect(c.text, 'the cell does not show the high effort').toBe('opus 5.5 · high') // fixture: P3-d3, the efforts reached the cell (spec L620)
   expect(c.runs.some((r) => r.text.trim() && r.color === 'red')).toBe(false) // spec L636 "Equal efforts leave the cell's colour as T8 sets it": T8 sets no red (served = requested)
 })
 
@@ -367,6 +368,7 @@ test('guard: a served medium with no configured effort leaves the model cell not
   await w.served($, 'r3', 'medium')
   const ui = await w.pane($)
   const c = await cellOf(ui, 'T8E-alone')
+  expect(c.text, 'the cell does not show the served medium').toBe('opus 5.5 · medium') // fixture: P3-d3, the served effort reached the cell (spec L622)
   expect(c.runs.some((r) => r.text.trim() && r.color === 'red')).toBe(false) // spec L636-637 "is not a mismatch"
 })
 
@@ -380,6 +382,7 @@ test('guard: a model mismatch with equal efforts keeps the model cell red', SLOW
   await w.served($, 'r4', 'high') // served high: efforts equal
   const ui = await w.pane($)
   const c = await cellOf(ui, 'T8E-modelred')
+  expect(c.text, 'the cell does not show the equal high efforts').toBe('opus 5.5 · high') // fixture: P3-d3, the efforts reached the cell, so they are known to be equal
   const model = c.runs.filter((r) => /opus/.test(r.text))
   expect(model.length).toBeGreaterThan(0) // T8 spec L111: the cell names the served family (opus, fixture)
   expect(model.every((r) => r.color === 'red')).toBe(true) // T8 spec L116-117 "the cell turns red"; spec L636 equal efforts leave it

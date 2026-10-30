@@ -617,6 +617,7 @@ test('guard: with the project memory shown, s makes the explorer\'s table list t
   const w = world(on)
   const ui = await memoryView($, w)
   await toggle(ui, w) // the project memory
+  expect(await has(ui, 'tokP0'), 'the first s did not show the project memory').toBe(true) // fixture: P3-d3, the project memory is shown (fixture PNOTES[0])
   await toggle(ui, w) // the run's memory again
   expect(await has(ui, 'tokN0')).toBe(true) // L581 "a toggle between": the run note #0 (fixture RUNNOTES[0]) is listed again
   expect(await has(ui, 'tokP0')).toBe(false) // and the run's memory, not the project memory, is shown (fixture PNOTES[0])
@@ -630,6 +631,7 @@ test('guard: after the pane is reloaded while the project memory was shown, the 
   const w = world(on)
   let ui = await memoryView($, w)
   await toggle(ui, w) // the project memory
+  expect(await has(ui, 'tokP0'), 's did not show the project memory before the reload').toBe(true) // fixture: P3-d3, the project memory is shown (fixture PNOTES[0])
   ui = await reload($, w, ui)
   expect(await has(ui, 'tokN0')).toBe(true) // D-T14-project-toggle: opens on the run's memory; the run note #0 (fixture RUNNOTES[0])
   expect(await has(ui, 'tokP0')).toBe(false) // and not the project memory (fixture PNOTES[0])
@@ -687,6 +689,7 @@ test('guard: with the project memory shown, the explorer\'s table holds no row o
   const w = world(on)
   const ui = await memoryView($, w)
   await toggle(ui, w)
+  expect(await has(ui, 'tokP0'), 's did not show the project memory').toBe(true) // fixture: P3-d3, the project memory is shown (fixture PNOTES[0])
   expect(!!(await rulingRow(ui, 'tokR0')), 'fixture: the ruling is drawn in the rulings part, with its x').toBe(true) // D-T14-project-view: the ruling rows stay (fixture RNOTES[0])
   expect(await has(ui, 'tokR0')).toBe(false) // L587 "except `rulings`": no table row of the ruling #0 (fixture RNOTES[0])
   expect(cells(await ui.drawn())).not.toContain('[rulings]') // D-T14-project-view: no row prefixed `[rulings]`
@@ -829,6 +832,7 @@ test('guard: after v on a focused project note and a dismissed reason dialog, th
   await toggle(ui, w)
   await focusRow($, ui, w, 'tokP4')
   await markKey(ui, w, 'v', null) // the dialog is dismissed
+  expect(w.asked.length, 'no reason dialog was shown, so none was dismissed').toBe(1) // fixture: P3-d3, v on the focused note asked for its reason
   expect(w.marksOf(PROJECT_MEMORY, '4')).toEqual([]) // Q-72 "makes no mark": no record for note #4 (fixture)
 })
 
@@ -867,7 +871,8 @@ test('after the operator marks a project note from the pane, a prime project_mar
 test('guard: after that refused project_mark call the project note\'s current mark is still the operator\'s', SLOW, async ($, on) => {
   const w = world(on, { marks: { project: [OPERATOR_VOID] } }) // fixture: project note #4 marked ❌ by the operator from the pane
   await w.begin($)
-  await pmark($, '4', 'ok', 'the prime thinks it still holds')
+  const r = await pmark($, '4', 'ok', 'the prime thinks it still holds')
+  expect([isErrorResult(r), errorText(r)], 'the project_mark call was not refused').toEqual([true, "refused: the operator's mark stands (Q-74)"]) // fixture: P3-d3, the call was refused (L596)
   expect(w.marksOf(PROJECT_MEMORY, '4')).toEqual([OPERATOR_VOID]) // Q-74: the operator's record is still the newest, the current mark
 })
 
@@ -882,7 +887,8 @@ test('guard: with a ruling row focused in the Memory view, v writes no mark reco
   const ui = await memoryView($, w)
   await focusRow($, ui, w, 'tokR0', true)
   await markKey(ui, w, 'v', 'this ruling is old')
-  const all3 = [PROJECT_MEMORY, LESSONS, RULINGS].flatMap((d) => w.store(d).marks)
+  expect(cells(await ui.drawn()), 'v did not act on the focused ruling row').toContain('no mark: rulings are retracted, not marked') // fixture: P3-d3, v reached the ruling row (L598)
+  const all3 =[PROJECT_MEMORY, LESSONS, RULINGS].flatMap((d) => w.store(d).marks)
   expect(all3).toEqual([]) // L597 "makes no mark": no record in any store of the project memory (fixture stores)
 })
 
