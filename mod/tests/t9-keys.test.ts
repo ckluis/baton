@@ -398,6 +398,7 @@ test('guard: G5 with the prime, three phase rows and three agent rows shown, no 
   const labels = [/prime/, phaseRe(1), phaseRe(2), phaseRe(3), ...AGENTS.map((a) => new RegExp(a))]
   expect(labels.map((re) => !!rowOf(tree, re))).toEqual([true, true, true, true, true, true, true]) // fixture: all 7 rows are shown at once
   const letters = labels.map((re) => letterOf(rowOf(tree, re))).filter((x) => x !== undefined)
+  expect(letters.length).toBe(7) // fixture: each of the 7 rows holds a direct key, so the check below compares 7 keys
   expect(letters.length).toBe(new Set(letters).size) // OQ6 part 2: a key of its own, so no two rows share one
   const all = (await hotkeyButtons(ui)).map((b: any) => String(b.props.hotkey))
   expect(all.length).toBe(new Set(all).size) // and no row key is also another Button's key in the pane ("two clash, later wins")
@@ -429,6 +430,7 @@ test('guard: G7 a row keeps its letter when a row above it is added', async ($, 
   const ui: any = await w.pane($)
   const first = await ui.drawn()
   const before = AGENTS.map((a) => letterOf(rowOf(first, new RegExp(a))))
+  expect(before.filter((k) => k === undefined).length).toBe(0) // fixture: each agent row holds a key before P4 is added, so "keeps the letter" compares letters
   w.setPhases([1, 2, 3, 4]) // P4 is planned: its row is drawn among the phase rows, above the agent rows
   await w.settle(61000)
   await ui.press({ key: 'refresh' })
@@ -475,6 +477,7 @@ test('guard: G8 in a pane showing 23 lettered rows when it first draws, the 23rd
   const ui: any = await w.pane($)
   const tree = await ui.drawn()
   expect(!!rowOf(tree, ORDER[22]!)).toBe(true) // fixture: the 23rd row (w19 worker) is drawn
+  expect(ORDER.slice(0, 22).filter((re) => letterOf(rowOf(tree, re)) === undefined).map(String)).toEqual([]) // fixture: the 22 rows above it hold every letter
   expect(letterOf(rowOf(tree, ORDER[22]!))).toBe(undefined) // the 23rd has no direct key (Q-12, L389)
 })
 

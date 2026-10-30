@@ -727,6 +727,7 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   for (let i = 0; i < 3; i++) {
     await pageDown($, w)
     const letters = agentRows((await view(w)).shown).map((r) => letterOf(r.l)).filter((x) => x !== undefined)
+    expect(letters.length, 'fewer than two rows drawn with a key, so nothing to compare').toBeGreaterThan(1) // fixture: 22 lettered rows, so every page shows several keys
     expect(letters.length).toBe(new Set(letters).size) // Q-12: no two rows share a key
   }
 })
@@ -744,6 +745,7 @@ test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the w
   const place = (ls: Line[]) => agentRows(ls).findIndex((r) => r.label === 'wk03') // its place among the rows drawn
   const first = (await view(w)).shown
   const before = letterOf(lineOf(first, 'wk03'))
+  expect(before, 'wk03 has no direct key when first shown').not.toBe(undefined) // fixture: wk03 holds a key, so "the same key" compares a letter
   const was = place(first)
   expect(was).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn when the list is first shown
   for (let i = 0; i < 3 && lineOf((await view(w)).shown, 'wk03'); i++) await pageDown($, w)
@@ -804,8 +806,10 @@ test('guard: T15-G12 with all 22 letters held, a row added later has no direct k
   const w = world(on)
   await w.start($)
   await full($, w)
-  const l = lineOf((await view(w)).shown, 'run23')
+  const shown = (await view(w)).shown
+  const l = lineOf(shown, 'run23')
   expect(!!l).toBe(true) // fixture: the 23rd row is drawn
+  expect(agentRows(shown).filter((r) => r.label !== 'run23' && letterOf(r.l) !== undefined).length, 'the 22 letters are not all held:' + dump(shown)).toBe(22) // fixture: all 22 letters held
   expect(letterOf(l)).toBe(undefined) // L390: it has no direct key
 })
 
@@ -842,6 +846,7 @@ test('guard: T15-G14 after a pane reload, every row that still exists has the di
   const rows = ['prime', 'P1', 'P2', 'P3', 'wk01', 'kid1', 'wk02']
   const before = (await view(w)).shown
   const was = Object.fromEntries(rows.map((r) => [r, letterOf(lineOf(before, r))]))
+  expect(rows.filter((r) => was[r] === undefined), 'rows with no direct key before the reload:' + dump(before)).toEqual([]) // fixture: every row holds a key, so "gets its letter back" compares letters
   await w.reload($)
   await w.redraw()
   const after = (await view(w)).shown
@@ -863,6 +868,7 @@ test('guard: T15-G15 after the mod restarts and reads the run state back, a phas
   await w.pane($, 60)
   const after = (await view(w)).shown
   const rows = ['prime', 'P1', 'P2', 'P3']
+  expect(rows.filter((r) => carried!.letters[r] === undefined), 'rows handed over with no direct key').toEqual([]) // fixture: each row held a key before the restart
   expect(Object.fromEntries(rows.map((r) => [r, letterOf(lineOf(after, r))]))).toEqual(Object.fromEntries(rows.map((r) => [r, carried!.letters[r]]))) // Q-82: the same letters
 })
 
@@ -1008,7 +1014,9 @@ test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct
   const { shown } = await view(w)
   for (const r of ['wk01', 'wk02'] as const) {
     const l = lineOf(shown, r)
-    if (l) expect(letterOf(l)).toBe(was[r]) // Q-64/Q-67: the same key in the strip
+    expect(was[r], r + ' has no direct key at the list top:' + dump(top)).not.toBe(undefined) // fixture: it holds a key in the list
+    expect(!!l, r + ' not drawn after the scroll:' + dump(shown)).toBe(true) // fixture: Q-64, it is drawn in the pinned strip
+    expect(letterOf(l)).toBe(was[r]) // Q-64/Q-67: the same key in the strip
   }
 })
 
@@ -1021,6 +1029,9 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
   await w.pane($, SHORT)
   await pageDown($, w)
   const { shown } = await view(w)
+  const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
+  const pinned = ['wk01', 'wk02'].map((r) => indexOf(shown, r))
+  expect(win.length > 0 && pinned.every((i) => i >= 0 && i < win[0].i), 'wk01 and wk02 not drawn in a strip above the window:' + dump(shown)).toBe(true) // fixture: Q-64, both are in the strip, so the check below has rows to look at
   expect(stripRowsWithoutChevron(shown)).toEqual([]) // L376: every strip row draws its ›
 })
 
@@ -1152,8 +1163,7 @@ test('guard: T15-G20 with rows hidden above and a running row pinned above, the 
   const up = shown.findIndex((l) => UP_MORE.test(l.text))
   const pin = indexOf(shown, 'wk01')
   const win = windowRows(shown).filter((r) => r.label !== 'wk01')
-  if (up >= 0 && pin >= 0) {
-    expect(up).toBeLessThan(pin) // Q-66: the ↑ line, then
-    expect(pin).toBeLessThan(win[0].i) // the pinned strip, then the list's rows
-  }
+  expect([up >= 0, pin >= 0, win.length > 0], 'no ↑ line, no pinned wk01 or no list rows:' + dump(shown)).toEqual([true, true, true]) // fixture: rows hidden above, wk01 pinned
+  expect(up).toBeLessThan(pin) // Q-66: the ↑ line, then
+  expect(pin).toBeLessThan(win[0].i) // the pinned strip, then the list's rows
 })
