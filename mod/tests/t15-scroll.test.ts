@@ -737,7 +737,7 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   }
 })
 
-test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window and back in at another place', async ($, on) => {
+test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window, a row is added above it, and it is scrolled back in at another place', async ($, on) => {
   // Requirement R-C16-40 (traceability.yaml): "A row's direct key stays with that row for as long as the row exists,"
   // (spec L383); R-C16-57 (L400): "a row keeps its key while scrolled out;". Q-67 (inbox/Q-67.answer.md): "hotkey letters
   // are fixed per row for as long as the row exists". OQ7: a guard (done-criterion 20, false premise at da5910c).
@@ -755,6 +755,11 @@ test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the w
   expect(was).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn when the list is first shown
   for (let i = 0; i < 3 && lineOf((await view(w)).shown, 'wk03'); i++) await pageDown($, w)
   expect(lineOf((await view(w)).shown, 'wk03')).toBe(undefined) // fixture: wk03 is scrolled out of the window
+  // A row is added above wk03 while it is out (sweep F52): letters given afresh top to bottom on each draw would move
+  // wk03's key down by one, so only a key held by the row passes. All 22 letters are held, so kid0 gets none.
+  await w.spawn($, 'kid0', 'wk01')
+  await w.redraw()
+  expect(indexOf((await view(w)).shown, 'kid0'), 'fixture: the added row kid0 is not drawn').toBeGreaterThanOrEqual(0) // fixture: kid0 runs, so it is pinned and drawn
   const top = windowRows((await view(w)).shown)[0]
   await focusOn($, w, enterKey(top.l)) // the focus on the first row shown
   for (let i = 0; i < 40 && !lineOf((await view(w)).shown, 'wk03'); i++) await arrow($, w, -1) // ↑ until wk03 is back

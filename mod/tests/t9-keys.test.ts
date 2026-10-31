@@ -259,13 +259,19 @@ test('guard: G3 1, 2 and r keep the actions they have at da5910c', async ($, on)
   expect(/rulings/.test(await shownText(ui))).toBe(true) // E1 §k: `2` is the Memory tab, which lists the rulings (interface.test.ts draws /rulings/ there)
   await press('1')
   expect(!!rowOf(await ui.drawn(), /alpha worker/)).toBe(true) // E1 §k: `1` is the Work tab, where the agent rows are
-  // `r` re-reads: a phase planned after the pane drew shows once r is pressed.
-  expect(phaseRe(4).test(await shownText(ui))).toBe(false) // fixture: P4 is not planned yet
-  w.setPhases([1, 2, 3, 4])
-  await w.settle(61000)
+  // `r` re-reads the pane at once. The pane also re-reads itself every 5 s, so a phase that shows up later does not
+  // tell r's read from that tick's (sweep F74: with r doing nothing the old check passed). The `read hh:mm:ss` line does: it
+  // stamps the wall-clock second of the read (Date, which the test clock does not move), while the 5 s tick runs on the
+  // test clock. So: let more than one real second pass with the test clock still, and only r can move that line.
+  const shownRead = async () => ((await shownText(ui)).match(/read (\d\d:\d\d:\d\d) · Esc closes/) || [])[1]
+  const before = await shownRead()
+  expect(before, 'fixture: the pane shows no read hh:mm:ss line').toMatch(/^\d\d:\d\d:\d\d$/) // fixture: the pane has read once
+  const t = performance.now()
+  while (performance.now() - t < 1100) await Promise.resolve() // a real 1.1 s, no test-clock time
+  expect(await shownRead(), 'fixture: the pane re-read with the test clock still').toBe(before) // fixture: no tick read meanwhile
   await press('r')
-  await w.settle(1000)
-  expect(!!rowOf(await ui.drawn(), phaseRe(4))).toBe(true) // E1 §k: `r` refreshes the pane
+  await w.settle(0) // no test-clock time passes, so no 5 s tick can re-read here
+  expect(await shownRead(), 'r did not re-read the pane').not.toBe(before) // E1 §k: `r` refreshes the pane
 })
 
 test('guard: G4 b is shown on an opened view as 1, 2 and r are, and leaves it', async ($, on) => {

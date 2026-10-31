@@ -534,7 +534,8 @@ test('guard: a memory_mark call carrying an agentId leaves the earlier prime mar
   const seed = [rec('3', 'ok', 'prime', 'checked by the prime', PRIME)] // fixture: #3 marked ✅ by the prime
   const w = world(on, { marks: seed })
   await w.begin($)
-  await mark($, '3', 'void', 'a worker thinks it is wrong', { agentId: SUBAGENT })
+  const r = await mark($, '3', 'void', 'a worker thinks it is wrong', { agentId: SUBAGENT })
+  expect([isErrorResult(r), errorText(r)], 'the memory_mark call was not refused').toEqual([true, 'refused: only the operator and the prime mark (Q-73)']) // fixture: sweep F79, the call reached the mark tool and was refused (Q-73)
   expect(w.marksOf('3')).toEqual(seed) // Q-73 "makes no mark": the prime's record is still the newest (Q-74 "The newest record is the note's current mark")
 })
 
@@ -555,7 +556,8 @@ test('guard: a memory_mark call from a session outside the run leaves the earlie
   const w = world(on, { session: 'outside', marks: seed })
   await w.begin($)
   await w.cd($, RUN)
-  await mark($, '3', 'void', 'looks wrong from here')
+  const r = await mark($, '3', 'void', 'looks wrong from here')
+  expect([isErrorResult(r), errorText(r).startsWith('refused: this session is not in run ')], 'the memory_mark call was not refused').toEqual([true, true]) // fixture: sweep F79, the call reached the mark tool and was refused (Q-73, T7)
   expect(w.marksOf('3')).toEqual(seed) // Q-73 "makes no mark": the prime's mark stays current
 })
 
