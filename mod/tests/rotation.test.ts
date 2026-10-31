@@ -195,7 +195,8 @@ test('/baton rotate outside a run says so', async ($, on) => {
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate still does', async ($, on) => {
   const clock = mock.clock(on)
-  mock.env(on, { BATON_AUTOROTATE: '0' })
+  const env: Record<string, string> = { BATON_AUTOROTATE: '0' } // verifier r4 (P3-d4): kept, so the premise check below can lift it
+  on('env.get', (_$: any, e: any) => ({ value: env[e.name] })) // verifier r4 (P3-d4): read live (mock.env keeps its own copy)
   const w = world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L96, Q-7; R-C7-01, R-C7-02, R-C7-04, R-C7-09)
   startable(on, ['terminal'])
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
@@ -214,4 +215,13 @@ test('guard: BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate stil
   await clock.advance(400)
   await clock.settle()
   expect(w.compacts).toHaveLength(1)
+  // verifier r4 (P3-d4): the premise, that the measured threshold rotates in this world: with BATON_AUTOROTATE lifted,
+  // the same crossing compacts, so "never rotates" above is the variable's doing, not a dead threshold
+  env.BATON_AUTOROTATE = '1'
+  await $.session.start({ cwd: '/work', surface: null } as any)
+  await $.session.measure(measure(20) as any)
+  await $.session.measure(measure(95) as any)
+  await clock.advance(5000)
+  await clock.settle()
+  expect(w.compacts, 'verifier r4 (P3-d4): premise, the threshold rotates once BATON_AUTOROTATE is lifted').toHaveLength(2)
 })

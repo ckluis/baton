@@ -81,7 +81,8 @@ test('guard: an operator prompt during a run is a run note; a standing rule in i
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: a one-off prompt is noted but records no ruling', async ($, on) => {
   const clock = mock.clock(on)
-  const w = world(on, { member: true, model: 'NONE' }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
+  const opts: { member: boolean; model: string | null } = { member: true, model: 'NONE' } // verifier r4 (P3-d4): kept, so the premise check below can change the classifier's answer
+  const w = world(on, opts) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   w.reset() // amended by verifier (XT17): count from the test's own first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -90,6 +91,13 @@ test('guard: a one-off prompt is noted but records no ruling', async ($, on) => 
   await clock.settle()
   expect(w.asked.length, 'premise: the prompt was put to the ruling classifier, which found no standing rule').toBe(1) // GV4 sweep (P3-d4): without the classifier, "no ruling" held by default
   expect(w.notes().map((x) => x.tag)).toEqual(['operator'])
+  // verifier r4 (P3-d4): the premise, that a prompt's ruling is recorded in this session: when the classifier finds a
+  // standing rule, it becomes a ruling, so "records no ruling" above is the one-off's doing, not a dead recorder
+  opts.model = 'RULING: Never merge a PR yourself; the operator merges.'
+  await $.prompt.submit({ text: 'ship it, and from now on never merge my PRs' } as any)
+  await clock.advance(10)
+  await clock.settle()
+  expect(w.notes().map((x) => x.tag), 'verifier r4 (P3-d4): premise, a standing rule in a prompt is recorded').toEqual(['operator', 'operator', 'ruling'])
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
