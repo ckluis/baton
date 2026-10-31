@@ -208,6 +208,7 @@ test('guard: BATON_AUTOROTATE=0: the threshold never rotates, /baton rotate stil
   expect(w.compacts).toHaveLength(0)
   const s: any = await $.command.run({ command: 'baton', args: 'status' } as any)
   expect(s.text).toContain('auto-rotation off')
+  expect(s.text, 'verifier r3 (P3-d3): premise, the measured 95% crossed the threshold').toContain('context 95%')
   const r: any = await $.command.run({ command: 'baton', args: 'rotate' } as any)
   expect(r.text).toContain('rotation #1')
   await clock.advance(400)

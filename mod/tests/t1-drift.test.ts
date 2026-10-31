@@ -443,7 +443,7 @@ test('guard: S0708 on the mobile surface the Pane draws its own Work and Memory 
   const w = world(on, { nodes: { T5 } })
   const ui: any = await w.pane($, 'mobile')
   const seen: Record<string, boolean> = {}
-  for (const [tab, k] of [['work', '1'], ['memory', '2']] as const) {
+  for (const [tab, k] of [['memory', '2'], ['work', '1']] as const) { // GV4 sweep (P3-d4): Memory first, so the Work key must switch back (the pane opens on Work)
     const b = await keyButton(ui, k) // the pane's tabs, Work '1' and Memory '2' (mod/tests/interface.test.ts "Work and Memory draw on terminal and desktop")
     if (b) await ui.press({ key: keyOf(b) })
     let t = ''

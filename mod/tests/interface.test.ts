@@ -81,9 +81,10 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
-  world(on)
+  const { opens } = world(on) // GV4 sweep (P3-d4): the panes the command opens
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
+  expect(opens.some((o: any) => o.id === 'baton' && o.focus === true), 'premise: /baton opened the pane, focused').toBe(true) // GV4 sweep (P3-d4): the test mounts the Pane itself, so without this "opens" held by default
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'baton', surface, component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 140, placement: 'dock', scroll: { bodyRows: 30 } } as any })
     await has(ui, /agent\s+context\s+(?:\S+\s+)*?budget/) // amended by verifier (XT110): the column-name line keeps agent, context, budget in that order, whatever column cells (the `this agent` and `roll-up` groups) sit between context and budget; stays a guard: (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md) (spec L341-347, Q-57, D-T10R-group-columns; R-C10-64, R-C10-65, R-C10-66)

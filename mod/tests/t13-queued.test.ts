@@ -490,7 +490,8 @@ test('guard: c40 with a queued question open, the band\'s text contains no `queu
   // phases to check"; alternatives not taken: "A dim `· <k> queued` after the flag" and "A separate dim band line `<k>
   // queued for G<n>`". The fixture also holds an asked question, so the flag is drawn.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-75', text: QB }] })
-  await w.pane($)
+  const ui: any = await w.pane($)
+  expect(!!qRow(await ui.drawn(), 'Q-75', FIRST_B), 'verifier r3 (P3-d3): premise, the queued Q-75 is open, drawn as a ? row in Work').toBe(true)
   const b: any = await w.band($)
   const t = withLabels(await b.drawn())
   expect({ flag: t.includes('⚑'), queued: /queued/i.test(t) }).toEqual({ flag: true, queued: false }) // Q-50: the band says nothing of queued questions
