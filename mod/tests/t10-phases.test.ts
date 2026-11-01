@@ -366,9 +366,10 @@ test('guard: a worker whose label names P2, spawned by the P1 sub-orchestrator, 
   const w = need(t, idxAgent(t, WX), WX.description) // origin: the fixture, WX `helper for P2`, spawned by S1
   const s1 = need(t, idxAgent(t, S1), S1.description)
   expect(parentOf(t, w), say(t, WX.description + ' is drawn under ' + nameOf(t, parentOf(t, w)))).toBe(s1) // origin: the fixture's parent link, spec L311
-  const p2 = idxPhase(t, 2)
+  const p2 = need(t, idxPhase(t, 2), 'P2') // amended by GV4: the P2 row must be drawn, so the next check always runs (P2 gate item 4: no guard passes with zero assertions); the fixture's P2 has sub-orchestrator S2A
+  expect(subtreeOf(t, p2).includes(need(t, idxAgent(t, S2A), S2A.description)), say(t, 'premise: the P2 row has its sub-orchestrator ' + S2A.description + ' drawn under it')).toBe(true) // GV4 sweep (P3-d4): without a subtree under P2, "not under P2" held by default
   // origin: Q-58, a worker is never matched to a phase: it is not in the P2 row's subtree
-  if (p2 >= 0) expect(subtreeOf(t, p2).includes(w), say(t, WX.description + ' is drawn under P2')).toBe(false)
+  expect(subtreeOf(t, p2).includes(w), say(t, WX.description + ' is drawn under P2')).toBe(false)
 })
 
 // R-C10-32 · R-C10-80
@@ -465,6 +466,8 @@ test('guard: the pending phase row has no child rows', { options: OPTIONS }, asy
   const ui = await mount($)
   const t = table(await ui.drawn())
   const p3 = need(t, idxPhase(t, 3), 'P3')
+  // GV4 sweep (P3-d4): the premise, that a phase row draws child rows at all: P2's sub-orchestrator S2A is drawn under P2
+  expect(subtreeOf(t, need(t, idxPhase(t, 2), 'P2')).includes(need(t, idxAgent(t, S2A), S2A.description)), say(t, 'premise: ' + S2A.description + ' is drawn under P2')).toBe(true)
   // origin: Q-52, "no children": no row after P3 starts further right than it
   expect(subtreeOf(t, p3).map((i) => t.rows[i].label.trim()), say(t, 'rows drawn under the pending P3')).toEqual([])
 })

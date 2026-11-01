@@ -98,15 +98,18 @@ test('guard: c27 a second sync leaves an existing Q-<id>.asked.md byte-identical
   const rec80 = 'asked_at: 2026-10-19T10:00:00Z\nasked_via: thread\n' // fixture: the record the first sync wrote (Q-42 fields)
   const rec81 = 'asked_at: 2026-10-19T11:00:00Z\nasked_via: pane\n' // fixture: the pane's record (Q-45)
   const s = scratch({
-    questions: { 'Q-80': Q80, 'Q-81': Q80.replace(/Q-80/g, 'Q-81') },
+    questions: { 'Q-80': Q80, 'Q-81': Q80.replace(/Q-80/g, 'Q-81'), 'Q-82': Q80.replace(/Q-80/g, 'Q-82') }, // GV4 sweep (P3-d4): Q-82, put by this sync with no record yet
     posted: { 'Q-80': { comment_id: 501, url: 'https://github.com/acme/widgets/pull/7#issuecomment-501', answered: false } },
     files: { 'inbox/Q-80.asked.md': rec80, 'inbox/Q-81.asked.md': rec81 },
   })
   try {
     s.sync()
+    // GV4 sweep (P3-d4): the premise, that this sync writes the asked record of a question it puts (Q-82 had none)
+    const rec82 = String(s.read('inbox/Q-82.asked.md') ?? '')
+    assert.match(rec82, /^asked_via: thread$/m, 'premise: the first sync wrote the asked record of the question it put')
     s.sync()
-    assert.equal(s.posts(), 1) // only Q-81 was newly put (fixture: Q-80 already posted)
-    assert.deepEqual({ 'Q-80': String(s.read('inbox/Q-80.asked.md')), 'Q-81': String(s.read('inbox/Q-81.asked.md')) }, { 'Q-80': rec80, 'Q-81': rec81 }) // Q-42: write-once, byte-identical
+    assert.equal(s.posts(), 2) // only Q-81 and Q-82 were newly put (fixture: Q-80 already posted)
+    assert.deepEqual({ 'Q-80': String(s.read('inbox/Q-80.asked.md')), 'Q-81': String(s.read('inbox/Q-81.asked.md')), 'Q-82': String(s.read('inbox/Q-82.asked.md')) }, { 'Q-80': rec80, 'Q-81': rec81, 'Q-82': rec82 }) // Q-42: write-once, byte-identical
   } finally {
     s.done()
   }

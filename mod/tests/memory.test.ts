@@ -151,12 +151,18 @@ test('guard: a subagent the prime dispatched returns: its first line becomes one
 test('guard: a nested spawn (inside a sub-orchestrator) is not noted', async ($, on) => {
   const w = world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
-  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'w1' }))
+  const ids = ['sub1', 'w1'] // GV4 (P3-d3): the sub-orchestrator the prime dispatched, then the worker nested inside it
+  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: ids.shift() }))
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   w.reset() // amended by verifier (XT17): count from the test's own first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
+  await $.agent.spawn({ prompt: 'run phase 2', description: 'P2', subagentType: 'baton:sub-orchestrator' } as any) // GV4 (P3-d3): the nesting parent, a spawn by the prime
   await $.agent.spawn({ prompt: 'x', description: 'worker', subagentType: 'baton:worker', parentAgentId: 'sub1' } as any)
   await $.turn.complete({ agentId: 'w1', answer: 'done', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as any)
-  expect(w.calls.filter((c) => c.argv.includes('note'))).toHaveLength(0)
+  const nested = w.calls.filter((c) => c.argv.includes('note')).length
+  // GV4 (P3-d3): the premise, that returns are noted in this session: the prime's own dispatch, returning, is noted once
+  await $.turn.complete({ agentId: 'sub1', answer: 'P2 DONE', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' } as any)
+  const after = w.calls.filter((c) => c.argv.includes('note')).length
+  expect({ nested, after }).toEqual({ nested: 0, after: 1 })
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)

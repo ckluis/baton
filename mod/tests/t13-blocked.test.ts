@@ -706,6 +706,14 @@ test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', asy
   const dispatch: any = await $.tool.call({ tool: 'Agent', prompt: 'P4', description: 'P4' } as any)
   expect(dispatch && dispatch.deny).toBeFalsy() // the prime's next dispatch is not held for the check
   expect(w.asks.some((a) => /reports:/.test(a.q))).toBe(false) // and the phase gate asks nothing (its question reads "<label> reports:", mod/tests/approvals.test.ts)
+  // GV4 sweep (P3-d4): the premise, that this session's phase gate holds a dispatch while a phase waits: a later phase
+  // that reports DONE is asked about at the prime's next dispatch (the gate's question reads "<label> reports:")
+  await $.agent.spawn({ prompt: 'run phase P5', description: 'P5', subagentType: 'baton:sub-orchestrator' } as any)
+  await w.settle(10)
+  await $.turn.complete({ agentId: w.idOf('P5'), answer: 'P5 DONE+CONFIRMED 1/1', durationMs: 1, isAborted: false, turnId: 't-P5', reason: 'answer' } as any)
+  await w.settle(10)
+  await $.tool.call({ tool: 'Agent', prompt: 'P6', description: 'P6' } as any)
+  expect(w.asks.filter((a) => /reports:/.test(a.q)).map((a) => /\bP5\b/.test(a.q)), 'premise: the phase gate asks about a phase that waits').toEqual([true])
   void ui
 })
 
@@ -724,6 +732,15 @@ test('guard: c9 a queued phase is approved by Enter on its approve button in Wor
   expect(!!(await keyButton(bandUi, '1'))).toBe(false) // nothing waits any more (E1 §k: band `1` only with a queued phase)
   const dispatch: any = await $.tool.call({ tool: 'Agent', prompt: 'P4', description: 'P4' } as any)
   expect(dispatch && dispatch.deny).toBeFalsy() // the prime's next dispatch is not held (mod/tests/approvals.test.ts)
+  expect(w.asks.some((a) => /reports:/.test(a.q))).toBe(false) // GV4 sweep (P3-d4): and the phase gate asks nothing about P3 (the world's dialog answers Approve, so a held dispatch is an ask, not a deny)
+  // GV4 sweep (P3-d4): the premise, that this session's phase gate holds a dispatch while a phase waits: a later phase
+  // that reports DONE is asked about at the prime's next dispatch (the gate's question reads "<label> reports:")
+  await $.agent.spawn({ prompt: 'run phase P5', description: 'P5', subagentType: 'baton:sub-orchestrator' } as any)
+  await w.settle(10)
+  await $.turn.complete({ agentId: w.idOf('P5'), answer: 'P5 DONE+CONFIRMED 1/1', durationMs: 1, isAborted: false, turnId: 't-P5', reason: 'answer' } as any)
+  await w.settle(10)
+  await $.tool.call({ tool: 'Agent', prompt: 'P6', description: 'P6' } as any)
+  expect(w.asks.filter((a) => /reports:/.test(a.q)).map((a) => /\bP5\b/.test(a.q)), 'premise: the phase gate asks about a phase that waits').toEqual([true])
 })
 
 test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as at da5910c', async ($, on) => {
@@ -734,6 +751,7 @@ test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as 
   const ui: any = await w.pane($)
   const row = rowOf(await ui.drawn(), new RegExp(EXPORT_AGENT))
   expect(!!row && openers(row).some((b) => labelOf(b).includes('›'))).toBe(true) // a `›` in the row (Q-38.md option 1; E1 §k register.js:1463)
+  expect(/\bblocked\b/i.test(row ? row.text : ''), 'premise: the row is the BLOCKED agent\'s, reading its verdict').toBe(true) // GV4 sweep (P3-d4): any agent row has a ›, so without this the BLOCKED premise was never checked
 })
 
 test('guard: c45 Enter on a BLOCKED agent row opens the agent view, as at da5910c', async ($, on) => {
@@ -745,4 +763,5 @@ test('guard: c45 Enter on a BLOCKED agent row opens the agent view, as at da5910
   await enter(ui, rowOf(await ui.drawn(), new RegExp(EXPORT_AGENT)))
   const t = await shownText(ui)
   expect({ back: !!(await keyButton(ui, 'b')), view: t.includes('in the tree'), chain: t.includes(EXPORT_AGENT) }).toEqual({ back: true, view: true, chain: true }) // E1 §k k-07-enter-F17.txt
+  expect(/\bBLOCKED\b/.test(t), 'premise: the view opened is the BLOCKED agent\'s').toBe(true) // GV4 sweep (P3-d4): the agent view opens on any agent row, so without this the BLOCKED premise was never checked
 })

@@ -264,7 +264,8 @@ test('guard: GE1 the table keeps every field the explorer showed before: +, id, 
   }
   // a note row has no `+` (Q-23: "`+`/blank")
   const n8 = rowWith(tree, new RegExp(textOf(8)))
-  expect(n8 ? !!plusOf(n8) : false, 'note #8 has no +').toBe(false) // Q-23: a note's first column is blank; register.js gives + only to level > 0 (E1 §k k-09 line 30: no +)
+  expect(!!n8, 'note #8 is drawn as a row of its own').toBe(true) // amended by GV4: without its row the next check ran on nothing (P2 gate item 4: no guard passes with zero assertions); fixture note #8
+  expect(!!plusOf(n8), 'note #8 has no +').toBe(false) // Q-23: a note's first column is blank; register.js gives + only to level > 0 (E1 §k k-09 line 30: no +)
 })
 
 test('guard: GE2 a summary is drilled into from the keyboard by its + (focus and Enter)', async ($, on) => {
