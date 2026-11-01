@@ -494,8 +494,11 @@ test('guard: G9 in that pane, the 23rd lettered row opens by focus and Enter', a
   // Done-criterion 48.
   const w = world(on, { agents: MANY })
   const ui: any = await w.pane($)
-  const last = rowOf(await ui.drawn(), /w19 worker/)
+  const tree = await ui.drawn()
+  const last = rowOf(tree, /w19 worker/)
   expect(!!last).toBe(true) // fixture: the 23rd row is drawn (the window is taller than the list)
+  expect(ORDER.slice(0, 22).filter((re) => letterOf(rowOf(tree, re)) === undefined).map(String), 'the 22 rows above it do not hold every letter').toEqual([]) // fixture: that pane, every letter held
+  expect(letterOf(last), 'the 23rd row holds a direct key').toBe(undefined) // fixture: Q-12, it has no direct key, so focus and Enter is its way in
   await ui.press({ key: keyOf(enterButton(last!)) })
   expect(await viewIsOpen(ui)).toBe(true) // focus and Enter opens it (Q-12, L390)
   expect(await shownText(ui)).toContain('w19 worker') // its own view

@@ -829,8 +829,11 @@ test('guard: T15-G13 with all 22 letters held, the row added later opens by focu
   const w = world(on)
   await w.start($)
   await full($, w)
-  const l = lineOf((await view(w)).shown, 'run23')
+  const shown = (await view(w)).shown
+  const l = lineOf(shown, 'run23')
   expect(!!l).toBe(true) // fixture: the 23rd row is drawn
+  expect(agentRows(shown).filter((r) => r.label !== 'run23' && letterOf(r.l) !== undefined).length, 'the 22 letters are not all held:' + dump(shown)).toBe(22) // fixture: all 22 letters held (the name's premise)
+  expect(letterOf(l), 'run23 holds a direct key, so focus and Enter is not its only way in').toBe(undefined) // fixture: L390, it has no direct key
   await focusOn($, w, enterKey(l!))
   await w.eng.ui.press({ key: w.eng.focused }) // Enter on the focused element
   await w.settle(10)
