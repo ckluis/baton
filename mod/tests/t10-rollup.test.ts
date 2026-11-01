@@ -200,7 +200,7 @@ function table(tree: any): Table {
     if (/\bb goes back\b/.test(t)) break // the hint line under the agent table (T9's `b goes back`)
     rows.push({ box: boxes[i], text: bodyText(boxes[i]) })
   }
-  return { group: gi >= 0 ? all[gi] : null, cols, rows, dump }
+  return { group: gi >= 0 ? all[gi]! : null, cols, rows, dump }
 }
 
 type Cell = 'tokens' | 'cost'
@@ -233,13 +233,13 @@ const say = (t: Table, what: string) => what + '\n header columns: ' + JSON.stri
 function tokensNum(s: string): number {
   const m = /^([\d.,]+)\s*([kKmM]?)$/.exec(s.trim())
   if (!m) return NaN
-  const v = Number(m[1].replace(/,/g, ''))
-  return m[2].toLowerCase() === 'k' ? v * 1e3 : m[2].toLowerCase() === 'm' ? v * 1e6 : v
+  const v = Number(m[1]!.replace(/,/g, ''))
+  return m[2]!.toLowerCase() === 'k' ? v * 1e3 : m[2]!.toLowerCase() === 'm' ? v * 1e6 : v
 }
 /** A drawn cost as a number of dollars: `$1.94`, `$12.3`. */
 function usdNum(s: string): number {
   const m = /^\$([\d.,]+)$/.exec(s.trim())
-  return m ? Number(m[1].replace(/,/g, '')) : NaN
+  return m ? Number(m[1]!.replace(/,/g, '')) : NaN
 }
 const CENT = 0.0051 // a cost is drawn to the cent (or coarser above $10): half a cent of rounding allowed
 

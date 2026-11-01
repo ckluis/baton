@@ -91,7 +91,7 @@ function world(on: any, o: Opts = {}) {
     for (const k of files.keys()) if (k.startsWith(p + '/')) {
       const rest = k.slice(p.length + 1)
       const name = rest.split('/')[0]
-      kids.set(name, rest.includes('/') ? 'directory' : 'file')
+      kids.set(name!, rest.includes('/') ? 'directory' : 'file')
     }
     return kids.size ? { value: [...kids].map(([name, kind]) => ({ name, kind })) } : { deny: 'no such directory' }
   })
@@ -318,7 +318,7 @@ async function arrow($: any, w: World, dir: 1 | -1) {
     const keys = all.flatMap((l) => l.focusables)
     const i = w.eng.focused === undefined ? -1 : keys.indexOf(w.eng.focused)
     const next = keys[(((i + dir) % keys.length) + keys.length) % keys.length]
-    await focusOn($, w, next)
+    await focusOn($, w, next!)
     if (ident(await on()) !== start) return // the ring has left the row it started on
   }
 }
@@ -370,7 +370,7 @@ test('t15-scroll: with more agents than fit, the drawn pane fills its height les
     expect(all.length, 'pane of ' + rows + ' lines drew ' + all.length + ':' + dump(all)).toBe(rows - 1) // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — the list scrolls, so the pane's height less its one empty bottom row
     // and those lines hold agent rows wherever the other parts leave room: the agent rows are one block in the pane
     const ar = agentRows(all)
-    const block = all.slice(ar[0].i, ar[ar.length - 1].i + 1).filter((l) => !rowLabel(l) && !UP_MORE.test(l.text) && !DOWN_MORE.test(l.text) && !PLUS_RUNNING.test(l.text))
+    const block = all.slice(ar[0]!.i, ar[ar.length - 1]!.i + 1).filter((l) => !rowLabel(l) && !UP_MORE.test(l.text) && !DOWN_MORE.test(l.text) && !PLUS_RUNNING.test(l.text))
     expect(block.map((l) => l.text)).toEqual([]) // spec L368: no other line inside the list's window
     await w.eng.ui.unmount()
   }
@@ -671,13 +671,13 @@ test('t15-scroll: with the focus on the first agent row shown and rows above it,
   await pageDown($, w) // the list is scrolled down, so rows lie above its window
   const before = (await view(w)).shown
   const first = windowRows(before)[0]
-  await focusOn($, w, enterKey(first.l)) // the person puts the focus on the first agent row shown in the window
+  await focusOn($, w, enterKey(first!.l)) // the person puts the focus on the first agent row shown in the window
   await arrow($, w, -1) // ↑
   const after = (await view(w)).shown
   const order = treeOrder(MANYN)
   const drawnBefore = new Set(agentRows(before).map((r) => r.label))
-  const back = agentRows(after).filter((r) => !drawnBefore.has(r.label) && order.indexOf(r.label) < order.indexOf(first.label)).map((r) => r.label)
-  expect(back.length, 'no row above ' + first.label + ' came into view after ↑:' + dump(after)).toBeGreaterThan(0) // L289: ↑ past the first row scrolls back
+  const back = agentRows(after).filter((r) => !drawnBefore.has(r.label) && order.indexOf(r.label) < order.indexOf(first!.label)).map((r) => r.label)
+  expect(back.length, 'no row above ' + first!.label + ' came into view after ↑:' + dump(after)).toBeGreaterThan(0) // L289: ↑ past the first row scrolls back
 })
 
 test('t15-scroll: an agent row scrolled into view by ↓ opens by focus and Enter', async ($, on) => {
@@ -763,7 +763,7 @@ test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the w
   await w.redraw()
   expect(indexOf((await view(w)).shown, 'kid0'), 'fixture: the added row kid0 is not drawn').toBeGreaterThanOrEqual(0) // fixture: kid0 runs, so it is pinned and drawn
   const top = windowRows((await view(w)).shown)[0]
-  await focusOn($, w, enterKey(top.l)) // the focus on the first row shown
+  await focusOn($, w, enterKey(top!.l)) // the focus on the first row shown
   for (let i = 0; i < 40 && !lineOf((await view(w)).shown, 'wk03'); i++) await arrow($, w, -1) // ↑ until wk03 is back
   const back = (await view(w)).shown
   expect(place(back), 'wk03 not back:' + dump(back)).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn again
@@ -784,7 +784,7 @@ test('t15-scroll: pressing the direct key of a row scrolled out of the window op
   // key-scheme.md rule 1 (Q-12, L387): at the first draw the rows take the pool top to bottom in tree order:
   // prime a, wk01 c, wk02 d, wk03 e.
   const letter = POOL[treeOrder(LETTERED).indexOf('wk03')]
-  await pressLetter(w, letter)
+  await pressLetter(w, letter!)
   expect(await viewIsOpen(w.eng.ui), 'pressing ' + letter + ' opened no view').toBe(true) // L384: it opens that row
   expect(await shownText(w.eng.ui)).toContain('wk03') // the view is wk03's
 })
@@ -916,7 +916,7 @@ test('t15-scroll: PageDown scrolls the list down by the window height in rows', 
   const order = treeOrder(MANYN)
   const top = windowRows((await view(w)).shown)[0]?.label ?? '-'
   // L369: one window down: the window's new top row lies the window's height in rows below its old top row (prime).
-  expect(order.indexOf(top) - order.indexOf(before[0].label), 'new top ' + top).toBe(before.length) // spec L369: by one window
+  expect(order.indexOf(top) - order.indexOf(before[0]!.label), 'new top ' + top).toBe(before.length) // spec L369: by one window
 })
 
 test('t15-scroll: PageUp scrolls the list up by the window height in rows', async ($, on) => {
@@ -932,7 +932,7 @@ test('t15-scroll: PageUp scrolls the list up by the window height in rows', asyn
   const order = treeOrder(MANYN)
   const top = windowRows((await view(w)).shown)[0]?.label ?? '-'
   // L369: one window up: the new top row lies the window's height in rows above the old top row.
-  expect(order.indexOf(mid[0].label) - order.indexOf(top), 'new top ' + top + ', old top ' + mid[0].label).toBe(mid.length) // spec L369: by one window
+  expect(order.indexOf(mid[0]!.label) - order.indexOf(top), 'new top ' + top + ', old top ' + mid[0]!.label).toBe(mid.length) // spec L369: by one window
 })
 
 test('t15-scroll: Home moves the focus to the list first row', async ($, on) => {
@@ -978,8 +978,8 @@ test('t15-scroll: a running agent row scrolled above the window is drawn in a pi
   const win = windowRows(shown).filter((r) => r.label !== 'wk01')
   const at = indexOf(shown, 'wk01')
   expect(at, 'wk01 not drawn after the scroll:' + dump(shown)).toBeGreaterThanOrEqual(0) // Q-64: it is still drawn
-  expect(order.indexOf(win[0].label)).toBeGreaterThan(order.indexOf('wk01') + 1) // fixture: the window has scrolled past it
-  expect(at).toBeLessThan(win[0].i) // Q-64: in a strip at the top, above the window's rows
+  expect(order.indexOf(win[0]!.label)).toBeGreaterThan(order.indexOf('wk01') + 1) // fixture: the window has scrolled past it
+  expect(at).toBeLessThan(win[0]!.i) // Q-64: in a strip at the top, above the window's rows
 })
 
 test('t15-scroll: a running agent row scrolled below the window is drawn in a pinned strip at the bottom of the list', async ($, on) => {
@@ -1011,7 +1011,7 @@ test('t15-scroll: a pinned strip of two running rows draws them in tree order', 
   const one = indexOf(shown, 'wk01')
   const two = indexOf(shown, 'wk02')
   expect([one >= 0, two >= 0], 'pinned rows not drawn:' + dump(shown)).toEqual([true, true]) // Q-64: both are pinned
-  expect(two).toBeLessThan(win[0].i) // both in the strip above the window
+  expect(two).toBeLessThan(win[0]!.i) // both in the strip above the window
   expect(one).toBeLessThan(two) // L375: tree order, wk01 before wk02
 })
 
@@ -1047,7 +1047,7 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
   const { shown } = await view(w)
   const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
   const pinned = ['wk01', 'wk02'].map((r) => indexOf(shown, r))
-  expect(win.length > 0 && pinned.every((i) => i >= 0 && i < win[0].i), 'wk01 and wk02 not drawn in a strip above the window:' + dump(shown)).toBe(true) // fixture: Q-64, both are in the strip, so the check below has rows to look at
+  expect(win.length > 0 && pinned.every((i) => i >= 0 && i < win[0]!.i), 'wk01 and wk02 not drawn in a strip above the window:' + dump(shown)).toBe(true) // fixture: Q-64, both are in the strip, so the check below has rows to look at
   expect(shown.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll, so no strip is drawn:' + dump(shown)).toBe(true) // fixture: P3-d3, rows are hidden above, so wk01 and wk02 are in the strip, not at the list top
   expect(stripRowsWithoutChevron(shown)).toEqual([]) // L376: every strip row draws its ›
 })
@@ -1057,8 +1057,8 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
 function stripRowsWithoutChevron(shown: Line[]): string[] {
   const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
   if (!win.length) return []
-  const lo = win[0].i
-  const hi = win[win.length - 1].i
+  const lo = win[0]!.i
+  const hi = win[win.length - 1]!.i
   return shown
     .map((l, i) => ({ l, i, m: /\b(wk01|wk02)\b/.exec(l.text) }))
     .filter((x) => x.m && (x.i < lo || x.i > hi))
@@ -1095,7 +1095,7 @@ test('t15-scroll: when an agent row is added above the window top row, that row 
   await w.pane($, SHORT)
   await pageDown($, w)
   const finished = (ls: Line[]) => windowRows(ls).filter((r) => r.label !== 'wk02' && r.label !== 'kid1') // the window's rows
-  const top = finished((await view(w)).shown)[0].label
+  const top = finished((await view(w)).shown)[0]!.label
   await w.spawn($, 'kid1', 'wk02') // a running row added under wk02, above the window
   await w.redraw()
   expect(finished((await view(w)).shown)[0]?.label).toBe(top) // Q-65: the top row stays
@@ -1137,10 +1137,10 @@ test('t15-scroll: with rows hidden above the window, a dim ↑ <k> more line is 
   expect(!!more, 'no ↑ more line:' + dump(shown)).toBe(true) // Q-66: rows lie above
   expect(more!.dim).toBe(true) // Q-66: a dim line
   const ar = agentRows(shown)
-  expect(shown.indexOf(more!)).toBeLessThan(ar[0].i) // at the list's top, before its rows
+  expect(shown.indexOf(more!)).toBeLessThan(ar[0]!.i) // at the list's top, before its rows
   const order = treeOrder(40)
   const drawn = new Set(ar.map((r) => r.label))
-  const above = order.slice(0, order.indexOf(windowRows(shown)[0].label)).filter((x) => !drawn.has(x)).length
+  const above = order.slice(0, order.indexOf(windowRows(shown)[0]!.label)).filter((x) => !drawn.has(x)).length
   expect(Number(UP_MORE.exec(more!.text)![1])).toBe(above) // D-T15-more-count: the rows above not drawn
 })
 
@@ -1184,5 +1184,5 @@ test('guard: T15-G20 with rows hidden above and a running row pinned above, the 
   const win = windowRows(shown).filter((r) => r.label !== 'wk01')
   expect([up >= 0, pin >= 0, win.length > 0], 'no ↑ line, no pinned wk01 or no list rows:' + dump(shown)).toEqual([true, true, true]) // fixture: rows hidden above, wk01 pinned
   expect(up).toBeLessThan(pin) // Q-66: the ↑ line, then
-  expect(pin).toBeLessThan(win[0].i) // the pinned strip, then the list's rows
+  expect(pin).toBeLessThan(win[0]!.i) // the pinned strip, then the list's rows
 })

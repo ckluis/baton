@@ -60,11 +60,11 @@ function zoomTiles(range: string): Tile[] {
   const [lo, hi] = range.replace(/^#/, '').split('-').map(Number)
   if (lo === 0 && hi === 3) return [{ level: 1, index: 0, lo: 0, hi: 2 }, { level: 1, index: 1, lo: 2, hi: 4 }]
   const out: Tile[] = []
-  for (let i = lo; i <= hi; i++) out.push(note(i))
+  for (let i = lo!; i <= hi!; i++) out.push(note(i))
   return out
 }
 // The rows of the wake view, found by their own text (never by a whole row string).
-const ROWS: Record<string, string> = { '0-3': SUMMARY['2:0'], '4-5': SUMMARY['1:2'], '6-7': SUMMARY['1:3'], '8': textOf(8), '9': textOf(9), '10': textOf(10) } // fixture WAKE
+const ROWS: Record<string, string> = { '0-3': SUMMARY['2:0']!, '4-5': SUMMARY['1:2']!, '6-7': SUMMARY['1:3']!, '8': textOf(8), '9': textOf(9), '10': textOf(10) } // fixture WAKE
 
 type Mark = { id: string; mark: string; reason: string; who: string; session?: string; ts: string }
 const rec = (id: string, m: string, who: string, reason: string, at: string): Mark => ({ id, mark: m, reason, who, ...(who === 'prime' ? { session: SID } : {}), ts: at }) // a seeded mark record (T114A's record shape)
@@ -81,13 +81,13 @@ function parseArgv(argv: string[]) {
       rest.push(...argv.slice(i + 1))
       break
     }
-    if (a.startsWith('--')) {
-      const eq = a.indexOf('=')
-      const k = eq > 0 ? a.slice(2, eq) : a.slice(2)
-      if (eq > 0) flags[k] = a.slice(eq + 1)
+    if (a!.startsWith('--')) {
+      const eq = a!.indexOf('=')
+      const k = eq > 0 ? a!.slice(2, eq) : a!.slice(2)
+      if (eq > 0) flags[k] = a!.slice(eq + 1)
       else if (VALUE_FLAGS.has(k)) flags[k] = argv[++i]
       else flags[k] = true
-    } else rest.push(a)
+    } else rest.push(a!)
   }
   return { flags, rest }
 }
@@ -321,7 +321,7 @@ function rowWith(tree: any, text: string) {
   return best ? { el: best, line: cells(best), buttons: all(best).filter((x) => x.type === 'Button') } : undefined
 }
 /** The line a row lays out as within the table (the row's own Box, so every row starts at the table's left edge). */
-const rowLine = (tree: any, id: string) => rowWith(tree, ROWS[id])?.line
+const rowLine = (tree: any, id: string) => rowWith(tree, ROWS[id]!)?.line
 /** The mark glyph a row draws in its mark cell: '✅', '❌' or '' (D-T14-mark-glyphs). */
 function glyphOf(line: string | undefined) {
   if (!line) return undefined
@@ -339,7 +339,7 @@ const drawnText = async (ui: any) => cells(await ui.drawn())
 async function rowsDrawn(ui: any) {
   const t = await drawnText(ui)
   const out: Record<string, boolean> = {}
-  for (const id of Object.keys(ROWS)) out[id] = t.includes(ROWS[id])
+  for (const id of Object.keys(ROWS)) out[id] = t.includes(ROWS[id]!)
   return out
 }
 
@@ -359,7 +359,7 @@ async function focusOn($: any, w: World, element: string) {
 }
 /** Focus a table row: the ring onto the first Button drawn in that row; a row with no Button cannot take it. */
 async function focusRow($: any, ui: any, w: World, id: string) {
-  const r = rowWith(await ui.drawn(), ROWS[id])
+  const r = rowWith(await ui.drawn(), ROWS[id]!)
   const b = r?.buttons[0]
   if (b) await focusOn($, w, keyOf(b))
   return !!b
@@ -376,7 +376,7 @@ async function focusAndEnter($: any, ui: any, w: World, label: string) {
 }
 /** Open a row's view: focus and Enter on the row's open control (its Button that is not the `+` drill). */
 async function openRow($: any, ui: any, w: World, id: string) {
-  const r = rowWith(await ui.drawn(), ROWS[id])
+  const r = rowWith(await ui.drawn(), ROWS[id]!)
   const b = r?.buttons.find((x: any) => labelOf(x) !== '+')
   if (b) {
     await focusOn($, w, keyOf(b))
@@ -387,7 +387,7 @@ async function openRow($: any, ui: any, w: World, id: string) {
 }
 /** The summary row's `+` drill (register.js ~1572 at da5910c; T112 GE2). */
 async function drill(ui: any, w: World, id: string) {
-  const r = rowWith(await ui.drawn(), ROWS[id])
+  const r = rowWith(await ui.drawn(), ROWS[id]!)
   const b = r?.buttons.find((x: any) => labelOf(x) === '+')
   if (b) await ui.press({ key: keyOf(b) })
   await w.settle()
@@ -781,7 +781,7 @@ test('c38 a note\'s view lists its mark records newest first', SLOW, async ($, o
   await openRow($, ui, w, '9')
   const t = await drawnText(ui)
   const at = [...HISTORY].reverse().map((h) => t.lastIndexOf(h.reason)) // newest, middle, oldest (fixture times 11:50, 11:40, 11:30)
-  expect({ found: at.every((x) => x >= 0), ordered: at[0] < at[1] && at[1] < at[2] }).toEqual({ found: true, ordered: true }) // D-T14-mark-history: newest first
+  expect({ found: at.every((x) => x >= 0), ordered: at[0]! < at[1]! && at[1]! < at[2]! }).toEqual({ found: true, ordered: true }) // D-T14-mark-history: newest first
 })
 
 // R-C15-84 · Q-74 "A mark by the prime cannot replace one by the operator; the operator can replace any." · spec
@@ -820,7 +820,7 @@ test('guard: G1 in the Memory view, note rows draw no letter of their own', SLOW
   const w = world(on, { marks: [rec('8', 'ok', 'operator', 'checked', '2026-10-19T11:30:00Z')] }) // fixture: a marked note and unmarked ones
   const ui = await w.memory($)
   const tree = await ui.drawn()
-  const rows = ['8', '9', '10'].map((id) => rowWith(tree, ROWS[id]))
+  const rows = ['8', '9', '10'].map((id) => rowWith(tree, ROWS[id]!))
   expect(rows.every((r) => !!r), 'fixture: notes #8, #9 and #10 are drawn').toBe(true) // fixture WAKE
   const letters = rows.flatMap((r) => r!.buttons.map((b: any) => b.props?.hotkey).filter((k: any) => k !== undefined && k !== null && k !== ''))
   expect(letters).toEqual([]) // L485: no note row carries a hotkey of its own

@@ -136,7 +136,7 @@ function regions(ls: Line[]) {
   if (h < 0) throw new Error('no agent table header drawn' + dump(ls))
   if (hint < 0) throw new Error('no hint line under the agent table' + dump(ls))
   let first = h
-  while (first + 1 < hint && HEADER.test(ls[first + 1].text)) first++
+  while (first + 1 < hint && HEADER.test(ls[first + 1]!.text)) first++
   return { header: h, treeFrom: first + 1, hint }
 }
 
@@ -155,7 +155,7 @@ function phaseBlock(ls: Line[], n: number) {
   const at = ls.findIndex((l, i) => i >= treeFrom && i < hint && phaseRow(n).test(l.text))
   if (at < 0) throw new Error('no P' + n + ' row inside the agent tree' + dump(ls))
   let end = at + 1
-  while (end < hint && !ANY_PHASE_ROW.test(ls[end].text)) end++
+  while (end < hint && !ANY_PHASE_ROW.test(ls[end]!.text)) end++
   return { at, end }
 }
 
@@ -172,9 +172,9 @@ test('t10-lines: a dim legend line directly above the agent table header names p
   const { header } = regions(ls)
   const legend = ls[header - 1] // origin: Q-55 option A, "directly above the agent table header"
   expect(legend).toBeDefined() // origin: Q-55 option A, a line is drawn there
-  expect(legend.dim).toBe(true) // origin: spec L330, "A dim legend line"
+  expect(legend!.dim).toBe(true) // origin: spec L330, "A dim legend line"
   // origin: spec L330 and Q-55.answer.md, the four levels named in "(prime, phase, sub-orchestrator, agent)"
-  for (const level of [/\bprime\b/i, /\bphase\b/i, /\bsub-orchestrator\b/i, /\bagent\b/i]) expect(legend.text).toMatch(level)
+  for (const level of [/\bprime\b/i, /\bphase\b/i, /\bsub-orchestrator\b/i, /\bagent\b/i]) expect(legend!.text).toMatch(level)
 })
 
 // R-C10-51 · R-C10-01
@@ -256,7 +256,7 @@ test('t10-lines: with p on, a phase row\'s node rows are drawn before its sub-or
   const sub = ls.findIndex((l, i) => i > at && i < end && l.text.includes(SUB_P2)) // origin: the fixture's P2 dispatch label (spec L348: it keeps its own label)
   if (sub < 0) throw new Error('the P2 sub-orchestrator row is not under the P2 row' + dump(ls))
   expect(at + 1).toBeLessThan(sub) // origin: spec L339, "directly under the phase row"
-  expect(nodeIn(P2N[0]).test(ls[at + 1].text)).toBe(true) // origin: spec L339, the first row under P2 is a node row
+  expect(nodeIn(P2N[0]!).test(ls[at + 1]!.text)).toBe(true) // origin: spec L339, the first row under P2 is a node row
   for (const id of P2N.slice(0, 12)) {
     const i = ls.findIndex((l) => nodeIn(id).test(l.text))
     if (!(i > at && i < sub)) throw new Error(id + ' is not between the P2 row and its sub-orchestrator row' + dump(ls))
@@ -310,7 +310,7 @@ test('t10-lines: with p on, the PR\'s merge-ready rows are drawn under the PR ro
   const ml = ls.findIndex((l) => /\bmerge-ready (\d+)\/(\d+)/.test(l.text))
   if (pr < 0 || ml < 0) throw new Error('no PR row or merge-ready line' + dump(ls))
   expect(ml).toBeGreaterThan(pr) // origin: spec L333, the `merge-ready` line sits under the PR row
-  const total = Number(/\bmerge-ready (\d+)\/(\d+)/.exec(ls[ml].text)![2]) // origin: the merge-ready line's own `k/n`: n rows
+  const total = Number(/\bmerge-ready (\d+)\/(\d+)/.exec(ls[ml]!.text)![2]) // origin: the merge-ready line's own `k/n`: n rows
   // origin: spec L333, the rows follow the `merge-ready` line, under the PR row and above the agent table
   const rows = ls.slice(ml + 1, header).filter((l) => /^\s*[✓✗] \S/.test(l.text))
   expect(rows.length).toBe(total) // origin: spec L333, every merge-ready row, between the merge-ready line and the agent table
@@ -344,7 +344,7 @@ test('t10-lines: with p on, the footer `states are computed from _orch/ and the 
   const ls = lines(await ui.drawn())
   const { hint } = regions(ls)
   // origin: Q-56 option A, the footer's text `states are computed from _orch/ and the PR`; spec L335, "joins the hint line"
-  expect(ls[hint].text).toContain('states are computed from _orch/ and the PR')
+  expect(ls[hint]!.text).toContain('states are computed from _orch/ and the PR')
 })
 
 // R-C10-58
@@ -357,8 +357,8 @@ test('t10-lines: with no _orch/plan/graph.yaml, a dim row `no phases yet` is dra
   const prime = ls.findIndex((l, i) => i >= treeFrom && i < hint && /◆ prime\b/.test(l.text))
   if (prime < 0) throw new Error('no prime row' + dump(ls))
   const under = ls[prime + 1] // origin: spec L336, "a dim row under the prime"
-  expect(under.text).toMatch(/no phases yet/) // origin: spec L336, `no phases yet`
-  expect(under.dim).toBe(true) // origin: spec L336, "a dim row"
+  expect(under!.text).toMatch(/no phases yet/) // origin: spec L336, `no phases yet`
+  expect(under!.dim).toBe(true) // origin: spec L336, "a dim row"
 })
 
 // ---- the text form (Q-70, adapted to the tree) ---------------------------------------------------
@@ -392,16 +392,16 @@ test('t10-lines: the pane\'s text form lists each phase row one level under the 
     at.push(i)
   }
   // origin: spec L309, "the prime, then the phases P1..P5 in plan order": P1 < P2 < P3 after the prime
-  expect(at[0] < at[1] && at[1] < at[2]).toBe(true) // origin: spec L309, plan order
+  expect(at[0]! < at[1]! && at[1]! < at[2]!).toBe(true) // origin: spec L309, plan order
   // origin: Q-70 with spec L309-310: each phase row is one level under the prime, and the P2
   // sub-orchestrator one level under P2, so phases sit deeper than the prime and shallower than it
-  const lp = indent(tl[prime])
-  const lv = at.map((i) => indent(tl[i]))
+  const lp = indent(tl[prime]!)
+  const lv = at.map((i) => indent(tl[i]!))
   expect(new Set(lv).size).toBe(1) // origin: Q-70 with spec L309, every phase row at the same level
   expect(lv[0]).toBeGreaterThan(lp) // origin: Q-70 with spec L309, phase rows under the prime
-  expect(indent(tl[sub])).toBeGreaterThan(lv[0]) // origin: spec L310, the sub-orchestrator under its phase row
-  expect(sub).toBeGreaterThan(at[1]) // origin: spec L310, under P2's row
-  expect(sub).toBeLessThan(at[2]) // origin: spec L310, before the next phase row
+  expect(indent(tl[sub]!)).toBeGreaterThan(lv[0]!) // origin: spec L310, the sub-orchestrator under its phase row
+  expect(sub).toBeGreaterThan(at[1]!) // origin: spec L310, under P2's row
+  expect(sub).toBeLessThan(at[2]!) // origin: spec L310, before the next phase row
 })
 
 // ---- the `p` key ---------------------------------------------------------------------------------

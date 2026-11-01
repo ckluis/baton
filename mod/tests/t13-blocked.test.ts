@@ -542,10 +542,10 @@ test('missing #8 (c6, c26): from the brief of a queued phase, the approve key ha
   const w = world(on, { subOrchs: lines })
   const ui: any = await w.pane($)
   const bandUi: any = await w.band($)
-  const norm = (s: string, p: string) => s.replace(lines[p], '<line>').split(p).join('<P>').replace(/\d{4}-\d\d-\d\dT[\d:.]+Z|\d\d:\d\d:\d\dZ?/g, '<t>')
+  const norm = (s: string, p: string) => s.replace(lines[p]!, '<line>').split(p).join('<P>').replace(/\d{4}-\d\d-\d\dT[\d:.]+Z|\d\d:\d\d:\d\dZ?/g, '<t>')
   const toCheck = async () => {
     const m = /to check \(([^)]*)\)/.exec(flat(strings(await bandUi.drawn())))
-    return m ? m[1].split(/,\s*/) : []
+    return m ? m[1]!.split(/,\s*/) : []
   }
   async function effect(p: string, n: number) {
     await w.settle(100)

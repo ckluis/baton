@@ -177,7 +177,7 @@ async function row(ui: any, label: RegExp): Promise<string> {
   const all = boxes(await ui.drawn())
   const hits = all.filter((t) => label.test(t)).sort((a, b) => a.length - b.length)
   if (!hits.length) throw new Error('no row drawn for ' + label + ' in: ' + JSON.stringify(all.filter((t) => t.length < 400)).slice(0, 3000))
-  return hits[0]
+  return hits[0]!
 }
 
 async function pane($: any, bodyColumns = 146) {
@@ -401,12 +401,12 @@ function c25Differential(r1: Record<string, string>, r2: Record<string, string>)
     if (oneList) {
       // (a) a label naming a node in exactly one list: a different result in each run, each agreeing with membership
       if (r1[label] === r2[label]) bad.push('(a) same result in both runs for "' + label + '": ' + got)
-      if (asNode(C25_L1, r1[label]) !== e1) bad.push('(a) L1 "' + label + '": expected ' + e1 + ', ' + got)
-      if (asNode(C25_L2, r2[label]) !== e2) bad.push('(a) L2 "' + label + '": expected ' + e2 + ', ' + got)
+      if (asNode(C25_L1, r1[label]!) !== e1) bad.push('(a) L1 "' + label + '": expected ' + e1 + ', ' + got)
+      if (asNode(C25_L2, r2[label]!) !== e2) bad.push('(a) L2 "' + label + '": expected ' + e2 + ', ' + got)
     } else {
       // (b) every id-shaped token in both lists or in neither: the same result in both runs
       if (r1[label] !== r2[label]) bad.push('(b) different results for "' + label + '": ' + got)
-      if (asNode(C25_L1, r1[label]) !== e1 || asNode(C25_L2, r2[label]) !== e2) bad.push('(b) "' + label + '": expected L1=' + e1 + ' L2=' + e2 + ', ' + got)
+      if (asNode(C25_L1, r1[label]!) !== e1 || asNode(C25_L2, r2[label]!) !== e2) bad.push('(b) "' + label + '": expected L1=' + e1 + ' L2=' + e2 + ', ' + got)
     }
   }
   return bad
@@ -419,7 +419,7 @@ function c25ViaPick(m: { pick: (s: string) => string | null; fallback: boolean }
     C25_LABELS.map((label) => {
       const tok = m.pick(label)
       const ph = /\b(P\d+)\b/.exec(label)
-      const r = tok && run.nodes.includes(tok) ? tok : ph && run.phases.includes(ph[1]) ? 'phase ' + ph[1] : m.fallback ? 'lifecycle' : 'nothing'
+      const r = tok && run.nodes.includes(tok) ? tok : ph && run.phases.includes(ph[1]!) ? 'phase ' + ph[1] : m.fallback ? 'lifecycle' : 'nothing'
       return [label, r]
     }),
   )
@@ -428,8 +428,8 @@ function c25ViaPick(m: { pick: (s: string) => string | null; fallback: boolean }
 /** The node a drawn row's steps cell names in a run: the one node whose stepper it draws exactly, else what it draws. */
 function c25Decode(run: C25Run, text: string): string {
   const exactly = (dots: string) => new RegExp('(?<![●◉○✗─])' + dots + '(?![─●◉○✗])')
-  const ids = run.nodes.filter((id) => exactly(run.steps[id]).test(text))
-  if (ids.length === 1) return ids[0]
+  const ids = run.nodes.filter((id) => exactly(run.steps[id]!).test(text))
+  if (ids.length === 1) return ids[0]!
   if (ids.length > 1) return 'ambiguous ' + ids.join('+')
   const any = /(?<![●◉○✗─])[●◉○✗](─[●◉○✗])+(?![─●◉○✗])/.exec(text)
   return any ? (LIFECYCLE.test(text) ? 'lifecycle ' : 'stepper ') + any[0] : 'nothing'
@@ -461,11 +461,11 @@ test("two node lists: a row label's match follows each run's own node list (diff
     await $.command.run({ command: 'baton', args: 'status' } as any)
     const ui = await pane($)
     results[run.name] = {}
-    for (const label of C25_LABELS) results[run.name][label] = c25Decode(run, await row(ui, new RegExp('worker ' + esc(label) + '(?!\\S)')))
+    for (const label of C25_LABELS) results[run.name]![label] = c25Decode(run, await row(ui, new RegExp('worker ' + esc(label) + '(?!\\S)')))
     await ui.unmount()
   }
   // (a) and (b): expected, every label's result follows its run's node list (Q-15; Q-T111-3 D)
-  expect(c25Differential(results.L1, results.L2)).toEqual([])
+  expect(c25Differential(results.L1!, results.L2!)).toEqual([])
 })
 
 // R-C11-01 (L153 "... verifier ..."); Q-15 answer: "A verifier row shows the stepper of the node it verifies."

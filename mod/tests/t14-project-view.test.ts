@@ -109,13 +109,13 @@ function parseArgv(argv: string[]) {
       rest.push(...argv.slice(i + 1))
       break
     }
-    if (a.startsWith('--')) {
-      const eq = a.indexOf('=')
-      const k = eq > 0 ? a.slice(2, eq) : a.slice(2)
-      if (eq > 0) flags[k] = a.slice(eq + 1)
+    if (a!.startsWith('--')) {
+      const eq = a!.indexOf('=')
+      const k = eq > 0 ? a!.slice(2, eq) : a!.slice(2)
+      if (eq > 0) flags[k] = a!.slice(eq + 1)
       else if (VALUE_FLAGS.has(k)) flags[k] = argv[++i]
       else flags[k] = true
-    } else rest.push(a)
+    } else rest.push(a!)
   }
   return { flags, rest }
 }
@@ -142,11 +142,11 @@ function tiling(st: Store, lo: number, hi: number, budget: number) {
   }
   for (;;) {
     let j = -1
-    for (let x = out.length - 1; x >= 0; x--) if (out[x].level > 0) { j = x; break }
+    for (let x = out.length - 1; x >= 0; x--) if (out[x]!.level > 0) { j = x; break }
     if (j < 0 || out.length + 1 > budget) break
     const t = out[j]
-    const half = span(t.level - 1)
-    out.splice(j, 1, { level: t.level - 1, index: (t.lo / half) | 0, lo: t.lo, hi: t.lo + half }, { level: t.level - 1, index: ((t.lo + half) / half) | 0, lo: t.lo + half, hi: t.hi })
+    const half = span(t!.level - 1)
+    out.splice(j, 1, { level: t!.level - 1, index: (t!.lo / half) | 0, lo: t!.lo, hi: t!.lo + half }, { level: t!.level - 1, index: ((t!.lo + half) / half) | 0, lo: t!.lo + half, hi: t!.hi })
   }
   return out
 }
@@ -154,7 +154,7 @@ function render(st: Store, tiles: { level: number; lo: number; hi: number }[]) {
   return tiles.map((t) => {
     if (t.level === 0) {
       const r = st.notes[t.lo]
-      return `#${t.lo} ${r.ts} [${r.tag}] ${r.text}`
+      return `#${t.lo} ${r!.ts} [${r!.tag}] ${r!.text}`
     }
     const s = st.sums.get(t.level + ':' + t.lo / span(t.level))
     return `#${t.lo}-${t.hi - 1} (${t.hi - t.lo} notes) ${s ?? '(not merged yet)'}`
@@ -167,7 +167,7 @@ function pendingOf(st: Store) {
     for (let i = 0; (i + 1) * span(k) <= n; i++) {
       if (st.sums.has(k + ':' + i)) continue
       const ready = k === 1 || (st.sums.has(k - 1 + ':' + 2 * i) && st.sums.has(k - 1 + ':' + (2 * i + 1)))
-      const texts = k === 1 ? [st.notes[2 * i].text, st.notes[2 * i + 1].text] : [st.sums.get(k - 1 + ':' + 2 * i), st.sums.get(k - 1 + ':' + (2 * i + 1))]
+      const texts = k === 1 ? [st.notes[2 * i]!.text, st.notes[2 * i + 1]!.text] : [st.sums.get(k - 1 + ':' + 2 * i), st.sums.get(k - 1 + ':' + (2 * i + 1))]
       out.push({ level: k, index: i, lo: i * span(k), hi: (i + 1) * span(k) - 1, ready, texts })
     }
   }
@@ -230,7 +230,7 @@ function fakeMemo(stores: Map<string, Store>) {
         const blocks: any[] = []
         for (const [key, text] of [...st.sums.entries()].sort()) {
           const [k, i] = key.split(':').map(Number)
-          if (re.test(text)) blocks.push({ level: k, index: i, lo: i * span(k), hi: (i + 1) * span(k) - 1, text })
+          if (re.test(text)) blocks.push({ level: k, index: i, lo: i! * span(k!), hi: (i! + 1) * span(k!) - 1, text })
         }
         const r = { pattern: re.source, total: notes.length, notes: notes.slice(-limit), blocks: blocks.slice(-limit) }
         const lines = [
@@ -356,10 +356,10 @@ function world(on: any, o: Opts = {}) {
     // The fixture's directories: every store (and file) under the path, one entry per child.
     const p = abs(e.path).replace(/\/$/, '')
     const kids = new Map<string, 'dir' | 'file'>()
-    for (const k of stores.keys()) if (k.startsWith(p + '/')) kids.set(k.slice(p.length + 1).split('/')[0], 'dir')
+    for (const k of stores.keys()) if (k.startsWith(p + '/')) kids.set(k.slice(p.length + 1).split('/')[0]!, 'dir')
     for (const k of files.keys()) if (k.startsWith(p + '/')) {
       const rest = k.slice(p.length + 1).split('/')
-      kids.set(rest[0], rest.length > 1 ? 'dir' : 'file')
+      kids.set(rest[0]!, rest.length > 1 ? 'dir' : 'file')
     }
     if (!kids.size) return { deny: 'ENOENT: no such file or directory' }
     return { value: [...kids].map(([name, kind]) => ({ name, kind, size: 0, mtimeMs: 0 })) }
@@ -736,7 +736,7 @@ test('with the project memory shown, Enter on a focused project note row opens t
   await toggle(ui, w)
   await enter(ui, w, await focusRow($, ui, w, 'tokP4'))
   const shown = cells(await ui.drawn())
-  expect(shown).toContain(PNOTES[4].text) // L590: the view of project note #4 shows its text (fixture PNOTES[4])
+  expect(shown).toContain(PNOTES[4]!.text) // L590: the view of project note #4 shows its text (fixture PNOTES[4])
   expect(shown).not.toContain('tokP0') // a view of that note, not the table: project note #0 (fixture) is not drawn
 })
 

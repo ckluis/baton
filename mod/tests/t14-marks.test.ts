@@ -31,6 +31,7 @@
 // _orch/inbox/OQ7.answer.md ("Each one is logged as a deviation from the red-first rule
 // (spec L19-20, L100), with this file as the approval"). Evidence: _orch/nodes/T114A/work/guard-evidence.md.
 import { expect, mock, test } from 'claude-code/testing'
+declare function setTimeout(fn: (...args: any[]) => void, ms?: number): unknown // type-only (XTB1): lib es2023 declares no timers
 
 const PROJ = '/proj' // fixture root: nothing here is a real directory
 const RUN = '/proj/run' // the run's directory (fixture)
@@ -109,13 +110,13 @@ function parseArgv(argv: string[]) {
       rest.push(...argv.slice(i + 1))
       break
     }
-    if (a.startsWith('--')) {
-      const eq = a.indexOf('=')
-      const k = eq > 0 ? a.slice(2, eq) : a.slice(2)
-      if (eq > 0) flags[k] = a.slice(eq + 1)
+    if (a!.startsWith('--')) {
+      const eq = a!.indexOf('=')
+      const k = eq > 0 ? a!.slice(2, eq) : a!.slice(2)
+      if (eq > 0) flags[k] = a!.slice(eq + 1)
       else if (VALUE_FLAGS.has(k)) flags[k] = argv[++i]
       else flags[k] = true
-    } else rest.push(a)
+    } else rest.push(a!)
   }
   return { flags, rest }
 }
@@ -145,11 +146,11 @@ function tiling(st: Store, lo: number, hi: number, budget: number) {
   }
   for (;;) {
     let j = -1
-    for (let x = out.length - 1; x >= 0; x--) if (out[x].level > 0) { j = x; break }
+    for (let x = out.length - 1; x >= 0; x--) if (out[x]!.level > 0) { j = x; break }
     if (j < 0 || out.length + 1 > budget) break
     const t = out[j]
-    const half = span(t.level - 1)
-    out.splice(j, 1, { level: t.level - 1, lo: t.lo, hi: t.lo + half }, { level: t.level - 1, lo: t.lo + half, hi: t.hi })
+    const half = span(t!.level - 1)
+    out.splice(j, 1, { level: t!.level - 1, lo: t!.lo, hi: t!.lo + half }, { level: t!.level - 1, lo: t!.lo + half, hi: t!.hi })
   }
   return out
 }
@@ -158,7 +159,7 @@ function render(st: Store, tiles: { level: number; lo: number; hi: number }[]) {
   return tiles.map((t) => {
     if (t.level === 0) {
       const r = st.notes[t.lo]
-      return `#${t.lo} ${r.ts} [${r.tag}] ${r.text}`
+      return `#${t.lo} ${r!.ts} [${r!.tag}] ${r!.text}`
     }
     const s = st.sums.get(t.level + ':' + t.lo / span(t.level))
     return `#${t.lo}-${t.hi - 1} (${t.hi - t.lo} notes) ${s ?? '(not merged yet)'}`
@@ -172,7 +173,7 @@ function pendingOf(st: Store) {
     for (let i = 0; (i + 1) * span(k) <= n; i++) {
       if (st.sums.has(k + ':' + i)) continue
       const ready = k === 1 || (st.sums.has(k - 1 + ':' + 2 * i) && st.sums.has(k - 1 + ':' + (2 * i + 1)))
-      const texts = k === 1 ? [st.notes[2 * i].text, st.notes[2 * i + 1].text] : [st.sums.get(k - 1 + ':' + 2 * i), st.sums.get(k - 1 + ':' + (2 * i + 1))]
+      const texts = k === 1 ? [st.notes[2 * i]!.text, st.notes[2 * i + 1]!.text] : [st.sums.get(k - 1 + ':' + 2 * i), st.sums.get(k - 1 + ':' + (2 * i + 1))]
       out.push({ level: k, index: i, lo: i * span(k), hi: (i + 1) * span(k) - 1, ready, texts })
     }
   }
@@ -236,7 +237,7 @@ function fakeMemo(stores: Map<string, Store>) {
         const blocks: any[] = []
         for (const [key, text] of [...st.sums.entries()].sort()) {
           const [k, i] = key.split(':').map(Number)
-          if (re.test(text)) blocks.push({ level: k, index: i, lo: i * span(k), hi: (i + 1) * span(k) - 1, text })
+          if (re.test(text)) blocks.push({ level: k, index: i, lo: i! * span(k!), hi: (i! + 1) * span(k!) - 1, text })
         }
         const r = { pattern: re.source, total: notes.length, notes: notes.slice(-limit), blocks: blocks.slice(-limit) }
         const lines = [
@@ -723,7 +724,7 @@ test('in the same fixture memory_recall with include_void true still returns the
   await voidTheNote($, w)
   await w.drain()
   const out = text(await call($, 'memory_recall', { pattern: 'tokN5', include_void: true }))
-  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE].text)) ?? ''
+  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE]!.text)) ?? ''
   expect(line.startsWith('#5 ❌')).toBe(true) // L450 still finds the note; Q-90 `#n ❌` before its text
 })
 
@@ -750,7 +751,7 @@ test('marking a ✅ note ❌ appends a second mark record and keeps the first', 
   const list = w.marksOf('3')
   expect(list.length).toBe(2) // Q-74 "an appended record": a second one
   expect(list[0]).toEqual(first) // the first kept as it was
-  expect(list[1].mark).toBe('void') // Q-74: the newest record is the ❌ the prime just made (`void`, D-T14-tool-names)
+  expect(list[1]!.mark).toBe('void') // Q-74: the newest record is the ❌ the prime just made (`void`, D-T14-tool-names)
 })
 
 // R-C15-78 · Q-74 "the newest record is the note's current mark" · spec L477-478 · Q-90 `#n ❌` before its text.
@@ -872,7 +873,7 @@ test('memory_zoom over that range with include_void true shows the note with ❌
   const w = world(on, { marks: ZOOM_SEED })
   await w.begin($)
   const out = text(await call($, 'memory_zoom', { range: '4-7', include_void: true }))
-  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE].text)) ?? ''
+  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE]!.text)) ?? ''
   expect(line).toContain('❌') // Q-77 "shown with ❌"
   expect(line.startsWith('#5 ❌')).toBe(true) // Q-90 `#n ❌` before its text
 })
@@ -882,7 +883,7 @@ test('memory_zoom over that range with include_void true shows the note\'s mark 
   const w = world(on, { marks: ZOOM_SEED })
   await w.begin($)
   const out = text(await call($, 'memory_zoom', { range: '4-7', include_void: true }))
-  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE].text)) ?? ''
+  const line = out.split('\n').find((l) => l.includes(NOTES[VOID_NOTE]!.text)) ?? ''
   expect(line).toContain('a monitor session wrote it (T7)') // Q-77 "and their reason" (fixture ZOOM_SEED reason)
 })
 
@@ -894,7 +895,7 @@ test('guard: an unmarked note is shown by memory_wake, as at da5910c', SLOW, asy
   const w = world(on)
   await w.begin($)
   const out = text(await call($, 'memory_wake'))
-  expect(out).toContain(NOTES[6].text) // L414: an unmarked note (fixture #6) is not void, so wake shows it
+  expect(out).toContain(NOTES[6]!.text) // L414: an unmarked note (fixture #6) is not void, so wake shows it
 })
 
 // R-C15-05 · spec L414 "Unmarked is the default, and means neither confirmed nor void." · as at da5910c.
@@ -903,5 +904,5 @@ test('guard: an unmarked note is returned by memory_recall, as at da5910c', SLOW
   const w = world(on)
   await w.begin($)
   const out = text(await call($, 'memory_recall', { pattern: 'tokN6' }))
-  expect(out).toContain(NOTES[6].text) // L414: an unmarked note (fixture #6) is returned
+  expect(out).toContain(NOTES[6]!.text) // L414: an unmarked note (fixture #6) is returned
 })
