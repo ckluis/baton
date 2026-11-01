@@ -489,6 +489,7 @@ test('guard: after a project note is marked ❌ the project memory log still hol
   await w.begin($)
   await pmark($, '4', 'void', 'the cut was fixed; this route is stale')
   await w.drain()
+  expect(w.marksOf(PROJECT_MEMORY, '4').map((m) => m.mark), 'project note #4 was not marked ❌').toEqual(['void']) // fixture: P3-d3, the note carries the ❌
   expect(w.store(PROJECT_MEMORY).notes.map((n) => n.text)).toEqual(PNOTES.map((n) => n.text)) // L420 "Nothing is deleted": every fixture note #0-#4, #4's text unchanged
 })
 

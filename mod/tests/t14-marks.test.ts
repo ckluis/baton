@@ -534,7 +534,8 @@ test('guard: a memory_mark call carrying an agentId leaves the earlier prime mar
   const seed = [rec('3', 'ok', 'prime', 'checked by the prime', PRIME)] // fixture: #3 marked ✅ by the prime
   const w = world(on, { marks: seed })
   await w.begin($)
-  await mark($, '3', 'void', 'a worker thinks it is wrong', { agentId: SUBAGENT })
+  const r = await mark($, '3', 'void', 'a worker thinks it is wrong', { agentId: SUBAGENT })
+  expect([isErrorResult(r), errorText(r)], 'the memory_mark call was not refused').toEqual([true, 'refused: only the operator and the prime mark (Q-73)']) // fixture: sweep F79, the call reached the mark tool and was refused (Q-73)
   expect(w.marksOf('3')).toEqual(seed) // Q-73 "makes no mark": the prime's record is still the newest (Q-74 "The newest record is the note's current mark")
 })
 
@@ -555,7 +556,8 @@ test('guard: a memory_mark call from a session outside the run leaves the earlie
   const w = world(on, { session: 'outside', marks: seed })
   await w.begin($)
   await w.cd($, RUN)
-  await mark($, '3', 'void', 'looks wrong from here')
+  const r = await mark($, '3', 'void', 'looks wrong from here')
+  expect([isErrorResult(r), errorText(r).startsWith('refused: this session is not in run ')], 'the memory_mark call was not refused').toEqual([true, true]) // fixture: sweep F79, the call reached the mark tool and was refused (Q-73, T7)
   expect(w.marksOf('3')).toEqual(seed) // Q-73 "makes no mark": the prime's mark stays current
 })
 
@@ -571,16 +573,9 @@ test('the error a memory_mark call carrying an agentId returns reads the Q-73 re
 
 // ------------------------------------------------------------------ ❌ in the shared fixture: wake, rebuilds, recall
 
-// R-C15-13, R-C15-14 · spec L420 "Nothing is deleted. A ❌ note stays in the run's memory log."
-// guard per _orch/inbox/OQ7.answer.md (deviation from spec L19-20, L100): at da5910c nothing deletes a note
-// (work/probe-da5910c.md P-C14); it pins that marking ❌ keeps holding it.
-test('guard: after a note is marked ❌ the run\'s memory log still holds that note', SLOW, async ($, on) => {
-  const w = world(on)
-  await voidTheNote($, w)
-  await w.drain()
-  expect(w.run().notes.slice(0, NOTES.length).map((n) => n.text)).toEqual(NOTES.map((n) => n.text)) // L420 "Nothing is deleted": the eight fixture notes, in place
-  expect(w.run().notes[VOID_NOTE].text).toBe(NOTES[VOID_NOTE].text) // L420 "A ❌ note stays in the run's memory log"
-})
+// R-C15-13, R-C15-14 · spec L420 "Nothing is deleted." GV3 removed the guard that read the fixture store's notes after
+// a ❌: that store is append-only and the mod reaches it only through memo, so no change to the mod could fail it. The
+// mod's side is held by t14-project-mark.test.ts c4 (the shared writeMark) and the include_void recall test below.
 
 // R-C15-15, R-C15-42 · spec L421 "`memory_wake` and the summaries skip a ❌ note." · L448 "in a fixture, marking a
 // note ❌ removes it from `memory_wake`;"
@@ -781,16 +776,9 @@ test('memory_mark with mark clear returns a marked note to unmarked', SLOW, asyn
   expect(line).not.toContain('❌') // nor void
 })
 
-// R-C15-81 · Q-74 "Every record stays in the log" · spec L479.
-// guard per _orch/inbox/OQ7.answer.md (deviation from spec L19-20, L100): at da5910c no call removes a mark record
-// (work/probe-da5910c.md P-C34); it pins that a clear keeps them.
-test('guard: after a clear the mark log still holds every earlier record of the note', SLOW, async ($, on) => {
-  const seed = [rec('3', 'ok', 'prime', 'checked by the prime', PRIME), rec('3', 'void', 'prime', 'the check was wrong', PRIME)]
-  const w = world(on, { marks: seed })
-  await w.begin($)
-  await mark($, '3', 'clear', 'not checked after all')
-  expect(w.marksOf('3').slice(0, 2)).toEqual(seed) // Q-74 "Every record stays in the log"
-})
+// R-C15-81 · Q-74 "Every record stays in the log". GV3 removed the guard that read the fixture's mark records after a
+// clear: the fixture store only appends, and the real log (lib/memstore.mjs) cannot be loaded here (a test file may
+// import only relative files and claude-code, and memstore imports node:fs), so no change could fail it.
 
 // R-C15-83, R-C15-167 · Q-74 "A mark by the prime cannot replace one by the operator" · spec L480-481.
 test('a memory_mark call from the prime on a note the operator marked returns an error result', SLOW, async ($, on) => {
@@ -806,7 +794,8 @@ test('guard: after the prime\'s refused call the note\'s current mark is still t
   const seed = [rec('3', 'ok', 'operator', 'checked by hand')] // fixture: #3 ✅ by the operator
   const w = world(on, { marks: seed })
   await w.begin($)
-  await mark($, '3', 'void', 'looks wrong')
+  const r = await mark($, '3', 'void', 'looks wrong')
+  expect([isErrorResult(r), errorText(r)], 'the memory_mark call was not refused').toEqual([true, "refused: the operator's mark stands (Q-74)"]) // fixture: P3-d3, the prime's call was refused (Q-74)
   expect(w.marksOf('3')).toEqual(seed) // the operator's record is still the newest, so the current mark (Q-74)
 })
 
@@ -822,6 +811,7 @@ test('guard: a child note marked ✅ before its summary is marked ❌ is still �
   await w.begin($)
   await mark($, '4-5', 'void', 'the summary misreads #5')
   await w.drain()
+  expect(w.marksOf('4-5').map((m) => m.mark), 'the summary #4-5 was not marked ❌').toEqual(['void']) // fixture: P3-d3, the summary over #4 carries the ❌
   expect(w.marksOf('4')).toEqual(seed) // Q-75 "their marks unchanged": #4's newest record is still ✅
 })
 

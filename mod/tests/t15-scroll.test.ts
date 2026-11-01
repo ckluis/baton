@@ -542,6 +542,7 @@ test('guard: T15-G5 with more agents than fit, the goal row above the list is dr
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /^\s*goal\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the goal row stays drawn
 })
 
@@ -553,6 +554,7 @@ test('guard: T15-G6 with more agents than fit and an open PR, the PR row above t
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /^\s*PR\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the PR row stays drawn
 })
 
@@ -564,6 +566,7 @@ test('guard: T15-G7 with more agents than fit and merge-ready rows, the merge li
   await agents($, w, 40)
   await w.pane($, 16)
   const { shown } = await view(w)
+  expect(shown.some((l) => DOWN_MORE.test(l.text)), 'no ↓ more line: the list fits, so nothing is cut:' + dump(shown)).toBe(true) // fixture: P3-d3, more agents than fit, so rows are hidden below
   expect(shown.some((l) => /merge-ready/.test(l.text)), dump(shown)).toBe(true) // Q-68: the merge rows stay drawn
 })
 
@@ -587,7 +590,9 @@ test('guard: T15-G8 a running agent row is drawn', async ($, on) => {
   await w.start($)
   await agents($, w, 3, [2]) // fixture: wk02 running, wk01 and wk03 finished
   await w.pane($, 40)
-  expect(indexOf((await view(w)).shown, 'wk02')).toBeGreaterThanOrEqual(0) // L287: the running row is drawn
+  const l = lineOf((await view(w)).shown, 'wk02')
+  expect(!!l).toBe(true) // L287: the running row is drawn
+  expect(l!.text.includes('●') && !l!.text.includes('✓') && !l!.text.includes('✗'), 'wk02 is not drawn as a running row: ' + (l ? l.text : '')).toBe(true) // fixture: P3-d4, the row is drawn running (its ●), not as a returned one
 })
 
 test('guard: T15-G9 a finished agent row shows its ✓ or ✗ mark and its verdict', async ($, on) => {
@@ -726,12 +731,15 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   await w.pane($, LOW)
   for (let i = 0; i < 3; i++) {
     await pageDown($, w)
-    const letters = agentRows((await view(w)).shown).map((r) => letterOf(r.l)).filter((x) => x !== undefined)
+    const now = (await view(w)).shown
+    expect(now.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll:' + dump(now)).toBe(true) // fixture: P3-d3, the list has scrolled, so rows are hidden above
+    const letters = agentRows(now).map((r) => letterOf(r.l)).filter((x) => x !== undefined)
+    expect(letters.length, 'fewer than two rows drawn with a key, so nothing to compare').toBeGreaterThan(1) // fixture: 22 lettered rows, so every page shows several keys
     expect(letters.length).toBe(new Set(letters).size) // Q-12: no two rows share a key
   }
 })
 
-test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window and back in at another place', async ($, on) => {
+test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window, a row is added above it, and it is scrolled back in at another place', async ($, on) => {
   // Requirement R-C16-40 (traceability.yaml): "A row's direct key stays with that row for as long as the row exists,"
   // (spec L383); R-C16-57 (L400): "a row keeps its key while scrolled out;". Q-67 (inbox/Q-67.answer.md): "hotkey letters
   // are fixed per row for as long as the row exists". OQ7: a guard (done-criterion 20, false premise at da5910c).
@@ -744,10 +752,16 @@ test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the w
   const place = (ls: Line[]) => agentRows(ls).findIndex((r) => r.label === 'wk03') // its place among the rows drawn
   const first = (await view(w)).shown
   const before = letterOf(lineOf(first, 'wk03'))
+  expect(before, 'wk03 has no direct key when first shown').not.toBe(undefined) // fixture: wk03 holds a key, so "the same key" compares a letter
   const was = place(first)
   expect(was).toBeGreaterThanOrEqual(0) // fixture: wk03 is drawn when the list is first shown
   for (let i = 0; i < 3 && lineOf((await view(w)).shown, 'wk03'); i++) await pageDown($, w)
   expect(lineOf((await view(w)).shown, 'wk03')).toBe(undefined) // fixture: wk03 is scrolled out of the window
+  // A row is added above wk03 while it is out (sweep F52): letters given afresh top to bottom on each draw would move
+  // wk03's key down by one, so only a key held by the row passes. All 22 letters are held, so kid0 gets none.
+  await w.spawn($, 'kid0', 'wk01')
+  await w.redraw()
+  expect(indexOf((await view(w)).shown, 'kid0'), 'fixture: the added row kid0 is not drawn').toBeGreaterThanOrEqual(0) // fixture: kid0 runs, so it is pinned and drawn
   const top = windowRows((await view(w)).shown)[0]
   await focusOn($, w, enterKey(top.l)) // the focus on the first row shown
   for (let i = 0; i < 40 && !lineOf((await view(w)).shown, 'wk03'); i++) await arrow($, w, -1) // ↑ until wk03 is back
@@ -804,8 +818,10 @@ test('guard: T15-G12 with all 22 letters held, a row added later has no direct k
   const w = world(on)
   await w.start($)
   await full($, w)
-  const l = lineOf((await view(w)).shown, 'run23')
+  const shown = (await view(w)).shown
+  const l = lineOf(shown, 'run23')
   expect(!!l).toBe(true) // fixture: the 23rd row is drawn
+  expect(agentRows(shown).filter((r) => r.label !== 'run23' && letterOf(r.l) !== undefined).length, 'the 22 letters are not all held:' + dump(shown)).toBe(22) // fixture: all 22 letters held
   expect(letterOf(l)).toBe(undefined) // L390: it has no direct key
 })
 
@@ -815,8 +831,11 @@ test('guard: T15-G13 with all 22 letters held, the row added later opens by focu
   const w = world(on)
   await w.start($)
   await full($, w)
-  const l = lineOf((await view(w)).shown, 'run23')
+  const shown = (await view(w)).shown
+  const l = lineOf(shown, 'run23')
   expect(!!l).toBe(true) // fixture: the 23rd row is drawn
+  expect(agentRows(shown).filter((r) => r.label !== 'run23' && letterOf(r.l) !== undefined).length, 'the 22 letters are not all held:' + dump(shown)).toBe(22) // fixture: all 22 letters held (the name's premise)
+  expect(letterOf(l), 'run23 holds a direct key, so focus and Enter is not its only way in').toBe(undefined) // fixture: L390, it has no direct key
   await focusOn($, w, enterKey(l!))
   await w.eng.ui.press({ key: w.eng.focused }) // Enter on the focused element
   await w.settle(10)
@@ -842,6 +861,7 @@ test('guard: T15-G14 after a pane reload, every row that still exists has the di
   const rows = ['prime', 'P1', 'P2', 'P3', 'wk01', 'kid1', 'wk02']
   const before = (await view(w)).shown
   const was = Object.fromEntries(rows.map((r) => [r, letterOf(lineOf(before, r))]))
+  expect(rows.filter((r) => was[r] === undefined), 'rows with no direct key before the reload:' + dump(before)).toEqual([]) // fixture: every row holds a key, so "gets its letter back" compares letters
   await w.reload($)
   await w.redraw()
   const after = (await view(w)).shown
@@ -863,6 +883,7 @@ test('guard: T15-G15 after the mod restarts and reads the run state back, a phas
   await w.pane($, 60)
   const after = (await view(w)).shown
   const rows = ['prime', 'P1', 'P2', 'P3']
+  expect(rows.filter((r) => carried!.letters[r] === undefined), 'rows handed over with no direct key').toEqual([]) // fixture: each row held a key before the restart
   expect(Object.fromEntries(rows.map((r) => [r, letterOf(lineOf(after, r))]))).toEqual(Object.fromEntries(rows.map((r) => [r, carried!.letters[r]]))) // Q-82: the same letters
 })
 
@@ -1008,7 +1029,10 @@ test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct
   const { shown } = await view(w)
   for (const r of ['wk01', 'wk02'] as const) {
     const l = lineOf(shown, r)
-    if (l) expect(letterOf(l)).toBe(was[r]) // Q-64/Q-67: the same key in the strip
+    expect(was[r], r + ' has no direct key at the list top:' + dump(top)).not.toBe(undefined) // fixture: it holds a key in the list
+    expect(!!l, r + ' not drawn after the scroll:' + dump(shown)).toBe(true) // fixture: Q-64, it is drawn in the pinned strip
+    expect(shown.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll, so no strip is drawn:' + dump(shown)).toBe(true) // fixture: P3-d3, rows are hidden above, so wk01 is in the strip, not at the list top
+    expect(letterOf(l)).toBe(was[r]) // Q-64/Q-67: the same key in the strip
   }
 })
 
@@ -1021,6 +1045,10 @@ test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async
   await w.pane($, SHORT)
   await pageDown($, w)
   const { shown } = await view(w)
+  const win = windowRows(shown).filter((r) => r.label !== 'wk01' && r.label !== 'wk02')
+  const pinned = ['wk01', 'wk02'].map((r) => indexOf(shown, r))
+  expect(win.length > 0 && pinned.every((i) => i >= 0 && i < win[0].i), 'wk01 and wk02 not drawn in a strip above the window:' + dump(shown)).toBe(true) // fixture: Q-64, both are in the strip, so the check below has rows to look at
+  expect(shown.some((x) => UP_MORE.test(x.text)), 'no ↑ more line: the list did not scroll, so no strip is drawn:' + dump(shown)).toBe(true) // fixture: P3-d3, rows are hidden above, so wk01 and wk02 are in the strip, not at the list top
   expect(stripRowsWithoutChevron(shown)).toEqual([]) // L376: every strip row draws its ›
 })
 
@@ -1125,6 +1153,7 @@ test('guard: T15-G18 with no row hidden below the window, no ↓ more line is dr
   await w.pane($, 20)
   await end($, w) // the list at its bottom: the last row is drawn
   const { shown } = await view(w)
+  expect([indexOf(shown, 'wk40') >= 0, shown.some((l) => UP_MORE.test(l.text))], 'the list is not drawn as a window at its bottom:' + dump(shown)).toEqual([true, true]) // fixture: P3-d3, the last row wk40 is drawn and rows are hidden above
   expect(shown.filter((l) => DOWN_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none below, no ↓ line
 })
 
@@ -1136,6 +1165,7 @@ test('guard: T15-G19 with no row hidden above the window, no ↑ more line is dr
   await agents($, w, 40)
   await w.pane($, 20) // the list at its top
   const { shown } = await view(w)
+  expect([indexOf(shown, 'wk01') >= 0, shown.some((l) => DOWN_MORE.test(l.text))], 'the list is not drawn as a window at its top:' + dump(shown)).toEqual([true, true]) // fixture: P3-d3, the first row wk01 is drawn and rows are hidden below
   expect(shown.filter((l) => UP_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none above, no ↑ line
 })
 
@@ -1152,8 +1182,7 @@ test('guard: T15-G20 with rows hidden above and a running row pinned above, the 
   const up = shown.findIndex((l) => UP_MORE.test(l.text))
   const pin = indexOf(shown, 'wk01')
   const win = windowRows(shown).filter((r) => r.label !== 'wk01')
-  if (up >= 0 && pin >= 0) {
-    expect(up).toBeLessThan(pin) // Q-66: the ↑ line, then
-    expect(pin).toBeLessThan(win[0].i) // the pinned strip, then the list's rows
-  }
+  expect([up >= 0, pin >= 0, win.length > 0], 'no ↑ line, no pinned wk01 or no list rows:' + dump(shown)).toEqual([true, true, true]) // fixture: rows hidden above, wk01 pinned
+  expect(up).toBeLessThan(pin) // Q-66: the ↑ line, then
+  expect(pin).toBeLessThan(win[0].i) // the pinned strip, then the list's rows
 })

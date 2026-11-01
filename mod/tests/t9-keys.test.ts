@@ -259,13 +259,19 @@ test('guard: G3 1, 2 and r keep the actions they have at da5910c', async ($, on)
   expect(/rulings/.test(await shownText(ui))).toBe(true) // E1 §k: `2` is the Memory tab, which lists the rulings (interface.test.ts draws /rulings/ there)
   await press('1')
   expect(!!rowOf(await ui.drawn(), /alpha worker/)).toBe(true) // E1 §k: `1` is the Work tab, where the agent rows are
-  // `r` re-reads: a phase planned after the pane drew shows once r is pressed.
-  expect(phaseRe(4).test(await shownText(ui))).toBe(false) // fixture: P4 is not planned yet
-  w.setPhases([1, 2, 3, 4])
-  await w.settle(61000)
+  // `r` re-reads the pane at once. The pane also re-reads itself every 5 s, so a phase that shows up later does not
+  // tell r's read from that tick's (sweep F74: with r doing nothing the old check passed). The `read hh:mm:ss` line does: it
+  // stamps the wall-clock second of the read (Date, which the test clock does not move), while the 5 s tick runs on the
+  // test clock. So: let more than one real second pass with the test clock still, and only r can move that line.
+  const shownRead = async () => ((await shownText(ui)).match(/read (\d\d:\d\d:\d\d) · Esc closes/) || [])[1]
+  const before = await shownRead()
+  expect(before, 'fixture: the pane shows no read hh:mm:ss line').toMatch(/^\d\d:\d\d:\d\d$/) // fixture: the pane has read once
+  const t = performance.now()
+  while (performance.now() - t < 1100) await Promise.resolve() // a real 1.1 s, no test-clock time
+  expect(await shownRead(), 'fixture: the pane re-read with the test clock still').toBe(before) // fixture: no tick read meanwhile
   await press('r')
-  await w.settle(1000)
-  expect(!!rowOf(await ui.drawn(), phaseRe(4))).toBe(true) // E1 §k: `r` refreshes the pane
+  await w.settle(0) // no test-clock time passes, so no 5 s tick can re-read here
+  expect(await shownRead(), 'r did not re-read the pane').not.toBe(before) // E1 §k: `r` refreshes the pane
 })
 
 test('guard: G4 b is shown on an opened view as 1, 2 and r are, and leaves it', async ($, on) => {
@@ -398,6 +404,7 @@ test('guard: G5 with the prime, three phase rows and three agent rows shown, no 
   const labels = [/prime/, phaseRe(1), phaseRe(2), phaseRe(3), ...AGENTS.map((a) => new RegExp(a))]
   expect(labels.map((re) => !!rowOf(tree, re))).toEqual([true, true, true, true, true, true, true]) // fixture: all 7 rows are shown at once
   const letters = labels.map((re) => letterOf(rowOf(tree, re))).filter((x) => x !== undefined)
+  expect(letters.length).toBe(7) // fixture: each of the 7 rows holds a direct key, so the check below compares 7 keys
   expect(letters.length).toBe(new Set(letters).size) // OQ6 part 2: a key of its own, so no two rows share one
   const all = (await hotkeyButtons(ui)).map((b: any) => String(b.props.hotkey))
   expect(all.length).toBe(new Set(all).size) // and no row key is also another Button's key in the pane ("two clash, later wins")
@@ -414,7 +421,10 @@ test('guard: G6 every direct row key is shown the way 1, 2 and r are shown', asy
   const one = hk.find((b: any) => b.props.hotkey === '1')
   expect(one ? one.props.plain : 'no `1`').toBe(true) // E1 §k / P-3: `1` is a plain hotkey Button (tab-work=1:plain)
   const rows = hk.filter((b: any) => POOL.includes(String(b.props.hotkey)))
-  expect(rows.filter((b: any) => b.props.plain !== one.props.plain).map((b: any) => b.props.hotkey)).toEqual([]) // each drawn as `1` is: plain, the hotkey in the accent
+  expect(rows.length).toBe(7) // fixture: the prime, P1-P3 and three agent rows each carry a pool letter (key-scheme.md)
+  // each drawn as `1` (the Work tab, shown) is: plain, and not dim, so the hotkey stands in the accent. The engine
+  // refuses a row Button that is not plain, so `dimColor` is the part of "shown the same way" a row can get wrong.
+  expect(rows.filter((b: any) => b.props.plain !== one.props.plain || !!b.props.dimColor !== !!one.props.dimColor).map((b: any) => b.props.hotkey)).toEqual([])
 })
 
 test('guard: G7 a row keeps its letter when a row above it is added', async ($, on) => {
@@ -426,6 +436,7 @@ test('guard: G7 a row keeps its letter when a row above it is added', async ($, 
   const ui: any = await w.pane($)
   const first = await ui.drawn()
   const before = AGENTS.map((a) => letterOf(rowOf(first, new RegExp(a))))
+  expect(before.filter((k) => k === undefined).length).toBe(0) // fixture: each agent row holds a key before P4 is added, so "keeps the letter" compares letters
   w.setPhases([1, 2, 3, 4]) // P4 is planned: its row is drawn among the phase rows, above the agent rows
   await w.settle(61000)
   await ui.press({ key: 'refresh' })
@@ -472,6 +483,7 @@ test('guard: G8 in a pane showing 23 lettered rows when it first draws, the 23rd
   const ui: any = await w.pane($)
   const tree = await ui.drawn()
   expect(!!rowOf(tree, ORDER[22]!)).toBe(true) // fixture: the 23rd row (w19 worker) is drawn
+  expect(ORDER.slice(0, 22).filter((re) => letterOf(rowOf(tree, re)) === undefined).map(String)).toEqual([]) // fixture: the 22 rows above it hold every letter
   expect(letterOf(rowOf(tree, ORDER[22]!))).toBe(undefined) // the 23rd has no direct key (Q-12, L389)
 })
 
@@ -482,8 +494,11 @@ test('guard: G9 in that pane, the 23rd lettered row opens by focus and Enter', a
   // Done-criterion 48.
   const w = world(on, { agents: MANY })
   const ui: any = await w.pane($)
-  const last = rowOf(await ui.drawn(), /w19 worker/)
+  const tree = await ui.drawn()
+  const last = rowOf(tree, /w19 worker/)
   expect(!!last).toBe(true) // fixture: the 23rd row is drawn (the window is taller than the list)
+  expect(ORDER.slice(0, 22).filter((re) => letterOf(rowOf(tree, re)) === undefined).map(String), 'the 22 rows above it do not hold every letter').toEqual([]) // fixture: that pane, every letter held
+  expect(letterOf(last), 'the 23rd row holds a direct key').toBe(undefined) // fixture: Q-12, it has no direct key, so focus and Enter is its way in
   await ui.press({ key: keyOf(enterButton(last!)) })
   expect(await viewIsOpen(ui)).toBe(true) // focus and Enter opens it (Q-12, L390)
   expect(await shownText(ui)).toContain('w19 worker') // its own view
