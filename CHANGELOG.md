@@ -1,5 +1,80 @@
 # Changelog
 
+## v7.6.0
+
+Tuning, built and checked against Claude Code 2.1.316. 502 plugin tests and 141 node tests pass.
+
+- **T1 · API drift audit.** Every `$` call, event, matcher, option and result shape in
+  `mod/hooks/register.js` was checked against the engine's declared types: 896 call sites, 852
+  matched, 42 mismatches fixed (each with a failing test first), 2 not checkable with the reason
+  given. The call sites this release added were re-checked against the 2.1.316 types: 39 of 39
+  match. `tsc -p mod` passes.
+- **T2 · Failure handling on blocking hooks.** Every gating hook has a `.catch`. The prime guard,
+  the command gate, forbidden files, pause, the phase gate, enforced rulings and checkpoints fail
+  closed (a checkpoint that cannot be taken refuses the `rm`); notes and the rest fail open.
+- **T3 · Models and prices.** The mechanical model is Haiku 5.5 (`claude-haiku-5-5`), which now
+  condenses PR comments. The ledger prices Sonnet 5.5 and Haiku 5.5, with Haiku's higher price
+  above 100k-token prompts, and knows their context windows.
+- **T3 · The A/B.** Haiku 5.5 against Sonnet 5.5 on 20 real merges, judged blind: Haiku better in 6,
+  Sonnet better in 12, equal in 2, and 17 fact faults for Haiku. The rule (at least 10 wins or ties
+  and no fact fault) was not met, so merges and ruling extraction **stay on Sonnet 5.5**.
+- **T4 · `memory_note` takes a tag**, sanitized like the text, defaulting to the caller's role.
+- **T5 · The "Not verified" list, checked live** on 2.1.316 through cmux: automatic rotation, the
+  interactive `/baton rotate` and its ticker's compaction, the kickoff prompt, the pane opening at
+  144+ columns with the band's hint below that are verified; the agentId runtime probe is verified
+  with the fault injected. Each is marked in `mod/README.md` with what was seen.
+- **T6 · Overhead.** Added latency per tool call, p50 3 → 12 ms, p95 65 → 23 ms, within the 25 ms
+  budget (by point estimate only). Idle CPU is 1.094% of a core against a 1% budget: **still over**.
+  The rulings memo moved off the tool-call path and refreshes less often on the pane.
+- **T7 · Run membership follows the session**, recorded at `session.start` and keyed to the session
+  id, never re-read from the current directory. A session that `cd`s into a run is not armed and
+  writes no run notes; a second interactive session is asked before it takes over; a restart picks
+  the run up.
+- **T8 · The exact model on every agent:** `opus 5.5`, `sonnet 5.5`, `haiku 4.5`, then the reasoning
+  effort (`opus 5.5 · high`, a dim `cfg` when only the configured effort is known). Red when the
+  served model or effort differs from the one asked for. The prime's row shows the session's model;
+  outside a run the main row is `◇ session`.
+- **T9 · Every pane row has a key.** Agent and phase rows each get a letter, fixed for the row's life
+  and kept across a reload and a restart; ↑/↓, Enter, `b` and `+` are drawn in the accent like `1`,
+  `2` and `r`.
+- **T10 · Phases are rows of the agent tree.** A legend says what a phase is; each P<n> sits under
+  the prime with its sub-orchestrator under it; a pending phase is a dim row; the separate plan
+  section is gone. Two column groups, `this agent` and `roll-up`.
+- **T11 · Every level shows its steps:** prime, phase, sub-orchestrator, worker and verifier rows.
+- **T12 · The memory explorer is a table** (id, mark, time, source, text), and a summary drills into
+  its children and back out from the keyboard.
+- **T13 · Questions and blocked nodes, acted on from the pane.** A `?` row opens its brief and `a`
+  answers it (the answer file is written and the row leaves); a blocked row's brief shows its
+  `Blocked by:` line, and `y` / `w` approve the narrowest grant for its kind. A question reads
+  `queued for G<n>` until it is asked, and only then counts in the band's `⚑ waiting for you`.
+- **T14 · Memory marks ✅ / ❌.** `memory_mark` and `project_mark`, and `c` / `v` / `u` in the
+  explorer with a one-line reason; `3` and `4` filter to confirmed or void. A ❌ note leaves wake,
+  recall and the summaries, which are rebuilt without it; nothing is deleted. Also fixed: a summary
+  that talks about its own input is rejected, a note from a session outside the run is refused,
+  and an approval note records what the command actually did.
+- **T15 · The agent list scrolls** in the pane's full height, every agent listed (finished ones
+  dimmed), running agents pinned in view, `↑ <k> more` / `↓ <k> more` for the hidden rows, and no
+  "earlier finished agents" fold line.
+- **Tests checked.** A guard audit made every `guard:` test fail on at least one mutant of the code
+  it guards, or removed it.
+
+Known gaps, seen live and not fixed in this release:
+
+- The agent table needs about 110 columns and Claude Code 2.1.316 gives a pane at most 90 (inline
+  below 110), so table cells are cut with `…`.
+- `_orch/spend.json` holds tokens, not a cost; it misses the engine's own Haiku calls and prices a
+  1-hour cache write as a 5-minute one.
+- A headless second session is not armed, but its start-up context tells it that it is the prime.
+- The prime's model cell is cut to `opus 5.…` until the prime's first turn.
+- Inside an opened agent or phase view, a row's letter goes to the prompt instead of opening the row.
+- A sub-orchestrator's indent, a phase row's stepper, and empty `this agent` / `roll-up` cells are
+  cut or drawn as `…` in the squeezed table.
+- A memory summary row is not aligned with the note rows (its id cut, a stray `…`, its text shifted).
+- An answer given in the pane does not reach the asking node: the prime's note carries the question,
+  not the answer, and nothing wakes the prime.
+- `End` scrolls the agent list to its end but leaves the focus on the old row; `Home` does the mirror of it, and once moved the window only part of the way to the top.
+- Idle CPU is over its 1% budget (1.094%).
+
 ## v7.5.1 — 2026-10-19
 
 - **Current Claude Code:** the prime guard accepts Claude Code 2.1.287 or later instead of exactly
