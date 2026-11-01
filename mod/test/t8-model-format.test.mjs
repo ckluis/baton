@@ -154,7 +154,9 @@ test('guard: the cost column is never dropped at any pane width the tests render
       const cols = agentTable(rows, w).cols
       assert.ok(cols.includes('cost'), `cost is drawn at width ${w}: ${cols.join(',')}`) // Q-57 "these columns never drop"; D-T10-group-cells
     }
-    assert.ok(!dropSequence(rows).includes('cost')) // Q-57 "these columns never drop", read with Q-11
+    const seq = dropSequence(rows) // verifier c2 (P3-d4): read once, so the premise below is checked on the same sequence
+    assert.ok(seq.length > 0, 'verifier c2 (P3-d4): premise, the widths the tests render do drop columns: ' + seq.join(','))
+    assert.ok(!seq.includes('cost')) // Q-57 "these columns never drop", read with Q-11
   }
 })
 

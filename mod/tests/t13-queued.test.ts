@@ -313,10 +313,11 @@ test('guard: c33 an open Q-T14.md, a non-numeric id, is drawn as a ? row', async
 test('guard: c34 a batch answer file Q-T02.answer.md with no Q-T02.md draws no row', async ($, on) => {
   // Requirement R-C14-24 (L225): a question is "an `_orch/inbox/Q-<n>.md`". Q-48 (inbox/Q-48.answer.md): "any
   // Q-<id>.md ... is a question"; an answer file with no question file is none.
-  const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }], extra: { '_orch/inbox/Q-T02.answer.md': '# Q-T02 — answer\n\nA: all option A.\n' } })
+  const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-T01', text: QB, asked: true }], extra: { '_orch/inbox/Q-T02.answer.md': '# Q-T02 — answer\n\nA: all option A.\n' } })
   const ui: any = await w.pane($)
   const tree = await ui.drawn()
   expect(qRow(tree, 'Q-73', FIRST_A) ? 'Q-73 drawn' : 'no row').toBe('Q-73 drawn') // the fixture's question is drawn, so the pane read the inbox
+  expect(!!qRow(tree, 'Q-T01', FIRST_B), 'verifier c2 (P3-d4): premise, a non-numeric Q-T01.md is drawn as a question, so Q-T02 could be').toBe(true)
   expect(units(tree).filter((u) => u.text.includes('Q-T02'))).toEqual([]) // Q-48: no row names Q-T02, nor Q-T02.answer (fixture Q-T02.answer.md alone)
 })
 
