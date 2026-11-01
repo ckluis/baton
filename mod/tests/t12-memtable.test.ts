@@ -47,7 +47,7 @@ function zoomTiles(range: string): Tile[] {
   const [lo, hi] = range.split('-').map(Number)
   if (lo === 0 && hi === 3) return [{ level: 1, index: 0, lo: 0, hi: 2 }, { level: 1, index: 1, lo: 2, hi: 4 }]
   const out: Tile[] = []
-  for (let i = lo; i <= hi; i++) out.push(note(i))
+  for (let i = lo!; i <= hi!; i++) out.push(note(i))
   return out
 }
 
@@ -106,8 +106,8 @@ function world(on: any) {
     else if (argv.includes('recall')) out = { pattern: '.', total: 0, notes: [], blocks: [] }
     else if (argv.includes('zoom')) {
       const range = argv[argv.length - 1]
-      zooms.push(range)
-      const tiles = zoomTiles(range)
+      zooms.push(range!)
+      const tiles = zoomTiles(range!)
       out = { header: 'notes #' + range + ' of 11', tiles, lines: tiles.map(lineOf) }
     } else if (argv.includes('wake')) out = { header: 'memory: 11 notes', tiles: WAKE, lines: WAKE.map(lineOf) }
     return { value: { exitCode: 0, stdout: JSON.stringify(out), stderr: '' } }
@@ -203,7 +203,7 @@ function columnsOf(line: string, i: number) {
   const id = line.search(idRe(String(i)))
   const afterId = id + ('#' + i).length
   const time = afterId + line.slice(afterId).search(/[0-9]/) // the time cell opens with a digit (HH:MM, or the date before it)
-  const source = line.indexOf(TAGS[i], time)
+  const source = line.indexOf(TAGS[i]!, time)
   const text = line.indexOf(textOf(i), source)
   const at = (k: number) => width(line.slice(0, k))
   return { id: at(id), time: at(time), source: at(source), text: at(text) }
@@ -337,7 +337,7 @@ test('table: the notes are a table whose id, time, source and text columns start
   }
   // fixture: #9 and #10 differ in id width; prime / operator / handoff differ in source width (TAGS)
   for (const c of ['id', 'time', 'source', 'text'] as const) {
-    expect([8, 9, 10].map((i) => cols[i][c]), c + ' column starts at one offset on every note row').toEqual([cols[8][c], cols[8][c], cols[8][c]]) // R-C12-01: aligned columns
+    expect([8, 9, 10].map((i) => cols[i]![c]), c + ' column starts at one offset on every note row').toEqual([cols[8]![c], cols[8]![c], cols[8]![c]]) // R-C12-01: aligned columns
   }
 })
 

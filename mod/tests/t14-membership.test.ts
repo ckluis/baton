@@ -17,6 +17,7 @@
 // memo CLI is stubbed at process.run, as in memory.test.ts); nothing here reads or writes a real
 // memory store (Q-85: every memory a test uses is a fixture it builds).
 import { expect, mock, test } from 'claude-code/testing'
+declare function setTimeout(fn: (...args: any[]) => void, ms?: number): unknown // type-only (XTB1): lib es2023 declares no timers
 
 const PROJ = '/proj'
 const RUN = '/proj/run' // fixture: the run's directory
@@ -205,7 +206,7 @@ for (const [hook, fire] of HOOKS) {
   // R-C15-142, R-C15-144 · spec L529: "A hook that would have noted on its own writes nothing"
   // Q-80: "A hook that would have noted on its own writes nothing ... The run's memory records nothing from that session."
   test(hook + ' in a session that cd-ed into the run appends no note', SLOW, async ($, on) => {
-    const w = await outsider($, on, OUTSIDERS[0][1], true)
+    const w = await outsider($, on, OUTSIDERS[0]![1], true)
     const before = w.notes().length // notes before the hook are not this test's
     await fire($)
     await w.settle()
@@ -215,7 +216,7 @@ for (const [hook, fire] of HOOKS) {
   // R-C15-143 · spec L529: "and logs one line to the session's log (`$.ui.log`)."
   // Q-80: "A hook that would have noted on its own writes nothing and logs one line to the session's log (`$.ui.log`)."
   test(hook + ' in a session that cd-ed into the run logs one line through $.ui.log', SLOW, async ($, on) => {
-    const w = await outsider($, on, OUTSIDERS[0][1], true)
+    const w = await outsider($, on, OUTSIDERS[0]![1], true)
     const before = w.logs.length
     await fire($)
     await w.settle()

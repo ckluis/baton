@@ -16,6 +16,7 @@
 // _orch/inbox/OQ7.answer.md ("Each one is logged as a deviation from the red-first rule
 // (spec L19-20, L100), with this file as the approval").
 import { expect, mock, test } from 'claude-code/testing'
+declare function setTimeout(fn: (...args: any[]) => void, ms?: number): unknown // type-only (XTB1): lib es2023 declares no timers
 
 const PROJ = '/proj'
 const RUN = '/proj/run' // the run's directory (fixture)
@@ -229,7 +230,7 @@ test('a session that started outside the run and cds into it writes no run notes
   await w.cd($, RUN)
   await talk($, w)
   expect(w.runNotes()).toEqual([]) // spec L100 "no notes": nothing in the run's memory
-  expect(w.notes().filter((x) => ['operator', 'prime-reply', 'ruling', 'prime'].includes(x.tag))).toEqual([]) // spec L97: no prime-reply, operator or ruling note anywhere
+  expect(w.notes().filter((x) => ['operator', 'prime-reply', 'ruling', 'prime'].includes(x.tag!))).toEqual([]) // spec L97: no prime-reply, operator or ruling note anywhere
 })
 
 // ------------------------------------------------------------------ a second session while the prime is live
@@ -241,8 +242,8 @@ test('an interactive second session in the run directory, prime live: it is aske
   await w.begin($)
   await w.bash($)
   expect(w.asked.length).toBe(1) // spec L95 "ask (interactive)": one question
-  expect(w.asked[0].primeAtAsk).toBe(PRIME) // asked before anything changed: the manifest still names the live prime (fixture)
-  expect(w.asked[0].runNotesAtAsk).toBe(0) // and before this session wrote any run note (spec L97)
+  expect(w.asked[0]!.primeAtAsk).toBe(PRIME) // asked before anything changed: the manifest still names the live prime (fixture)
+  expect(w.asked[0]!.runNotesAtAsk).toBe(0) // and before this session wrote any run note (spec L97)
 })
 
 // R-C7-07, R-C7-15 · spec L95: "or stay unarmed" · Q-8: "No, or a dismissed dialog, leaves this session unarmed"
@@ -264,8 +265,8 @@ test('an interactive second session that declines is told why it is not armed', 
   const line = w.logs.map((l) => l.match(WHY)).find(Boolean)
   expect(line, 'a $.ui.log line in the Q-29 wording').toBeTruthy() // Q-29: a $.ui.log line
   expect(line![1]).toBe(RUN_ID) // Q-29 "run <id>": the fixture's run id
-  expect(line![2].length).toBeGreaterThan(0) // Q-29 "<id prefix>"
-  expect(PRIME.startsWith(line![2])).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
+  expect(line![2]!.length).toBeGreaterThan(0) // Q-29 "<id prefix>"
+  expect(PRIME.startsWith(line![2]!)).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
   expect(Number(line![3])).toBeGreaterThanOrEqual(29) // Q-29 "heard <n>s ago": the seeded heartbeat is 30 s old (fixture)
   expect(Number(line![3])).toBeLessThanOrEqual(45) // the same, allowing for the test's own seconds
   expect(await w.band($)).toContain('this session is not armed') // Q-29 "and on the band"
@@ -289,7 +290,7 @@ test('a non-interactive second session is told why it is not armed', SLOW, async
   const line = w.allTold().match(WHY)
   expect(line, 'the Q-29 wording in the session output').toBeTruthy() // Q-29: the same text, headless
   expect(line![1]).toBe(RUN_ID) // Q-29 "run <id>": the fixture's run id
-  expect(PRIME.startsWith(line![2])).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
+  expect(PRIME.startsWith(line![2]!)).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
   expect(Number(line![3])).toBeGreaterThanOrEqual(29) // Q-29 "heard <n>s ago": the seeded heartbeat is 30 s old (fixture)
   expect(Number(line![3])).toBeLessThanOrEqual(45) // the same, allowing for the test's own seconds
 })
@@ -313,7 +314,7 @@ test('an interactive second session whose question is dismissed is told why it i
   const line = w.logs.map((l) => l.match(WHY)).find(Boolean)
   expect(line, 'a $.ui.log line in the Q-29 wording').toBeTruthy() // Q-29: a $.ui.log line
   expect(line![1]).toBe(RUN_ID) // Q-29 "run <id>": the fixture's run id
-  expect(PRIME.startsWith(line![2])).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
+  expect(PRIME.startsWith(line![2]!)).toBe(true) // Q-29 "<id prefix>": a prefix of the live prime's id (fixture)
 })
 
 // R-C7-05, R-C7-06 · Q-8: "Take over: yes makes this session the prime and writes its id to the manifest."
@@ -498,7 +499,7 @@ test('a session that is not the run\'s own writes no ruling note', SLOW, async (
   const w = world(on, { start: RUN, id: SECOND, interactive: false, seed: { id: PRIME, ageS: 30 } })
   await w.begin($)
   await talk($, w)
-  expect(w.notes().filter((x) => /^ruling/.test(x.tag))).toEqual([]) // spec L97 "rulings": no ruling note
+  expect(w.notes().filter((x) => /^ruling/.test(x.tag!))).toEqual([]) // spec L97 "rulings": no ruling note
 })
 
 // ------------------------------------------------------------------ guards (OQ7): behaviour that works at da5910c

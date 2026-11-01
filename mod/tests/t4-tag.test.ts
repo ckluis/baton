@@ -72,9 +72,9 @@ test('T4: a note written with a tag is stored under that tag', async ($, on) => 
   // origin: spec L59 — one note per call
   expect(notes).toHaveLength(1)
   // origin: spec L58 "prefix "decision" by hand" — the tag the caller gave, `decision`, is the note's tag
-  expect(w.tagOf(notes[0])).toBe('decision')
+  expect(w.tagOf(notes[0]!)).toBe('decision')
   // origin: spec L58 — the tag is no longer prefixed into the text: the text is stored as given
-  expect(notes[0].stdin).toBe('chose option 1 for Q-3')
+  expect(notes[0]!.stdin).toBe('chose option 1 for Q-3')
 })
 
 // R-C4-02 — spec L59: "sanitized as notes already are,"

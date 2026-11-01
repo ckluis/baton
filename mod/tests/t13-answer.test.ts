@@ -265,7 +265,7 @@ function world(on: any, opts: { answer?: (labels: string[]) => string } = {}) {
     const options = (q.options || []).map((o: any) => String(o.label))
     events.push({ kind: 'ask', q: String(q.question), options })
     const a = choose(options)
-    chosen.push(a)
+    chosen.push(a!)
     return { result: { questions: e.questions, answers: { [q.question]: a } } }
   })
   on('tool.check', () => ({ decision: 'allow' }))
@@ -522,7 +522,7 @@ test('missing #3 (c34): the brief\'s Blocked by: line is coloured as the ? row c
   const row = qRows(await ui.drawn(), 'Q-71')[0]
   expect(row ? row.color : 'no ? row').not.toBe(undefined) // the ? row of Q-71 is drawn with a colour (spec L197)
   await openBrief(w, ui, 'Q-71')
-  expect(colorOf(await ui.drawn(), Q71_BLOCKED_BY)).toBe(row.color) // Q-40: the brief's Blocked by line in the ? row's colour
+  expect(colorOf(await ui.drawn(), Q71_BLOCKED_BY)).toBe(row!.color) // Q-40: the brief's Blocked by line in the ? row's colour
 })
 
 test('missing #4 (c35): b in a question\'s brief goes back to the list', async ($, on) => {
@@ -550,7 +550,7 @@ test('missing #5 (c23): from a question\'s brief, the answer key opens $.ui.ask 
   const ui: any = await w.pane($)
   await answerFromBrief(w, ui, 'Q-71')
   const qs = w.asks().map((x) => x.q)
-  expect(qs.length === 1 && qs[0].includes(Q71_FIRST) ? 'asked with Q-71\'s first line' : JSON.stringify(qs)).toBe('asked with Q-71\'s first line') // Q-35 option 1; fixture Q71_FIRST
+  expect(qs.length === 1 && qs[0]!.includes(Q71_FIRST) ? 'asked with Q-71\'s first line' : JSON.stringify(qs)).toBe('asked with Q-71\'s first line') // Q-35 option 1; fixture Q71_FIRST
 })
 
 test('missing #5 (c24): the labels $.ui.ask receives are the question\'s numbered options, from its **Options** list or its first numbered list, at most 4', async ($, on) => {
@@ -619,7 +619,7 @@ test('missing #6 (c4): answering from the brief with the answer key writes _orch
 test('missing #6 (c27): when a label is chosen, the answer file records that label verbatim', async ($, on) => {
   // Requirements R-C14-13 (L208), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md): "The answer file records
   // the label or the text verbatim." plan/decisions/Q-41.md: "`**Answer:** <label or text, verbatim>`".
-  const w = world(on, { answer: (labels) => labels[1] ?? labels[0] }) // fixture: the operator picks the second label
+  const w = world(on, { answer: (labels) => labels[1] ?? labels[0]! }) // fixture: the operator picks the second label
   const ui: any = await w.pane($)
   await answerFromBrief(w, ui, 'Q-71')
   const label = w.chosen[0] ?? 'no dialog'
@@ -763,7 +763,7 @@ test('missing #9 (c29): after the answer file is written, the mod notes for the 
   const label = w.chosen[0] ?? 'no dialog'
   const hit = w.notes().find((n) => n.tag === 'operator' && noteRe('Q-72', Q72_NODE).test(n.text))
   const first = hit ? noteRe('Q-72', Q72_NODE).exec(hit.text)![1] : 'no such note: ' + JSON.stringify(w.notes())
-  expect([Q72_FIRST, '# ' + Q72_FIRST, label].includes(first) ? 'the note names the first line' : first).toBe('the note names the first line') // Q-36 option 1, its words
+  expect([Q72_FIRST, '# ' + Q72_FIRST, label].includes(first!) ? 'the note names the first line' : first).toBe('the note names the first line') // Q-36 option 1, its words
 })
 
 test('missing #9 (c30): the note for the prime is put after the answer file is written, never before', async ($, on) => {

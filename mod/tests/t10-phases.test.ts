@@ -233,17 +233,17 @@ const idxPrime = (t: Table) => t.rows.findIndex(isPrime)
 /** The row a row is drawn one level under: the nearest row above it that starts further left. */
 function parentOf(t: Table, i: number): number {
   if (i < 0) return -1
-  const me = t.rows[i].indent
-  for (let j = i - 1; j >= 0; j--) if (t.rows[j].indent >= 0 && t.rows[j].indent < me) return j
+  const me = t.rows[i]!.indent
+  for (let j = i - 1; j >= 0; j--) if (t.rows[j]!.indent >= 0 && t.rows[j]!.indent < me) return j
   return -1
 }
 /** The rows drawn under row i: every row after it that starts further right, up to the next that does not. */
 function subtreeOf(t: Table, i: number): number[] {
   const out: number[] = []
-  for (let j = i + 1; j < t.rows.length && t.rows[j].indent > t.rows[i].indent; j++) out.push(j)
+  for (let j = i + 1; j < t.rows.length && t.rows[j]!.indent > t.rows[i]!.indent; j++) out.push(j)
   return out
 }
-const nameOf = (t: Table, i: number) => (i < 0 ? '(no row: drawn at the top level)' : JSON.stringify(t.rows[i].label.trim()))
+const nameOf = (t: Table, i: number) => (i < 0 ? '(no row: drawn at the top level)' : JSON.stringify(t.rows[i]!.label.trim()))
 const say = (t: Table, what: string) => what + '\n header columns: ' + JSON.stringify(t.cols.map((c) => c.title)) + t.dump
 
 function need(t: Table, i: number, what: string) {
@@ -264,7 +264,7 @@ function openButton(box: any): any {
   return b ?? null
 }
 async function openRow(ui: any, t: Table, i: number, what: string) {
-  const b = openButton(t.rows[i].box)
+  const b = openButton(t.rows[i]!.box)
   if (!b || !b.props?.key) throw new Error(what + ': its row draws no `›` to press' + t.dump)
   await ui.press({ key: b.props.key })
   return lines(await ui.drawn())
@@ -279,11 +279,11 @@ function stepRuns(s: string): number[] {
 /** Token figures drawn in a text: `218k`, `218,000`, `1.2M`. */
 function tokenFigures(s: string): number[] {
   const out: number[] = []
-  for (const m of s.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*([kKmM])\b/g)) out.push(Number(m[1].replace(/,/g, '')) * (m[2].toLowerCase() === 'k' ? 1e3 : 1e6))
-  for (const m of s.matchAll(/\b(\d{1,3}(?:,\d{3})+)\b/g)) out.push(Number(m[1].replace(/,/g, '')))
+  for (const m of s.matchAll(/(\d[\d,]*(?:\.\d+)?)\s*([kKmM])\b/g)) out.push(Number(m[1]!.replace(/,/g, '')) * (m[2]!.toLowerCase() === 'k' ? 1e3 : 1e6))
+  for (const m of s.matchAll(/\b(\d{1,3}(?:,\d{3})+)\b/g)) out.push(Number(m[1]!.replace(/,/g, '')))
   return out
 }
-const usdFigures = (s: string) => [...s.matchAll(/\$(\d[\d,]*(?:\.\d+)?)/g)].map((m) => Number(m[1].replace(/,/g, '')))
+const usdFigures = (s: string) => [...s.matchAll(/\$(\d[\d,]*(?:\.\d+)?)/g)].map((m) => Number(m[1]!.replace(/,/g, '')))
 
 async function pressP(ui: any) {
   let key: string | null = null
@@ -322,7 +322,7 @@ test('t10-phases: the phase rows under the prime are drawn in plan order, P1 bef
   const under = (n: number) => t.rows.findIndex((r, i) => PHASE_LABEL(n).test(r.label) && prime >= 0 && parentOf(t, i) === prime)
   const at = [1, 2, 3].map(under)
   expect(at.every((i) => i >= 0), say(t, 'the phase rows under the prime: ' + JSON.stringify(at))).toBe(true) // origin: the fixture's three phases, spec L309
-  expect(at[0] < at[1] && at[1] < at[2], say(t, 'phase rows out of plan order: ' + JSON.stringify(at))).toBe(true) // origin: spec L309, plan order P1, P2, P3
+  expect(at[0]! < at[1]! && at[1]! < at[2]!, say(t, 'phase rows out of plan order: ' + JSON.stringify(at))).toBe(true) // origin: spec L309, plan order P1, P2, P3
 })
 
 // ---- the tree: sub-orchestrators under their phase rows -------------------------------------------
@@ -351,7 +351,7 @@ test('t10-phases: a sub-orchestrator whose spawn prompt names _orch/phases/P2/ a
   const s = need(t, idxAgent(t, S2A), S2A.description) // origin: the fixture, S2A's prompt names _orch/phases/P2/
   const p = parentOf(t, s)
   // origin: spec L320 and Q-58, its parent is the phase row P2
-  expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p].label : ''), say(t, S2A.description + ' is drawn under ' + nameOf(t, p) + ', not under P2')).toBe(true)
+  expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p]!.label : ''), say(t, S2A.description + ' is drawn under ' + nameOf(t, p) + ', not under P2')).toBe(true)
 })
 
 // R-C10-39 · R-C10-32
@@ -399,7 +399,7 @@ test("guard: the row labelled P2 and the row of its sub-orchestrator are two dis
   const p2 = need(t, idxPhase(t, 2), 'P2')
   const s = need(t, idxAgent(t, S2A), S2A.description)
   expect(p2, say(t, 'the P2 row is the sub-orchestrator\'s row')).not.toBe(s) // origin: spec L312, "the two are separate rows"
-  expect(PHASE_LABEL(2).test(t.rows[s].label), say(t, S2A.description + "'s row is labelled P2")).toBe(false) // origin: spec L312, it is not the phase row
+  expect(PHASE_LABEL(2).test(t.rows[s]!.label), say(t, S2A.description + "'s row is labelled P2")).toBe(false) // origin: spec L312, it is not the phase row
 })
 
 // R-C10-37 · R-C10-81
@@ -412,7 +412,7 @@ test('t10-phases: with two sub-orchestrators matched to P2, both are drawn one l
   for (const a of [S2A, S2B]) {
     const i = need(t, idxAgent(t, a), a.description) // origin: the fixture, S2A (by prompt) and S2B (by label) both match P2
     const p = parentOf(t, i)
-    expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p].label : ''), say(t, a.description + ' is drawn under ' + nameOf(t, p) + ', not under P2')).toBe(true) // origin: spec L317, Q-53
+    expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p]!.label : ''), say(t, a.description + ' is drawn under ' + nameOf(t, p) + ', not under P2')).toBe(true) // origin: spec L317, Q-53
   }
 })
 
@@ -443,7 +443,7 @@ test("guard: a phase row shows the phase's stepper of four steps", { options: OP
   const ui = await mount($)
   const t = table(await ui.drawn())
   const p2 = need(t, idxPhase(t, 2), 'P2')
-  const rest = t.rows[p2].text.replace(/^[\s│├└─]*[●◉○✗✓◆]\s*(?=P\d)/, '') // the row's own mark is not a step
+  const rest = t.rows[p2]!.text.replace(/^[\s│├└─]*[●◉○✗✓◆]\s*(?=P\d)/, '') // the row's own mark is not a step
   // origin: spec L314, four steps: briefed, dispatched, verified, approved
   expect(stepRuns(rest), say(t, 'P2 draws no stepper of four steps')).toContain(4)
 })
@@ -469,7 +469,7 @@ test('guard: the pending phase row has no child rows', { options: OPTIONS }, asy
   // GV4 sweep (P3-d4): the premise, that a phase row draws child rows at all: P2's sub-orchestrator S2A is drawn under P2
   expect(subtreeOf(t, need(t, idxPhase(t, 2), 'P2')).includes(need(t, idxAgent(t, S2A), S2A.description)), say(t, 'premise: ' + S2A.description + ' is drawn under P2')).toBe(true)
   // origin: Q-52, "no children": no row after P3 starts further right than it
-  expect(subtreeOf(t, p3).map((i) => t.rows[i].label.trim()), say(t, 'rows drawn under the pending P3')).toEqual([])
+  expect(subtreeOf(t, p3).map((i) => t.rows[i]!.label.trim()), say(t, 'rows drawn under the pending P3')).toEqual([])
 })
 
 // R-C10-75
@@ -483,7 +483,7 @@ test('t10-phases: the pending phase row shows `pending` in its state cell', { op
   const c = t.cols.find((x) => x.title === 'state')
   expect(c, say(t, 'no `state` column')).toBeDefined() // origin: the agent table's state column (Q-62, "the state cell")
   // origin: spec L349 and Q-62, the word `pending`
-  expect(t.rows[p3].text.slice(c!.start).trim(), say(t, 'P3 state cell')).toMatch(/^pending\b/)
+  expect(t.rows[p3]!.text.slice(c!.start).trim(), say(t, 'P3 state cell')).toMatch(/^pending\b/)
 })
 
 // R-C10-73
@@ -494,7 +494,7 @@ test('t10-phases: the pending phase row is drawn dim', { options: OPTIONS }, asy
   const t = table(await ui.drawn())
   const p3 = need(t, idxPhase(t, 3), 'P3')
   const texts: any[] = []
-  walk(body(t.rows[p3].box), (x) => {
+  walk(body(t.rows[p3]!.box), (x) => {
     if (x.type === 'Text' && (x.children ?? []).some((c: any) => typeof c === 'string' && c.trim())) texts.push(x)
   })
   const bright = texts.filter((x) => x.props?.dimColor !== true).map(textOf)
@@ -510,7 +510,7 @@ test('t10-phases: the pending phase row is marked ○ before its label', { optio
   const t = table(await ui.drawn())
   const p3 = need(t, idxPhase(t, 3), 'P3')
   // origin: spec L348 and Q-62, the mark `○`, drawn where an agent row draws its mark, before the label
-  expect(t.rows[p3].label, say(t, 'P3 label cell')).toMatch(/○\s*P3\b/)
+  expect(t.rows[p3]!.label, say(t, 'P3 label cell')).toMatch(/○\s*P3\b/)
 })
 
 // R-C10-77
@@ -522,7 +522,7 @@ test("t10-phases: a phase row's model cell is empty", { options: OPTIONS }, asyn
   const t = table(await ui.drawn())
   for (const n of [1, 2, 3]) {
     const r = t.rows[need(t, idxPhase(t, n), 'P' + n)]
-    const c = cellOf(t, r, 'model')
+    const c = cellOf(t, r!, 'model')
     expect(c, say(t, 'no `model` column')).not.toBeNull() // origin: the agent table's model column (D-T10-phase-row-cells)
     expect(c, say(t, 'P' + n + ' model cell')).toBe('') // origin: spec L349 and D-T10-phase-row-cells, empty
   }
@@ -536,7 +536,7 @@ test("t10-phases: a phase row's context cell is empty", { options: OPTIONS }, as
   const t = table(await ui.drawn())
   for (const n of [1, 2, 3]) {
     const r = t.rows[need(t, idxPhase(t, n), 'P' + n)]
-    const c = cellOf(t, r, 'context')
+    const c = cellOf(t, r!, 'context')
     expect(c, say(t, 'no `context` column')).not.toBeNull() // origin: the agent table's context column (D-T10-phase-row-cells)
     expect(c, say(t, 'P' + n + ' context cell')).toBe('') // origin: spec L349 and D-T10-phase-row-cells, empty
   }
@@ -551,7 +551,7 @@ test("t10-phases: a phase row's label cell reads P<n>", { options: OPTIONS }, as
   const t = table(await ui.drawn())
   for (const n of [1, 2, 3]) {
     const r = t.rows[need(t, idxPhase(t, n), 'P' + n)]
-    const label = r.label.replace(/^[\s›○●◉✓✗◆│├└─]*/, '').trim() // its mark and tree lines set aside
+    const label = r!.label.replace(/^[\s›○●◉✓✗◆│├└─]*/, '').trim() // its mark and tree lines set aside
     // origin: D-T10-phase-row-cells, the label `P<n>` (a direct key letter may stand before it, Q-12)
     expect(label, say(t, 'P' + n + ' label cell reads ' + JSON.stringify(label))).toMatch(new RegExp('^(?:[a-z0-9]:?\\s+)?P' + n + '$'))
   }
@@ -567,7 +567,7 @@ test("t10-phases: a sub-orchestrator's row under a phase row keeps its own dispa
   const p2 = idxPhase(t, 2)
   // the row of S2A drawn one level under P2, found by its place in the tree, not by its label
   const kids = t.rows.map((_, i) => i).filter((i) => p2 >= 0 && parentOf(t, i) === p2)
-  const labels = kids.map((i) => t.rows[i].label)
+  const labels = kids.map((i) => t.rows[i]!.label)
   // origin: the fixture, S2A's dispatch label `build export` (spec L349, kept as given)
   expect(labels.some((l) => l.includes(S2A.description)), say(t, 'rows under P2: ' + JSON.stringify(labels))).toBe(true)
 })
@@ -598,7 +598,7 @@ test('t10-phases: with a phase P0 in the plan, a sub-orchestrator tied to no pha
   const u = need(t, idxAgent(t, U), U.description)
   const p = parentOf(t, u)
   // origin: the fixture's graph.yaml phase 0, and D-P1-tree-unphased, its parent is the P0 row
-  expect(PHASE_LABEL(0).test(p >= 0 ? t.rows[p].label : ''), say(t, U.description + ' is drawn under ' + nameOf(t, p) + ', not under P0')).toBe(true)
+  expect(PHASE_LABEL(0).test(p >= 0 ? t.rows[p]!.label : ''), say(t, U.description + ' is drawn under ' + nameOf(t, p) + ', not under P0')).toBe(true)
 })
 
 // ---- opening rows (Q-54) ---------------------------------------------------------------------------
@@ -671,7 +671,7 @@ test("t10-phases: Enter on the › of a sub-orchestrator's row under a phase row
   const t = table(await ui.drawn())
   const s = idxAgent(t, S2A)
   const p = parentOf(t, s)
-  expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p].label : ''), say(t, S2A.description + ' is not drawn under a phase row')).toBe(true) // origin: spec L310, under its phase row
+  expect(PHASE_LABEL(2).test(p >= 0 ? t.rows[p]!.label : ''), say(t, S2A.description + ' is not drawn under a phase row')).toBe(true) // origin: spec L310, under its phase row
   const view = await openRow(ui, t, s, S2A.description)
   const all = view.join('\n')
   expect(all, 'the agent view does not name the agent').toContain(S2A.description) // origin: the fixture's label
@@ -711,7 +711,7 @@ test('t10-phases: when the pane first draws, the pending phase row takes the Q-1
   const t = table(await ui.drawn())
   const p3 = need(t, idxPhase(t, 3), 'P3')
   const keys: string[] = []
-  walk(t.rows[p3].box, (x) => {
+  walk(t.rows[p3]!.box, (x) => {
     if (x.props && typeof x.props.hotkey === 'string') keys.push(x.props.hotkey)
   })
   const POOL = 'a c d e f g h i j k l m n o q s t u v w y z'.split(' ') // origin: Q-12 option 1

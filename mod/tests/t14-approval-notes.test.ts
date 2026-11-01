@@ -101,7 +101,7 @@ test('approving a heredoc file write records an approval note that does not say 
   const at = w.before()
   expect(at).toHaveLength(1) // one note at approval (Q-81: "at approval the note records what was approved")
   // expected: no "push" anywhere in the note — spec L437 "Writing a file is not a push"
-  expect(at[0].text).not.toMatch(/push/i)
+  expect(at[0]!.text).not.toMatch(/push/i)
 })
 
 // --- criterion 2 -----------------------------------------------------------------------------------------
@@ -116,7 +116,7 @@ test('approving cat > f <<EOF … git push … EOF records an approval note read
   const at = w.before()
   expect(at).toHaveLength(1) // one note at approval (Q-81: "at approval the note records what was approved")
   // expected `operator approved for <who>: writes f` — Q-81 "reads `writes f`", wording from D-T14-approval-notes
-  expect(at[0].text).toMatch(/^operator approved for .+: writes f$/)
+  expect(at[0]!.text).toMatch(/^operator approved for .+: writes f$/)
 })
 
 // --- criterion 3 -----------------------------------------------------------------------------------------
@@ -130,7 +130,7 @@ test('approving a command with git push inside a quoted string records an approv
   const at = w.before()
   expect(at).toHaveLength(1) // one note at approval (Q-81: "at approval the note records what was approved")
   // expected: a quoted string is data (Q-81), so the note names no push (D-T14-approval-notes: `runs git`)
-  expect(at[0].text).not.toMatch(/push/i)
+  expect(at[0]!.text).not.toMatch(/push/i)
 })
 
 // --- criterion 4 -----------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ test('guard: approving git push records an approval note that says it is a push'
   expect(at).toHaveLength(1) // one note at approval, as at da5910c (work/probe-da5910c.md P1) and Q-81
   // expected: the note says push — da5910c writes `operator approved (push) …` (work/probe-da5910c.md P1),
   // D-T14-approval-notes writes `pushes origin v7`; both say push outside the echoed command
-  expect(at[0].text.replace('git push origin v7', '')).toMatch(/\bpush(es)?\b/)
+  expect(at[0]!.text.replace('git push origin v7', '')).toMatch(/\bpush(es)?\b/)
 })
 
 // --- criterion 10 (GUARD: holds at da5910c, work/guard-evidence.md, approval _orch/inbox/OQ7.answer.md) ---
@@ -198,5 +198,5 @@ test('guard: a Bash command whose heredoc body holds git push is still asked as 
   expect(w.asked).toHaveLength(1) // it was asked (Q-87 "Keep asking")
   // expected: asked as the push gate — the approve-for-run option names "git push", as at da5910c
   // (work/probe-da5910c.md P2), not as any other gate
-  expect(w.asked[0].options).toContain('Approve every "git push" for this run')
+  expect(w.asked[0]!.options).toContain('Approve every "git push" for this run')
 })

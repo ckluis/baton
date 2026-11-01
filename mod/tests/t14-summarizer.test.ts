@@ -9,6 +9,7 @@
 // process.run (a plugin test has no processes), and no test reads or writes a
 // real memory store (Q-85: the operator marks the old records himself).
 import { expect, mock, test } from 'claude-code/testing'
+// @ts-expect-error -- type-only (XTB1): lib/memcore.mjs is product code with no declaration file, and a .d.mts would have to go under mod/lib/
 import { decodeRecord, encodeRecord, fallbackMerge } from '../lib/memcore.mjs'
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
