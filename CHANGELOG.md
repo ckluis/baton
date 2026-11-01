@@ -72,7 +72,7 @@ Known gaps, seen live and not fixed in this release:
 - A memory summary row is not aligned with the note rows (its id cut, a stray `…`, its text shifted).
 - An answer given in the pane does not reach the asking node: the prime's note carries the question,
   not the answer, and nothing wakes the prime.
-- `End` scrolls the agent list to its end but leaves the focus on the old row.
+- `End` scrolls the agent list to its end but leaves the focus on the old row; `Home` does the mirror of it, and once moved the window only part of the way to the top.
 - Idle CPU is over its 1% budget (1.094%).
 
 ## v7.5.1 — 2026-10-19

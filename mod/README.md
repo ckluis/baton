@@ -327,11 +327,12 @@ that cut.
 - **The agent list scrolls.** The list takes the pane's full height and every agent stays listed;
   the old `… N earlier finished agents folded` line is gone. A finished row is dimmed, its ✓ or ✗
   keeping its colour. When the rows do not fit, `↑`/`↓` past the first or last row shown scrolls
-  the list, `PageUp`/`PageDown` move it by a window, and `Home`/`End` go to its ends. Dim
+  the list, `PageUp`/`PageDown` move it by a window, and `Home`/`End` are meant to go to its ends (see the live note below). Dim
   `↑ <k> more` and `↓ <k> more` lines stand for the hidden rows and carry their letters, and a
   running row scrolled out of the window is pinned in a strip at that edge, so running agents stay
   in view. A row scrolled into view opens like any other. Live, `End` moved the window to the end
-  but left the focus on the row that had it (LV15 §11).
+  but left the focus on the row that had it, and `Home` did the mirror of it (window to the top, focus
+  left behind; once it moved the window only 5 rows instead of to the top) (LV15 §11).
 - **Questions and blocked nodes.** An open question (`_orch/inbox/Q-<n>.md` with no answer file) is
   a `?` row. It reads `? Q-<n> · queued for G<n> · <first line>`, dim, naming the gate that will
   put it, until the run's record shows it was asked (`_orch/inbox/Q-<n>.asked.md`); then it reads
