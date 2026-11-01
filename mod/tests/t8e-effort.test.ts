@@ -352,8 +352,9 @@ test('guard: configured and served both high leave the model cell not red', SLOW
   const w = world(on, { inRun: false })
   await w.begin($)
   await w.agent($, { id: 'r2', description: 'T8E-equal', model: OPUS, servedBy: OPUS, effort: 'high' }) // configured high; served model = requested
-  await w.served($, 'r2', 'high') // served high
   const ui = await w.pane($)
+  expect((await cellOf(ui, 'T8E-equal')).text, 'the configured high did not reach the agent').toBe('opus 5.5 · high cfg') // fixture: P3-d4, the configured effort is known (spec L622), so "both high" compares two efforts
+  await w.served($, 'r2', 'high') // served high
   const c = await cellOf(ui, 'T8E-equal')
   expect(c.text, 'the cell does not show the high effort').toBe('opus 5.5 · high') // fixture: P3-d3, the efforts reached the cell (spec L620)
   expect(c.runs.some((r) => r.text.trim() && r.color === 'red')).toBe(false) // spec L636 "Equal efforts leave the cell's colour as T8 sets it": T8 sets no red (served = requested)
@@ -379,8 +380,9 @@ test('guard: a model mismatch with equal efforts keeps the model cell red', SLOW
   const w = world(on, { inRun: false })
   await w.begin($)
   await w.agent($, { id: 'r4', description: 'T8E-modelred', model: SONNET, servedBy: OPUS, effort: 'high' }) // sonnet 5.5 requested, opus 5.5 served; configured high
-  await w.served($, 'r4', 'high') // served high: efforts equal
   const ui = await w.pane($)
+  expect((await cellOf(ui, 'T8E-modelred')).text, 'the configured high did not reach the agent').toBe('opus 5.5 · high cfg') // fixture: P3-d4, the configured effort is known, so "equal efforts" compares two efforts
+  await w.served($, 'r4', 'high') // served high: efforts equal
   const c = await cellOf(ui, 'T8E-modelred')
   expect(c.text, 'the cell does not show the equal high efforts').toBe('opus 5.5 · high') // fixture: P3-d3, the efforts reached the cell, so they are known to be equal
   const model = c.runs.filter((r) => /opus/.test(r.text))

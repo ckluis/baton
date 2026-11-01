@@ -590,7 +590,9 @@ test('guard: T15-G8 a running agent row is drawn', async ($, on) => {
   await w.start($)
   await agents($, w, 3, [2]) // fixture: wk02 running, wk01 and wk03 finished
   await w.pane($, 40)
-  expect(indexOf((await view(w)).shown, 'wk02')).toBeGreaterThanOrEqual(0) // L287: the running row is drawn
+  const l = lineOf((await view(w)).shown, 'wk02')
+  expect(!!l).toBe(true) // L287: the running row is drawn
+  expect(l!.text.includes('●') && !l!.text.includes('✓') && !l!.text.includes('✗'), 'wk02 is not drawn as a running row: ' + (l ? l.text : '')).toBe(true) // fixture: P3-d4, the row is drawn running (its ●), not as a returned one
 })
 
 test('guard: T15-G9 a finished agent row shows its ✓ or ✗ mark and its verdict', async ($, on) => {
