@@ -10,7 +10,7 @@ claude --plugin-dir ./mod          # from the repo root; the mod hot-reloads on 
 /baton start BUILD ./app           # in the session: arm the guard and start the prime
 ```
 
-Tested with Claude Code **2.1.287** and **2.1.302** on macOS. The guard needs 2.1.287 or later.
+Tested with Claude Code **2.1.287**, **2.1.302** and **2.1.316** on macOS. The guard needs 2.1.287 or later.
 The memory store needs `node` on `PATH`: the mod runs `bin/memo.mjs` for every memory read and
 write.
 
@@ -18,7 +18,7 @@ write.
 
 | path | what |
 |---|---|
-| `.claude-plugin/plugin.json` | `baton` 7.5.0. The `userConfig` fields are `rotateAtPercent` (35), `wakeBudgetLines` (96) and `memoryDir` (`.baton/memory`). |
+| `.claude-plugin/plugin.json` | `baton` 7.6.0. The `userConfig` fields are `rotateAtPercent` (35), `wakeBudgetLines` (96) and `memoryDir` (`.baton/memory`). |
 | `hooks/register.js` | the hooks module: guard, memory tools, return notes, merges, rotation, binding, `/baton`, pane, band, spinner |
 | `lib/memcore.mjs` | the memory core, pure (no Node): records, tree math, wake tiling, zoom, recall, merge prompt |
 | `lib/memstore.mjs` | the core on disk (Node): fixed-width files, the lockfile, merges, views |
@@ -36,8 +36,8 @@ write.
 | `lib/track.mjs` | the tracker: each level's states computed from the record, measured transitions, steppers; the PR's merge-ready rows, the reviewer's comment, gate commands, pure |
 | `agents/` | `sub-orchestrator` (also the PR steward), `worker`, `worker-cheap`, `verifier`, `pr-reviewer`. Plugin agents are `baton:<name>`. |
 | `skills/prime/SKILL.md` | `baton:prime`: how to start a run, how the prime behaves, and how v6's roles and rules map onto v7 |
-| `tests/*.test.ts` | `claude plugin test` (44 tests) |
-| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (83 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
+| `tests/*.test.ts` | `claude plugin test` (502 tests in 31 files) |
+| `test/*.test.mjs` | `node --test mod/test/*.test.mjs` (141 tests; two run end-to-end fixtures, `test/fixtures/hooks-smoke.mjs` and `github-smoke.mjs`: the real hooks module under a fake runtime) |
 
 ### The memory
 
@@ -63,7 +63,10 @@ that three concurrent mergers write each summary once.
 
 Merges run in the background on `$.clock`. The mod sends each ready block's two children to
 `$.model.complete` on `claude-sonnet-5-5` with a strict ≤280-byte prompt. If no answer comes, it
-falls back to a deterministic merge so the tree never stalls. The CLI's `merge --summarize` takes
+falls back to a deterministic merge so the tree never stalls. A reply that talks about its own input
+("the entries you pasted are truncated…") is rejected, asked once more with a stricter prompt, and
+then replaced by the deterministic merge. Merges stay on Sonnet 5.5: a blind A/B against Haiku 5.5
+on 20 real merges kept it (see `CHANGELOG.md`, v7.6.0). The CLI's `merge --summarize` takes
 summaries on stdin; without that flag it uses the fallback.
 
 The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives in
@@ -76,10 +79,30 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   `agentId` (the main loop) gets an allowlist: `Agent`/`Task`, `AskUserQuestion`, `SendMessage`,
   `ToolSearch`, the `baton:prime` skill, and `mcp__baton__*`. Any other tool is refused with the
   route. Subagent calls pass. If the guard throws, its `.catch` refuses the call: the guard fails
-  closed.
+  closed. The other gating hooks have a `.catch` too: the command gate, forbidden files, pause, the
+  phase gate, enforced rulings and checkpoints fail closed; notes and everything else fail open.
+- **Run membership follows the session.** A session belongs to a run only if it started, resumed
+  or compacted in the run's directory; that is recorded at `session.start`, keyed to the session
+  id, and never re-read from the current directory, so a session that `cd`s into a run is not
+  armed and writes no run notes. The manifest records the prime's session. A second interactive
+  session started there while the prime is live is asked whether to take over: no leaves it
+  unarmed with a line saying why, yes arms it and the first session's band says why it disarmed.
+  A restarted session picks the run up. A headless second session is not armed either, but its
+  start-up context still tells it that it is the prime (a gap, below).
 - **Memory tools.** These are registered when a run is active at `session.start`, or when
   `/baton start` runs: `mcp__baton__memory_wake`, `memory_note`, `memory_zoom`, `memory_recall`,
-  `project_wake`, `project_note` and `project_recall`.
+  `memory_mark`, `project_wake`, `project_note`, `project_recall` and `project_mark`.
+  `memory_note` takes an optional `tag`, sanitized like the text, which defaults to the caller's
+  role.
+- **Marks: ✅ confirmed, ❌ void.** `memory_mark <id> ok|void|clear "<reason>"` (and `project_mark`)
+  marks a note or a summary with a one-line reason and who marked it; unmarked is the default.
+  Nothing is deleted: a mark is an appended record. `memory_wake`, `memory_zoom`, the summaries and
+  `memory_recall` skip a ❌ note, unless recall or zoom is called with `include_void`. A summary over
+  a newly voided note reads `#lo-hi: rebuilding (a note was voided)` until the background rebuilds
+  it without the note (its old text goes to a superseded log); a summary built only from ✅ notes
+  shows ✅. A subagent and a session outside the run cannot mark, the prime cannot replace the
+  operator's mark, and rulings are retracted, not marked. A note from a session outside the run is
+  refused when it is written.
 - **Return notes.** When a subagent the prime dispatched returns, its first line becomes one run
   note, tagged with its role. The line comes from its `SubagentHandback` call where the harness
   has one, and otherwise from `turn.complete`'s `answer`.
@@ -102,14 +125,16 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
     git push`) and the top rulings. **Approve**, **Approve every … for this run**, **Refuse**, or a
     typed reason, which the agent reads as its refusal. With nobody to ask (`claude -p`, or the
     dialog dismissed) the command is refused and the agent is told to return `BLOCKED`. Each answer
-    is a run note (tag `approval`).
+    is a run note (tag `approval`) saying what the command does (writes a file, pushes, runs), and
+    a second note records its exit code, the files it wrote and the refs it pushed, so a heredoc
+    that writes a file is not recorded as a push.
   - *Phase gate.* In an interactive session, a sub-orchestrator whose return leads with a DONE
     verdict is queued. The prime's next dispatch waits on a dialog: **Approve**, or type what is
     wrong to send the phase back, which refuses the dispatch and tells the prime to re-dispatch that
-    phase with the reason. The band flags waiting phases; the Agents tab can approve or send back.
+    phase with the reason. The band flags waiting phases; the Work tab can approve or send back.
 - **Enforced rulings.** `/baton enforce <#> <regex>` attaches a pattern to a standing ruling. A
   `tool.check` hook then refuses any shell command matching it, run or no run, with the ruling's
-  text. Retracting the ruling (`/baton retract <#>`, or **x** in the Rulings tab) lifts it. Both are
+  text. Retracting the ruling (`/baton retract <#>`, or **x** on the ruling in Memory) lifts it. Both are
   notes in the append-only `rulings` namespace, so the history stays.
 - **The tracker.** Every level of a run moves through a fixed row of states, like a parcel:
   goal `queued → planned → building → reviewing → ready → merged`, PR `draft → checks → reviewed →
@@ -117,7 +142,7 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   verified` (`working → verified` when exempt). Each state is **computed** from the record (the
   node's `work/red.txt`, `green.txt`, `blue.txt` and verdict, the phase's brief and envelope, the PR
   as `gh` reports it), never asserted. When a state moves, the mod writes one row to `_orch/track/`
-  with the time it saw it, so how long each state lasted is measured. The Track tab draws each level
+  with the time it saw it, so how long each state lasted is measured. The Work tab draws each level
   as a stepper with durations; a flagged step (refuted, blocked, changes, sent back) is red.
 - **A goal from GitHub.** `/baton start #12` reads the issue with `gh` and makes it the goal
   (BUILD unless a mode is given), `TEAM: github`, run branch `baton/<run-id>`. The bootstrap opens a
@@ -129,7 +154,7 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **PR polling, no model.** Every `prPollSeconds` (120) during a run, `gh pr view --json …` gives
   state, checks, mergeability and comments. **Merge-ready** is computed like a verdict: every check
   green, the reviewer's latest verdict `READY` with no high finding, no unresolved thread, mergeable,
-  up to date. New human comments become one line each through **Haiku 4.5**
+  up to date. New human comments become one line each through **Haiku 5.5** (`claude-haiku-5-5`)
   (`$.model.complete`), the only model call here. From allowed answerers (assignees, `answerers:`,
   or the PR author), `/approve P3`, `/send-back P3 <reason>` and `/approve <gate>` act as the remote
   gate. A command the gate holds while nobody is at the terminal is asked on the PR instead.
@@ -138,7 +163,7 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   log records a run where it forgot. Here each one is a hook:
   - **Spend is metered.** A `turn.step` hook reads every model request's usage, attributes it to the
     agent that made it (its role, and the node or phase in its name), and writes `_orch/spend.json`.
-    Track shows tokens beside each stepper; the band shows the goal's total; the PR carries one spend
+    Work shows tokens beside each stepper; the band shows the goal's total; the PR carries one spend
     comment, edited in place.
   - **A budget on rounds.** With `tokensPerGoal` set, `agent.spawn` refuses another review or fix
     round once the goal has spent it (a note at 80%), and tells the prime to brief the operator.
@@ -155,14 +180,18 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Always there, no command.** In any interactive session with the mod loaded, the band above the
   prompt carries plan usage (each rate-limit window the API reports: `5h`, `week`, a model's own week
   such as `Fable week`, a gateway's `spend`, with reset times) and the session's cost. The pane opens
-  by itself, unfocused (`autoPane`), at session start and when the first subagent spawns, on Agents
-  outside a run and Track inside one. Spend is metered in every session; it is written to
+  by itself, unfocused (`autoPane`), at session start and when the first subagent spawns, on Work,
+  where Claude Code places it (at 144 or more columns); where it does not, the band ends with
+  `/baton opens the pane`.
+  Spend is metered in every session; it is written to
   `_orch/spend.json` only in a run.
-- **The agent table.** Agents is a table, one row per agent: agent · context · budget (the agent's
-  own threshold) · model · input · cache write · cache read · output · cost · steps · state. Output
-  is never cached, so caching shows as writes and reads on the input side. Columns drop from the
-  least useful when the pane is narrow (`lib/table.mjs`). A subagent past its budget gets one
-  message from the mod: finish, or split. A row with low cache reuse after eight requests is flagged.
+- **The agent table.** Work's agent list is a tree drawn as a table (see "The pane" below), one row
+  per agent or phase: agent · context · trend · budget (the agent's own threshold) · model · input ·
+  cache write · cache read · output · `this agent` cost and tokens · `roll-up` cost and tokens ·
+  steps · state. Output is never cached, so caching shows as writes and reads on the input side.
+  Columns drop from the least useful when the pane is narrow (`lib/table.mjs`); agent, model, both
+  column groups, steps and state never drop. A subagent past its budget gets one message from the
+  mod: finish, or split. A row with low cache reuse after eight requests is flagged.
 - **A code index, built in** (`bin/code.mjs`, `lib/codeidx.mjs`; codemunch's idea, MIT, baton's own
   code). `code_search`, `code_fetch`, `code_refs`, `code_explore` are registered in every session
   and answered in JavaScript, not by model steps. The index is warmed in the background at session
@@ -197,22 +226,23 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   the branch, the index and the files do not move. `/baton checkpoints` lists them; `/baton restore
   <id>` puts the files back, after checkpointing the state it replaces.
 - **One key.** With a phase waiting, typing `1` into an empty prompt approves it; `2` opens the
-  Workspace to send it back with a reason.
-- **Review findings, linked.** A `CHANGES` review's findings are listed in the Workspace, each a link
+  Work tab to send it back with a reason.
+- **Review findings, linked.** A `CHANGES` review's findings are listed in Work, each a link
   to its line on the PR's branch.
 - **Trend.** The agent table's `trend` column is each agent's context over its last eight requests.
 - **Cheaper to run.** The tracker re-reads the record only when an agent's turn or tool call, a
   poll or an approval could have moved it (else once a minute); the pane skips the memory reads when
-  no note was written; a message is sent to Sonnet for rulings only when it could state one.
+  no note was written; a message is sent to Sonnet for rulings only when it could state one. The
+  rulings are read from a memo off the tool-call path, refreshed less often by the pane.
 - **One file, by design.** The validator follows `$` only into functions declared in the same file,
   so the hooks module stays one `register.js`; pure logic lives in `lib/`.
-- **Drill in.** In Work, every agent, phase and node row has a `›`: `↑`/`↓` moves over them, `Enter`
-  opens a view in place, `b` goes back. An agent shows where it sits in the tree, its model and meter,
-  the task it was given (the lessons the mod added shown apart), its last ten tool calls and what it
-  returned; a phase its steps, brief, nodes and envelope; a node its done-criteria, its red, green
-  and blue records, the verifier's row for each criterion and the lessons it left. In Memory, a
-  ruling opens to the message it was lifted from and its enforcement; `+` opens a memory block. The
-  views are `lib/detail.mjs`; `/baton show <P3 | T12 | an agent>` prints the same thing.
+- **Drill in.** In Work, every agent, phase, node, question and blocked row has a `›`: `↑`/`↓`
+  moves over them, `Enter` opens a view in place, `b` goes back. An agent shows where it sits in the
+  tree, its model and meter, the task it was given (the lessons the mod added shown apart), its last
+  ten tool calls and what it returned; a phase its steps, brief, nodes and envelope; a node its
+  done-criteria, its red, green and blue records, the verifier's row for each criterion and the
+  lessons it left. In Memory, a ruling opens to the message it was lifted from and its enforcement.
+  The views are `lib/detail.mjs`; `/baton show <P3 | T12 | an agent>` prints the same thing.
 - **Updates.** Claude Code auto-updates a third-party marketplace only when you turn that on. So an
   installed baton checks for itself, at most every six hours: when a newer version is published,
   the band says so and `9` runs `claude plugin update baton@baton` (then `/reload-plugins`).
@@ -220,11 +250,11 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **The queue.** `/baton watch [label]` lists open issues labeled `baton`; `/baton next` archives a
   ready or merged run to `.baton/runs/<run-id>/` and starts the next issue.
 - **The pane's two tabs.** **Work** (1) is everything happening: the goal and its PR as links,
-  their steps, the merge-ready rows as one line, the review's findings linked to their lines, the
-  agent table, the plan as one line per phase (its steps, durations, how many nodes are verified,
-  which are stuck, its spend; `p` opens every node and the full merge rows), what waits for you,
-  and the newest rulings. **Memory** (2) is everything the run remembers: your rulings first (add,
-  retract with **x**, enforcement shown), then the memory browser. Switching tabs refreshes.
+  their steps, the merge-ready rows as one line with the queue line under them, the review's
+  findings linked to their lines, the agent tree with the phases in it, what waits for you, and the
+  newest rulings. **Memory** (2) is everything the run remembers: your rulings first (add, retract
+  with **x**, enforcement shown), then the memory explorer. Switching tabs refreshes. There is no
+  separate plan section any more: the phases are rows of the agent tree.
 - **The band is one line:** `5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% ·
   ↻3 · $17.41 · #12 building · PR #47 5/6`. A second line appears only when something waits for you.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
@@ -236,12 +266,98 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Binding.** During a run, `agent.spawn` sets `claude-opus-5-5` for every agent type and
   `claude-sonnet-5-5` for a type or `name` ending in `-cheap`, whatever model the caller asked for.
   Forks are left alone.
-- **Interface.** `/baton` opens a pane with five tabs: Run, Agents, Memory, Rulings and Ledger.
-  Keys 1–5 switch tabs, `r` refreshes, and the pane also refreshes every 5 s while open. The band above
-  the prompt shows the context gauge, the threshold tick, the rotation count, the note count and
-  the phase. The spinner suffix reads `· baton <phase> · <dispatched node>`. Where nothing draws
-  (`claude -p`), `/baton` prints every tab as text. `/baton status`, `/baton rotate` and
+- **Interface.** `/baton` opens the pane (Work and Memory, above). `1` and `2` switch tabs, `r`
+  refreshes, and the pane also refreshes every 5 s while open. The band above the prompt shows the
+  context gauge, the threshold tick, the rotation count, the cost and the goal's state. The spinner
+  suffix reads `· baton <phase> · <dispatched node>`. Where nothing draws (`claude -p`), `/baton`
+  prints every tab as text. `/baton status`, `/baton rotate` and
   `/baton stop` print text everywhere.
+
+### The pane (v7.6)
+
+What each part of the pane does, as the tests pin it. Where a live check in Claude Code 2.1.316
+saw something else, the line says so and names the result; those are known gaps, not features.
+
+**Width, first.** The agent table needs about 110 columns. Claude Code 2.1.316 docks a pane at
+about 73 columns in a 165-column terminal (at most 90), and draws it inline at the terminal's width
+below 110 columns. At every width it gives the pane, the table is wider than the pane, so each cell
+is cut to fit with a `…` rather than the row running past the edge. Several gaps below come from
+that cut.
+
+- **The tree.** A dim legend line reads `the tree: prime › P<n>, a phase: a unit of the plan › its
+  sub-orchestrator › agent (worker, verifier)`. The phase rows sit one level under the prime, in
+  plan order; each phase's sub-orchestrator is a row of its own under its phase row, and its workers
+  and verifiers under that. A phase that has not started is a dim `○ P<n>` row reading `pending`,
+  with nothing under it. `p` shows the node rows under every phase row, and `p` again hides them.
+  Opening a phase row opens the phase view: its steps, its nodes with their states, its spend.
+  Live, the sub-orchestrator's indent was cut at 165 columns, so it did not read one level under
+  its phase (LV10 §4).
+- **Steps on every row.** The prime's row shows the goal's steps, a phase row the phase's
+  (briefed → dispatched → verified → approved), a sub-orchestrator row its phase's, and a worker or
+  verifier row its node's (red → green → blue → verified); a row that matches no node or phase
+  shows its own lifecycle. An agent's view repeats them on its
+  `its work` line with the state names and the time in the current state. Live, at 108 columns a
+  phase row's stepper dropped a mark while its cells were cut (LV10 §6).
+- **`this agent` and `roll-up`.** The header groups two pairs of columns: `this agent` (the row's
+  own cost and tokens) and `roll-up` (the cost and tokens of the row and everything under it). A
+  phase row has no `this agent` figures, and an agent with nothing under it has no `roll-up`
+  figures. Those empty cells should draw nothing; live, the cut table drew them as `…` (LV10 §10,
+  §11).
+- **The model column.** Each agent's cell names the family and version of the model that served
+  it, then its reasoning effort: `opus 5.5 · high`, `sonnet 5.5 · low`, `haiku 4.5`. An effort known
+  only from the request is followed by a dim `cfg` (`opus 5.5 · high cfg`); with no effort known the
+  cell is the model alone. An ID it does not know is shown in full. When the served model differs
+  from the one requested or bound, or the served effort from the configured one, the cell turns
+  red, and the agent's view and the `/baton` text show the requested and served full IDs. The column sizes to its widest
+  cell, never under 10, and never drops. Live, before the prime's first turn its cell was cut to
+  `opus 5.…`; after the first turn it read `opus 5.5` (LV8).
+- **The prime's row.** In a run the main session's row is `◆ prime` and shows the session's own
+  model. Outside a run it is `◇ session`, not `◆ prime`.
+- **A key for every row.** Every agent and phase row (pending ones too), then every question and
+  blocked row, has a letter of its own, shown like `1`, `2` and `r` (the hotkey in the accent, a
+  colon, the label): `a` for the prime, then `c d e f …` top to bottom from the pool
+  `a c d e f g h i j k l m n o q s t u v w y z` (no `b`, `p`, `r` or `x`). A row keeps its letter for
+  as long as it exists, scrolled out of view or not, and across a reload and a restart; a later row
+  takes the lowest free letter; past 22 lettered rows a row opens only by focus and Enter. Node rows
+  have no letter and open by focus and Enter. The hint line names the focus keys in the same accent:
+  `↑/↓ then Enter on › opens a row, or its letter does · ✉ messages a running one · p shows every
+  node · b goes back`. From the Work list a row's letter opens it and Claude Code does nothing with
+  the key; inside an opened agent or phase view it does not yet: Claude Code types the letter into
+  the prompt instead (LV9 §10).
+- **The agent list scrolls.** The list takes the pane's full height and every agent stays listed;
+  the old `… N earlier finished agents folded` line is gone. A finished row is dimmed, its ✓ or ✗
+  keeping its colour. When the rows do not fit, `↑`/`↓` past the first or last row shown scrolls
+  the list, `PageUp`/`PageDown` move it by a window, and `Home`/`End` go to its ends. Dim
+  `↑ <k> more` and `↓ <k> more` lines stand for the hidden rows and carry their letters, and a
+  running row scrolled out of the window is pinned in a strip at that edge, so running agents stay
+  in view. A row scrolled into view opens like any other. Live, `End` moved the window to the end
+  but left the focus on the row that had it (LV15 §11).
+- **Questions and blocked nodes.** An open question (`_orch/inbox/Q-<n>.md` with no answer file) is
+  a `?` row. It reads `? Q-<n> · queued for G<n> · <first line>`, dim, naming the gate that will
+  put it, until the run's record shows it was asked (`_orch/inbox/Q-<n>.asked.md`); then it reads
+  `waiting for you`, and only then does the band's `⚑ waiting for you` count it. Opening a `?` row (Enter or its letter) shows its
+  brief, the question as written. In the brief `a` answers: Claude Code's dialog opens with the
+  question's first line and its numbered options (or type under Other). The answer is written to
+  `_orch/inbox/Q-<n>.answer.md`, never overwritten, the `?` row leaves the pane, and the prime gets
+  a run note naming the asking node; an asking agent still running is also sent the answer as a
+  message. Answering a queued question puts it first (`asked_via: pane`). A blocked row (a node whose
+  envelope reads `BLOCKED` or `ESCALATE`, or an agent that returned `BLOCKED`) opens a brief that shows what the node is blocked on
+  and its `Blocked by:` line. `y` approves once and `w` approves for the run, each the narrowest
+  grant for that kind of block: at a command gate `y` approves that one command and `w` the gate for
+  the run; an interpreted block is overruled with `y` and the node re-dispatched on the default it
+  recommended. An explicit block, pause, a forbidden file or an enforced ruling has no approve key,
+  and the brief says what must be fixed (or `/baton resume`). Live, the answer did not reach the asking node: the note to the prime carries the
+  question's first line, not the answer, and nothing wakes the prime to re-dispatch (LV13 §11).
+- **The memory explorer.** Memory draws the notes as a table with aligned columns: `id`, `mark`,
+  `time` (local `HH:MM`), `source`, `text`. A summary row has a `+` and reads `(k notes) …`; `Enter` on
+  its `+` drills into its children and `b` comes back out, one level at a time. The keys are shown like `1`, `2` and `r`: `c` marks the
+  focused note ✅, `v` ❌ and `u` clears it; each asks `reason:`, and a dismissed dialog leaves the
+  mark as it was and the hint line reading `no mark: a reason is needed`. The `v: ❌ void` button
+  also marks by focus and Enter. `3` shows confirmed only and `4` void only; `s` switches between
+  the run's memory and the project memory. A note's view lists its mark history and who marked it.
+  On a ruling the hint reads `no mark: rulings are retracted, not marked`. Live, the note rows were
+  aligned but a summary row was not: its id was cut to `#16-19…`, its empty mark cell drew `…`, and
+  its text started two columns left of the `text` header (LV12 §1).
 
 ## For experiment E1
 
@@ -300,25 +416,73 @@ Every run below used Claude Code 2.1.287 in a temporary directory with
 | `/baton start` and `/baton` headless | stream-json, no model call | the manifest was written (`baton_base` is the local checkout), the start was noted, and the text pane printed |
 | tool names and `ENABLE_TOOL_SEARCH=false` | the init event of `-p "/baton status"` | the four `mcp__baton__memory_*` tools are listed |
 
-## Not verified (interactive UI only, or not reached)
+## The old "Not verified" list, checked live (v7.6)
 
-- **Drawing.** The pane, the band and the spinner were checked only through
-  `claude plugin test`'s `$.ui.mount` on terminal and desktop: the trees validate, the tabs switch,
-  and the text is right. Nobody has looked at them in a real terminal or in the Desktop app.
-- **Automatic rotation** (the threshold, then `$.session.compact` off the clock) and
-  **interactive `/baton rotate`** (the ticker). Headless sessions cannot compact from a mod, and
-  these paths were exercised only in `claude plugin test`. Whether the ticker's compaction is
-  accepted in an interactive session on 2.1.287 is untested. If it is refused, the session logs
-  why, and `/compact` still completes the rotation.
-- **The kickoff prompt after an interactive `/baton start`.** The ticker submits it. Headless, the
-  kickoff text rides in the command's output instead.
-- **Which wake channel fires.** In the live run the prime called `memory_wake` first, but the stream
-  does not show whether `SessionStart`'s `additionalContext` or the prompt's `context` carried the
-  instruction.
-- **The agentId runtime probe.** The mod logs a notice when a subagent finishes with no tool call
-  carrying its id while prime-classified calls were being refused. This path was never triggered.
+Each item was driven on 2026-10-31 in a real interactive Claude Code 2.1.316 session through the
+cmux CLI, in a scratch git repo under `$TMPDIR`, with the mod at the run tip. The screens and the
+session record of each are under the evidence path named.
+
+- **Automatic rotation at the threshold — verified.** With `rotateAtPercent` set to 7, a long answer
+  took the band's gauge to `7%/7%`; with nothing typed, the mod logged `context at 7% (≥ 7%) —
+  rotating the prime into memory`, the conversation compacted, and the mod logged `rotation #1
+  (plugin)` and the band read `↻1`. The fork's handoff note was in the run memory, so
+  `$.session.compact` off the clock is accepted in an interactive session. Evidence:
+  `/Users/clank/Desktop/projects/baton/_orch/nodes/LV3/work/result.md` (screens 32, 33, 36).
+- **Interactive `/baton rotate` and the ticker's compaction — verified.** At 5% context (threshold
+  35%), `/baton rotate` answered `handoff noted; compacting as soon as this command returns
+  (rotation #1)`, and a compaction followed with nothing typed; the mod logged `rotation #1
+  (plugin)` and the band read `↻1`. No "could not compact" line appeared: the ticker's compaction
+  is accepted, and the `/compact` fallback was not needed. Evidence:
+  `/Users/clank/Desktop/projects/baton/_orch/nodes/LV4/work/result.md` (screens 09, 10, 12).
+- **The kickoff prompt after an interactive `/baton start` — verified.** About 1 s after
+  `/baton start`, with nothing else sent, the screen showed `› Prompt from the baton plugin` and the
+  kickoff text, and the prime loaded `baton:prime` on it. Evidence:
+  `/Users/clank/Desktop/projects/baton/_orch/nodes/LV1/work/result.md` (screens 05, 06).
+- **The agentId runtime probe — verified with the fault injected.** A healthy 2.1.316 sends
+  `agentId`, so the condition cannot occur on its own. In a scratch copy of the mod with `agentId`
+  stripped from `tool.call` (the fault, Q-4 answer A), a subagent's `Bash` and `SubagentHandback`
+  calls were refused as the prime's, and when it finished the transcript and `/baton status` showed
+  `a subagent finished with no tool call carrying its agentId while prime-classified calls were
+  refused — agentId detection may be broken on this build. The guard fails closed`. Evidence:
+  `/Users/clank/Desktop/projects/baton/_orch/nodes/LV5/work/result.md` (screens 06, 07, 08).
+- **The pane opening by itself at 144 or more columns, and the band's hint below that —
+  verified.** At 165 columns the pane opened beside the transcript about 12 s after start, with no
+  `/baton` typed. At 82 columns no pane was placed and the band ended with `/baton opens the pane`
+  for the whole session. Evidence: `/Users/clank/Desktop/projects/baton/_orch/nodes/LV2/work/result.md`
+  (screens 02, 05, 09).
+
+## Other v7.6 checks seen live
+
+The same way, one result each; a refuted line is a known gap, listed in `CHANGELOG.md` (v7.6.0).
+
+| unit | what was checked | result | evidence |
+|---|---|---|---|
+| T3 | the band shows a cost covering every model that served | verified, as one total equal to `/cost` | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV6/work/result.md` §2 |
+| T3 | `_orch/spend.json` shows a cost for every model that served | refuted: it holds token counts, no cost; the engine's own Haiku calls are missing; a 1-hour cache write is priced as a 5-minute one | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV6/work/result.md` §1 |
+| T7 | `cd` into a run arms nothing and writes no notes; a second session is asked, and if declined is not armed and says why; a takeover; a restart picks the run up; a headless second session is not armed | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV7/work/result.md` §1-§6, §8-§10 |
+| T7 | that headless session's output says why it is not armed | refuted: its start-up context says it is the prime | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV7/work/result.md` §7 |
+| T8 | the prime's row reads `opus 5.5` | refuted: cut to `opus 5.…` before the first turn, whole after it | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV8/work/result.md` §1 |
+| T9 | agent and phase rows open by Enter and by their letters, keys shown like `1`, `2`, `r`, no shared letter, `p` shows and hides node rows | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV9/work/result.md` §1-§9, §11-§13 |
+| T9 | a row's letter opens it from inside an opened view | refuted: Claude Code types the letter into the prompt | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV9/work/result.md` §10 |
+| T10 | the legend, phase rows under the prime, distinct phase and sub-orchestrator rows, pending rows, the phase view, the column groups, roll-up tokens, no plan section, `p`, the queue line under the goal row | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV10/work/result.md` §1-§3, §5, §7-§9, §12-§16 |
+| T10 | the sub-orchestrator's indent, the phase row's stepper, empty `this agent` and `roll-up` cells | refuted: cut in the squeezed table | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV10/work/result.md` §4, §6, §10, §11 |
+| T11 | steps on the prime, sub-orchestrator, worker and verifier rows | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV11/work/result.md` §1-§4 |
+| T12 | drilling into a summary and back, the keys shown and working | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV12/work/result.md` §2-§6 |
+| T12 | aligned columns | refuted for summary rows (note rows are aligned) | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV12/work/result.md` §1 |
+| T13 | `?` and blocked rows open by Enter and by letter, their briefs, answering writes the file and removes the row, approving grants the narrowest thing, `queued for G<n>` then `waiting for you`, the band's count | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV13/work/result.md` §1-§10, §12-§22 |
+| T13 | the answer reaches the asking node | refuted: the prime's note carries the question, not the answer, and the prime is not woken | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV13/work/result.md` §11 |
+| T14 | a note marked ❌ in the pane leaves `memory_wake`, `include_void` still finds it, the mark column, filters, keys, reason dialog, project memory | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV14/work/result.md` §1-§27 |
+| T15 | the list fills the pane and scrolls, every agent reached, running rows in view, no fold line, PageDown, `↓ <k> more`, letters kept while scrolled and after a reopen | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV15/work/result.md` §1-§10, §12-§16 |
+| T15 | `End` moves the focus to the last row | refuted: the window moves, the focus stays | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV15/work/result.md` §11 |
+
+## Still not verified
+
+- **Drawing in the Desktop app.** The pane and the band have now been seen in a real terminal
+  (above); nobody has looked at them in the Desktop app.
+- **Which wake channel fires,** and whether the prime's first act after an interactive rotation is
+  `memory_wake`. No prompt was sent to the prime after the live rotations.
 - **A sub-orchestrator bootstrap of a full run, a red/green/blue node checked by a verifier, and
-  TEAM mode under v7.** None of these has been run.
+  TEAM mode under v7.** None of these has been run with the v7 mod alone.
 
 ## Known risks
 
