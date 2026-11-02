@@ -2687,7 +2687,8 @@ function itemId(x) {
  * A list that fits is drawn whole. One that does not is a window from its top row, with its pinned
  * strips and more lines (lib/view.mjs listWindow); the spacer above it and the `no phases yet` row go,
  * and the pane's last row stays empty, so the engine's Home and End (`contentRows`) are told from its
- * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row).
+ * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row). It is all counted in screen lines, a
+ * row of a two-line table two (P4-FX3-d3); the spacer stays for the one line such a row may leave over.
  */
 function placeList(body, rows, { Text, Box }) {
   const L = pane.list
