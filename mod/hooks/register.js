@@ -43,15 +43,19 @@ const run = {
 }
 
 // Run membership (spec T7, Q-7, Q-8, Q-29): recorded at session.start, keyed to the session id
-// and the manifest's prime_session {id, heartbeat_at}. Until a session.start records it, the
-// manifest under the current directory decides, as before.
+// and the manifest's prime_session {id, heartbeat_at}. Recorded by whichever of session.start and the
+// startup SessionStart runs first (ensureMembership); only if that fails does the manifest under the
+// current directory decide, as before.
 const membership = {
-  recorded: false, // session.start (or /baton start) recorded this session's membership
+  recorded: false, // session.start, the startup SessionStart or /baton start recorded this session's membership
   member: false, // this session is the run's own: the guard arms and it writes run notes
   dir: null, // the run's directory, recorded with it
   id: null, // the session id this session last wrote to prime_session
   runId: null, // the run the start saw, member or not
   why: null, // why this session is not armed (Q-29), or why it was disarmed (Q-8); on the band
+  once: null, // the one recording of this process, by session.start or the startup SessionStart, whichever runs first
+  unasked: null, // {id, why, other}: left unarmed by a start that could not tell a person is at the prompt
+  takeoverWake: null, // the pick-up text owed to the next prompt after a take-over (P4-d3), or null
 }
 // The session's own model ($.session.model()), read at session.start and on /baton: the prime's row
 // shows it until a request of its own names what served, and a mismatch compares against it (T8, Q-22).
@@ -423,7 +427,7 @@ async function recordMembership($, e) {
       dir = await $.session.cwd()
     } catch {}
   }
-  Object.assign(membership, { recorded: true, member: false, dir: dir || null, id: null, runId: null, why: null })
+  Object.assign(membership, { recorded: true, member: false, dir: dir || null, id: null, runId: null, why: null, unasked: null })
   run.active = false
   forgetRunCache()
   const m = await readManifest($, membership.dir)
@@ -433,11 +437,47 @@ async function recordMembership($, e) {
   const other = livePrimeElsewhere(m, id)
   if (!other) return claimRun($, id)
   const why = notArmedLine(membership.runId, other)
-  const ask = e && typeof e.isInteractive === 'boolean' ? e.isInteractive : await interactive($)
-  if (!ask) return stayUnarmed($, why)
-  // Asked once the session is up, not inside its start; unarmed until the answer is yes.
+  const known = !!e && typeof e.isInteractive === 'boolean'
+  const ask = known ? e.isInteractive : await interactive($)
+  if (!ask) {
+    // The startup SessionStart has no isInteractive: session.start may still say a person is there, and ask.
+    if (!known) membership.unasked = { id, why, other }
+    return stayUnarmed($, why)
+  }
+  scheduleAsk($, id, why, other)
+}
+
+// Asked once the session is up, not inside its start; unarmed until the answer is yes.
+function scheduleAsk($, id, why, other) {
+  membership.unasked = null
   $.clock.after(0, () => askTakeover($, id, why, other).catch(() => stayUnarmed($, why)))
 }
+
+/**
+ * Record run membership once per process, before anything reads it (T7). At Claude Code 2.1.316 the
+ * startup SessionStart hook runs before session.start, so whichever comes first records it and the
+ * other waits on the same recording: until then the manifest under the current directory would decide,
+ * and a second session in the run's directory would be told it is the prime. A start that could not
+ * tell a person is at the prompt left the session unarmed; session.start, which can, asks then (Q-8).
+ */
+async function ensureMembership($, e) {
+  if (!membership.once) {
+    membership.once = recordMembership($, e).catch((err) => {
+      membership.recorded = false // could not record: the manifest under the current directory decides, as before
+      membership.once = null
+      throw err
+    })
+    return membership.once
+  }
+  await membership.once
+  const u = membership.unasked
+  if (u && e && e.isInteractive === true && membership.recorded && !membership.member) scheduleAsk($, u.id, u.why, u.other)
+}
+
+/** What a session that picks the run up (restart, resume, take-over) is told: it is the prime, and must wake. */
+const pickUpContext = (m) =>
+  'baton: this session is the prime of run ' + (m.run_id || '?') + ' (MODE ' + (m.mode || '?') + ', TARGET ' + (m.target || '?') + '), which an earlier session started. ' +
+  'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
 
 async function askTakeover($, id, why, other) {
   let answer = null
@@ -452,6 +492,8 @@ async function askTakeover($, id, why, other) {
   try {
     await registerMemoryTools($)
   } catch {}
+  // The startup SessionStart has already run, unarmed: the next prompt carries the pick-up a restart gets (P4-d3).
+  membership.takeoverWake = pickUpContext((await readManifest($, membership.dir)) || { run_id: membership.runId })
   $.ui.log('baton: this session took over as the prime of run ' + membership.runId)
   $.ui.invalidate('ui.render')
 }
@@ -510,8 +552,42 @@ async function memoryArgs($, which, namespace) {
     const md = String(config.memoryDir || '.baton/memory')
     dir = md.startsWith('/') ? md : (await $.session.root()) + '/' + md
   }
-  const ns = cleanNamespace(namespace)
+  const ns = which === 'project' ? projectNamespace(namespace) : cleanNamespace(namespace)
   return ns ? ['--dir', dir, '--ns', ns] : ['--dir', dir]
+}
+
+/**
+ * A project namespace as memo is given it: cleaned, and any letter case of `rulings` folded to `rulings`
+ * (decision P4-FX6-d1), so no store is ever made as ns/Rulings beside, or in place of, ns/rulings.
+ */
+function projectNamespace(namespace) {
+  const ns = cleanNamespace(namespace)
+  return ns !== null && ns.toLowerCase() === RULINGS_NS ? RULINGS_NS : ns
+}
+
+/** Where a directory lands (every symbolic link followed), or null when it is not there. */
+async function realDir($, p) {
+  try {
+    const s = await $.fs.stat(p, { resolve: true })
+    return s && s.kind === 'dir' && s.realPath ? String(s.realPath) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Is this project namespace the rulings store (R-C15-119, Q-86)? The one test every mark path, every
+ * marks reader and the explorer's listing use: `rulings` in any letter case (a file system that folds
+ * case makes ns/Rulings the rulings store), or any name whose directory lands where ns/rulings does (a
+ * symbolic link). The landing paths are compared without letter case, for the same reason.
+ */
+async function isRulingsStore($, namespace) {
+  const ns = projectNamespace(namespace)
+  if (ns === null) return false
+  if (ns === RULINGS_NS) return true
+  const base = (await memoryArgs($, 'project'))[1] + '/ns/'
+  const [here, rulings] = await Promise.all([realDir($, base + ns), realDir($, base + RULINGS_NS)])
+  return here !== null && rulings !== null && here.toLowerCase() === rulings.toLowerCase()
 }
 
 // ------------------------------------------------------------------ the code index
@@ -1133,6 +1209,7 @@ async function notNoted($, what) {
 
 /** Write one mark record: `who` is operator or prime. A ❌ queues the rebuilds above it. */
 async function writeMark($, which, namespace, id, mark, reason, who, session) {
+  if (which === 'project' && (await isRulingsStore($, namespace))) throw new Error(MARK_REFUSED.rulings)
   const args = await memoryArgs($, which, namespace)
   await memoRun($, [...args, '--json', '--who', who, ...(session ? ['--session', String(session)] : []), 'mark', '--', id, mark, '-'], reason)
   pane.marksSeen++
@@ -1146,7 +1223,8 @@ async function markTool($, e, which) {
   const outside = await outsideRun($)
   if (outside) return { deny: outside }
   const namespace = which === 'project' ? cleanNamespace(e.namespace) : null
-  if (namespace === RULINGS_NS) return { deny: MARK_REFUSED.rulings }
+  // Under any name (R-C15-119): any letter case, or a symbolic link to it (isRulingsStore).
+  if (which === 'project' && (await isRulingsStore($, namespace))) return { deny: MARK_REFUSED.rulings }
   const id = markId(e.id)
   if (!id) return { deny: 'baton: "' + String(e.id ?? '') + '" is not a note number or a summary range lo-hi, as ' + (which === 'project' ? 'project_wake' : 'memory_wake') + ' prints them; no mark made' }
   const mark = String(e.mark ?? '')
@@ -1227,7 +1305,7 @@ async function rebuildAbove($, { which, namespace, id }) {
 
 /** memo's wake, zoom or recall text with the marks applied (Q-76, Q-77, Q-84, Q-90); unchanged when nothing is marked. */
 async function withMarks($, args, out, { includeVoid = false, pattern = null, which = 'run', namespace = null } = {}) {
-  if (namespace === RULINGS_NS) return out
+  if (which === 'project' && (await isRulingsStore($, namespace))) return out
   const view = await markView($, args)
   if (!view.records.length) return out
   const end = out.endsWith('\n') ? '\n' : ''
@@ -2177,13 +2255,28 @@ async function answerQuestion($, id) {
     return said('not answered: could not write ' + base + '.answer.md (' + err.message + ')')
   }
   const nodes = nodesBlocked(text)
-  await noteQuietly($, 'answered ' + id + ' from the pane: ' + first + '. Re-dispatch ' + (nodes.join(', ') || 'the node that asked') + ' with it', 'operator')
+  const who = nodes.join(', ') || 'the node that asked'
+  // The prime cannot read the answer file (the prime guard), so what it is handed carries the answer itself (R-C14-12).
+  await noteQuietly($, 'answered ' + id + ' from the pane: ' + answer + '. Re-dispatch ' + who + ' with it', 'operator')
+  const told = []
   for (const nid of nodes) {
     for (const n of liveAgentsOn(nid)) {
       try {
-        await $.session.send({ to: { agentId: n.id }, text: 'baton: the operator answered ' + id + ' (' + first + '): ' + answer })
+        const r = await $.session.send({ to: { agentId: n.id }, text: 'baton: the operator answered ' + id + ' (' + first + '): ' + answer })
+        if (r && r.isDelivered) told.push(n.label || n.id)
       } catch {}
     }
+  }
+  // Q-36 "re-dispatches the asking node at once": a note alone waits for the prime's next turn, so the prime is woken
+  // with a turn of its own, as the pane's send-back does (R-C14-23).
+  const wake =
+    'The operator answered ' + id + ' from the pane (' + first + '): "' + answer + '". The record is ' + base + '.answer.md. ' +
+    'Re-dispatch ' + who + ' now with this answer in its handoff, before anything else.' +
+    (told.length ? ' Its live agent ' + told.join(', ') + ' was also sent the answer.' : '')
+  try {
+    $.prompt.submit({ text: wake }).catch((err) => $.ui.log('baton: could not hand the answer to the prime: ' + err.message))
+  } catch (err) {
+    $.ui.log('baton: could not hand the answer to the prime: ' + err.message)
   }
   if (track.view) track.view.questions = (track.view.questions || []).filter((q) => q.id !== id)
   track.dirty = true
@@ -2241,6 +2334,9 @@ function detailBody($, { Box, Text, Button, line }) {
       ],
     }),
   ]
+  // The rows' letters, under the title: pressed here, each opens its row (R-C9-05), so none reaches the prompt.
+  const letters = rowLetterKeys($, Button, new Set((d.view.keys || []).map((k) => k.hotkey)))
+  if (letters.length) out.push(Box({ key: 'd-rows', flexDirection: 'row', flexWrap: 'wrap', children: [Text({ dimColor: true, children: ['rows '] }), ...letters] }))
   d.view.lines.forEach((segs, i) => {
     if (!segs.length) out.push(Text({ children: [' '] }))
     else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: x.wrap ? 'wrap' : 'truncate-end', ...tone(x), children: [x.text] })) }))
@@ -2496,9 +2592,10 @@ function lineKeys(x, at) {
 }
 
 /**
- * Swap two drawn list keys (Home, End): the focus ring holds an element by its key, and a plugin's
- * `$.ui.focus` is refused while the person, not the plugin, holds the keyboard; so the row the focus
- * moves to is drawn with the key the ring holds, and the row that had it takes that row's key.
+ * Swap two drawn list keys (Home, End): the row the focus moves to is drawn with the key the ring held,
+ * and the row that had it takes that row's key; landFocus then puts the engine's ring on that key once
+ * the new drawing is in. (The 2.1.316 test kit has no `$.ui.focus` for a plugin and keeps its ring by
+ * key, so there the swap alone moves the focus.)
  */
 function swapKeys(a, b) {
   const al = pane.list.alias
@@ -2506,6 +2603,42 @@ function swapKeys(a, b) {
   const [na, nb] = [natural(a), natural(b)]
   al.set(na, b).set(nb, a)
   for (const [k, v] of al) if (k === v) al.delete(k)
+}
+
+/**
+ * Put the engine's focus ring on `key` once the drawing Home or End asked for is in (R-C16-21, R-C16-60).
+ * The engine holds the ring by its place among the pane's elements, not by key, so a redraw that scrolls
+ * the list leaves it on whatever element now stands there (LV15 section 11), and only `$.ui.focus` moves
+ * it. It is asked after the new drawing, and only while the person has not moved the ring meanwhile.
+ */
+async function landFocus($, key) {
+  const why = (x) => (x && x.message ? x.message : String(x))
+  try {
+    await $.clock.sleep(LAND_AFTER_MS)
+    if (pane.list.focus !== key || !pane.open || pane.detail) return
+    const r = await $.ui.focus({ requestId: PANE, key })
+    if (r && r.deny) $.ui.log('baton: the focus did not move onto ' + key + ': ' + r.deny)
+  } catch (err) {
+    try {
+      $.ui.log('baton: the focus did not move onto ' + key + ': ' + why(err))
+    } catch {}
+  }
+}
+
+/**
+ * In an opened view a row's letter still opens that row (key-scheme.md section 3, R-C9-05): each lettered
+ * row's key on a bare Button, as a scrolled-out row's is (Q-67). The view's own keys (a, y, w on a brief) win.
+ */
+function rowLetterKeys($, Button, own) {
+  const kinds = { agent: 'agent', phase: 'phase', q: 'question', blocked: 'node' }
+  return [...pane.letters]
+    .filter(([, k]) => !own.has(k))
+    .sort((a, b) => ROW_LETTERS.indexOf(a[1]) - ROW_LETTERS.indexOf(b[1]))
+    .flatMap(([id, k]) => {
+      const i = id.indexOf(':')
+      const kind = kinds[id.slice(0, i)]
+      return kind ? [Button({ key: 'hk-' + k, label: '', hotkey: k, plain: true, dimColor: true, onPress: () => openDetail($, kind, id.slice(i + 1)) })] : []
+    })
 }
 
 /** One line of the list: its row with its `›` (and ✉ while it runs). */
@@ -2538,6 +2671,9 @@ const LIST = Symbol('the agent list')
 const GAP = Symbol('a spacer line the list may take')
 // The empty bottom rows the pane keeps while the list scrolls (Q-F115-1 A); none while it fits.
 const SPARE_ROWS = 1
+// How long after Home or End the ring is put on the row they moved to: past the engine's redraw (at most
+// thirty a second for a shown pane), well before a person's next key (landFocus).
+const LAND_AFTER_MS = 150
 
 /** A list item's identity, what the window's top row is held by (Q-65). */
 function itemId(x) {
@@ -2880,7 +3016,9 @@ function rowGlyph(row) {
 async function readProjectMemory($, budget) {
   const base = await memoryArgs($, 'project')
   const entries = (await listDir($, base[1] + '/ns')) || []
-  const names = entries.filter((x) => x && x.kind !== 'file' && cleanNamespace(x.name) === x.name && x.name !== RULINGS_NS).map((x) => x.name).sort()
+  const names = []
+  for (const x of entries) if (x && x.kind !== 'file' && cleanNamespace(x.name) === x.name && !(await isRulingsStore($, x.name))) names.push(x.name)
+  names.sort()
   const top = browse.stack.at(-1)
   const [topNs, range] = top ? [top.slice(0, top.indexOf('|')) || null, top.slice(top.indexOf('|') + 1)] : [null, null]
   const tiles = []
@@ -2955,7 +3093,7 @@ async function paneMark($, mark, rows) {
   const d = pane.mdetail
   const row = d ? d.mem || (d.ruling ? { ruling: true } : null) : pane.memFocusRow
   if (!row) return memHint($, 'focus a note or summary row to mark it')
-  if (row.ruling) return memHint($, 'no mark: rulings are retracted, not marked')
+  if (row.ruling || (row.which === 'project' && (await isRulingsStore($, row.ns)))) return memHint($, 'no mark: rulings are retracted, not marked')
   let answer = ''
   try {
     answer = String(await $.ui.ask('reason:', REASON_LABELS))
@@ -3935,11 +4073,11 @@ export function register(on, options) {
       if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
     } catch {}
     await readSessionModel($)
-    // Run membership is recorded here, once (T7): where the session started, and whose run it is.
+    // Run membership is recorded once (T7): where the session started, and whose run it is. Here,
+    // or already by the startup SessionStart, which 2.1.316 runs first (ensureMembership).
     try {
-      await recordMembership($, e)
+      await ensureMembership($, e)
     } catch (err) {
-      membership.recorded = false // could not record: the manifest under the current directory decides, as before
       $.ui.log('baton: could not record run membership: ' + err.message)
     }
     // The memory tools exist for a run; a session with none sees no new tools.
@@ -4298,10 +4436,16 @@ export function register(on, options) {
 
   // After a compaction the engine raises SessionStart with source "compact":
   // hand the prime the wake instruction there.
-  // A new session (or a resumed one) in a directory with an active run is the prime of that run,
-  // picking up where another session left off: it must wake from the memory before anything else.
+  // A new session (or a resumed one) that is the run's own by its recorded membership (T7) is the
+  // prime of that run, picking up where another session left off: it must wake from the memory
+  // before anything else. One left unarmed by a live prime elsewhere is told why instead (Q-29).
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
     const r = await next(e)
+    // At 2.1.316 this hook runs before session.start: record membership first, or a second session in the
+    // run's directory is told it is the prime, gets the memory tools and writes a run note (T7, LV7 §7).
+    try {
+      await ensureMembership($, { cwd: e.cwd })
+    } catch {}
     forgetRunCache()
     if (!(await runActive($))) {
       // A session left unarmed by a live prime elsewhere is told why in its output too (Q-29).
@@ -4311,9 +4455,8 @@ export function register(on, options) {
       await registerMemoryTools($)
     } catch {}
     const m = run.manifest || {}
-    const text =
-      'baton: this session is the prime of run ' + (m.run_id || '?') + ' (MODE ' + (m.mode || '?') + ', TARGET ' + (m.target || '?') + '), which an earlier session started. ' +
-      'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
+    const text = pickUpContext(m)
+    membership.takeoverWake = null // told here; the next prompt need not repeat it
     await noteQuietly($, 'a new session picked the run up (' + e.source + ')', 'handoff')
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), text] }
   }).catch(failOpen)
@@ -4352,7 +4495,13 @@ export function register(on, options) {
       })
     }
     // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
-    const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
+    const active = await runActive($)
+    let wake = rotation.pendingWake && active ? takeWake() : null
+    // A take-over (P4-d3): the pick-up the startup hook could not give, once, on the first prompt after the yes.
+    if (!wake && membership.takeoverWake && active && membership.member) {
+      wake = membership.takeoverWake
+      membership.takeoverWake = null
+    }
     if (!wake) return next(e)
     return next({ ...e, context: [...(e.context ?? []), wake] })
   }).catch(failOpen)
@@ -4596,15 +4745,12 @@ export function register(on, options) {
     if (focusAt !== null) {
       const w = listWindow(L.n, top, L.area, pin)
       const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
-      // The ring is on a list row: its key is drawn on the first or last row now (swapKeys).
+      // The ring is on a list row: the key it held is drawn on the first or last row now (swapKeys).
       if (L.focus && L.keys.has(L.focus)) {
         if (L.focus !== key) swapKeys(key, L.focus)
-      } else {
-        L.focus = key
-        try {
-          Promise.resolve($.ui.focus({ requestId: PANE, key })).catch(() => {})
-        } catch {}
-      }
+      } else L.focus = key
+      // The ring is held by place, not by key: once this drawing is in, it is put on that row (landFocus).
+      landFocus($, L.focus)
     }
     return {}
   }).catch(failOpen)
