@@ -2255,13 +2255,28 @@ async function answerQuestion($, id) {
     return said('not answered: could not write ' + base + '.answer.md (' + err.message + ')')
   }
   const nodes = nodesBlocked(text)
-  await noteQuietly($, 'answered ' + id + ' from the pane: ' + first + '. Re-dispatch ' + (nodes.join(', ') || 'the node that asked') + ' with it', 'operator')
+  const who = nodes.join(', ') || 'the node that asked'
+  // The prime cannot read the answer file (the prime guard), so what it is handed carries the answer itself (R-C14-12).
+  await noteQuietly($, 'answered ' + id + ' from the pane: ' + answer + '. Re-dispatch ' + who + ' with it', 'operator')
+  const told = []
   for (const nid of nodes) {
     for (const n of liveAgentsOn(nid)) {
       try {
-        await $.session.send({ to: { agentId: n.id }, text: 'baton: the operator answered ' + id + ' (' + first + '): ' + answer })
+        const r = await $.session.send({ to: { agentId: n.id }, text: 'baton: the operator answered ' + id + ' (' + first + '): ' + answer })
+        if (r && r.isDelivered) told.push(n.label || n.id)
       } catch {}
     }
+  }
+  // Q-36 "re-dispatches the asking node at once": a note alone waits for the prime's next turn, so the prime is woken
+  // with a turn of its own, as the pane's send-back does (R-C14-23).
+  const wake =
+    'The operator answered ' + id + ' from the pane (' + first + '): "' + answer + '". The record is ' + base + '.answer.md. ' +
+    'Re-dispatch ' + who + ' now with this answer in its handoff, before anything else.' +
+    (told.length ? ' Its live agent ' + told.join(', ') + ' was also sent the answer.' : '')
+  try {
+    $.prompt.submit({ text: wake }).catch((err) => $.ui.log('baton: could not hand the answer to the prime: ' + err.message))
+  } catch (err) {
+    $.ui.log('baton: could not hand the answer to the prime: ' + err.message)
   }
   if (track.view) track.view.questions = (track.view.questions || []).filter((q) => q.id !== id)
   track.dirty = true
