@@ -2418,15 +2418,17 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   restoreLetters(ids)
   assignLetters(pane.letters, ids)
   saveLetters($)
-  const { t, lineOf } = treeTable(items, () => tableWidth(items, cols), { fit: true })
+  const { t, lineOf } = treeTable(items, () => tableWidth(items, cols), { fit: true, lead: 4, rowWidth: cols })
+  // A table too wide for one line a row is drawn two lines a row (P4-FX3-d2): each row Box wraps at its break.
+  const wrapRow = t.wrap ? { flexWrap: 'wrap' } : {}
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
   const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
   out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
-  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box))
-  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button) } })
+  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box), wrapRow)
+  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? 2 : 1 } })
   out.push(...messageField($, { Box, Text, Input }))
   return out
 }
@@ -2462,6 +2464,8 @@ function rowCells(x, segs, labelFirst, tone, Text, Box) {
 function segEl(y, text, Box, Text) {
   const none = (s) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [Text({ wrap: 'truncate-end', children: [s] })] })
   if (y.hidden) return [none(y.text)]
+  // a two-line table's break: a box as wide as the row and no rows tall, so what follows starts a new line
+  if (y.brk != null) return [Box({ width: y.brk, height: 0 })]
   if (y.drawn == null) return text(y, false)
   const chars = [...y.text]
   const vis = [...y.text.trimEnd()]
@@ -2505,18 +2509,18 @@ function swapKeys(a, b) {
 }
 
 /** One line of the list: its row with its `›` (and ✉ while it runs). */
-function itemLine($, x, at, { Box, Text, Button }, cells) {
+function itemLine($, x, at, { Box, Text, Button }, cells, wrapRow = {}) {
   const k = lineKeys(x, at)
   if (x.kind === 'note') return Box({ key: k.box, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] })
   // Enter on a row's › opens its view: an agent's, a phase's (its steps, nodes and spend, Q-54), a node's.
-  if (x.kind === 'phase') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells()] })
+  if (x.kind === 'phase') return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children: [Button({ key: k.open, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells()] })
   // A blocked node row (Q-38) also holds a direct key; its view opens with the brief.
-  if (x.kind === 'node') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells()] })
+  if (x.kind === 'node') return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children: [Button({ key: k.open, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells()] })
   const r = x.r
   const open = r.id ? [Button({ key: k.open, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
   const children = [...open, ...cells()]
   if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: k.msg, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
-  return Box({ key: k.box, flexDirection: 'row', children })
+  return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children })
 }
 
 /** A row scrolled out of view keeps its direct key: a Button on its edge's more line carries it (Q-67). */
@@ -2552,12 +2556,13 @@ function placeList(body, rows, { Text, Box }) {
   const at = body.findIndex((x) => x && x[LIST])
   L.on = at >= 0
   if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
-  const { items, draw, hidden } = body[at][LIST]
-  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries.
-  const others = 2 + body.length - 1
+  const { items, draw, hidden, lines: per = 1 } = body[at][LIST]
+  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries (the
+  // header one more when the table takes two lines a row, P4-FX3-d2, as each list row then does).
+  const others = 2 + body.length - 1 + (per - 1)
   const gaps = body.filter((x) => x && x[GAP]).length
-  const area = rows - SPARE_ROWS - others + gaps
-  const fits = items.length <= rows - others || area < 3
+  const area = Math.floor((rows - SPARE_ROWS - others + gaps) / per)
+  const fits = items.length * per <= rows - others || area < 3
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
   const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)

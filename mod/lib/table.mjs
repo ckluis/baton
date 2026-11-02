@@ -74,8 +74,9 @@ export function fitColumns(width, modelW = MODEL_MIN, agentW = 0) {
  * cells and the steps) narrow to their widest value (never under their title); then the agent label is cut in
  * the drawing (`dw`, its drawn width), never into its indent and mark (`need.agentMin`); then state (Q-11).
  * The label stays whole in the table's text (`w`, D-F110: a row is told by its whole label): only the drawn
- * cell is narrower. `need` holds the widest value of each column. A pane narrower than even that draws the
- * rest past its edge, as D-F110 has it. Widths count the gaps between columns only, as a row draws them.
+ * cell is narrower. `need` holds the widest value of each column. Still too wide, a row takes two lines
+ * (`breakAt`, below, P4-FX3-d2); a pane narrower than even that draws the rest past its edge, as D-F110 has it.
+ * Widths count the gaps between columns only, as a row draws them.
  */
 export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
   let cols = COLUMNS.map((c) => ({ ...c, w: sized(c, modelW, agentW) }))
@@ -95,6 +96,40 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
     const c = cols.find((x) => x.id === id)
     c.dw = Math.max(Math.min(c.dw, floor[id]), c.dw - over)
     if (id === 'state') c.w = c.dw
+  }
+  if (total() > width) {
+    // Still too wide (a 73-column dock under a deep tree with effort-marked models, FX3 attempt 3, P4-FX3-d2): a row
+    // takes two lines so no cell is cut. The first line holds the label, the model and both groups, the second the
+    // steps and state, set under the model column (`breakAt` steps); narrower still, the first line holds the label
+    // and the model and the second the groups, steps and state, set under the label (`breakAt` cost). The label gets
+    // back what the first line leaves; state is whole again where the second line has room, else cut (Q-11).
+    const agent = cols.find((c) => c.id === 'agent')
+    const state = cols.find((c) => c.id === 'state')
+    const stateW = Math.max(state.title.length, Math.min(COLUMNS.find((c) => c.id === 'state').w, need.state ?? 0))
+    const span = (cs) => cs.reduce((n, c, i) => n + c.dw + (i < cs.length - 1 ? gapOf(c) : 0), 0)
+    const keep = { agent: agent.dw, state: state.dw }
+    for (const id of ['steps', 'cost']) {
+      const at = cols.findIndex((c) => c.id === id)
+      if (at <= 0) continue
+      const first = cols.slice(0, at)
+      agent.dw = keep.agent
+      if (span(first) > width) continue
+      agent.dw = Math.min(agent.w, agent.dw + (width - span(first)))
+      const lead2 = id === 'steps' ? agent.dw + gapOf(agent) : 0 // where the second line starts, past the row's own lead
+      const second = cols.slice(at)
+      state.dw = stateW
+      const over = lead2 + span(second) - width
+      if (over > 0) state.dw = Math.max(CUT_MIN.state, state.dw - over)
+      if (lead2 + span(second) > width) continue
+      state.w = state.dw
+      cols.breakAt = id
+      cols.lead2 = lead2
+      break
+    }
+    if (!cols.breakAt) {
+      agent.dw = keep.agent
+      state.dw = state.w = keep.state
+    }
   }
   return cols
 }
@@ -181,10 +216,17 @@ export function agentTable(rows, width = 140, opts = {}) {
   })
   const cols = opts.fit ? fitDrawn(width, widest((r) => r.model), widest((r) => r.label), need()) : fitColumns(width, widest((r) => r.model), widest((r) => r.label))
   const narrowed = (c) => c.dw != null && c.dw < c.w
+  // A two-line table (fitDrawn's `wrap`): before the steps, a line break (`brk`, the row's full width, opts.rowWidth)
+  // and a pad that sets the second line under the model column (opts.lead: the cells a row draws before its table).
+  const wrap = !!cols.breakAt
+  const breaks = (c) => wrap && c.id === cols.breakAt
+  const lastOf = (i) => i === cols.length - 1 || breaks(cols[i + 1])
+  const breakSegs = () => [{ text: '', brk: opts.rowWidth ?? width }, { text: ' '.repeat((opts.lead ?? 0) + cols.lead2), tone: undefined }]
   const header = []
   cols.forEach((c, i) => {
-    if (narrowed(c)) header.push(...drawnCell(pad(c.title, c.w, c.right), 'rail', c, i === cols.length - 1, true))
-    else header.push({ text: pad(c.title, c.w, c.right) + (i < cols.length - 1 ? ' '.repeat(gapOf(c)) : ''), tone: 'rail' })
+    if (breaks(c)) header.push(...breakSegs())
+    if (narrowed(c)) header.push(...drawnCell(pad(c.title, c.w, c.right), 'rail', c, lastOf(i), true))
+    else header.push({ text: pad(c.title, c.w, c.right) + (!lastOf(i) ? ' '.repeat(gapOf(c)) : ''), tone: 'rail' })
   })
   const lines = rows.map((r) => {
     const k = components(r.acc)
@@ -207,10 +249,11 @@ export function agentTable(rows, width = 140, opts = {}) {
     }
     const segs = []
     cols.forEach((c, i) => {
+      if (breaks(c)) segs.push(...breakSegs())
       const parts = cells[c.id]
       const visible = parts.map((p) => p.text).join('')
       const padded = pad(visible, c.w, c.right)
-      if (parts.length === 1 && narrowed(c)) return segs.push(...drawnCell(padded, parts[0].tone, c, i === cols.length - 1))
+      if (parts.length === 1 && narrowed(c)) return segs.push(...drawnCell(padded, parts[0].tone, c, lastOf(i)))
       if (parts.length === 1) segs.push({ text: padded, tone: parts[0].tone })
       else {
         // a multi-part cell (the steps): keep each part's tone, pad after the last
@@ -224,15 +267,15 @@ export function agentTable(rows, width = 140, opts = {}) {
         }
         if (used < c.w) segs.push({ text: ' '.repeat(c.w - used), tone: undefined })
       }
-      if (i < cols.length - 1) segs.push({ text: ' '.repeat(gapOf(c)), tone: undefined })
+      if (!lastOf(i)) segs.push({ text: ' '.repeat(gapOf(c)), tone: undefined })
     })
     return segs
   })
-  return { header, groups: groupLine(cols), lines, cols: cols.map((c) => c.id) }
+  return { header, groups: groupLine(cols, opts.lead ?? 0), lines, cols: cols.map((c) => c.id), wrap }
 }
 
 /** The group line above the column names: each group's label at the start of its first cell (D-T10R-group-columns). */
-function groupLine(cols) {
+function groupLine(cols, lead = 0) {
   const segs = []
   let at = 0
   let used = 0
@@ -240,6 +283,18 @@ function groupLine(cols) {
   // what a narrowed column (fitDrawn) leaves undrawn before a label: hidden, so the label is drawn over its cells
   let hide = 0
   for (const c of cols) {
+    if (c.group && c.group !== last && cols.breakAt === 'cost' && !used) {
+      // the groups start the second line, `lead` cells in (the group line itself is drawn two cells in, register.js)
+      const drawnAt = Math.max(0, lead - 2)
+      if (drawnAt) segs.push({ text: ' '.repeat(drawnAt), tone: undefined })
+      if (at > drawnAt) segs.push({ text: ' '.repeat(at - drawnAt), tone: undefined, hidden: true })
+      segs.push({ text: c.group, tone: 'rail' })
+      used = at + c.group.length
+      last = c.group
+      at += c.w + gapOf(c)
+      hide = 0
+      continue
+    }
     if (c.group && c.group !== last) {
       if (at - hide > used) segs.push({ text: ' '.repeat(at - hide - used), tone: undefined })
       if (hide) segs.push({ text: ' '.repeat(hide), tone: undefined, hidden: true })
