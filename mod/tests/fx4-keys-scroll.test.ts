@@ -303,6 +303,8 @@ async function focusedLine(w: World) {
   const k = focusedKey(w)
   return k === undefined ? undefined : (await view(w)).all.find((l) => l.focusables.includes(k))
 }
+/** The focused line is among the lines the pane shows (compared by its focusable keys, not by object). */
+const inView = (shown: Line[], l: Line | undefined) => !!l && shown.some((x) => x.focusables.join(' ') === l.focusables.join(' ') && x.text === l.text)
 /** Enter: the engine presses the element the ring is on. */
 async function enter(w: World) {
   const k = focusedKey(w)
@@ -385,7 +387,7 @@ test('R-C16-21: End moves the focus to the list\'s last row, in view, and Enter 
   const { shown } = await view(w)
   const on1 = await focusedLine(w)
   expect(on1 ? rowLabel(on1) : undefined, 'after End the focus is on ' + (on1 ? on1.text : 'nothing') + dump(shown)).toBe(wk(MANYN)) // L370: the last row
-  expect(shown.includes(on1!)).toBe(true) // and that row is in view
+  expect(inView(shown, on1), 'the focused row is not in the pane' + dump(shown)).toBe(true) // and that row is in view
   await enter(w)
   expect(await viewTitle(w.eng.ui), 'Enter after End opened another view').toContain(wk(MANYN))
 })
@@ -408,7 +410,7 @@ test('R-C16-60: from the prime\'s row, End then Enter opens the last row, and Ho
   const { shown } = await view(w)
   const on1 = await focusedLine(w)
   expect(on1 ? rowLabel(on1) : undefined, 'after Home the focus is on ' + (on1 ? on1.text : 'nothing') + dump(shown)).toBe('prime') // L370: the first row
-  expect(shown.includes(on1!)).toBe(true) // in view
+  expect(inView(shown, on1), 'the focused row is not in the pane' + dump(shown)).toBe(true) // in view
   expect(shown.filter((l) => UP_MORE.test(l.text)).map((l) => l.text), 'Home left rows hidden above').toEqual([]) // the window is at the very top
   await enter(w)
   const t = (await viewTitle(w.eng.ui)) ?? ''
@@ -432,7 +434,7 @@ test('R-C16-21: Home moves the focus to the list\'s first row, in view, and Ente
   const { shown } = await view(w)
   const on1 = await focusedLine(w)
   expect(on1 ? rowLabel(on1) : undefined, 'after Home the focus is on ' + (on1 ? on1.text : 'nothing') + dump(shown)).toBe('prime')
-  expect(shown.includes(on1!)).toBe(true)
+  expect(inView(shown, on1), 'the focused row is not in the pane' + dump(shown)).toBe(true)
   await enter(w)
   const t = (await viewTitle(w.eng.ui)) ?? ''
   expect(/\bprime\b/.test(t) && !t.includes(pick.label), 'Enter after Home opened: ' + t).toBe(true)
