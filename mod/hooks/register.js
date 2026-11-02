@@ -2507,9 +2507,10 @@ function lineKeys(x, at) {
 }
 
 /**
- * Swap two drawn list keys (Home, End): the focus ring holds an element by its key, and a plugin's
- * `$.ui.focus` is refused while the person, not the plugin, holds the keyboard; so the row the focus
- * moves to is drawn with the key the ring holds, and the row that had it takes that row's key.
+ * Swap two drawn list keys (Home, End): the row the focus moves to is drawn with the key the ring held,
+ * and the row that had it takes that row's key; landFocus then puts the engine's ring on that key once
+ * the new drawing is in. (The 2.1.316 test kit has no `$.ui.focus` for a plugin and keeps its ring by
+ * key, so there the swap alone moves the focus.)
  */
 function swapKeys(a, b) {
   const al = pane.list.alias
@@ -4649,7 +4650,7 @@ export function register(on, options) {
     if (focusAt !== null) {
       const w = listWindow(L.n, top, L.area, pin)
       const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
-      // The ring is on a list row: its key is drawn on the first or last row now (swapKeys).
+      // The ring is on a list row: the key it held is drawn on the first or last row now (swapKeys).
       if (L.focus && L.keys.has(L.focus)) {
         if (L.focus !== key) swapKeys(key, L.focus)
       } else L.focus = key
