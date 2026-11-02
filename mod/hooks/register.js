@@ -2524,7 +2524,9 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
   const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box), wrapRow)
-  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? 2 : 1 } })
+  // The lines each list item takes (P4-FX3-d3): a tree row of a two-line table two, a note row one; the header's
+  // second line is one more besides the list.
+  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? (x) => (x.kind === 'note' ? 1 : 2) : () => 1, head: t.wrap ? 1 : 0 } })
   out.push(...messageField($, { Box, Text, Input }))
   return out
 }
@@ -2692,19 +2694,28 @@ function placeList(body, rows, { Text, Box }) {
   const at = body.findIndex((x) => x && x[LIST])
   L.on = at >= 0
   if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
-  const { items, draw, hidden, lines: per = 1 } = body[at][LIST]
-  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries (the
-  // header one more when the table takes two lines a row, P4-FX3-d2, as each list row then does).
-  const others = 2 + body.length - 1 + (per - 1)
+  const { items, draw, hidden, lines: linesOf = () => 1, head = 0 } = body[at][LIST]
+  // Everything here is in screen lines (P4-FX3-d3): the lines besides the list are the tab row, the `read … · Esc
+  // closes` line, the body's other entries and the header's second line when the table takes two lines a row
+  // (P4-FX3-d2); each list item takes its own lines (`linesOf`), the more and `+<k> running` lines one each.
+  const others = 2 + body.length - 1 + head
   const gaps = body.filter((x) => x && x[GAP]).length
-  const area = Math.floor((rows - SPARE_ROWS - others + gaps) / per)
-  const fits = items.length * per <= rows - others || area < 3
+  const area = rows - SPARE_ROWS - others + gaps
+  const costAll = items.map((x) => linesOf(x))
+  const whole = costAll.reduce((a, b) => a + b, 0)
+  // Too short for a window (not one row and its two more lines): the list is drawn whole, as before.
+  const fits = whole <= rows - others || area < 2 + Math.max(1, ...costAll)
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
   const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)
   const pin = (i) => pins[i]
+  const costs = its.map((x) => linesOf(x))
+  const cost = (i) => costs[i] ?? 1
   const found = L.topKey ? ids.indexOf(L.topKey) : -1
-  const W = fits ? listWindow(its.length, 0, its.length) : listWindow(its.length, found >= 0 ? found : L.top, area, pin)
+  const W = fits ? listWindow(its.length, 0, its.length) : listWindow(its.length, found >= 0 ? found : L.top, area, pin, cost)
+  // A two-line row that does not fit leaves a line over: the spacer above the list keeps it (P4-FX3-d3), so the
+  // pane is filled to its height less its spare row, as with one-line rows.
+  let keepGap = !fits && gaps > 0 && W.lines < area && costs.some((c) => c > 1) ? 1 : 0
   const lines = []
   const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ dimColor: true, children: ['  ' + text] }), ...keys] })
   const running = (k) => ' · +' + k + ' running'
@@ -2722,8 +2733,8 @@ function placeList(body, rows, { Text, Box }) {
   const slot = (s) => keysAt(its[W.top + s], String(s))
   const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
   const strip = [...W.above.flatMap((i, j) => keysAt(its[i], 'sa' + j)), ...W.below.flatMap((i, j) => keysAt(its[i], 'sb' + j))]
-  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
-  return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : []) : [x]))
+  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, costs, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
+  return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : keepGap-- > 0 ? [x[GAP]] : []) : [x]))
 }
 
 /** The keys of the elements the ring walks, in document order (Buttons, Inputs, Selects). */
@@ -4733,7 +4744,8 @@ export function register(on, options) {
     if (e.requestId !== PANE || pane.tab !== 'work' || pane.detail || !L.on || L.fits) return next(e)
     const by = Number(e.by) || 0
     const pin = (i) => L.pins[i]
-    const end = listEnd(L.n, L.area, pin)
+    const cost = (i) => (L.costs && L.costs[i]) || 1 // the lines each row takes (P4-FX3-d3)
+    const end = listEnd(L.n, L.area, pin, cost)
     let top = L.top
     let focusAt = null
     if (e.contentRows !== e.bodyRows && Math.abs(by) === e.contentRows) [top, focusAt] = by < 0 ? [0, 0] : [end, L.n - 1]
@@ -4743,7 +4755,7 @@ export function register(on, options) {
     L.topKey = L.ids[top] ?? null
     $.ui.invalidate('ui.render')
     if (focusAt !== null) {
-      const w = listWindow(L.n, top, L.area, pin)
+      const w = listWindow(L.n, top, L.area, pin, cost)
       const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
       // The ring is on a list row: the key it held is drawn on the first or last row now (swapKeys).
       if (L.focus && L.keys.has(L.focus)) {
@@ -4772,7 +4784,7 @@ export function register(on, options) {
       L.focus = e.element ?? null
       return next(e)
     }
-    const top = listReveal(L.n, L.top, L.area, target, (i) => L.pins[i])
+    const top = listReveal(L.n, L.top, L.area, target, (i) => L.pins[i], (i) => (L.costs && L.costs[i]) || 1)
     L.top = top
     L.topKey = L.ids[top] ?? null
     L.focus = lineKeys(L.items[target], String(target - top)).open
