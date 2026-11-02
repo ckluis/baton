@@ -1916,7 +1916,7 @@ function goalLinks({ Box, Text, Link }, key) {
   const g = v.goal
   const kids = []
   if (g.issue) kids.push(Link({ href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
-  else kids.push(Text({ bold: true, children: ['goal: ' + String(g.target || '').slice(0, 80)] }))
+  else kids.push(Text({ bold: true, wrap: 'truncate-end', children: ['goal: ' + String(g.target || '').slice(0, 80)] })) // one line (P4-FX3-d3)
   if (v.pr) {
     kids.push(Text({ dimColor: true, children: ['·'] }))
     kids.push(Link({ href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
@@ -2518,7 +2518,8 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // A table too wide for one line a row is drawn two lines a row (P4-FX3-d2): each row Box wraps at its break.
   const wrapRow = t.wrap ? { flexWrap: 'wrap' } : {}
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
+  // one line at any width (cut at the pane's edge): the list counts it as one (P4-FX3-d3)
+  if (track.view) out.push(Text({ wrap: 'truncate-end', dimColor: true, children: [LEGEND] }))
   const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
   out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
@@ -2527,7 +2528,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // The lines each list item takes (P4-FX3-d3): a tree row of a two-line table two, a note row one; the header's
   // second line is one more besides the list.
   out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? (x) => (x.kind === 'note' ? 1 : 2) : () => 1, head: t.wrap ? 1 : 0 } })
-  out.push(...messageField($, { Box, Text, Input }))
+  out.push(...messageField($, { Box, Text, Input, cols }))
   return out
 }
 
@@ -2937,12 +2938,17 @@ function letterKey(id) {
 }
 
 /** A hint line: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32). */
-function keyHint({ Box, Text }, key, parts, tail = '') {
-  return Box({ key, flexDirection: 'row', children: [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])] })
+function keyHint({ Box, Text }, key, parts, tail = '', cols = Infinity) {
+  const spans = [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])]
+  // Wider than the pane, the row's Texts would each be shrunk and wrapped onto a second line the list does not
+  // count: drawn instead as one Text of the same spans, cut at the pane's edge (P4-FX3-d3).
+  const width = cellWidth(parts.map(([k, t]) => k + t).join('') + tail)
+  if (width > cols) return Text({ key, wrap: 'truncate-end', children: spans })
+  return Box({ key, flexDirection: 'row', children: spans })
 }
 
 /** The field that messages the targeted running agent (✉ on its row, or its open view). */
-function messageField($, { Box, Text, Input }) {
+function messageField($, { Box, Text, Input, cols = Infinity }) {
   const out = []
   const tg = pane.target && tree.nodes.get(pane.target)
   if (tg && tg.endedAt == null) {
@@ -2971,7 +2977,7 @@ function messageField($, { Box, Text, Input }) {
   } else {
     // With p on, the old plan section's footer joins the hint line (T10 amendment, Q-56).
     const foot = pane.planOpen && track.view ? ' · states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet') : ''
-    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot))
+    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot, cols))
   }
   return out
 }
