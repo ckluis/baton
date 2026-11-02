@@ -145,8 +145,12 @@ test('fx7-spend R-C3-13: spend.json has a cost figure for each of opus, sonnet a
 })
 
 // R-C3-13 (spec L56, LV6 §1 finding 1): haiku served the engine's own session-title request, which no turn.step sees.
-// The engine's ledger (session.usage().cost, what /cost totals) counts it; spend.json must still show haiku's cost.
-test('fx7-spend R-C3-13: a haiku request the engine made on its own (no turn.step) still gets its cost in spend.json', async ($, on) => {
+// The engine's ledger (session.usage().cost, what /cost totals) counts it, as one figure with no model (SessionCost is
+// { usd } at 2.1.316, and FX7's live probe saw no more). So spend.json shows the engine's total, which covers every
+// model that served, and the part of it no turn.step metered. (First written to expect the figure under haiku's own
+// entry; changed after the live run showed the engine's own requests also run on opus, so that guess would be wrong:
+// /Users/clank/Desktop/projects/baton/_orch/nodes/FX7/work/result.md, R-C3-13 "Not fixable".)
+test('fx7-spend R-C3-13: a request the engine made on its own (no turn.step) is costed in spend.json as the engine total minus what was metered', async ($, on) => {
   const opus = 1000 * P[OPUS].input + 2000 * P[OPUS].output
   const title = 1300 * P[HAIKU].input + 18 * P[HAIKU].output // LV6's title request: 1.3k input, 18 output
   let engine = 0
@@ -158,7 +162,8 @@ test('fx7-spend R-C3-13: a haiku request the engine made on its own (no turn.ste
   await endTurn($, w)
   const s = w.spend()
   expect(nano(usdOf(s, OPUS))).toBe(nano(opus))
-  expect(nano(usdOf(s, HAIKU))).toBe(nano(title))
+  expect(nano(s?.engine?.usd)).toBe(nano(title + opus))
+  expect(nano(s?.engine?.unmeteredUsd)).toBe(nano(title))
 })
 
 // R-C3-13 (LV6 §1 finding 3, the CHANGELOG at 41670d5): a 1-hour cache write is 2x input, not the 5-minute 1.25x.

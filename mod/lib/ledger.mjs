@@ -102,25 +102,16 @@ function modelCost(p, k) {
 }
 
 /**
- * An account as _orch/spend.json holds it (R-C3-13): a copy with each model's `usd` and the total's `usd`.
- * `side` is what the engine spent on requests the mod never saw (its own session title and the like):
- * `{ model, usd }`, added to that model's entry, which is made if it served nothing the mod metered.
- * A model with no price gets `usd: null`.
+ * An account as _orch/spend.json holds it (R-C3-13): a copy with each model's `usd` beside its tokens and
+ * the total's `usd`. A model with no price gets `usd: null`, never a guess.
  */
-export function withCosts(acc, extra = {}, side = null) {
+export function withCosts(acc, extra = {}) {
   const out = JSON.parse(JSON.stringify(acc || {}))
-  const byModel = (out.byModel ??= {})
   let total = 0
-  for (const [m, k] of Object.entries(byModel)) {
+  for (const [m, k] of Object.entries((out.byModel ??= {}))) {
     const p = priceFor(m, extra)
     k.usd = p ? modelCost(p, k) : null
     if (k.usd != null) total += k.usd
-  }
-  if (side && side.model && side.usd > 0) {
-    const k = (byModel[side.model] ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, usd: 0 })
-    k.usd = (k.usd || 0) + side.usd
-    k.unmeteredUsd = side.usd
-    total += side.usd
   }
   out.usd = total
   return out

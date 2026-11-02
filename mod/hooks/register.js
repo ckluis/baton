@@ -247,9 +247,10 @@ const gh = {
 // Spend: every model request's usage, metered at turn.step by the agent that made it.
 const spend = { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false, savedAt: 0, loadedFor: null, ...sessionSpend() }
 const SPEND_SAVE_MS = 5000
-// What this process metered (`sess`) against the engine's own ledger ($.session.usage().cost, what /cost totals;
-// `engineBase` is that total when this process began): the difference is what the engine spent on requests no
-// turn.step sees, its session title and the like (R-C3-13). `sidePrior` is that figure from earlier sessions of the run.
+// What this process metered at turn.step (`sess`) against the engine's own ledger ($.session.usage().cost, what
+// /cost totals; `engineBase` is that total when this process began): the difference is what the engine spent on
+// requests no turn.step sees, its session title and prompt suggestions (R-C3-13). The engine names no model for
+// that figure (SessionCost is { usd }), so spend.json keeps it apart. `sidePrior`: that figure from earlier sessions.
 function sessionSpend() {
   return { sess: {}, engineBase: null, sidePrior: 0 }
 }
@@ -3624,53 +3625,45 @@ async function loadSpend($) {
   const saved = await readJson($, '_orch/spend.json')
   const same = saved && saved.run_id === id
   Object.assign(spend, { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false }, same ? { total: saved.total || {}, byRole: saved.byRole || {}, byPhase: saved.byPhase || {}, byNode: saved.byNode || {} } : {})
-  spend.sidePrior = same && saved.unmetered ? Number(saved.unmetered.usd) || 0 : 0
+  spend.sidePrior = same && saved.engine ? Number(saved.engine.unmeteredUsd) || 0 : 0
 }
 
-/** The model the engine makes its own small requests on (session titles and the like): its small-fast model. */
-async function sideModel($) {
-  try {
-    const v = await $.env.get('ANTHROPIC_SMALL_FAST_MODEL')
-    if (v) return String(v)
-  } catch {}
-  try {
-    const v = await $.env.get('ANTHROPIC_DEFAULT_HAIKU_MODEL')
-    if (v) return String(v)
-  } catch {}
-  return MECH
-}
-
-/** What the engine spent this session on requests the mod never metered, plus earlier sessions' (R-C3-13). */
-async function unmeteredSpend($) {
-  let usd = spend.sidePrior || 0
+/**
+ * The engine's ledger beside the mod's (R-C3-13): `usd`, this session's total as /cost shows it (every model that
+ * served), and `unmeteredUsd`, what it spent on requests no turn.step sees, over every session of the run. Null
+ * where the host keeps no ledger.
+ */
+async function engineSpend($) {
   try {
     const u = await $.session.usage()
-    const engine = Number(u && u.cost && u.cost.usd)
-    if (Number.isFinite(engine) && spend.engineBase != null) {
-      const own = engine - spend.engineBase - costOf(spend.sess, config.prices).usd
-      if (own > 1e-9) usd += own
-    }
-  } catch {}
-  return usd > 1e-9 ? { model: await sideModel($), usd } : null
+    const usd = Number(u && u.cost && u.cost.usd)
+    if (!Number.isFinite(usd) || spend.engineBase == null) return null
+    const own = usd - spend.engineBase - costOf(spend.sess, config.prices).usd
+    return { usd, unmeteredUsd: (spend.sidePrior || 0) + (own > 1e-9 ? own : 0) }
+  } catch {
+    return null
+  }
 }
 
 async function saveSpend($, force = false) {
   if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return
   spend.savedAt = Date.now()
   try {
-    // Each model's cost is written beside its tokens (R-C3-13), the engine's unmetered requests on their model.
-    const side = await unmeteredSpend($)
-    const doc = { run_id: run.manifest && run.manifest.run_id, total: withCosts(spend.total, config.prices, side), byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode, ...(side ? { unmetered: side } : {}) }
+    // Each model's cost is written beside its tokens (R-C3-13), and the engine's own total beside the mod's.
+    const engine = await engineSpend($)
+    const doc = { run_id: run.manifest && run.manifest.run_id, total: withCosts(spend.total, config.prices), byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode, ...(engine ? { engine } : {}) }
     await $.fs.write('_orch/spend.json', JSON.stringify(doc, null, 1) + '\n')
   } catch {}
 }
 
-/** A request the mod made itself ($.model.complete, $.model.fork): counted in the run's total, not to an agent. */
+/**
+ * A request the mod made itself ($.model.complete, $.model.fork): counted in the run's total under the role
+ * `mod`, not to an agent. The engine's /cost leaves these out (seen live, FX7), so `sess` does too.
+ */
 function meterOwn(model, usage) {
   if (!usage || !model) return
   const u = { ...usage, model: String(model) }
   addUsage(spend.total, u)
-  addUsage(spend.sess, u)
   addUsage((spend.byRole.mod ??= {}), u)
 }
 
