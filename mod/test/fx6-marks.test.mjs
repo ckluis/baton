@@ -42,15 +42,19 @@ const textOf = (n) => flat(n).filter((x) => x.type === 'Text').map((x) => (x.pro
  * A fresh world: a scratch run directory (the run's prime session in it), a project memory under
  * <root>/.baton/memory with three default-store notes, two `lessons` notes and one ruling, and a fresh
  * instance of the hooks module (imported under its own URL, so no state is shared between tests).
+ * `rulingsDir` is the spelling the rulings store's directory was first made with (null: no ruling yet);
+ * `alias` names a symbolic link ns/<alias> -> ns/<rulingsDir> made by hand.
  */
-async function world() {
+async function world({ rulingsDir = 'rulings', alias = null } = {}) {
   const W = fs.mkdtempSync(path.join(os.tmpdir(), 'baton-v76-FX6-'))
   fs.mkdirSync(W + '/_orch', { recursive: true })
   fs.writeFileSync(W + '/_orch/manifest.json', JSON.stringify({ prime: true, run_id: 'build-fx6', mode: 'BUILD', target: '.', phase: 'P4' }))
   const PM = W + '/.baton/memory'
   for (const t of ['default note zero tokP0', 'default note one tokP1', 'default note two tokP2']) memo(['--dir', PM, 'note', '--tag', 'prime', '-'], t)
   for (const t of ['lesson zero tokL0', 'lesson one tokL1']) memo(['--dir', PM, '--ns', 'lessons', 'note', '--tag', 'prime', '-'], t)
-  memo(['--dir', PM, '--ns', 'rulings', 'note', '--tag', 'ruling', '-'], 'PRs target main directly tokR0')
+  if (rulingsDir) memo(['--dir', PM, '--ns', rulingsDir, 'note', '--tag', 'ruling', '-'], 'PRs target main directly tokR0')
+  if (rulingsDir) memo(['--dir', PM, '--ns', rulingsDir, 'note', '--tag', 'ruling', '-'], 'stage files by name tokR1')
+  if (alias) fs.symlinkSync(PM + '/ns/' + rulingsDir, PM + '/ns/' + alias)
   memo(['--dir', W + '/_orch/memory', 'note', '--tag', 'prime', '-'], 'run note zero tokN0')
 
   const { register } = await import(REGISTER + '?fx6=' + ++worlds)
@@ -76,7 +80,15 @@ async function world() {
         fs.writeFileSync(path.resolve(W, p), t)
       },
       exists: async (p) => fs.existsSync(path.resolve(W, p)),
-      list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isDirectory() ? 'dir' : 'file' })),
+      // As the engine lists (FsEntry): a symbolic link is `other` with `isLink`.
+      list: async (p) => fs.readdirSync(path.resolve(W, p), { withFileTypes: true }).map((d) => ({ name: d.name, kind: d.isSymbolicLink() ? 'other' : d.isDirectory() ? 'dir' : 'file', isLink: d.isSymbolicLink() })),
+      // As the engine stats (FsStat): a link followed; `realPath` with `resolve`, every link followed and the
+      // spelling otherwise kept (a case alias keeps its own spelling). Rejects for a missing path.
+      stat: async (p, o) => {
+        const q = path.resolve(W, p)
+        const st = fs.statSync(q)
+        return { kind: st.isDirectory() ? 'dir' : st.isFile() ? 'file' : 'other', size: st.isFile() ? st.size : 0, mtimeMs: st.mtimeMs, isLink: fs.lstatSync(q).isSymbolicLink(), ...(o?.resolve ? { realPath: fs.realpathSync(q) } : {}) }
+      },
     },
     session: { cwd: async () => W, root: async () => W, id: async () => 'fx6-prime-session', surfaces: async () => ['terminal'], version: async () => ({ base: '2.1.316' }), send: async () => ({ isDelivered: true }) },
     process: {
@@ -285,4 +297,73 @@ test('R-C15-221: with a note\'s view opened while another row is focused, v mark
   w.answers.push('the fixture was wrong')
   t = await w.press(t, 'mem-key-v')
   assert.deepEqual(w.logLines(null).map((x) => [x.id, x.mark, x.who]), [['2', 'void', 'operator']])
+})
+
+// ================================================================== the rulings store under any name (attempt 3)
+//
+// R-C15-119 · spec L508-509 "Rulings are not marked: they keep their own retract." · L587 (Q-92) "the explorer's table
+// lists the project memory's notes, of every namespace except `rulings`" · L597 "`c`, `v` or `u` on a ruling row makes no
+// mark". The rulings store is whatever directory memo's `--ns rulings` lands in: on a file system that folds letter case
+// a directory first made as ns/Rulings is it, and so is a name whose directory is a symbolic link to it.
+
+/** Every mark log under the project memory's namespaces (the rulings store's included, whatever its spelling). */
+const nsMarkLogs = (w) => fs.readdirSync(w.PM + '/ns').filter((d) => fs.existsSync(w.PM + '/ns/' + d + '/marks.jsonl'))
+
+// R-C15-119
+test('R-C15-119: with the rulings store\'s directory spelled Rulings, the project view lists no ruling row and v on one writes no mark record', async () => {
+  const w = await world({ rulingsDir: 'Rulings' })
+  let t = await w.projectView()
+  const k = w.rowKey(t, 'tokR1')
+  if (k) {
+    t = await w.focus(k)
+    w.answers.push('this ruling is old')
+    t = await w.press(t, 'mem-key-v')
+  }
+  assert.deepEqual(nsMarkLogs(w), [], 'a mark record was written under ' + w.PM + '/ns') // L597 "makes no mark"
+  assert.equal(k, null, 'the project view\'s table lists the ruling tokR1 as a note row') // L587 "every namespace except `rulings`"
+})
+
+// R-C15-119
+test('R-C15-119: project_wake and project_recall naming the rulings store as Rulings apply no mark record to a ruling', async () => {
+  const w = await world({ rulingsDir: 'Rulings' })
+  // a void record left on ruling #1 by an earlier build (as the verifier's probe left one), written with memo itself
+  memo(['--dir', w.PM, '--ns', 'Rulings', '--who', 'operator', 'mark', '--', '1', 'void', '-'], 'this ruling is old')
+  const wake = String((await w.call('project_wake', { namespace: 'Rulings' }))?.result ?? '')
+  const recall = String((await w.call('project_recall', { namespace: 'Rulings', pattern: 'stage files' }))?.result ?? '')
+  assert.match(wake, /stage files by name tokR1/, 'project_wake skipped the ruling as if it were a ❌ note:\n' + wake) // L508 "Rulings are not marked"
+  assert.match(recall, /stage files by name tokR1/, 'project_recall skipped the ruling as if it were a ❌ note:\n' + recall)
+})
+
+// R-C15-119 · decision P4-FX6-d1: project_note to a spelling of `rulings` writes to the rulings store under its own name.
+test('R-C15-119: project_note with namespace Rulings before any ruling makes no directory spelled Rulings', async () => {
+  const w = await world({ rulingsDir: null })
+  const r = await w.call('project_note', { text: 'a note for the rulings store tokX0', namespace: 'Rulings' })
+  assert.match(String(r?.result ?? ''), /noted #0/, JSON.stringify(r))
+  const dirs = fs.existsSync(w.PM + '/ns') ? fs.readdirSync(w.PM + '/ns') : []
+  assert.ok(!dirs.includes('Rulings'), 'project_note made ' + w.PM + '/ns/Rulings: later rulings land in a store the pane lists as a namespace')
+  assert.ok(dirs.includes('rulings'), 'the note is not in ' + w.PM + '/ns/rulings: ' + JSON.stringify(dirs))
+})
+
+// R-C15-119
+test('R-C15-119: project_mark naming a symbolic link to the rulings store is refused and writes no mark record', async () => {
+  const w = await world({ alias: 'alias' })
+  const r = await w.call('project_mark', { id: '0', mark: 'void', reason: 'this ruling is old', namespace: 'alias' })
+  await w.drain()
+  assert.equal(r?.deny, REFUSED_RULINGS, 'not refused as a ruling: ' + JSON.stringify(r))
+  assert.deepEqual(w.logLines('rulings'), [], 'the rulings store\'s mark log holds a record')
+  assert.deepEqual(w.markRuns(), [])
+})
+
+// R-C15-119
+test('R-C15-119: with a symbolic link to the rulings store, the project view lists no ruling row and v on one writes no mark record', async () => {
+  const w = await world({ alias: 'alias' })
+  let t = await w.projectView()
+  const k = w.rowKey(t, 'tokR1')
+  if (k) {
+    t = await w.focus(k)
+    w.answers.push('this ruling is old')
+    t = await w.press(t, 'mem-key-v')
+  }
+  assert.deepEqual(w.logLines('rulings'), [], 'a mark record was written to the rulings store') // L597 "makes no mark"
+  assert.equal(k, null, 'the project view\'s table lists the ruling tokR1 as a note row of [alias]')
 })
