@@ -22,13 +22,13 @@ import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
-import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
+import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
 import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, cellWidth, compareVersions, cutCells, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -2418,27 +2418,57 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   restoreLetters(ids)
   assignLetters(pane.letters, ids)
   saveLetters($)
-  const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
+  const { t, lineOf } = treeTable(items, () => tableWidth(items, cols), { fit: true })
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
-  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
+  const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
+  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
-  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text))
+  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box))
   out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button) } })
   out.push(...messageField($, { Box, Text, Input }))
   return out
 }
 
 /** A list row's table cells. A finished agent row's text is dim, its ✓ or ✗ keeping its colour (Q-69). */
-function rowCells(x, segs, labelFirst, tone, Text) {
+function rowCells(x, segs, labelFirst, tone, Text, Box) {
   const cell = (y, extra = {}) => Text({ wrap: 'truncate-end', ...tone(y), ...extra, children: [y.text] })
-  if (!finishedRow(x)) return segs.map((y) => cell(y))
+  if (!finishedRow(x)) return segs.flatMap((y) => segEl(y, (z) => [cell(z)], Box, Text))
   return segs.flatMap((y, i) => {
-    if (i > 0 || !labelFirst) return [cell(y, { dimColor: true })]
-    const m = /^(\s*\S)([\s\S]*)$/.exec(y.text)
-    return m ? [cell({ ...y, text: m[1] }), Text({ wrap: 'truncate-end', dimColor: true, children: [m[2]] })] : [cell(y, { dimColor: true })]
+    if (i > 0 || !labelFirst) return segEl(y, (z) => [cell(z, { dimColor: true })], Box, Text)
+    // the mark keeps its colour, the label after it dim; in a cut label cell the mark is drawn whole
+    return segEl(
+      y,
+      (z, inBox) => {
+        const m = /^(\s*\S)([\s\S]*)$/.exec(z.text)
+        if (!m) return [cell(z, { dimColor: true })]
+        const mark = cell({ ...z, text: m[1] })
+        return [inBox ? Box({ flexShrink: 0, children: [mark] }) : mark, Text({ wrap: 'truncate-end', dimColor: true, children: [m[2]] })]
+      },
+      Box,
+      Text,
+    )
   })
+}
+
+/**
+ * One table segment as drawn, a list of elements (FX3, P4-FX3-d1). A `hidden` segment is drawn in a box no cells
+ * wide. A `drawn` one (a fitted table's agent cell) is drawn in its `drawn` cells: a label longer than them in a
+ * box that wide, cut there with `…`, and the rest of its pad in a box no cells wide; a header cell as one element.
+ * The line's text stays the whole table's; what is drawn fits the pane, so the terminal never shrinks a cell.
+ * Any other segment is `text(seg)`.
+ */
+function segEl(y, text, Box, Text) {
+  const none = (s) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [Text({ wrap: 'truncate-end', children: [s] })] })
+  if (y.hidden) return [none(y.text)]
+  if (y.drawn == null) return text(y, false)
+  const chars = [...y.text]
+  const vis = [...y.text.trimEnd()]
+  const rest = (from) => (chars.length > from ? [none(chars.slice(from).join(''))] : [])
+  if (y.head) return [Box({ flexShrink: 0, children: [...text({ ...y, text: chars.slice(0, y.drawn).join('') }, false), ...rest(y.drawn)] })]
+  if (vis.length <= y.drawn) return [...text({ ...y, text: chars.slice(0, y.drawn).join('') }, false), ...rest(y.drawn)]
+  return [Box({ width: y.drawn, flexShrink: 0, overflow: 'hidden', children: text({ ...y, text: vis.join('') }, true) }), ...rest(vis.length)]
 }
 
 /** An agent row that has returned, other than a blocked one that still waits for the operator (Q-69). */
@@ -2717,17 +2747,21 @@ function treeItemRow(x) {
 }
 
 /** The tree's table rows (every item but a note) as one table, and each item's line of it. */
-function treeTable(items, widthOf) {
+function treeTable(items, widthOf, opts = {}) {
   const drawn = items.filter((x) => x.kind !== 'note')
   const data = drawn.map(treeItemRow)
-  const t = agentTable(data, widthOf(data))
+  const t = agentTable(data, widthOf(data), opts)
   return { t, lineOf: new Map(drawn.map((x, i) => [x, t.lines[i]])) }
 }
 
-/** The width the pane draws its table at: the pane's, but never under the width every kept column needs whole. */
-function tableWidth(data, cols) {
-  const widest = (f) => Math.max(0, ...data.map((r) => [...String(f(r) || '')].length))
-  return Math.max(tableFloor(widest((r) => r.model), widest((r) => r.label)), (cols || 120) - 4)
+/**
+ * The width the pane draws its table at: the pane body's less what a row draws around its cells, its `k: ›`
+ * (four cells) and, on a running agent's row, its ` ✉` (two). A row wider than the body is shrunk cell by cell
+ * by the terminal, every cell cut to `…` (FX3, P4-FX3-d1), so the table is fitted to this width.
+ */
+function tableWidth(items, cols) {
+  const mail = items.some((x) => x.kind === 'agent' && x.r.live && x.r.id && x.r.id !== PRIME)
+  return Math.max(1, (cols || 120) - 4 - (mail ? 2 : 0))
 }
 
 /** The tree as text (the -p form, Q-70): the legend, the group line, the column names, the rows. */
@@ -2947,7 +2981,7 @@ async function openMemRow($, row) {
 }
 
 /** Memory: open a block (+), go back (b), or search; notes and summaries as a table (T12). */
-function memoryBody($, { Box, Text, Button, Input, line, rows }) {
+function memoryBody($, { Box, Text, Button, Input, line, rows, cols }) {
   const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
   const reload = () => refreshPane($, rows)
   const nav = [
@@ -3013,6 +3047,9 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
       pane.memRowKeys.set('mem-row-' + j, row)
     }
     const dim = isVoid ? { dimColor: true } : {}
+    // The row fits the body (FX3): its `+ › ` (four cells), its id and mark cells, then the text cut to what is left,
+    // so the terminal never shrinks the id and mark cells to make room for a long summary (P4-FX3-d1).
+    const text = cutCells(rest, (cols || 80) - 4 - cellWidth(idCell) - cellWidth(markCell))
     out.push(
       Box({
         key: 'mr' + j,
@@ -3024,7 +3061,7 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
           Text({ children: [' '] }),
           Text({ wrap: 'truncate-end', ...dim, children: [idCell] }),
           Text({ wrap: 'truncate-end', ...(isVoid ? { color: 'red' } : {}), children: [markCell] }),
-          line('m' + j, rest, dim),
+          line('m' + j, text, dim),
         ],
       }),
     )

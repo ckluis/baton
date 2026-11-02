@@ -66,6 +66,49 @@ export function fitColumns(width, modelW = MODEL_MIN, agentW = 0) {
 }
 
 /**
+ * The columns a pane draws `width` cells wide (FX3, decision P4-FX3-d1): the terminal shrinks every cell of a
+ * row wider than its pane, each to a `…`, so the table is fitted to the width itself. The droppable columns
+ * drop in DROP_ORDER as fitColumns drops them; then the never-dropped columns of fixed width (both groups'
+ * cells and the steps) narrow to their widest value (never under their title); then the agent label is cut in
+ * the drawing (`dw`, its drawn width), never into its indent and mark (`need.agentMin`); then state (Q-11).
+ * The label stays whole in the table's text (`w`, D-F110: a row is told by its whole label): only the drawn
+ * cell is narrower. `need` holds the widest value of each column. A pane narrower than even that draws the
+ * rest past its edge, as D-F110 has it. Widths count the gaps between columns only, as a row draws them.
+ */
+export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
+  let cols = COLUMNS.map((c) => ({ ...c, w: sized(c, modelW, agentW) }))
+  for (const c of cols) c.dw = c.w
+  const total = () => cols.reduce((n, c, i) => n + c.dw + (i < cols.length - 1 ? gapOf(c) : 0), 0)
+  for (const id of DROP_ORDER) {
+    if (total() <= width) break
+    cols = cols.filter((c) => c.id !== id)
+  }
+  if (total() > width) {
+    for (const c of cols) if (['cost', 'tokens', 'rollCost', 'rollTokens', 'steps', 'state'].includes(c.id)) c.w = c.dw = Math.min(c.w, Math.max(c.title.length, need[c.id] ?? 0))
+  }
+  const floor = { agent: Math.max(CUT_MIN.agent, need.agentMin ?? 0), state: CUT_MIN.state }
+  for (const id of ['agent', 'state']) {
+    const over = total() - width
+    if (over <= 0) break
+    const c = cols.find((x) => x.id === id)
+    c.dw = Math.max(Math.min(c.dw, floor[id]), c.dw - over)
+    if (id === 'state') c.w = c.dw
+  }
+  return cols
+}
+
+/**
+ * A cell whose drawn width is under its text width (the agent cell of a fitted table): one segment holding the
+ * cell's whole text, with `drawn`, the cells it is drawn in (the pane draws what is past them zero cells wide,
+ * lib's caller register.js segEl); then its gap, or (`head`, a header cell) the gap inside the segment.
+ */
+function drawnCell(text, tone, c, last, head = false) {
+  const gap = last ? '' : ' '.repeat(gapOf(c))
+  if (head) return [{ text: text + gap, tone, drawn: c.dw + gap.length, head: true }]
+  return [{ text, tone, drawn: c.dw }, ...(gap ? [{ text: gap, tone: undefined }] : [])]
+}
+
+/**
  * The narrowest width at which every column that never drops fits whole, the agent label uncut: the
  * pane draws its table at least this wide (T10 amendment: neither group drops at a narrow width, and
  * a row stays readable by its label).
@@ -127,11 +170,28 @@ function modelParts(r) {
  * Returns { header: [{ text, tone }], lines: [[{ text, tone }]] }; tones are the stepper's
  * (done | current | flagged | future | rail) or a color name, or undefined.
  */
-export function agentTable(rows, width = 140) {
+export function agentTable(rows, width = 140, opts = {}) {
   const widest = (f) => Math.max(0, ...rows.map((r) => [...String(f(r) || '')].length))
-  const cols = fitColumns(width, widest((r) => r.model), widest((r) => r.label))
+  // opts.fit (the pane, FX3): the table is laid out to draw within `width` cells (fitDrawn); a segment with
+  // `drawn` is drawn in that many cells (drawnCell), one with `hidden` in none (groupLine).
+  const need = () => ({
+    cost: widest((r) => r.cost),
+    tokens: widest((r) => (r.acc ? shortTokens(tokensIn(components(r.acc))) : '')),
+    rollCost: widest((r) => (r.roll ? r.rollCost : '')),
+    rollTokens: widest((r) => (r.roll ? shortTokens(tokensIn(components(r.roll))) : '')),
+    steps: widest((r) => (r.steps || []).map((p) => p.text).join('')),
+    state: widest((r) => r.state),
+    // a label is cut after its indent, its mark and two more cells; the first row's (the pane's: the main
+    // session's `◆ prime` or `session`, T8 L114-115) is never cut
+    agentMin: Math.max(widest((r) => (/^\s*\S\s?/.exec(String(r.label || '')) || [''])[0]) + 2, rows[0] ? [...String(rows[0].label || '').trimEnd()].length : 0),
+  })
+  const cols = opts.fit ? fitDrawn(width, widest((r) => r.model), widest((r) => r.label), need()) : fitColumns(width, widest((r) => r.model), widest((r) => r.label))
+  const narrowed = (c) => c.dw != null && c.dw < c.w
   const header = []
-  cols.forEach((c, i) => header.push({ text: pad(c.title, c.w, c.right) + (i < cols.length - 1 ? ' '.repeat(gapOf(c)) : ''), tone: 'rail' }))
+  cols.forEach((c, i) => {
+    if (narrowed(c)) header.push(...drawnCell(pad(c.title, c.w, c.right), 'rail', c, i === cols.length - 1, true))
+    else header.push({ text: pad(c.title, c.w, c.right) + (i < cols.length - 1 ? ' '.repeat(gapOf(c)) : ''), tone: 'rail' })
+  })
   const lines = rows.map((r) => {
     const k = components(r.acc)
     const cells = {
@@ -156,6 +216,7 @@ export function agentTable(rows, width = 140) {
       const parts = cells[c.id]
       const visible = parts.map((p) => p.text).join('')
       const padded = pad(visible, c.w, c.right)
+      if (parts.length === 1 && narrowed(c)) return segs.push(...drawnCell(padded, parts[0].tone, c, i === cols.length - 1))
       if (parts.length === 1) segs.push({ text: padded, tone: parts[0].tone })
       else {
         // a multi-part cell (the steps): keep each part's tone, pad after the last
@@ -182,14 +243,19 @@ function groupLine(cols) {
   let at = 0
   let used = 0
   let last = null
+  // what a narrowed column (fitDrawn) leaves undrawn before a label: hidden, so the label is drawn over its cells
+  let hide = 0
   for (const c of cols) {
     if (c.group && c.group !== last) {
-      if (at > used) segs.push({ text: ' '.repeat(at - used), tone: undefined })
+      if (at - hide > used) segs.push({ text: ' '.repeat(at - hide - used), tone: undefined })
+      if (hide) segs.push({ text: ' '.repeat(hide), tone: undefined, hidden: true })
+      hide = 0
       segs.push({ text: c.group, tone: 'rail' })
       used = at + c.group.length
     }
     last = c.group || null
     at += c.w + gapOf(c)
+    if (c.dw != null && c.dw < c.w) hide += c.w - c.dw
   }
   return segs
 }

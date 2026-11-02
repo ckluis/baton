@@ -316,6 +316,22 @@ export function memTime(ts, now = Date.now()) {
 /** Terminal cells of a table cell: the mark glyphs ✅ and ❌ are two cells wide, as wide characters are. */
 const cellsOf = (t) => [...t].reduce((n, c) => n + (c === '✅' || c === '❌' ? 2 : 1), 0)
 
+/** The cells a string takes on the terminal (✅ and ❌ two each). */
+export const cellWidth = (t) => cellsOf(String(t ?? ''))
+
+/** A string cut to `w` cells, ending in `…` when cut (FX3: a memory row's text, so the row fits its pane). */
+export function cutCells(t, w) {
+  const s = String(t ?? '')
+  if (cellsOf(s) <= w) return s
+  if (w <= 0) return ''
+  let out = ''
+  for (const c of s) {
+    if (cellsOf(out + c) > w - 1) break
+    out += c
+  }
+  return out + '…'
+}
+
 /**
  * The memory explorer as a table (T12, Q-23): each line (`#n ts [tag] text`, or `#lo-hi text` for a
  * summary) split into id, time, source and text cells, each column as wide as its widest value shown,
