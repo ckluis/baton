@@ -101,7 +101,11 @@ function world(on: any, o: Opts) {
   })
   on('command.register', () => ({ value: undefined }))
   on('command.run', () => ({ text: 'core' }))
-  on('prompt.submit', (_$: any, e: any) => ({ text: e.text }))
+  const contexts: string[] = [] // the context each submitted prompt reached the engine with
+  on('prompt.submit', (_$: any, e: any) => {
+    contexts.push(JSON.stringify(e.context ?? []))
+    return { text: e.text }
+  })
   on('turn.complete', () => ({ text: '' }))
   on('model.complete', () => ({ value: { isAnswered: true, text: 'NONE', usage: {} } }))
   let n = 0
@@ -138,7 +142,7 @@ function world(on: any, o: Opts) {
   }
   const bash = async ($: any): Promise<any> => $.tool.call({ tool: 'Bash', command: 'ls' } as any)
   const memoryTools = (names: string[]) => names.filter((x) => /^(memory|project)_/.test(x))
-  return { clock, logs, registered, asked, manifest, notes, runNotes, begin316, bash, memoryTools }
+  return { clock, logs, registered, asked, manifest, notes, runNotes, begin316, bash, memoryTools, contexts }
 }
 
 const SLOW = { timeoutMs: 20000 }
@@ -256,4 +260,19 @@ test('R-C7-06: an interactive second session whose surface shows only at session
   expect(w.asked.length).toBe(1) // spec L95 "ask (interactive)": asked, once
   expect(w.manifest().prime_session.id).toBe(PRIME) // "no": the live prime keeps the manifest
   expect(w.runNotes()).toEqual([]) // and no run note
+})
+
+// R-C7-05, P4-d3 · spec L96: a session that becomes the prime "picks the run up as it does today"; decision P4-d3:
+// "a take-over is handed the wake on its next prompt (as a restart or rotation is)". In the 2.1.316 order the
+// startup hook has already run (unarmed) when the answer comes, so the wake must ride the next prompt.
+test('R-C7-05 (P4-d3): a second session that takes over in the 2.1.316 order is handed the wake on its next prompt', SLOW, async ($, on) => {
+  const w = world(on, { id: SECOND, interactive: true, seed: { id: PRIME, ageS: 30 }, answers: ['yes'] })
+  const start = await w.begin316($)
+  expect(JSON.stringify(start ?? {})).not.toMatch(TOLD_PRIME) // precondition: not told at startup (asked first)
+  expect(w.manifest().prime_session.id).toBe(SECOND) // precondition: it took over (Q-8)
+  await $.prompt.submit({ text: 'what is the run waiting on?' } as any)
+  const ctx = w.contexts.join('\n')
+  expect(ctx).toContain('memory_wake') // P4-d3: told to call memory_wake
+  expect(ctx).toMatch(/prime skill/) // P4-d3: and to load the prime skill, as the startup pick-up says
+  expect(ctx).toContain(RUN_ID) // the run it took over
 })
