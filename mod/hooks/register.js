@@ -55,6 +55,7 @@ const membership = {
   why: null, // why this session is not armed (Q-29), or why it was disarmed (Q-8); on the band
   once: null, // the one recording of this process, by session.start or the startup SessionStart, whichever runs first
   unasked: null, // {id, why, other}: left unarmed by a start that could not tell a person is at the prompt
+  takeoverWake: null, // the pick-up text owed to the next prompt after a take-over (P4-d3), or null
 }
 // The session's own model ($.session.model()), read at session.start and on /baton: the prime's row
 // shows it until a request of its own names what served, and a mismatch compares against it (T8, Q-22).
@@ -473,6 +474,11 @@ async function ensureMembership($, e) {
   if (u && e && e.isInteractive === true && membership.recorded && !membership.member) scheduleAsk($, u.id, u.why, u.other)
 }
 
+/** What a session that picks the run up (restart, resume, take-over) is told: it is the prime, and must wake. */
+const pickUpContext = (m) =>
+  'baton: this session is the prime of run ' + (m.run_id || '?') + ' (MODE ' + (m.mode || '?') + ', TARGET ' + (m.target || '?') + '), which an earlier session started. ' +
+  'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
+
 async function askTakeover($, id, why, other) {
   let answer = null
   try {
@@ -486,6 +492,8 @@ async function askTakeover($, id, why, other) {
   try {
     await registerMemoryTools($)
   } catch {}
+  // The startup SessionStart has already run, unarmed: the next prompt carries the pick-up a restart gets (P4-d3).
+  membership.takeoverWake = pickUpContext((await readManifest($, membership.dir)) || { run_id: membership.runId })
   $.ui.log('baton: this session took over as the prime of run ' + membership.runId)
   $.ui.invalidate('ui.render')
 }
@@ -4309,9 +4317,8 @@ export function register(on, options) {
       await registerMemoryTools($)
     } catch {}
     const m = run.manifest || {}
-    const text =
-      'baton: this session is the prime of run ' + (m.run_id || '?') + ' (MODE ' + (m.mode || '?') + ', TARGET ' + (m.target || '?') + '), which an earlier session started. ' +
-      'Load the baton prime skill, then call mcp__baton__memory_wake before anything else and continue the run from what it shows. You never read, run or edit anything yourself: dispatch.'
+    const text = pickUpContext(m)
+    membership.takeoverWake = null // told here; the next prompt need not repeat it
     await noteQuietly($, 'a new session picked the run up (' + e.source + ')', 'handoff')
     return { ...(r || {}), additionalContext: [...((r && r.additionalContext) || []), text] }
   }).catch(failOpen)
@@ -4350,7 +4357,13 @@ export function register(on, options) {
       })
     }
     // Belt and braces for the wake: if no SessionStart carried it, this prompt does.
-    const wake = rotation.pendingWake && (await runActive($)) ? takeWake() : null
+    const active = await runActive($)
+    let wake = rotation.pendingWake && active ? takeWake() : null
+    // A take-over (P4-d3): the pick-up the startup hook could not give, once, on the first prompt after the yes.
+    if (!wake && membership.takeoverWake && active && membership.member) {
+      wake = membership.takeoverWake
+      membership.takeoverWake = null
+    }
     if (!wake) return next(e)
     return next({ ...e, context: [...(e.context ?? []), wake] })
   }).catch(failOpen)
