@@ -47,7 +47,7 @@ const run = {
 // startup SessionStart runs first (ensureMembership); only if that fails does the manifest under the
 // current directory decide, as before.
 const membership = {
-  recorded: false, // session.start (or /baton start) recorded this session's membership
+  recorded: false, // session.start, the startup SessionStart or /baton start recorded this session's membership
   member: false, // this session is the run's own: the guard arms and it writes run notes
   dir: null, // the run's directory, recorded with it
   id: null, // the session id this session last wrote to prime_session
@@ -3927,7 +3927,8 @@ export function register(on, options) {
       if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
     } catch {}
     await readSessionModel($)
-    // Run membership is recorded here, once (T7): where the session started, and whose run it is.
+    // Run membership is recorded once (T7): where the session started, and whose run it is. Here,
+    // or already by the startup SessionStart, which 2.1.316 runs first (ensureMembership).
     try {
       await ensureMembership($, e)
     } catch (err) {
@@ -4289,8 +4290,9 @@ export function register(on, options) {
 
   // After a compaction the engine raises SessionStart with source "compact":
   // hand the prime the wake instruction there.
-  // A new session (or a resumed one) in a directory with an active run is the prime of that run,
-  // picking up where another session left off: it must wake from the memory before anything else.
+  // A new session (or a resumed one) that is the run's own by its recorded membership (T7) is the
+  // prime of that run, picking up where another session left off: it must wake from the memory
+  // before anything else. One left unarmed by a live prime elsewhere is told why instead (Q-29).
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
     const r = await next(e)
     // At 2.1.316 this hook runs before session.start: record membership first, or a second session in the
