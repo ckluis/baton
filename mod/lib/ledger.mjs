@@ -28,11 +28,14 @@ export function addUsage(acc, u) {
     const m = String(u.model || 'unknown')
     const k = ((acc.byModel ??= {})[m] ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 })
     const n = (x) => (Number.isFinite(Number(u[x])) ? Number(u[x]) : 0)
+    // The part of the cache writes that is 1-hour (the API's cache_creation split, R-C3-13); the rest is 5-minute.
+    const w1h = Math.min(n('cache_creation_input_tokens'), Number(u.cache_creation?.ephemeral_1h_input_tokens) || 0)
     const into = (t) => {
       t.input += n('input_tokens')
       t.output += n('output_tokens')
       t.cacheWrite += n('cache_creation_input_tokens')
       t.cacheRead += n('cache_read_input_tokens')
+      if (w1h > 0) t.cacheWrite1h = (t.cacheWrite1h || 0) + w1h
     }
     into(k)
     // A request whose prompt is over its model's price step is priced at the step row:
@@ -46,9 +49,11 @@ export function addUsage(acc, u) {
 // ------------------------------------------------------------------ cost and context
 
 /**
- * $ per million tokens: input, output, cache read. Cache writes are 1.25 x input.
+ * $ per million tokens: input, output, cache read. A 5-minute cache write is 1.25 x input,
+ * a 1-hour one 2 x input (CACHE_WRITE_5M, CACHE_WRITE_1H).
  * Verified against Anthropic's pricing page on 2026-09-23 (Sonnet 5.5 and Haiku 5.5
- * on 2026-10-19). A `step` is the price row for a request whose prompt (`contextOf`)
+ * on 2026-10-19; every 5.5 row and both cache-write multipliers again on 2026-11-02,
+ * https://platform.claude.com/docs/en/about-claude/pricing). A `step` is the price row for a request whose prompt (`contextOf`)
  * is strictly over `above_tokens`. A model not listed has no price: its cost shows
  * as unknown, never a guess. The `prices` setting adds or overrides entries.
  */
@@ -78,11 +83,47 @@ export function costOf(acc, extra = {}) {
       if (k.input + k.output + k.cacheWrite + k.cacheRead > 0) unpriced.push(m)
       continue
     }
-    const at = (q, t) => (t.input * q.input + t.output * q.output + t.cacheWrite * q.input * 1.25 + t.cacheRead * q.cacheRead) / 1e6
-    // Stepped tokens are in the totals at the base row; move them to the step row.
-    usd += at(p, k) + (p.step && k.stepped ? at(p.step, k.stepped) - at(p, k.stepped) : 0)
+    usd += modelCost(p, k)
   }
   return { usd, unpriced }
+}
+
+export const CACHE_WRITE_5M = 1.25
+export const CACHE_WRITE_1H = 2
+
+/** $ of one model's four token components at price entry p (its step row included). */
+function modelCost(p, k) {
+  const at = (q, t) => {
+    const w1h = Math.min(t.cacheWrite || 0, t.cacheWrite1h || 0)
+    return (t.input * q.input + t.output * q.output + ((t.cacheWrite || 0) - w1h) * q.input * CACHE_WRITE_5M + w1h * q.input * CACHE_WRITE_1H + t.cacheRead * q.cacheRead) / 1e6
+  }
+  // Stepped tokens are in the totals at the base row; move them to the step row.
+  return at(p, k) + (p.step && k.stepped ? at(p.step, k.stepped) - at(p, k.stepped) : 0)
+}
+
+/**
+ * An account as _orch/spend.json holds it (R-C3-13): a copy with each model's `usd` and the total's `usd`.
+ * `side` is what the engine spent on requests the mod never saw (its own session title and the like):
+ * `{ model, usd }`, added to that model's entry, which is made if it served nothing the mod metered.
+ * A model with no price gets `usd: null`.
+ */
+export function withCosts(acc, extra = {}, side = null) {
+  const out = JSON.parse(JSON.stringify(acc || {}))
+  const byModel = (out.byModel ??= {})
+  let total = 0
+  for (const [m, k] of Object.entries(byModel)) {
+    const p = priceFor(m, extra)
+    k.usd = p ? modelCost(p, k) : null
+    if (k.usd != null) total += k.usd
+  }
+  if (side && side.model && side.usd > 0) {
+    const k = (byModel[side.model] ??= { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, usd: 0 })
+    k.usd = (k.usd || 0) + side.usd
+    k.unmeteredUsd = side.usd
+    total += side.usd
+  }
+  out.usd = total
+  return out
 }
 
 export function shortUsd(c) {
