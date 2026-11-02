@@ -2944,7 +2944,7 @@ function keyHint({ Box, Text }, key, parts, tail = '', cols = Infinity) {
   // Wider than the pane, the row's Texts would each be shrunk and wrapped onto a second line the list does not
   // count: drawn instead as one Text of the same spans, cut at the pane's edge (P4-FX3-d3).
   const width = cellWidth(parts.map(([k, t]) => k + t).join('') + tail)
-  if (width > cols) return Text({ key, wrap: 'truncate-end', children: spans })
+  if (width > cols) return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', children: spans })] })
   return Box({ key, flexDirection: 'row', children: spans })
 }
 
