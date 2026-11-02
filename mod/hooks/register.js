@@ -2283,6 +2283,9 @@ function detailBody($, { Box, Text, Button, line }) {
       ],
     }),
   ]
+  // The rows' letters, under the title: pressed here, each opens its row (R-C9-05), so none reaches the prompt.
+  const letters = rowLetterKeys($, Button, new Set((d.view.keys || []).map((k) => k.hotkey)))
+  if (letters.length) out.push(Box({ key: 'd-rows', flexDirection: 'row', flexWrap: 'wrap', children: [Text({ dimColor: true, children: ['rows '] }), ...letters] }))
   d.view.lines.forEach((segs, i) => {
     if (!segs.length) out.push(Text({ children: [' '] }))
     else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: x.wrap ? 'wrap' : 'truncate-end', ...tone(x), children: [x.text] })) }))
@@ -2516,6 +2519,42 @@ function swapKeys(a, b) {
   for (const [k, v] of al) if (k === v) al.delete(k)
 }
 
+/**
+ * Put the engine's focus ring on `key` once the drawing Home or End asked for is in (R-C16-21, R-C16-60).
+ * The engine holds the ring by its place among the pane's elements, not by key, so a redraw that scrolls
+ * the list leaves it on whatever element now stands there (LV15 section 11), and only `$.ui.focus` moves
+ * it. It is asked after the new drawing, and only while the person has not moved the ring meanwhile.
+ */
+async function landFocus($, key) {
+  const why = (x) => (x && x.message ? x.message : String(x))
+  try {
+    await $.clock.sleep(LAND_AFTER_MS)
+    if (pane.list.focus !== key || !pane.open || pane.detail) return
+    const r = await $.ui.focus({ requestId: PANE, key })
+    if (r && r.deny) $.ui.log('baton: the focus did not move onto ' + key + ': ' + r.deny)
+  } catch (err) {
+    try {
+      $.ui.log('baton: the focus did not move onto ' + key + ': ' + why(err))
+    } catch {}
+  }
+}
+
+/**
+ * In an opened view a row's letter still opens that row (key-scheme.md section 3, R-C9-05): each lettered
+ * row's key on a bare Button, as a scrolled-out row's is (Q-67). The view's own keys (a, y, w on a brief) win.
+ */
+function rowLetterKeys($, Button, own) {
+  const kinds = { agent: 'agent', phase: 'phase', q: 'question', blocked: 'node' }
+  return [...pane.letters]
+    .filter(([, k]) => !own.has(k))
+    .sort((a, b) => ROW_LETTERS.indexOf(a[1]) - ROW_LETTERS.indexOf(b[1]))
+    .flatMap(([id, k]) => {
+      const i = id.indexOf(':')
+      const kind = kinds[id.slice(0, i)]
+      return kind ? [Button({ key: 'hk-' + k, label: '', hotkey: k, plain: true, dimColor: true, onPress: () => openDetail($, kind, id.slice(i + 1)) })] : []
+    })
+}
+
 /** One line of the list: its row with its `›` (and ✉ while it runs). */
 function itemLine($, x, at, { Box, Text, Button }, cells) {
   const k = lineKeys(x, at)
@@ -2546,6 +2585,9 @@ const LIST = Symbol('the agent list')
 const GAP = Symbol('a spacer line the list may take')
 // The empty bottom rows the pane keeps while the list scrolls (Q-F115-1 A); none while it fits.
 const SPARE_ROWS = 1
+// How long after Home or End the ring is put on the row they moved to: past the engine's redraw (at most
+// thirty a second for a shown pane), well before a person's next key (landFocus).
+const LAND_AFTER_MS = 150
 
 /** A list item's identity, what the window's top row is held by (Q-65). */
 function itemId(x) {
@@ -4610,12 +4652,9 @@ export function register(on, options) {
       // The ring is on a list row: its key is drawn on the first or last row now (swapKeys).
       if (L.focus && L.keys.has(L.focus)) {
         if (L.focus !== key) swapKeys(key, L.focus)
-      } else {
-        L.focus = key
-        try {
-          Promise.resolve($.ui.focus({ requestId: PANE, key })).catch(() => {})
-        } catch {}
-      }
+      } else L.focus = key
+      // The ring is held by place, not by key: once this drawing is in, it is put on that row (landFocus).
+      landFocus($, L.focus)
     }
     return {}
   }).catch(failOpen)
