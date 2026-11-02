@@ -16,6 +16,8 @@
 //     that key to its index in the drawing current at that moment; `$.ui.focus` on a key not drawn yet waits for the
 //     drawing that brings it). So after a redraw the focus is on whatever element now stands at the held index. This
 //     is what LV15 section 11 saw live: after End the inverse sat on a letter button of the `↑ 20 more` line.
+//     The kit itself has no implementation of a plugin's `$.ui.focus` (it refuses it: "HooksError: no implementation
+//     for ui.focus"); the world plays that missing core from the mod's log record of the refused move (see ui.log).
 import { expect, mock, test } from 'claude-code/testing'
 
 const RUN = '/proj/run' // fixture: the run's directory
@@ -81,7 +83,16 @@ function world(on: any, o: Opts = {}) {
   on('store.set', (_$: any, e: any) => (store.set(e.key, e.value), { value: undefined }))
   on('store.delete', (_$: any, e: any) => (store.delete(e.key), { value: undefined }))
   on('store.keys', () => ({ value: [...store.keys()] }))
-  on('ui.log', () => ({ value: undefined }))
+  on('ui.log', (_$: any, e: any) => {
+    // The kit has no core for a plugin's `$.ui.focus`: it refuses every one with "no implementation for ui.focus"
+    // (seen from this file, FX4 work/result.md). Claude Code 2.1.316 does implement it (it lands the ring on the
+    // key, resolved in the drawing current when the call is made). The mod records a refused focus move in its log
+    // with the key it asked for; on that record, and only for the kit's own refusal, the world plays the missing
+    // core: it lands the ring on that key, as the engine would have.
+    const m = /the focus did not move onto (\S+): .*no implementation for ui\.focus/.exec(String(e.text ?? ''))
+    if (m) land(m[1]!)
+    return { value: undefined }
+  })
   on('ui.notify', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
   on('ui.status', () => ({ value: undefined }))
@@ -277,8 +288,9 @@ async function scrollKey($: any, w: World, by: (rows: number, content: number) =
   await w.redraw()
 }
 const pageDown = ($: any, w: World) => scrollKey($, w, (rows) => rows) // UiScrollInput.by: "a page key `bodyRows`"
-const home = ($: any, w: World) => scrollKey($, w, (_r, content) => -content) // "Home and End `contentRows`"
-const end = ($: any, w: World) => scrollKey($, w, (_r, content) => content)
+// Home and End raise `ui.scroll` by `contentRows`; the person's next key (Enter) comes a moment later, here a second.
+const home = async ($: any, w: World) => (await scrollKey($, w, (_r, content) => -content), await w.settle(1000), await w.redraw())
+const end = async ($: any, w: World) => (await scrollKey($, w, (_r, content) => content), await w.settle(1000), await w.redraw())
 
 /** The person clicks an element: the ring lands on it (through the mod's ui.focus hook). */
 async function click($: any, w: World, key: string) {
