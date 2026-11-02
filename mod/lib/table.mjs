@@ -10,6 +10,8 @@
 // D-T10-group-cells, D-T10R-group-columns): `this agent` (the existing cost column and the row's own
 // tokens, the sum of its token kinds) and `roll-up` (the cost and tokens of the row's subtree, the row
 // itself included); neither group drops, and an empty cell draws nothing.
+// The pane lays the table out with `fit` (fitDrawn, FX3): what it draws fits the pane body, since the
+// terminal shrinks every cell of a wider row to a `…`; the agent label alone is cut, in the drawing only.
 
 import { shortTokens } from './ledger.mjs'
 
@@ -108,14 +110,6 @@ function drawnCell(text, tone, c, last, head = false) {
   return [{ text, tone, drawn: c.dw }, ...(gap ? [{ text: gap, tone: undefined }] : [])]
 }
 
-/**
- * The narrowest width at which every column that never drops fits whole, the agent label uncut: the
- * pane draws its table at least this wide (T10 amendment: neither group drops at a narrow width, and
- * a row stays readable by its label).
- */
-export function tableFloor(modelW = MODEL_MIN, agentW = 0) {
-  return COLUMNS.filter((c) => !DROP_ORDER.includes(c.id)).reduce((n, c) => n + sized(c, modelW, agentW) + gapOf(c), 0)
-}
 
 const pad = (s, w, right) => {
   const t = String(s ?? '')
