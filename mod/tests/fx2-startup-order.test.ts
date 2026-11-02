@@ -28,7 +28,7 @@ const WHY = /baton: run (\S+) has a live prime in another session \(([^,()\s]+),
 const TOLD_PRIME = /this session is the prime of run|memory_wake/
 
 type Answer = 'yes' | 'no' | 'dismiss'
-type Opts = { id: string; interactive: boolean; seed: null | { id: string; ageS: number }; answers?: Answer[] }
+type Opts = { id: string; interactive: boolean; seed: null | { id: string; ageS: number }; answers?: Answer[]; surfacesLate?: boolean }
 
 function world(on: any, o: Opts) {
   const t0 = Date.now()
@@ -85,10 +85,14 @@ function world(on: any, o: Opts) {
   on('session.cwd', () => ({ value: s.cwd }))
   on('session.root', () => ({ value: RUN }))
   on('session.id', () => ({ value: s.id }))
-  on('session.surfaces', () => ({ value: o.interactive ? ['terminal'] : [] }))
+  let bound = false // surfacesLate: the terminal surface shows only once session.start has run
+  on('session.surfaces', () => ({ value: o.interactive && (bound || !o.surfacesLate) ? ['terminal'] : [] }))
   on('session.version', () => ({ value: { version: '2.1.316', base: '2.1.316' } }))
   on('session.usage', () => ({ value: { rateLimits: [] } }))
-  on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
+  on('session.start', (_$: any, e: any) => {
+    bound = true
+    return { cwd: e.cwd }
+  })
   on('session.end', (_$: any, e: any) => ({ sessionId: e.sessionId }))
   on('classic.SessionStart', () => ({}))
   on('tool.register', (_$: any, e: any) => {
@@ -241,4 +245,15 @@ test('R-C7-06: an interactive second session that says yes in the 2.1.316 order 
   expect(w.asked.length).toBe(1) // asked once, not once per start event
   expect(w.manifest().prime_session.id).toBe(SECOND) // Q-8: writes its id
   expect((await w.bash($)).deny).toContain('is not a prime tool') // Q-8: armed
+})
+
+// R-C7-06 (written with the fix, not a red row) · spec L95: "ask (interactive)". If the startup SessionStart cannot
+// yet see the terminal surface, it leaves the session unarmed; session.start, which carries isInteractive, asks then.
+test('R-C7-06: an interactive second session whose surface shows only at session.start is still asked, once', SLOW, async ($, on) => {
+  const w = world(on, { id: SECOND, interactive: true, surfacesLate: true, seed: { id: PRIME, ageS: 30 }, answers: ['no'] })
+  const start = await w.begin316($)
+  expect(JSON.stringify(start ?? {})).not.toMatch(TOLD_PRIME) // not told it is the prime
+  expect(w.asked.length).toBe(1) // spec L95 "ask (interactive)": asked, once
+  expect(w.manifest().prime_session.id).toBe(PRIME) // "no": the live prime keeps the manifest
+  expect(w.runNotes()).toEqual([]) // and no run note
 })

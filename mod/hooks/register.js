@@ -43,8 +43,9 @@ const run = {
 }
 
 // Run membership (spec T7, Q-7, Q-8, Q-29): recorded at session.start, keyed to the session id
-// and the manifest's prime_session {id, heartbeat_at}. Until a session.start records it, the
-// manifest under the current directory decides, as before.
+// and the manifest's prime_session {id, heartbeat_at}. Recorded by whichever of session.start and the
+// startup SessionStart runs first (ensureMembership); only if that fails does the manifest under the
+// current directory decide, as before.
 const membership = {
   recorded: false, // session.start (or /baton start) recorded this session's membership
   member: false, // this session is the run's own: the guard arms and it writes run notes
@@ -52,6 +53,8 @@ const membership = {
   id: null, // the session id this session last wrote to prime_session
   runId: null, // the run the start saw, member or not
   why: null, // why this session is not armed (Q-29), or why it was disarmed (Q-8); on the band
+  once: null, // the one recording of this process, by session.start or the startup SessionStart, whichever runs first
+  unasked: null, // {id, why, other}: left unarmed by a start that could not tell a person is at the prompt
 }
 // The session's own model ($.session.model()), read at session.start and on /baton: the prime's row
 // shows it until a request of its own names what served, and a mismatch compares against it (T8, Q-22).
@@ -423,7 +426,7 @@ async function recordMembership($, e) {
       dir = await $.session.cwd()
     } catch {}
   }
-  Object.assign(membership, { recorded: true, member: false, dir: dir || null, id: null, runId: null, why: null })
+  Object.assign(membership, { recorded: true, member: false, dir: dir || null, id: null, runId: null, why: null, unasked: null })
   run.active = false
   forgetRunCache()
   const m = await readManifest($, membership.dir)
@@ -433,10 +436,41 @@ async function recordMembership($, e) {
   const other = livePrimeElsewhere(m, id)
   if (!other) return claimRun($, id)
   const why = notArmedLine(membership.runId, other)
-  const ask = e && typeof e.isInteractive === 'boolean' ? e.isInteractive : await interactive($)
-  if (!ask) return stayUnarmed($, why)
-  // Asked once the session is up, not inside its start; unarmed until the answer is yes.
+  const known = !!e && typeof e.isInteractive === 'boolean'
+  const ask = known ? e.isInteractive : await interactive($)
+  if (!ask) {
+    // The startup SessionStart has no isInteractive: session.start may still say a person is there, and ask.
+    if (!known) membership.unasked = { id, why, other }
+    return stayUnarmed($, why)
+  }
+  scheduleAsk($, id, why, other)
+}
+
+// Asked once the session is up, not inside its start; unarmed until the answer is yes.
+function scheduleAsk($, id, why, other) {
+  membership.unasked = null
   $.clock.after(0, () => askTakeover($, id, why, other).catch(() => stayUnarmed($, why)))
+}
+
+/**
+ * Record run membership once per process, before anything reads it (T7). At Claude Code 2.1.316 the
+ * startup SessionStart hook runs before session.start, so whichever comes first records it and the
+ * other waits on the same recording: until then the manifest under the current directory would decide,
+ * and a second session in the run's directory would be told it is the prime. A start that could not
+ * tell a person is at the prompt left the session unarmed; session.start, which can, asks then (Q-8).
+ */
+async function ensureMembership($, e) {
+  if (!membership.once) {
+    membership.once = recordMembership($, e).catch((err) => {
+      membership.recorded = false // could not record: the manifest under the current directory decides, as before
+      membership.once = null
+      throw err
+    })
+    return membership.once
+  }
+  await membership.once
+  const u = membership.unasked
+  if (u && e && e.isInteractive === true && membership.recorded && !membership.member) scheduleAsk($, u.id, u.why, u.other)
 }
 
 async function askTakeover($, id, why, other) {
@@ -3895,9 +3929,8 @@ export function register(on, options) {
     await readSessionModel($)
     // Run membership is recorded here, once (T7): where the session started, and whose run it is.
     try {
-      await recordMembership($, e)
+      await ensureMembership($, e)
     } catch (err) {
-      membership.recorded = false // could not record: the manifest under the current directory decides, as before
       $.ui.log('baton: could not record run membership: ' + err.message)
     }
     // The memory tools exist for a run; a session with none sees no new tools.
@@ -4260,6 +4293,11 @@ export function register(on, options) {
   // picking up where another session left off: it must wake from the memory before anything else.
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
     const r = await next(e)
+    // At 2.1.316 this hook runs before session.start: record membership first, or a second session in the
+    // run's directory is told it is the prime, gets the memory tools and writes a run note (T7, LV7 §7).
+    try {
+      await ensureMembership($, { cwd: e.cwd })
+    } catch {}
     forgetRunCache()
     if (!(await runActive($))) {
       // A session left unarmed by a live prime elsewhere is told why in its output too (Q-29).
