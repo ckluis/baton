@@ -888,14 +888,14 @@ function discards(e) {
   return !!g && (g.id === 'reset' || g.id === 'rm')
 }
 
-async function failClosed(e, next, what, door) {
-  if (next.called) return next(e)
+async function failClosed(e, next, what, door, kind = next.error.kind, called = next.called) {
+  if (called) return next(e)
   let shut = true
   try {
     shut = await door()
   } catch {}
   if (!shut) return next(e)
-  return { deny: 'baton: ' + what + ' failed (' + next.error.kind + '), so this call was refused. Do not retry it another way: return BLOCKED with the exact command or dispatch.' }
+  return { deny: 'baton: ' + what + ' failed (' + kind + '), so this call was refused. Do not retry it another way: return BLOCKED with the exact command or dispatch.' }
 }
 
 async function failOpen($, e, next) {
@@ -904,7 +904,96 @@ async function failOpen($, e, next) {
 
 /** A baton tool's own hook failed: answer with why, so the caller carries on without it. */
 async function failOpenTool($, e, next) {
-  return { result: 'baton: ' + e.tool + ' failed (' + next.error.kind + (next.error.message ? ': ' + next.error.message : '') + '); carry on without it.' }
+  return toolFailed(e, next.error.kind, next.error.message)
+}
+
+function toolFailed(e, kind, message) {
+  return { result: 'baton: ' + e.tool + ' failed (' + kind + (message ? ': ' + message : '') + '); carry on without it.' }
+}
+
+// The tool.call hooks' own failure handling (R-C2-03/04/05/10). Engine 2.1.316 answers a throw in
+// ANY of baton's tool.call hooks with the `.catch` of baton's FIRST tool.call registration only, so
+// a hook's own `.catch` cannot be relied on to be the one asked. Two layers, each enough alone:
+//   1. Every tool.call hook handles its own throw in its body (closedOnThrow / openOnThrow below):
+//      a throw never leaves a gating hook, so no engine `.catch` decides it.
+//   2. Every tool.call registration carries the same `.catch`, toolCallCaught, which knows every
+//      tool.call door: whichever registration's `.catch` the engine asks (for a throw, a misreturn
+//      or an overrun), it refuses a call any gating hook guards.
+// The doors: is this call one the hook named `what` guards? It may throw; a door that cannot tell is
+// shut. Named, not passed as functions: the engine follows $ only into this file's own functions.
+async function doorShut($, e, what) {
+  switch (what) {
+    case 'the prime guard':
+      return isPrimeCall(e) && (await runActive($))
+    case 'the pause check':
+      return pause.on && !!gateFor(e.command)
+    case 'the command gate': {
+      const gate = gateFor(e.command)
+      return config.approvals && !!gate && !approvals.always.has(gate.id) && (await runActive($))
+    }
+    case 'the forbidden-file check':
+      try {
+        return forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles).length > 0
+      } catch {
+        return /\bgit\b[\s\S]*\badd\b/.test(String(e.command))
+      }
+    case 'the checkpoint':
+      return discards(e) && (await runActive($))
+    case 'the phase gate':
+      return isPrimeCall(e) && config.phaseGate && approvals.queue.length > 0 && (await runActive($))
+    default:
+      return true
+  }
+}
+
+/** Which gating tool.call hooks see a call of this tool, in their order. */
+function doorsFor(tool) {
+  if (tool === 'Bash') return ['the prime guard', 'the pause check', 'the command gate', 'the forbidden-file check', 'the checkpoint']
+  if (tool === 'Agent' || tool === 'Task') return ['the prime guard', 'the phase gate']
+  return ['the prime guard']
+}
+
+/**
+ * A gating tool.call hook's body, failing closed by itself: a throw in `body` refuses the call when
+ * the hook's door says it guards the call (or cannot tell); once the body had called on, what ran
+ * stands. The hook stays a function literal at its `on(...)` (the engine reads it so) and calls this.
+ */
+async function closedOnThrow($, e, next, what, body) {
+  let settled = null
+  try {
+    return await body((x) => (settled = next(x)))
+  } catch {
+    if (settled) return settled
+    return failClosed(e, next, what, () => doorShut($, e, what), 'throw', false)
+  }
+}
+
+/** A baton tool's hook body, failing open by itself: a throw answers why, and the caller carries on. */
+async function openOnThrow(e, body) {
+  try {
+    return await body()
+  } catch (err) {
+    return toolFailed(e, 'throw', err && err.message)
+  }
+}
+
+/** The one `.catch` of every tool.call registration: what any of them would answer (see above). */
+async function toolCallCaught($, e, next) {
+  if (next.called) return next(e)
+  let tool = ''
+  try {
+    tool = String(e.tool)
+  } catch {}
+  if (/^mcp__baton__(memory|project|code)_/.test(tool)) return failOpenTool($, e, next)
+  const kind = next.error ? next.error.kind : 'throw'
+  for (const what of doorsFor(tool)) {
+    let shut = true
+    try {
+      shut = await doorShut($, e, what)
+    } catch {}
+    if (shut) return failClosed(e, next, what, () => true, kind, false)
+  }
+  return next(e)
 }
 
 async function registerMemoryTools($) {
@@ -3876,7 +3965,9 @@ export function register(on, options) {
 
   // ---------------------------------------------------------------- the prime guard
 
-  on('tool.call', async ($, e, next) => {
+  // Every tool.call hook below handles its own failure (closedOnThrow / openOnThrow) and carries the
+  // same .catch, toolCallCaught: see "The tool.call hooks' own failure handling" above.
+  on('tool.call', async ($, e, next) => closedOnThrow($, e, next, 'the prime guard', async (pass) => {
     addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool, toolDetail(e))
     if (!isPrimeCall(e)) track.dirty = true
     if (pane.open && pane.tab === 'agents') $.ui.invalidate('ui.render')
@@ -3887,11 +3978,11 @@ export function register(on, options) {
       }
       // Where subagents report through a SubagentHandback tool, that call carries the return.
       if (e.tool === 'SubagentHandback' && spawnedByPrime.has(e.agentId)) {
-        const r = await next(e)
+        const r = await pass(e)
         if (!r.deny && (await noteReturn($, e.agentId, e.message))) handedBack.add(e.agentId)
         return r
       }
-      return next(e)
+      return pass(e)
     }
     const active = await runActive($)
     const verdict = guardDecision(e, active)
@@ -3899,8 +3990,8 @@ export function register(on, options) {
       // Third path for the wake: if neither SessionStart nor a prompt carried
       // it, the prime's first tool call after a rotation does.
       const wake = active && rotation.pendingWake ? takeWake() : null
-      if (!wake) return next(e)
-      const r = await next(e)
+      if (!wake) return pass(e)
+      const r = await pass(e)
       return r && !r.deny ? { ...r, context: [...(r.context ?? []), wake] } : r
     }
     probe.denied++
@@ -3908,57 +3999,33 @@ export function register(on, options) {
     if (live) probe.deniedWhileLive++
     $.ui.log('prime denied ' + e.tool + ' → dispatch a sub-orchestrator')
     return verdict
-  }).catch(async ($, e, next) => {
-    // Fail closed during a run: a guard that broke must not wave the prime through.
-    if (isPrimeCall(e) && (run.active || run.startedHere)) {
-      return { deny: 'baton: the prime guard failed (' + next.error.kind + '), so this call was refused. Dispatch a sub-orchestrator.' }
-    }
-    return next(e)
-  })
+  })).catch(toolCallCaught)
 
   // ---------------------------------------------------------------- memory tools
 
-  on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => serveMemoryTool($, e)).catch(failOpenTool)
+  on('tool.call', { tool: /^mcp__baton__(memory|project)_/ }, async ($, e) => openOnThrow(e, () => serveMemoryTool($, e))).catch(toolCallCaught)
 
   // ---------------------------------------------------------------- approvals
 
   // A line the model reads after a tool's result, whatever the result's shape (Bash's is an object).
   const withContext = (r, line) => (r && !r.deny ? { ...r, context: [...(r.context || []), line] } : r)
 
-  // Forbidden files: refuse a `git add` that names one, from any agent, run or no
-  // run. Prevention at the moment it happens; the PR's merge-ready row catches
-  // what a broad `git add -A` let through.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const hits = forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles)
-    if (!hits.length) return next(e)
-    if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
-    return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
-  }).catch(($, e, next) =>
-    failClosed(e, next, 'the forbidden-file check', () => {
-      try {
-        return forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles).length > 0
-      } catch {
-        return /\bgit\b[\s\S]*\badd\b/.test(String(e.command))
-      }
-    }),
-  )
-
   // Pause holds gated commands too, from any agent.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    if (!pause.on || !gateFor(e.command)) return next(e)
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => closedOnThrow($, e, next, 'the pause check', async (pass) => {
+    if (!pause.on || !gateFor(e.command)) return pass(e)
     pause.held++
     return { deny: 'baton is paused by the operator. This command waits: return BLOCKED with it, and it is re-dispatched after /baton resume.' }
-  }).catch(($, e, next) => failClosed(e, next, 'the pause check', () => pause.on && !!gateFor(e.command)))
+  })).catch(toolCallCaught)
 
   // The command gate: an irreversible shell command from any agent, at any
   // depth, waits for the operator. Nobody to ask (claude -p) refuses it.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    if (!config.approvals || !(await runActive($))) return next(e)
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => closedOnThrow($, e, next, 'the command gate', async (pass) => {
+    if (!config.approvals || !(await runActive($))) return pass(e)
     const gate = gateFor(e.command)
-    if (!gate || approvals.always.has(gate.id)) return next(e)
+    if (!gate || approvals.always.has(gate.id)) return pass(e)
     // Approved once from a blocked row's brief (T13, Q-37): that exact command passes, once.
     if (approvals.once.delete(String(e.command).trim())) {
-      const r = await next(e)
+      const r = await pass(e)
       await noteQuietly($, afterNote(chain(tree, isPrimeCall(e) ? PRIME : e.agentId), commandEffects(e.command), r), 'approval')
       return withContext(r, 'baton: the operator approved this exact command once, from the pane.')
     }
@@ -3978,7 +4045,7 @@ export function register(on, options) {
       // Q-81: what the shell would run, heredoc bodies and quoted strings read as data; the gate is not named (D-T14-approval-notes).
       const effects = commandEffects(e.command)
       await noteQuietly($, 'operator approved for ' + who + (verdict === 'always' ? ' (and every command of this kind for the run)' : '') + ': ' + effectsText(effects), 'approval')
-      const r = await next(e)
+      const r = await pass(e)
       await noteQuietly($, afterNote(who, effects, r), 'approval')
       // The agent never sees the dialog: tell it the operator approved, so its report is true.
       return withContext(r, 'baton: the operator approved this "' + gate.label + '" command before it ran' + (verdict === 'always' ? ', and every "' + gate.label + '" for the rest of the run' : '') + '.')
@@ -3997,32 +4064,38 @@ export function register(on, options) {
       }
     }
     return { deny: 'baton: the operator refused "' + gate.label + '"' + (reason ? ': ' + reason : '') + '. Do not retry it another way; carry on without it or return BLOCKED.' }
-  }).catch(($, e, next) =>
-    failClosed(e, next, 'the command gate', async () => {
-      const gate = gateFor(e.command)
-      return config.approvals && !!gate && !approvals.always.has(gate.id) && (await runActive($))
-    }),
-  )
+  })).catch(toolCallCaught)
+
+  // Forbidden files: refuse a `git add` that names one, from any agent, run or no
+  // run. Prevention at the moment it happens; the PR's merge-ready row catches
+  // what a broad `git add -A` let through. (Beneath pause and the command gate since
+  // FX1, so each of the three is the first to read a command in its own case.)
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => closedOnThrow($, e, next, 'the forbidden-file check', async (pass) => {
+    const hits = forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles)
+    if (!hits.length) return pass(e)
+    if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
+    return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }
+  })).catch(toolCallCaught)
 
   // Checkpoints: a command that discards work snapshots the tree first (after the gate let it through).
   // During a run, no snapshot means no discard: the command is refused (fail closed).
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    if (!discards(e)) return next(e)
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => closedOnThrow($, e, next, 'the checkpoint', async (pass) => {
+    if (!discards(e)) return pass(e)
     const id = await checkpoint($, (e.agentId ? chain(tree, e.agentId) : 'session') + ': ' + String(e.command).slice(0, 160))
     if (!id && (await runActive($))) {
       return { deny: 'baton: the checkpoint snapshot before this command failed, so it was refused and nothing was discarded. Do not retry it another way: return BLOCKED with the exact command.' }
     }
-    const r = await next(e)
+    const r = await pass(e)
     return id ? withContext(r, 'baton checkpoint ' + id + ' taken first: /baton restore ' + id + ' puts the files back.') : r
-  }).catch(($, e, next) => failClosed(e, next, 'the checkpoint', async () => discards(e) && (await runActive($))))
+  })).catch(toolCallCaught)
 
   // The phase gate: once a sub-orchestrator reports DONE, the prime's next
   // dispatch waits until the operator approves that phase or sends it back.
-  on('tool.call', { tool: /^(Agent|Task)$/ }, async ($, e, next) => {
-    if (!isPrimeCall(e) || !config.phaseGate || !approvals.queue.length || !(await runActive($))) return next(e)
+  on('tool.call', { tool: /^(Agent|Task)$/ }, async ($, e, next) => closedOnThrow($, e, next, 'the phase gate', async (pass) => {
+    if (!isPrimeCall(e) || !config.phaseGate || !approvals.queue.length || !(await runActive($))) return pass(e)
     while (approvals.queue.length) {
       const item = approvals.queue[0]
-      // Built outside the try: a question that cannot be built is the gate failing (its .catch), not a dismissal.
+      // Built outside the try: a question that cannot be built is the gate failing (closedOnThrow), not a dismissal.
       const question = phaseQuestion(item, await rulingLines($, 5))
       let answer = null
       try {
@@ -4030,7 +4103,7 @@ export function register(on, options) {
       } catch {
         answer = null
       }
-      if (answer === null) return next(e) // dismissed: leave it queued, do not stall the run
+      if (answer === null) return pass(e) // dismissed: leave it queued, do not stall the run
       approvals.queue.shift()
       $.ui.invalidate('ui.render')
       const v = readPhaseAnswer(answer)
@@ -4056,12 +4129,12 @@ export function register(on, options) {
           '. Before dispatching anything else, re-dispatch that phase with the operator\'s reason as its directive.',
       }
     }
-    return next(e)
-  }).catch(($, e, next) => failClosed(e, next, 'the phase gate', async () => isPrimeCall(e) && config.phaseGate && approvals.queue.length > 0 && (await runActive($))))
+    return pass(e)
+  })).catch(toolCallCaught)
 
   // ---------------------------------------------------------------- the kit
 
-  on('tool.call', { tool: /^mcp__baton__code_/ }, async ($, e) => serveCodeTool($, e)).catch(failOpenTool)
+  on('tool.call', { tool: /^mcp__baton__code_/ }, async ($, e) => openOnThrow(e, () => serveCodeTool($, e))).catch(toolCallCaught)
 
   // A Read of a large source file runs as asked; its result carries a pointer to
   // code_fetch, and the mod counts it (the experiment in #48 decides whether this
@@ -4081,7 +4154,7 @@ export function register(on, options) {
       }
     } catch {}
     return r
-  }).catch(failOpen)
+  }).catch(toolCallCaught)
 
   // Quiet output: a long shell result is cut to head, failures and tail; the whole goes to a file.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -4110,7 +4183,7 @@ export function register(on, options) {
     } catch {
       return r
     }
-  }).catch(failOpen)
+  }).catch(toolCallCaught)
 
   // The served effort (C8E): a classic hook input in a tool-use context carries the effort applied to the
   // turn, after any silent downgrade, with the subagent's agent_id (none: the main loop). Stop is read by withNotice.
