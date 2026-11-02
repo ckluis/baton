@@ -22,13 +22,13 @@ import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
-import { agentTable, components, sumAccounts, tableFloor, tokensIn } from '../lib/table.mjs'
+import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
 import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, compareVersions, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, bandSegs, cellWidth, compareVersions, cutCells, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -1916,7 +1916,7 @@ function goalLinks({ Box, Text, Link }, key) {
   const g = v.goal
   const kids = []
   if (g.issue) kids.push(Link({ href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
-  else kids.push(Text({ bold: true, children: ['goal: ' + String(g.target || '').slice(0, 80)] }))
+  else kids.push(Text({ bold: true, wrap: 'truncate-end', children: ['goal: ' + String(g.target || '').slice(0, 80)] })) // one line (P4-FX3-d3)
   if (v.pr) {
     kids.push(Text({ dimColor: true, children: ['·'] }))
     kids.push(Link({ href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
@@ -2514,27 +2514,64 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   restoreLetters(ids)
   assignLetters(pane.letters, ids)
   saveLetters($)
-  const { t, lineOf } = treeTable(items, (data) => tableWidth(data, cols))
+  const { t, lineOf } = treeTable(items, () => tableWidth(items, cols), { fit: true, lead: 4, rowWidth: cols })
+  // A table too wide for one line a row is drawn two lines a row (P4-FX3-d2): each row Box wraps at its break.
+  const wrapRow = t.wrap ? { flexWrap: 'wrap' } : {}
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  if (track.view) out.push(Text({ dimColor: true, children: [LEGEND] }))
-  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
-  out.push(Box({ key: 'ah', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.header.map((x) => Text({ dimColor: true, children: [x.text] }))] }))
+  // one line at any width (cut at the pane's edge): the list counts it as one (P4-FX3-d3)
+  if (track.view) out.push(Text({ wrap: 'truncate-end', dimColor: true, children: [LEGEND] }))
+  const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
+  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
+  out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
-  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text))
-  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button) } })
-  out.push(...messageField($, { Box, Text, Input }))
+  const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box), wrapRow)
+  // The lines each list item takes (P4-FX3-d3): a tree row of a two-line table two, a note row one; the header's
+  // second line is one more besides the list.
+  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? (x) => (x.kind === 'note' ? 1 : 2) : () => 1, head: t.wrap ? 1 : 0 } })
+  out.push(...messageField($, { Box, Text, Input, cols }))
   return out
 }
 
 /** A list row's table cells. A finished agent row's text is dim, its ✓ or ✗ keeping its colour (Q-69). */
-function rowCells(x, segs, labelFirst, tone, Text) {
+function rowCells(x, segs, labelFirst, tone, Text, Box) {
   const cell = (y, extra = {}) => Text({ wrap: 'truncate-end', ...tone(y), ...extra, children: [y.text] })
-  if (!finishedRow(x)) return segs.map((y) => cell(y))
+  if (!finishedRow(x)) return segs.flatMap((y) => segEl(y, (z) => [cell(z)], Box, Text))
   return segs.flatMap((y, i) => {
-    if (i > 0 || !labelFirst) return [cell(y, { dimColor: true })]
-    const m = /^(\s*\S)([\s\S]*)$/.exec(y.text)
-    return m ? [cell({ ...y, text: m[1] }), Text({ wrap: 'truncate-end', dimColor: true, children: [m[2]] })] : [cell(y, { dimColor: true })]
+    if (i > 0 || !labelFirst) return segEl(y, (z) => [cell(z, { dimColor: true })], Box, Text)
+    // the mark keeps its colour, the label after it dim; in a cut label cell the mark is drawn whole
+    return segEl(
+      y,
+      (z, inBox) => {
+        const m = /^(\s*\S)([\s\S]*)$/.exec(z.text)
+        if (!m) return [cell(z, { dimColor: true })]
+        const mark = cell({ ...z, text: m[1] })
+        return [inBox ? Box({ flexShrink: 0, children: [mark] }) : mark, Text({ wrap: 'truncate-end', dimColor: true, children: [m[2]] })]
+      },
+      Box,
+      Text,
+    )
   })
+}
+
+/**
+ * One table segment as drawn, a list of elements (FX3, P4-FX3-d1). A `hidden` segment is drawn in a box no cells
+ * wide. A `drawn` one (a fitted table's agent cell) is drawn in its `drawn` cells: a label longer than them in a
+ * box that wide, cut there with `…`, and the rest of its pad in a box no cells wide; a header cell as one element.
+ * The line's text stays the whole table's; what is drawn fits the pane, so the terminal never shrinks a cell.
+ * Any other segment is `text(seg)`.
+ */
+function segEl(y, text, Box, Text) {
+  const none = (s) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [Text({ wrap: 'truncate-end', children: [s] })] })
+  if (y.hidden) return [none(y.text)]
+  // a two-line table's break: a box as wide as the row and no rows tall, so what follows starts a new line
+  if (y.brk != null) return [Box({ width: y.brk, height: 0 })]
+  if (y.drawn == null) return text(y, false)
+  const chars = [...y.text]
+  const vis = [...y.text.trimEnd()]
+  const rest = (from) => (chars.length > from ? [none(chars.slice(from).join(''))] : [])
+  if (y.head) return [Box({ flexShrink: 0, children: [...text({ ...y, text: chars.slice(0, y.drawn).join('') }, false), ...rest(y.drawn)] })]
+  if (vis.length <= y.drawn) return [...text({ ...y, text: chars.slice(0, y.drawn).join('') }, false), ...rest(y.drawn)]
+  return [Box({ width: y.drawn, flexShrink: 0, overflow: 'hidden', children: text({ ...y, text: vis.join('') }, true) }), ...rest(vis.length)]
 }
 
 /** An agent row that has returned, other than a blocked one that still waits for the operator (Q-69). */
@@ -2608,18 +2645,18 @@ function rowLetterKeys($, Button, own) {
 }
 
 /** One line of the list: its row with its `›` (and ✉ while it runs). */
-function itemLine($, x, at, { Box, Text, Button }, cells) {
+function itemLine($, x, at, { Box, Text, Button }, cells, wrapRow = {}) {
   const k = lineKeys(x, at)
   if (x.kind === 'note') return Box({ key: k.box, flexDirection: 'row', children: [Text({ children: ['  '] }), Text({ wrap: 'truncate-end', dimColor: true, children: ['  '.repeat(x.depth) + x.text] })] })
   // Enter on a row's › opens its view: an agent's, a phase's (its steps, nodes and spend, Q-54), a node's.
-  if (x.kind === 'phase') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells()] })
+  if (x.kind === 'phase') return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children: [Button({ key: k.open, label: '›', ...letterKey('phase:' + x.p.id), plain: true, onPress: () => openDetail($, 'phase', x.p.id) }), ...cells()] })
   // A blocked node row (Q-38) also holds a direct key; its view opens with the brief.
-  if (x.kind === 'node') return Box({ key: k.box, flexDirection: 'row', children: [Button({ key: k.open, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells()] })
+  if (x.kind === 'node') return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children: [Button({ key: k.open, label: '›', ...(isBlocked(x.x) ? letterKey('blocked:' + x.x.id) : {}), plain: true, onPress: () => openDetail($, 'node', x.x.id) }), ...cells()] })
   const r = x.r
   const open = r.id ? [Button({ key: k.open, label: '›', ...letterKey('agent:' + r.id), plain: true, onPress: () => openDetail($, 'agent', r.id) })] : [Text({ children: ['  '] })]
   const children = [...open, ...cells()]
   if (r.live && r.id && r.id !== PRIME) children.push(Button({ key: k.msg, label: ' ✉', plain: true, onPress: () => ((pane.target = r.id), $.ui.invalidate('ui.render')) }))
-  return Box({ key: k.box, flexDirection: 'row', children })
+  return Box({ key: k.box, flexDirection: 'row', ...wrapRow, children })
 }
 
 /** A row scrolled out of view keeps its direct key: a Button on its edge's more line carries it (Q-67). */
@@ -2651,27 +2688,39 @@ function itemId(x) {
  * A list that fits is drawn whole. One that does not is a window from its top row, with its pinned
  * strips and more lines (lib/view.mjs listWindow); the spacer above it and the `no phases yet` row go,
  * and the pane's last row stays empty, so the engine's Home and End (`contentRows`) are told from its
- * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row).
+ * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row). It is all counted in screen lines, a
+ * row of a two-line table two (P4-FX3-d3); the spacer stays for the one line such a row may leave over.
  */
 function placeList(body, rows, { Text, Box }) {
   const L = pane.list
   const at = body.findIndex((x) => x && x[LIST])
   L.on = at >= 0
   if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
-  const { items, draw, hidden } = body[at][LIST]
-  // The lines besides the list: the tab row, the `read … · Esc closes` line, and the body's other entries.
-  const others = 2 + body.length - 1
+  const { items, draw, hidden, lines: linesOf = () => 1, head = 0 } = body[at][LIST]
+  // Everything here is in screen lines (P4-FX3-d3): the lines besides the list are the tab row, the `read … · Esc
+  // closes` line, the body's other entries and the header's second line when the table takes two lines a row
+  // (P4-FX3-d2); each list item takes its own lines (`linesOf`), the more and `+<k> running` lines one each.
+  const others = 2 + body.length - 1 + head
   const gaps = body.filter((x) => x && x[GAP]).length
   const area = rows - SPARE_ROWS - others + gaps
-  const fits = items.length <= rows - others || area < 3
+  const costAll = items.map((x) => linesOf(x))
+  const whole = costAll.reduce((a, b) => a + b, 0)
+  // Too short for a window (not one row and its two more lines): the list is drawn whole, as before.
+  const fits = whole <= rows - others || area < 2 + Math.max(1, ...costAll)
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
   const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)
   const pin = (i) => pins[i]
+  const costs = its.map((x) => linesOf(x))
+  const cost = (i) => costs[i] ?? 1
   const found = L.topKey ? ids.indexOf(L.topKey) : -1
-  const W = fits ? listWindow(its.length, 0, its.length) : listWindow(its.length, found >= 0 ? found : L.top, area, pin)
+  const W = fits ? listWindow(its.length, 0, its.length) : listWindow(its.length, found >= 0 ? found : L.top, area, pin, cost)
+  // A two-line row that does not fit leaves a line over: the spacer above the list keeps it (P4-FX3-d3), so the
+  // pane is filled to its height less its spare row, as with one-line rows.
+  let keepGap = !fits && gaps > 0 && W.lines < area && costs.some((c) => c > 1) ? 1 : 0
   const lines = []
-  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ dimColor: true, children: ['  ' + text] }), ...keys] })
+  // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
+  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: ['  ' + text] }), ...keys] })
   const running = (k) => ' · +' + k + ' running'
   const shown = new Set([...W.above, ...W.below])
   const out = (a, b) => its.slice(a, b).filter((_, j) => !shown.has(a + j))
@@ -2687,8 +2736,8 @@ function placeList(body, rows, { Text, Box }) {
   const slot = (s) => keysAt(its[W.top + s], String(s))
   const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
   const strip = [...W.above.flatMap((i, j) => keysAt(its[i], 'sa' + j)), ...W.below.flatMap((i, j) => keysAt(its[i], 'sb' + j))]
-  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
-  return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : []) : [x]))
+  Object.assign(L, { fits, n: its.length, area, size: W.size, top: W.top, topKey: ids[W.top] ?? null, ids, pins, costs, items: its, win: new Set(win), keys: new Set([...win, ...strip]), first: new Set(slot(0)), last: new Set(slot(W.size - 1)) })
+  return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].flatMap((x) => (x && x[GAP] ? (fits ? [x[GAP]] : keepGap-- > 0 ? [x[GAP]] : []) : [x]))
 }
 
 /** The keys of the elements the ring walks, in document order (Buttons, Inputs, Selects). */
@@ -2853,17 +2902,21 @@ function treeItemRow(x) {
 }
 
 /** The tree's table rows (every item but a note) as one table, and each item's line of it. */
-function treeTable(items, widthOf) {
+function treeTable(items, widthOf, opts = {}) {
   const drawn = items.filter((x) => x.kind !== 'note')
   const data = drawn.map(treeItemRow)
-  const t = agentTable(data, widthOf(data))
+  const t = agentTable(data, widthOf(data), opts)
   return { t, lineOf: new Map(drawn.map((x, i) => [x, t.lines[i]])) }
 }
 
-/** The width the pane draws its table at: the pane's, but never under the width every kept column needs whole. */
-function tableWidth(data, cols) {
-  const widest = (f) => Math.max(0, ...data.map((r) => [...String(f(r) || '')].length))
-  return Math.max(tableFloor(widest((r) => r.model), widest((r) => r.label)), (cols || 120) - 4)
+/**
+ * The width the pane draws its table at: the pane body's less what a row draws around its cells, its `k: ›`
+ * (four cells) and, on a running agent's row, its ` ✉` (two). A row wider than the body is shrunk cell by cell
+ * by the terminal, every cell cut to `…` (FX3, P4-FX3-d1), so the table is fitted to this width.
+ */
+function tableWidth(items, cols) {
+  const mail = items.some((x) => x.kind === 'agent' && x.r.live && x.r.id && x.r.id !== PRIME)
+  return Math.max(1, (cols || 120) - 4 - (mail ? 2 : 0))
 }
 
 /** The tree as text (the -p form, Q-70): the legend, the group line, the column names, the rows. */
@@ -2886,12 +2939,17 @@ function letterKey(id) {
 }
 
 /** A hint line: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32). */
-function keyHint({ Box, Text }, key, parts, tail = '') {
-  return Box({ key, flexDirection: 'row', children: [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])] })
+function keyHint({ Box, Text }, key, parts, tail = '', cols = Infinity) {
+  const spans = [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])]
+  // Wider than the pane, the row's Texts would each be shrunk and wrapped onto a second line the list does not
+  // count: drawn instead as one Text of the same spans, cut at the pane's edge (P4-FX3-d3).
+  const width = cellWidth(parts.map(([k, t]) => k + t).join('') + tail)
+  if (width > cols) return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', children: spans })] })
+  return Box({ key, flexDirection: 'row', children: spans })
 }
 
 /** The field that messages the targeted running agent (✉ on its row, or its open view). */
-function messageField($, { Box, Text, Input }) {
+function messageField($, { Box, Text, Input, cols = Infinity }) {
   const out = []
   const tg = pane.target && tree.nodes.get(pane.target)
   if (tg && tg.endedAt == null) {
@@ -2920,7 +2978,7 @@ function messageField($, { Box, Text, Input }) {
   } else {
     // With p on, the old plan section's footer joins the hint line (T10 amendment, Q-56).
     const foot = pane.planOpen && track.view ? ' · states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet') : ''
-    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot))
+    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot, cols))
   }
   return out
 }
@@ -3085,7 +3143,7 @@ async function openMemRow($, row) {
 }
 
 /** Memory: open a block (+), go back (b), or search; notes and summaries as a table (T12). */
-function memoryBody($, { Box, Text, Button, Input, line, rows }) {
+function memoryBody($, { Box, Text, Button, Input, line, rows, cols }) {
   const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
   const reload = () => refreshPane($, rows)
   const nav = [
@@ -3151,6 +3209,9 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
       pane.memRowKeys.set('mem-row-' + j, row)
     }
     const dim = isVoid ? { dimColor: true } : {}
+    // The row fits the body (FX3): its `+ › ` (four cells), its id and mark cells, then the text cut to what is left,
+    // so the terminal never shrinks the id and mark cells to make room for a long summary (P4-FX3-d1).
+    const text = cutCells(rest, (cols || 80) - 4 - cellWidth(idCell) - cellWidth(markCell))
     out.push(
       Box({
         key: 'mr' + j,
@@ -3162,7 +3223,7 @@ function memoryBody($, { Box, Text, Button, Input, line, rows }) {
           Text({ children: [' '] }),
           Text({ wrap: 'truncate-end', ...dim, children: [idCell] }),
           Text({ wrap: 'truncate-end', ...(isVoid ? { color: 'red' } : {}), children: [markCell] }),
-          line('m' + j, rest, dim),
+          line('m' + j, text, dim),
         ],
       }),
     )
@@ -4691,7 +4752,8 @@ export function register(on, options) {
     if (e.requestId !== PANE || pane.tab !== 'work' || pane.detail || !L.on || L.fits) return next(e)
     const by = Number(e.by) || 0
     const pin = (i) => L.pins[i]
-    const end = listEnd(L.n, L.area, pin)
+    const cost = (i) => (L.costs && L.costs[i]) || 1 // the lines each row takes (P4-FX3-d3)
+    const end = listEnd(L.n, L.area, pin, cost)
     let top = L.top
     let focusAt = null
     if (e.contentRows !== e.bodyRows && Math.abs(by) === e.contentRows) [top, focusAt] = by < 0 ? [0, 0] : [end, L.n - 1]
@@ -4701,7 +4763,7 @@ export function register(on, options) {
     L.topKey = L.ids[top] ?? null
     $.ui.invalidate('ui.render')
     if (focusAt !== null) {
-      const w = listWindow(L.n, top, L.area, pin)
+      const w = listWindow(L.n, top, L.area, pin, cost)
       const key = lineKeys(L.items[focusAt], String(focusAt - w.top)).open
       // The ring is on a list row: the key it held is drawn on the first or last row now (swapKeys).
       if (L.focus && L.keys.has(L.focus)) {
@@ -4730,7 +4792,7 @@ export function register(on, options) {
       L.focus = e.element ?? null
       return next(e)
     }
-    const top = listReveal(L.n, L.top, L.area, target, (i) => L.pins[i])
+    const top = listReveal(L.n, L.top, L.area, target, (i) => L.pins[i], (i) => (L.costs && L.costs[i]) || 1)
     L.top = top
     L.topKey = L.ids[top] ?? null
     L.focus = lineKeys(L.items[target], String(target - top)).open
