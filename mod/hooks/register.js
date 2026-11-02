@@ -510,8 +510,42 @@ async function memoryArgs($, which, namespace) {
     const md = String(config.memoryDir || '.baton/memory')
     dir = md.startsWith('/') ? md : (await $.session.root()) + '/' + md
   }
-  const ns = cleanNamespace(namespace)
+  const ns = which === 'project' ? projectNamespace(namespace) : cleanNamespace(namespace)
   return ns ? ['--dir', dir, '--ns', ns] : ['--dir', dir]
+}
+
+/**
+ * A project namespace as memo is given it: cleaned, and any letter case of `rulings` folded to `rulings`
+ * (decision P4-FX6-d1), so no store is ever made as ns/Rulings beside, or in place of, ns/rulings.
+ */
+function projectNamespace(namespace) {
+  const ns = cleanNamespace(namespace)
+  return ns !== null && ns.toLowerCase() === RULINGS_NS ? RULINGS_NS : ns
+}
+
+/** Where a directory lands (every symbolic link followed), or null when it is not there. */
+async function realDir($, p) {
+  try {
+    const s = await $.fs.stat(p, { resolve: true })
+    return s && s.kind === 'dir' && s.realPath ? String(s.realPath) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Is this project namespace the rulings store (R-C15-119, Q-86)? The one test every mark path, every
+ * marks reader and the explorer's listing use: `rulings` in any letter case (a file system that folds
+ * case makes ns/Rulings the rulings store), or any name whose directory lands where ns/rulings does (a
+ * symbolic link). The landing paths are compared without letter case, for the same reason.
+ */
+async function isRulingsStore($, namespace) {
+  const ns = projectNamespace(namespace)
+  if (ns === null) return false
+  if (ns === RULINGS_NS) return true
+  const base = (await memoryArgs($, 'project'))[1] + '/ns/'
+  const [here, rulings] = await Promise.all([realDir($, base + ns), realDir($, base + RULINGS_NS)])
+  return here !== null && rulings !== null && here.toLowerCase() === rulings.toLowerCase()
 }
 
 // ------------------------------------------------------------------ the code index
@@ -1133,6 +1167,7 @@ async function notNoted($, what) {
 
 /** Write one mark record: `who` is operator or prime. A ❌ queues the rebuilds above it. */
 async function writeMark($, which, namespace, id, mark, reason, who, session) {
+  if (which === 'project' && (await isRulingsStore($, namespace))) throw new Error(MARK_REFUSED.rulings)
   const args = await memoryArgs($, which, namespace)
   await memoRun($, [...args, '--json', '--who', who, ...(session ? ['--session', String(session)] : []), 'mark', '--', id, mark, '-'], reason)
   pane.marksSeen++
@@ -1146,9 +1181,8 @@ async function markTool($, e, which) {
   const outside = await outsideRun($)
   if (outside) return { deny: outside }
   const namespace = which === 'project' ? cleanNamespace(e.namespace) : null
-  // In any letter case (R-C15-119): memo keeps a namespace at <dir>/ns/<NAME>, and a file system that folds case
-  // (macOS's) makes `Rulings` the rulings store itself.
-  if (namespace !== null && namespace.toLowerCase() === RULINGS_NS) return { deny: MARK_REFUSED.rulings }
+  // Under any name (R-C15-119): any letter case, or a symbolic link to it (isRulingsStore).
+  if (which === 'project' && (await isRulingsStore($, namespace))) return { deny: MARK_REFUSED.rulings }
   const id = markId(e.id)
   if (!id) return { deny: 'baton: "' + String(e.id ?? '') + '" is not a note number or a summary range lo-hi, as ' + (which === 'project' ? 'project_wake' : 'memory_wake') + ' prints them; no mark made' }
   const mark = String(e.mark ?? '')
@@ -1229,7 +1263,7 @@ async function rebuildAbove($, { which, namespace, id }) {
 
 /** memo's wake, zoom or recall text with the marks applied (Q-76, Q-77, Q-84, Q-90); unchanged when nothing is marked. */
 async function withMarks($, args, out, { includeVoid = false, pattern = null, which = 'run', namespace = null } = {}) {
-  if (namespace === RULINGS_NS) return out
+  if (which === 'project' && (await isRulingsStore($, namespace))) return out
   const view = await markView($, args)
   if (!view.records.length) return out
   const end = out.endsWith('\n') ? '\n' : ''
@@ -2843,7 +2877,9 @@ function rowGlyph(row) {
 async function readProjectMemory($, budget) {
   const base = await memoryArgs($, 'project')
   const entries = (await listDir($, base[1] + '/ns')) || []
-  const names = entries.filter((x) => x && x.kind !== 'file' && cleanNamespace(x.name) === x.name && x.name !== RULINGS_NS).map((x) => x.name).sort()
+  const names = []
+  for (const x of entries) if (x && x.kind !== 'file' && cleanNamespace(x.name) === x.name && !(await isRulingsStore($, x.name))) names.push(x.name)
+  names.sort()
   const top = browse.stack.at(-1)
   const [topNs, range] = top ? [top.slice(0, top.indexOf('|')) || null, top.slice(top.indexOf('|') + 1)] : [null, null]
   const tiles = []
@@ -2918,7 +2954,7 @@ async function paneMark($, mark, rows) {
   const d = pane.mdetail
   const row = d ? d.mem || (d.ruling ? { ruling: true } : null) : pane.memFocusRow
   if (!row) return memHint($, 'focus a note or summary row to mark it')
-  if (row.ruling) return memHint($, 'no mark: rulings are retracted, not marked')
+  if (row.ruling || (row.which === 'project' && (await isRulingsStore($, row.ns)))) return memHint($, 'no mark: rulings are retracted, not marked')
   let answer = ''
   try {
     answer = String(await $.ui.ask('reason:', REASON_LABELS))
