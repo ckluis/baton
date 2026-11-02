@@ -1146,7 +1146,9 @@ async function markTool($, e, which) {
   const outside = await outsideRun($)
   if (outside) return { deny: outside }
   const namespace = which === 'project' ? cleanNamespace(e.namespace) : null
-  if (namespace === RULINGS_NS) return { deny: MARK_REFUSED.rulings }
+  // In any letter case (R-C15-119): memo keeps a namespace at <dir>/ns/<NAME>, and a file system that folds case
+  // (macOS's) makes `Rulings` the rulings store itself.
+  if (namespace !== null && namespace.toLowerCase() === RULINGS_NS) return { deny: MARK_REFUSED.rulings }
   const id = markId(e.id)
   if (!id) return { deny: 'baton: "' + String(e.id ?? '') + '" is not a note number or a summary range lo-hi, as ' + (which === 'project' ? 'project_wake' : 'memory_wake') + ' prints them; no mark made' }
   const mark = String(e.mark ?? '')
