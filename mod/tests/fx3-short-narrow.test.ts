@@ -275,9 +275,9 @@ const N_WORKERS = 12 // fixture: more rows than a 20-line pane holds at two line
 const wk = (i: number) => 'wk' + String(i).padStart(2, '0') // fixture labels
 // P1 > sub-orchestrator (opus 5.5 · high cfg, running) > wk01 … wk12 (sonnet 5.5 · medium cfg and opus 5.5 · high cfg in
 // turn; all returned but wk12, which runs)
-const TREE: Agent[] = [
+const treeOf = (n: number): Agent[] => [
   { id: 's1', description: 'P1 sub-orch probe', subagentType: 'baton:sub-orchestrator', prompt: 'Run phase P1 from _orch/phases/P1/brief.md', model: OPUS, effort: 'high', done: false },
-  ...Array.from({ length: N_WORKERS }, (_, i) => ({
+  ...Array.from({ length: n }, (_, i) => ({
     id: 'w' + (i + 1),
     description: wk(i + 1) + ' worker',
     subagentType: 'baton:worker',
@@ -285,13 +285,14 @@ const TREE: Agent[] = [
     parent: 's1',
     model: i % 2 ? OPUS : SONNET,
     effort: i % 2 ? 'high' : 'medium',
-    done: i + 1 < N_WORKERS,
+    done: i + 1 < n,
   })),
 ]
 const RUNNING = wk(N_WORKERS)
 const LABEL = /\b(wk\d\d|P\d|prime|sub-orch)\b/
 
-async function world($: any, on: any, o: { question?: boolean } = {}) {
+async function world($: any, on: any, o: { question?: boolean; workers?: number } = {}) {
+  const TREE = treeOf(o.workers ?? N_WORKERS)
   const files: Record<string, string> = {
     '_orch/manifest.json': JSON.stringify(MANIFEST),
     '_orch/plan/graph.yaml': '- id: T1\n  phase: 1\n- id: T2\n  phase: 2\n',
@@ -500,6 +501,23 @@ test('R-C10-90: at 73 columns in a 26-line pane the running row below the window
   expect(at.some((e) => e.shown && e.node?.type === 'Input'), 'the message field is drawn' + dump(els)).toBe(true)
   expect(at.some((e) => e.shown && QUESTION.test(e.text)), 'the question row is drawn' + dump(els)).toBe(true)
   await p.ui.unmount()
+})
+
+// R-C10-90 · T15 Q-67 (a row scrolled out keeps its direct key on its edge's more line) with every pool letter held
+// (spec L389: 22 letters): at 73 columns the ↓ more line, its keys and all, takes one line, so the pane still holds
+// exactly its height less the spare row and the lines under the list stay drawn (seen live: a more line with six keys).
+test('R-C10-90: at 73 columns with every row letter held the more line takes one line and the pane is filled less one spare row', SLOW, async ($, on) => {
+  const clock = await world($, on, { workers: 26 })
+  for (const rows of [16, 20]) {
+    const p = await paneAt($, clock, rows)
+    const { els, at } = await p.read()
+    const more = at.find((e) => e.shown && DOWN_MORE.test(e.text))
+    expect(more, 'a ↓ more line' + dump(els)).toBeTruthy()
+    expect(more!.lines.length, 'the more line is one line' + dump(els)).toBe(1)
+    expect(screen(els).length, dump(els)).toBe(rows - 1)
+    expect(at.some((e) => e.shown && HINT.test(e.text)), 'the hint line is drawn' + dump(els)).toBe(true)
+    await p.ui.unmount()
+  }
 })
 
 // R-C10-90 · the same T15 rules over every pane height from 17 to 44 lines at 73 columns, with the message field and the
