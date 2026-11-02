@@ -46,7 +46,33 @@ function truncEnd(t: string, w: number): string {
   }
   return out + '…'
 }
-type Leaf = { kind: 'text' | 'button'; text: string; drawn: string; x: number; y: number }
+type Leaf = { kind: 'text' | 'button'; text: string; drawn: string; x: number; y: number; h?: number }
+/** The lines a Text of the default `wrap` takes `w` cells wide: its words laid out line by line, a word longer than
+ * the line broken (Ink's `wrap`, types TextProps.wrap). A `truncate…` Text takes one line, cut. */
+function wrapLines(t: string, w: number): number {
+  if (w <= 0) return 1
+  let lines = 1
+  let used = 0
+  // spaces where a line breaks are dropped, at its end and at the next one's start (Ink trims them)
+  for (const word of t.trim().split(/(\s+)/)) {
+    if (!word) continue
+    const n = cellW(word)
+    if (used + n <= w) {
+      used += n
+      continue
+    }
+    if (/^\s+$/.test(word)) {
+      used = w // the line breaks here
+      continue
+    }
+    if (used) lines++
+    const more = Math.floor(Math.max(0, n - 1) / w) // a word longer than the line is broken
+    lines += more
+    used = n - more * w
+  }
+  return lines
+}
+const wraps = (c: any) => typeof c === 'string' || !/^truncate/.test(String(c?.props?.wrap ?? 'wrap'))
 const buttonText = (c: any) => {
   const p = c.props || {}
   const label = (c.children ?? []).length ? textOf(c.children) : String(p.label ?? '')
@@ -110,7 +136,9 @@ function layout(kids: any[], width: number, x0: number, y: number, out: Leaf[]) 
     } else if (typeof c !== 'string' && c.type === 'Button') out.push({ kind: 'button', text: buttonText(c), drawn: buttonText(c), x, y })
     else {
       const t = typeof c === 'string' ? c : textOf(c)
-      out.push({ kind: 'text', text: t, drawn: truncEnd(t, w), x, y })
+      // a Text drawn narrower than its text: cut if it truncates, else wrapped onto more lines
+      const h = cellW(t) > w && wraps(c) ? wrapLines(t, w) : 1
+      out.push({ kind: 'text', text: t, drawn: truncEnd(t, w), x, y, h })
     }
     x += w
   })
@@ -144,8 +172,16 @@ const drawnLines = (ls: Leaf[]) => {
     if (cellW(s) < l.x) s += ' '.repeat(l.x - cellW(s))
     rows[l.y] = s + l.drawn
   }
-  // a line no leaf is drawn on (one holding only a box no rows tall, a two-line row's break) takes no screen line
-  const out = rows.filter((r) => r !== undefined)
+  // a line no leaf is drawn on (one holding only a box no rows tall, a two-line row's break) takes no screen line;
+  // a line holding a wrapped Text is as tall as that Text
+  const tall: number[] = []
+  for (const l of ls) tall[l.y] = Math.max(tall[l.y] ?? 1, l.h ?? 1)
+  const out: string[] = []
+  rows.forEach((r, y) => {
+    if (r === undefined) return
+    out.push(r)
+    for (let k = 1; k < (tall[y] ?? 1); k++) out.push('')
+  })
   return out.length ? out : ['']
 }
 const undrawn = (box: any) => leavesOf(box).map((l) => l.text).join('')
@@ -173,7 +209,9 @@ function elements(n: any, width: number, out: El[] = []): El[] {
     return out
   }
   const t = n.type === 'Input' ? 'Input ' + String(n.props?.label ?? '') : n.type === 'Button' ? buttonText(n) : textOf(n)
-  out.push({ node: n, text: t, lines: [truncEnd(t, width)], row: null })
+  // a lone Text wider than the pane wraps onto more lines unless it truncates
+  const h = n.type === 'Text' && cellW(t) > width && wraps(n) ? wrapLines(t, width) : 1
+  out.push({ node: n, text: t, lines: [truncEnd(t, width), ...Array.from({ length: h - 1 }, () => '')], row: null })
   return out
 }
 const screen = (els: El[]) => els.flatMap((e) => e.lines)
