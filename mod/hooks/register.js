@@ -2719,7 +2719,8 @@ function placeList(body, rows, { Text, Box }) {
   // pane is filled to its height less its spare row, as with one-line rows.
   let keepGap = !fits && gaps > 0 && W.lines < area && costs.some((c) => c > 1) ? 1 : 0
   const lines = []
-  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ dimColor: true, children: ['  ' + text] }), ...keys] })
+  // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
+  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: ['  ' + text] }), ...keys] })
   const running = (k) => ' · +' + k + ' running'
   const shown = new Set([...W.above, ...W.below])
   const out = (a, b) => its.slice(a, b).filter((_, j) => !shown.has(a + j))
