@@ -10,8 +10,10 @@
 // `…` when the row is wider than the pane body: each Text of a row Box is a flex item that shrinks in proportion to
 // its width (Yoga flex-shrink 1, its basis its text width capped at the row's width), and a Text with
 // `wrap: 'truncate-end'` drawn narrower than its text ends in `…`. A plain Button is drawn whole
-// (`k: label`, or the label). `drawRow` below lays a row out that way; the assertions read the cells it draws,
-// never the table text. Checked against the live screens: before the fix, at a 106-column body this model draws a
+// (`k: label`, or the label). A Box is a flex item too: its `width` (when given) is what it asks for, its
+// `flexShrink` (1 when not given) whether it gives up room, and with `overflow: 'hidden'` nothing of its children
+// is drawn past its width (the element props in claude-code/index.d.ts, Box). `drawRow` below lays a row out that
+// way; the assertions read the cells it draws, never the table text. Checked against the live screens: before the fix, at a 106-column body this model draws a
 // long summary row as `+ › #0-3…    …`, the shape LV12 saw (`+ › #16-19…    …`, LV12 screens/05-memory.txt), and at
 // 90 a phase stepper as `◉─○○─○  ……`, the shape LV10 saw at 106 (`◉─○○─○  …`, LV10 screens/a3-08-settled.txt), and
 // at 73 a returned sub-orchestrator's row as `d: ›  … sub-orch P1 sub-o……` (LV10 13-settled: `e: ›  … sub-orch P1 sub-……`).
@@ -49,50 +51,92 @@ function truncEnd(t: string, w: number): string {
   return out + '…'
 }
 type Leaf = { kind: 'text' | 'button'; text: string; drawn: string; x: number }
+const buttonText = (c: any) => {
+  const p = c.props || {}
+  const label = (c.children ?? []).length ? textOf(c.children) : String(p.label ?? '')
+  return p.plain ? (p.hotkey ? p.hotkey + ': ' : '') + label : '[ ' + label + ' ]'
+}
+const kidsOf = (n: any): any[] => (n.children ?? []).filter((c: any) => c != null && c !== false)
+/** Every Text and Button under a row, in order, with its text (a nested Box's leaves in place). */
 function leavesOf(box: any): Leaf[] {
   const out: Leaf[] = []
-  for (const c of box.children ?? []) {
-    if (c == null || c === false) continue
+  for (const c of kidsOf(box)) {
     if (typeof c === 'string') out.push({ kind: 'text', text: c, drawn: c, x: 0 })
-    else if (c.type === 'Button') {
-      const p = c.props || {}
-      const label = (c.children ?? []).length ? textOf(c.children) : String(p.label ?? '')
-      const t = p.plain ? (p.hotkey ? p.hotkey + ': ' : '') + label : '[ ' + label + ' ]'
-      out.push({ kind: 'button', text: t, drawn: t, x: 0 })
-    } else if (c.type === 'Box') out.push(...leavesOf(c))
+    else if (c.type === 'Button') out.push({ kind: 'button', text: buttonText(c), drawn: buttonText(c), x: 0 })
+    else if (c.type === 'Box') out.push(...leavesOf(c))
     else out.push({ kind: 'text', text: textOf(c), drawn: textOf(c), x: 0 })
   }
   return out
 }
-/** One row Box as the terminal draws it `width` cells wide: each leaf's drawn text and its column. */
-function drawRow(box: any, width: number): Leaf[] {
-  const ls = leavesOf(box)
-  const basis = ls.map((l) => (l.kind === 'button' ? cellW(l.text) : Math.min(cellW(l.text), width)))
+/** What an element asks for along a row, `avail` cells left: a Text its text (at most `avail`), a Button its text, a Box its `width` or its children's. */
+function basisOf(c: any, avail: number): number {
+  if (typeof c === 'string') return Math.min(cellW(c), avail)
+  if (c.type === 'Button') return cellW(buttonText(c))
+  if (c.type === 'Box') return typeof c.props?.width === 'number' ? c.props.width : kidsOf(c).reduce((n: number, k: any) => n + basisOf(k, avail), 0)
+  return Math.min(cellW(textOf(c)), avail)
+}
+const shrinkOf = (c: any) => (typeof c === 'string' ? 1 : c.type === 'Button' ? 0 : c.type === 'Box' ? (c.props?.flexShrink ?? 1) : 1)
+/**
+ * A row of elements laid out `width` cells wide, from column `x0`: when they ask for more than `width`, each
+ * shrinkable one gives up room in proportion to what it asks for (flex-shrink scaled by its basis), the edges
+ * rounded to whole cells; a Text drawn narrower than its text is cut with `…` (truncate-end); a Box lays its own
+ * children out in its width, and with `overflow: 'hidden'` draws nothing past it.
+ */
+function layout(kids: any[], width: number, x0: number, out: Leaf[]) {
+  const basis = kids.map((c) => basisOf(c, width))
+  const shrink = kids.map(shrinkOf)
   const total = basis.reduce((a, b) => a + b, 0)
   let widths = basis
   if (total > width) {
     const over = total - width
-    const shrinkable = ls.reduce((n, l, i) => n + (l.kind === 'text' ? basis[i]! : 0), 0)
-    const f = ls.map((l, i) => (l.kind === 'text' && shrinkable ? Math.max(0, basis[i]! - (over * basis[i]!) / shrinkable) : basis[i]!))
+    const scaled = kids.reduce((n, _c, i) => n + shrink[i]! * basis[i]!, 0)
+    const f = kids.map((_c, i) => (scaled ? Math.max(0, basis[i]! - (over * shrink[i]! * basis[i]!) / scaled) : basis[i]!))
     let acc = 0
     let prev = 0
-    widths = f.map((x) => {
-      acc += x
+    widths = f.map((v) => {
+      acc += v
       const r = Math.round(acc)
       const w = Math.max(0, r - prev)
       prev = r
       return w
     })
   }
-  let x = 0
-  return ls.map((l, i) => {
-    const drawn = l.kind === 'button' ? l.text : truncEnd(l.text, widths[i]!)
-    const leaf = { ...l, drawn, x }
-    x += cellW(drawn)
-    return leaf
+  let x = x0
+  kids.forEach((c, i) => {
+    const w = widths[i]!
+    if (typeof c !== 'string' && c.type === 'Box') {
+      const inner: Leaf[] = []
+      layout(kidsOf(c), w, x, inner)
+      if (c.props?.overflow === 'hidden') {
+        for (const l of inner) {
+          const room = Math.max(0, x + w - l.x)
+          if (cellW(l.drawn) > room) l.drawn = [...l.drawn].slice(0, room).join('')
+        }
+      }
+      out.push(...inner)
+    } else if (typeof c !== 'string' && c.type === 'Button') out.push({ kind: 'button', text: buttonText(c), drawn: buttonText(c), x })
+    else {
+      const t = typeof c === 'string' ? c : textOf(c)
+      out.push({ kind: 'text', text: t, drawn: truncEnd(t, w), x })
+    }
+    x += w
   })
 }
-const drawnLine = (ls: Leaf[]) => ls.map((l) => l.drawn).join('')
+/** One row Box as the terminal draws it `width` cells wide: each leaf's text, what is drawn of it, and its column. */
+function drawRow(box: any, width: number): Leaf[] {
+  const out: Leaf[] = []
+  layout(kidsOf(box), width, 0, out)
+  return out
+}
+/** The drawn line: each leaf's drawn text at its column (a cell a leaf leaves blank is a space). */
+const drawnLine = (ls: Leaf[]) => {
+  let s = ''
+  for (const l of ls) {
+    if (cellW(s) < l.x) s += ' '.repeat(l.x - cellW(s))
+    s += l.drawn
+  }
+  return s
+}
 
 /** Every outermost row Box, top to bottom. */
 function rowBoxes(n: any, out: any[] = []): any[] {
@@ -121,16 +165,23 @@ type Cell = { name: string; text: string; drawn: string; x: number }
  */
 function tableOf(tree: any) {
   const boxes = rowBoxes(tree)
-  const head = boxes.find((b) => /\bagent\b/.test(undrawn(b)) && /\bmodel\b/.test(undrawn(b)) && /\bstate\b/.test(undrawn(b)))
+  // (state may be cut first, after the label, Q-11: the header is told by `agent`, `model` and `steps`)
+  const head = boxes.find((b) => /\bagent\b/.test(undrawn(b)) && /\bmodel\b/.test(undrawn(b)) && /\bsteps\b/.test(undrawn(b)))
   if (!head) throw new Error('no header row: ' + JSON.stringify(boxes.map(undrawn)))
   const hs = leavesOf(head).slice(1) // the leading pad
   const seen = new Map<string, number>()
-  const cols = hs.map((h) => {
+  const cols: { name: string; w: number }[] = []
+  for (const h of hs) {
     const t = h.text.trim()
+    // a blank leaf (a gap, or pad the drawing leaves out) belongs to the column before it
+    if (!t && cols.length) {
+      cols[cols.length - 1]!.w += cellW(h.text)
+      continue
+    }
     const k = (seen.get(t) ?? 0) + 1
     seen.set(t, k)
-    return { name: k > 1 ? 'roll ' + t : t, w: cellW(h.text) }
-  })
+    cols.push({ name: k > 1 ? 'roll ' + t : t, w: cellW(h.text) })
+  }
   return { boxes, cols }
 }
 function cellsOf(box: any, cols: { name: string; w: number }[], width: number): Cell[] {
