@@ -381,7 +381,15 @@ const RUN = '/proj/run' // fixture
 const SID = '5b2d9e10-7c4a-4f1e-8a3b-2c1d0e9f8a7b' // fixture
 const NOW = Date.parse('2026-11-02T12:00:00Z') // fixture
 const TAGS = ['build', 'verify', 'plan', 'probe', 'handoff', 'build', 'verify', 'plan'] // fixture
-const ts = (i: number) => '2026-11-02T11:' + String(10 + i).padStart(2, '0') + ':00Z'
+// amended by verifier (XTFX3D; R-C12-01, R-C12-08): the notes were stamped 2026-11-02T11:1x:00Z, but the pane's memory
+// table takes its "now" from the real clock (register.js memTableCells/memTableHeader(shown, Date.now(), marks)) and
+// memTime (lib/view.mjs) prints HH:MM for a note of today and `YYYY-MM-DD HH:MM` otherwise. From 2026-11-03 on the time
+// column was 11 cells wider, the 73-column note rows lost "FX3 memory probe" and the row filter found no note row: the
+// test depended on the day it ran. The notes are now stamped at 11:1x local time on the real clock's day at run time,
+// so the time cell is HH:MM on any day, as on the day the test was written. NOW (the mock clock) stays as it was: the
+// memory table never compares a note with it. No assertion changed.
+const NOTE_DAY = new Date(Date.now()) // fixture: the real clock's day when the test runs
+const ts = (i: number) => new Date(NOTE_DAY.getFullYear(), NOTE_DAY.getMonth(), NOTE_DAY.getDate(), 11, 10 + i).toISOString().replace(/\.\d{3}Z$/, 'Z')
 const noteText = (i: number) => 'fixture note ' + i + ': FX3 memory probe' // fixture
 const noteLine = (i: number) => '#' + i + ' ' + ts(i) + ' [' + TAGS[i] + '] ' + noteText(i)
 // A summary's text is its children's text joined (LV12): longer than any pane.
