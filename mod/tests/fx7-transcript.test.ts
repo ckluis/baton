@@ -176,6 +176,22 @@ test("fx7-transcript R-C3-13: the prime's 1-hour cache writes are priced at 2x f
   expect(w.files.get(TRANSCRIPT)).toBe(text)
 })
 
+// R-C3-13 (spec L56), seen live in FX7 attempt 3 (session f24b82ba-8339-4acf-8e40-342d745d4a42): the turn's last
+// response reached the transcript after the turn's end had written spend.json, so its 398 1-hour writes stayed at the
+// 5-minute rate and spend.json's opus figure fell $0.0012 short of /cost's. A row that arrives after the reading is
+// priced at a reading a moment later, with nothing else happening.
+test("fx7-transcript R-C3-13: a prime response that reaches the transcript after the turn's end is still priced at the 1-hour rate", async ($, on) => {
+  const w = world(on)
+  w.files.set(TRANSCRIPT, '')
+  await start($, w)
+  await step($, w, 'p1', usage(OPUS, 0, 0, 1_000_000))
+  await endTurn($, w) // the transcript does not hold the response yet
+  w.files.set(TRANSCRIPT, row('msg_p1', Date.now(), 600_000, 400_000) + '\n')
+  await w.clock.advance(5_000)
+  await w.clock.settle()
+  expect(nano(usdOf(w.spend(), OPUS))).toBe(nano(600_000 * OPUS_W1H + 400_000 * OPUS_W5M))
+})
+
 // Operator answer Q-FX7-1 = B (R-C3-13): the mod never opens ~/.claude.json. Every read, stat, list, exists and
 // process argv over a session's start, three models' requests, a turn's end and two minutes of timers is recorded;
 // none names that file.
