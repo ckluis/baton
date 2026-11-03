@@ -261,9 +261,20 @@ export function assignLetters(held, ids, pool = ROW_LETTERS) {
  * all fit, its strip ends with `+<k> running`, which joins that side's more line when no strip row fits.
  * A `↑/↓ <k> more` line stands at an edge only while rows there are not drawn (k counts those,
  * D-T15-more-count). The window takes the lines left. A list that fits is drawn whole from its top.
+ *
+ * Everything is counted in screen lines (P4-FX3-d3): row `i` takes `cost(i)` lines (two for a row of a table
+ * drawn two lines a row, P4-FX3-d2), a more line and a `+<k> running` line one each. When the window leaves
+ * lines over and no strip row stands below it, it grows into them, the rows below joining the more line's
+ * `+<k> running` (only with rows of more than one line). With every cost 1 this is the one-line arithmetic,
+ * unchanged. `lines` is what the window takes.
  */
-export function listWindow(n, top, area, pin = () => false) {
-  if (n <= area) return { top: 0, size: n, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: 0, hiddenBelow: 0, fits: true }
+export function listWindow(n, top, area, pin = () => false, cost = () => 1) {
+  const span = (a, b) => {
+    let s = 0
+    for (let i = a; i < b; i++) s += cost(i)
+    return s
+  }
+  if (span(0, n) <= area) return { top: 0, size: n, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: 0, hiddenBelow: 0, fits: true, lines: span(0, n) }
   const t = Math.max(0, Math.min(Number(top) || 0, n - 1))
   const cap = Math.floor(area / 3)
   const running = (a, b) => {
@@ -271,33 +282,55 @@ export function listWindow(n, top, area, pin = () => false) {
     for (let i = a; i < b; i++) if (pin(i)) out.push(i)
     return out
   }
-  const strip = (rs, room) => (rs.length <= room ? { rows: rs, plus: 0, lines: rs.length } : room >= 2 ? { rows: rs.slice(0, room - 1), plus: rs.length - room + 1, lines: room } : { rows: [], plus: rs.length, lines: 0 })
+  const strip = (rs, room) => {
+    const all = rs.reduce((s, i) => s + cost(i), 0)
+    if (all <= room) return { rows: rs, plus: 0, lines: all }
+    let k = 0
+    let used = 0
+    while (k < rs.length && used + cost(rs[k]) <= room - 1) used += cost(rs[k++])
+    return k ? { rows: rs.slice(0, k), plus: rs.length - k, lines: used + 1 } : { rows: [], plus: rs.length, lines: 0 }
+  }
   const sa = strip(running(0, t), cap)
-  for (let size = Math.min(area, n - t); size >= 1; size--) {
-    const sb = strip(running(t + size, n), cap - sa.lines)
+  const take = (size, sb) => {
     const hiddenAbove = t - sa.rows.length
     const hiddenBelow = n - t - size - sb.rows.length
-    if ((hiddenAbove > 0 ? 1 : 0) + sa.lines + size + sb.lines + (hiddenBelow > 0 ? 1 : 0) <= area) {
-      return { top: t, size, above: sa.rows, below: sb.rows, plusAbove: sa.plus, plusBelow: sb.plus, stripAbove: sa.lines, stripBelow: sb.lines, hiddenAbove, hiddenBelow, fits: false }
-    }
+    const lines = (hiddenAbove > 0 ? 1 : 0) + sa.lines + span(t, t + size) + sb.lines + (hiddenBelow > 0 ? 1 : 0)
+    return { top: t, size, above: sa.rows, below: sb.rows, plusAbove: sa.plus, plusBelow: sb.plus, stripAbove: sa.lines, stripBelow: sb.lines, hiddenAbove, hiddenBelow, fits: false, lines }
   }
-  return { top: t, size: 1, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: t, hiddenBelow: n - t - 1, fits: false }
+  // the most rows the area could hold from `t`: no larger window is tried
+  let most = 0
+  for (let used = 0; t + most < n && used + cost(t + most) <= area; most++) used += cost(t + most)
+  // rows of more than one line (a two-line table): a window may be left with lines a further row would use
+  const tall = span(0, n) > n
+  for (let size = Math.max(1, most); size >= 1; size--) {
+    let w = take(size, strip(running(t + size, n), cap - sa.lines))
+    if (w.lines > area) continue
+    // lines over and no strip row below: the window grows into them, the running rows below counted on the more line
+    while (tall && !w.below.length && w.lines < area && t + w.size < n) {
+      const s = w.size + 1
+      const g = take(s, { rows: [], plus: running(t + s, n).length, lines: 0 })
+      if (g.lines > area) break
+      w = g
+    }
+    return w
+  }
+  return { top: t, size: 1, above: [], below: [], plusAbove: 0, plusBelow: 0, stripAbove: 0, stripBelow: 0, hiddenAbove: t, hiddenBelow: n - t - 1, fits: false, lines: span(t, t + 1) + (t > 0 ? 1 : 0) + (n - t - 1 > 0 ? 1 : 0) }
 }
 
 /** The first top row at which the list's last row is in the window (End, Q-63). */
-export function listEnd(n, area, pin = () => false) {
+export function listEnd(n, area, pin = () => false, cost = () => 1) {
   for (let t = Math.max(0, n - area); t < n; t++) {
-    const w = listWindow(n, t, area, pin)
+    const w = listWindow(n, t, area, pin, cost)
     if (w.top + w.size >= n) return w.top
   }
   return Math.max(0, n - 1)
 }
 
 /** The top row that brings row `i` into the window from `top`, moving it as little as it can (L289-290). */
-export function listReveal(n, top, area, i, pin = () => false) {
+export function listReveal(n, top, area, i, pin = () => false, cost = () => 1) {
   if (i < top) return Math.max(0, i)
   for (let t = top; t <= i; t++) {
-    const w = listWindow(n, t, area, pin)
+    const w = listWindow(n, t, area, pin, cost)
     if (i < w.top + w.size) return w.top
   }
   return i
@@ -315,6 +348,22 @@ export function memTime(ts, now = Date.now()) {
 
 /** Terminal cells of a table cell: the mark glyphs ✅ and ❌ are two cells wide, as wide characters are. */
 const cellsOf = (t) => [...t].reduce((n, c) => n + (c === '✅' || c === '❌' ? 2 : 1), 0)
+
+/** The cells a string takes on the terminal (✅ and ❌ two each). */
+export const cellWidth = (t) => cellsOf(String(t ?? ''))
+
+/** A string cut to `w` cells, ending in `…` when cut (FX3: a memory row's text, so the row fits its pane). */
+export function cutCells(t, w) {
+  const s = String(t ?? '')
+  if (cellsOf(s) <= w) return s
+  if (w <= 0) return ''
+  let out = ''
+  for (const c of s) {
+    if (cellsOf(out + c) > w - 1) break
+    out += c
+  }
+  return out + '…'
+}
 
 /**
  * The memory explorer as a table (T12, Q-23): each line (`#n ts [tag] text`, or `#lo-hi text` for a
