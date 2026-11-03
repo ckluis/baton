@@ -251,8 +251,13 @@ const SPEND_SAVE_MS = 5000
 // /cost totals; `engineBase` is that total when this process began): the difference is what the engine spent on
 // requests no turn.step sees, its session title and prompt suggestions (R-C3-13). The engine names no model for
 // that figure (SessionCost is { usd }), so spend.json keeps it apart. `sidePrior`: that figure from earlier sessions.
+// The prime's 1-hour cache writes (R-C3-13): turn.step's usage gives only the count of cache writes, so they are told
+// apart in the session's own transcript (`transcript`, from a classic hook input; read, never written). `since`: when
+// this process began (rows before it are an earlier process's); `primeWrites`: the main thread's metered cache writes,
+// and `t1hAt` their count at the last reading; `t1hMetered` / `t1hDone`: per model, the 1-hour writes a usage already
+// marked and those credited from the transcript.
 function sessionSpend() {
-  return { sess: {}, engineBase: null, sidePrior: 0 }
+  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hMetered: {}, t1hDone: {} }
 }
 
 // The goal on GitHub: the label last set, labels ensured, the board's ids.
@@ -985,6 +990,7 @@ function bashText(res) {
 /** Stop and Notification: raise what is waiting as a native notification ($.ui.notify). */
 async function withNotice($, e, next) {
   servedEffort($, e) // a Stop input carries the turn's served effort too (C8E)
+  noteTranscript(e) // and the session's own transcript (R-C3-13)
   const r = await next(e)
   const text = pendingNotice()
   if (text) {
@@ -3749,10 +3755,63 @@ async function engineSpend($) {
   }
 }
 
+/** The session's own transcript, from a classic hook input of the main thread (its `transcript_path`). */
+function noteTranscript(e) {
+  spend.since ??= Date.now()
+  if (e && typeof e.transcript_path === 'string' && e.transcript_path && !e.agent_id) spend.transcript = e.transcript_path
+}
+
+/**
+ * Credits the prime's 1-hour cache writes (R-C3-13): sums, per model, the `cache_creation.ephemeral_1h_input_tokens`
+ * of the main thread's assistant rows this process wrote (one per response: its rows share `message.id`), and moves
+ * that many of the metered cache writes to the 1-hour rate. Read only when the prime wrote more since the last reading;
+ * a transcript the host will not read (missing, over its read limit) leaves the 5-minute rate.
+ */
+async function primeOneHour($) {
+  if (!spend.transcript || spend.primeWrites <= spend.t1hAt) return
+  spend.t1hAt = spend.primeWrites
+  let text
+  try {
+    text = String(await $.fs.read(spend.transcript))
+  } catch {
+    return
+  }
+  const seen = new Set()
+  const got = {}
+  for (const line of text.split('\n')) {
+    if (!line.includes('ephemeral_1h_input_tokens')) continue
+    let d
+    try {
+      d = JSON.parse(line)
+    } catch {
+      continue
+    }
+    const msg = d && d.message
+    if (!msg || d.type !== 'assistant' || d.isSidechain || !msg.usage || !msg.model) continue
+    if (spend.since != null && !(Date.parse(d.timestamp) >= spend.since)) continue
+    const key = msg.id || d.requestId || d.uuid
+    if (key && seen.has(key)) continue
+    seen.add(key)
+    const n = Number(msg.usage.cache_creation && msg.usage.cache_creation.ephemeral_1h_input_tokens) || 0
+    if (n > 0) got[msg.model] = (got[msg.model] || 0) + n
+  }
+  const prime = tree.nodes.get(PRIME)
+  for (const [m, n] of Object.entries(got)) {
+    const add = n - (spend.t1hMetered[m] || 0) - (spend.t1hDone[m] || 0)
+    if (add <= 0) continue
+    spend.t1hDone[m] = (spend.t1hDone[m] || 0) + add
+    for (const acc of new Set([spend.total, spend.sess, prime && prime.spend, spend.byRole[prime ? prime.role : 'agent']])) {
+      const k = acc && acc.byModel && acc.byModel[m]
+      if (k) k.cacheWrite1h = Math.min(k.cacheWrite || 0, (k.cacheWrite1h || 0) + add)
+    }
+  }
+}
+
 async function saveSpend($, force = false) {
   if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return
   spend.savedAt = Date.now()
   try {
+    await primeOneHour($)
     // Each model's cost is written beside its tokens (R-C3-13), and the engine's own total beside the mod's.
     const engine = await engineSpend($)
     const doc = { run_id: run.manifest && run.manifest.run_id, total: withCosts(spend.total, config.prices), byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode, ...(engine ? { engine } : {}) }
@@ -3774,6 +3833,12 @@ function meterOwn(model, usage) {
 function meter(agentId, usage) {
   addUsage(spend.total, usage)
   addUsage(spend.sess, usage)
+  if (!agentId && usage) {
+    // The prime's cache writes, which its transcript splits by duration (primeOneHour).
+    spend.primeWrites += Number(usage.cache_creation_input_tokens) || 0
+    const marked = Number(usage.cache_creation && usage.cache_creation.ephemeral_1h_input_tokens) || 0
+    if (marked > 0 && usage.model) spend.t1hMetered[usage.model] = (spend.t1hMetered[usage.model] || 0) + marked
+  }
   const n = agentId ? tree.nodes.get(agentId) : tree.nodes.get(PRIME)
   if (n) {
     // Each agent's own meter: its spend, and how full its context was on its last request.
@@ -4186,6 +4251,7 @@ export function register(on, options) {
     } catch {}
     await readSessionModel($)
     // The engine's ledger as this process begins (a resumed session's counts from its first launch): R-C3-13.
+    spend.since ??= Date.now()
     try {
       const u = await $.session.usage()
       spend.engineBase = Number(u && u.cost && u.cost.usd) || 0
@@ -4539,6 +4605,7 @@ export function register(on, options) {
   // prime of that run, picking up where another session left off: it must wake from the memory
   // before anything else. One left unarmed by a live prime elsewhere is told why instead (Q-29).
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
+    noteTranscript(e) // the session's own transcript, for the prime's 1-hour cache writes (R-C3-13)
     const r = await next(e)
     // At 2.1.316 this hook runs before session.start: record membership first, or a second session in the
     // run's directory is told it is the prime, gets the memory tools and writes a run note (T7, LV7 §7).
@@ -4561,6 +4628,7 @@ export function register(on, options) {
   }).catch(failOpen)
 
   on('classic.SessionStart', { source: 'compact' }, async ($, e, next) => {
+    noteTranscript(e)
     const r = await next(e)
     const wake = (await runActive($)) ? takeWake() : null
     if (!wake) return r
