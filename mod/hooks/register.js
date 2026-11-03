@@ -257,7 +257,7 @@ const SPEND_SAVE_MS = 5000
 // and `t1hAt` their count at the last reading; `t1hMetered` / `t1hDone`: per model, the 1-hour writes a usage already
 // marked and those credited from the transcript.
 function sessionSpend() {
-  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hMetered: {}, t1hDone: {} }
+  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hRetries: 0, t1hMetered: {}, t1hDone: {} }
 }
 
 // The goal on GitHub: the label last set, labels ensured, the board's ids.
@@ -3769,15 +3769,17 @@ function noteTranscript(e) {
  */
 async function primeOneHour($) {
   if (!spend.transcript || spend.primeWrites <= spend.t1hAt) return
-  spend.t1hAt = spend.primeWrites
+  const at = spend.primeWrites
   let text
   try {
     text = String(await $.fs.read(spend.transcript))
   } catch {
+    spend.t1hAt = at
     return
   }
   const seen = new Set()
   const got = {}
+  let written = 0 // the main thread's cache writes the transcript holds for this process
   for (const line of text.split('\n')) {
     if (!line.includes('ephemeral_1h_input_tokens')) continue
     let d
@@ -3794,6 +3796,18 @@ async function primeOneHour($) {
     seen.add(key)
     const n = Number(msg.usage.cache_creation && msg.usage.cache_creation.ephemeral_1h_input_tokens) || 0
     if (n > 0) got[msg.model] = (got[msg.model] || 0) + n
+    written += Number(msg.usage.cache_creation_input_tokens) || 0
+  }
+  // The turn's last response can reach the transcript after the turn's end has been metered (seen live, FX7):
+  // read again a moment later, a few times at most, until the transcript holds every metered write.
+  if (written >= at) {
+    spend.t1hAt = at
+    spend.t1hRetries = 0
+  } else if ((spend.t1hRetries = (spend.t1hRetries || 0) + 1) <= 3) {
+    $.clock.after(2000, () => saveSpend($, true).catch(() => {}))
+  } else {
+    spend.t1hAt = at // given up for these writes; the next metered ones read again
+    spend.t1hRetries = 0
   }
   const prime = tree.nodes.get(PRIME)
   for (const [m, n] of Object.entries(got)) {
