@@ -19,7 +19,7 @@ import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnfo
 import { addSpawn, addToolCall, chain, effortOf, finishAgent, lifecycle, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
-import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor } from '../lib/ledger.mjs'
+import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor, withCosts } from '../lib/ledger.mjs'
 import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
@@ -121,8 +121,42 @@ const rotation = {
   compacting: null, // the attempt in progress, so two callers share one
   owed: false, // interactive /baton rotate: the ticker compacts once the command returns
   owedTicks: 0,
-  ticker: null, // the session.start timer that runs owed compactions
+  ticker: null, // the pending tick while a kickoff or a compaction is owed (wakeTicker)
   awaitingCompact: false, // headless /baton rotate: the next /compact is this rotation
+}
+
+/**
+ * The ticker: runs what a command hook may not — the kickoff prompt /baton start owes, the compaction
+ * /baton rotate owes — every 150 ms from outside any command's frame, and only while one is owed. An idle
+ * session is never woken by it (R-C6-05: a 150 ms timer firing for nothing was 2000 wakes in 5 minutes).
+ */
+function wakeTicker($) {
+  if (rotation.ticker) return
+  try {
+    rotation.ticker = $.clock.after(150, async () => {
+      try {
+        await tickOnce($)
+      } catch {}
+      rotation.ticker = null
+      if (run.kickoff || rotation.owed) wakeTicker($)
+    })
+  } catch {}
+}
+
+async function tickOnce($) {
+  if (run.kickoff) {
+    const text = run.kickoff
+    run.kickoff = null
+    $.prompt.submit({ text }).catch((err) => $.ui.log('baton: could not start the prime: ' + err.message))
+  }
+  if (!rotation.owed || rotation.compacting) return
+  const r = await compactOnce($)
+  rotation.owedTicks++
+  if (r.ok || /headless/.test(r.text) || rotation.owedTicks > 400) {
+    rotation.owed = false
+    rotation.inFlight = false
+    if (!r.ok) $.ui.log('baton: /baton rotate could not compact: ' + r.text)
+  }
 }
 
 const WAKE_CONTEXT =
@@ -211,8 +245,20 @@ const gh = {
 }
 
 // Spend: every model request's usage, metered at turn.step by the agent that made it.
-const spend = { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false, savedAt: 0, loadedFor: null }
+const spend = { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false, savedAt: 0, loadedFor: null, ...sessionSpend() }
 const SPEND_SAVE_MS = 5000
+// What this process metered at turn.step (`sess`) against the engine's own ledger ($.session.usage().cost, what
+// /cost totals; `engineBase` is that total when this process began): the difference is what the engine spent on
+// requests no turn.step sees, its session title and prompt suggestions (R-C3-13). The engine names no model for
+// that figure (SessionCost is { usd }), so spend.json keeps it apart. `sidePrior`: that figure from earlier sessions.
+// The prime's 1-hour cache writes (R-C3-13): turn.step's usage gives only the count of cache writes, so they are told
+// apart in the session's own transcript (`transcript`, from a classic hook input; read, never written). `since`: when
+// this process began (rows before it are an earlier process's); `primeWrites`: the main thread's metered cache writes,
+// and `t1hAt` their count at the last reading; `t1hMetered` / `t1hDone`: per model, the 1-hour writes a usage already
+// marked and those credited from the transcript.
+function sessionSpend() {
+  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hRetries: 0, t1hMetered: {}, t1hDone: {} }
+}
 
 // The goal on GitHub: the label last set, labels ensured, the board's ids.
 const mirror = { label: null, labelsEnsured: false, board: null, boardWarned: false, column: null }
@@ -622,13 +668,17 @@ const CODE_TOOLS = [
 // Plan usage: the rate-limit windows the last response reported, and the session's cost.
 const usage = { limits: [], cost: null, at: null }
 
+/** Read the plan usage; true when what the band shows of it changed (R-C6-05: no redraw for nothing). */
 async function readUsage($) {
+  const shown = () => usageSegs(usage.limits, usage.cost).map((x) => x.text).join('')
+  const was = shown()
   try {
     const u = await $.session.usage()
     if (u && Array.isArray(u.rateLimits) && u.rateLimits.length) usage.limits = u.rateLimits
     if (u && u.cost) usage.cost = u.cost
     usage.at = Date.now()
   } catch {}
+  return shown() !== was
 }
 
 /** Open the pane by itself (unfocused): in every interactive session, the mod is simply there. */
@@ -645,7 +695,7 @@ async function autoOpenPane($) {
   }
   await refreshPane($, 30)
   try {
-    if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
+    if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30, true) : null))
   } catch {}
 }
 
@@ -940,6 +990,7 @@ function bashText(res) {
 /** Stop and Notification: raise what is waiting as a native notification ($.ui.notify). */
 async function withNotice($, e, next) {
   servedEffort($, e) // a Stop input carries the turn's served effort too (C8E)
+  noteTranscript(e) // and the session's own transcript (R-C3-13)
   const r = await next(e)
   const text = pendingNotice()
   if (text) {
@@ -1148,6 +1199,7 @@ async function summarize($, item, texts) {
     let reply = null
     try {
       const r = await $.model.complete({ model: CHEAP_MODEL, system, prompt: mergePrompt(item, texts), maxTokens: 200, effort: 'low', timeoutMs: 45000 })
+      meterOwn(CHEAP_MODEL, r && r.usage)
       if (r.isAnswered) reply = clampBytes(r.text.split('\n').map((x) => x.trim()).filter(Boolean).join(' ')).text
     } catch {}
     if (!reply) break
@@ -1536,6 +1588,7 @@ async function handoffLine($, percent) {
         'baton rotation: your context is about to be compacted. Reply with ONE line of at most 280 bytes for your future self: ' +
         'current phase, what you are waiting on, and your next step. The line only.',
     })
+    meterOwn(sessionOwn.model, r && r.usage)
     if (r.isAnswered && r.text.trim()) return firstLine(r.text)
   } catch {}
   return 'rotation at ' + (percent ?? '?') + '% — no handoff line; memory_wake for the state'
@@ -1770,6 +1823,7 @@ async function batonStart($, args) {
   if (surfaces.length) {
     run.kickoff = first
     run.lastKickoff = first
+    wakeTicker($)
     return started
   }
   return started + '\n\n' + first
@@ -1842,8 +1896,8 @@ async function listDir($, path) {
   }
 }
 
-/** Read _orch and the memories once, into pane.data. Every read is allowed to fail. */
-async function refreshPane($, paneRows) {
+/** Read _orch and the memories once, into pane.data. Every read is allowed to fail. `quiet`: the timer's read. */
+async function refreshPane($, paneRows, quiet = false) {
   const budget = Math.max(8, Math.min(200, (paneRows ?? 30) - 4))
   const d = {}
   // Memory: the wake view, a zoomed range from the browse stack, or a search. Skipped when no note
@@ -1888,6 +1942,15 @@ async function refreshPane($, paneRows) {
   d.rulings = pane.rulings.length ? pane.rulings.map(rulingLine) : ['no rulings yet — say one during a run, type one below, or /baton rule <text>']
   pane.data = d
   pane.refreshedAt = new Date(Date.now()).toISOString().slice(11, 19)
+  // The 5 s tick redraws only when what it read changed (R-C6-05: a redraw is a layout and a terminal diff
+  // in the engine, 60 of them in 5 idle minutes); every other caller (r, a turn's end, a tab) redraws.
+  let seen = null
+  try {
+    seen = JSON.stringify([d, pane.memLines, pane.memTiles])
+  } catch {}
+  const same = seen !== null && seen === pane.drawnKey
+  pane.drawnKey = seen
+  if (quiet && same) return
   $.ui.invalidate('ui.render')
 }
 
@@ -3374,6 +3437,7 @@ async function extractRuling($, text) {
       effort: 'low',
       timeoutMs: 45000,
     })
+    meterOwn(CHEAP_MODEL, r && r.usage)
     if (r.isAnswered) return parseRuling(r.text)
   } catch {}
   return fallbackRuling(text)
@@ -3595,6 +3659,7 @@ async function readComments($, pr) {
         effort: 'low',
         timeoutMs: 30000,
       })
+      meterOwn(MECH, r && r.usage)
       if (r.isAnswered) line = r.text.split('\n').map((x) => x.trim()).filter(Boolean).join(' ')
     } catch {}
     await noteQuietly($, 'PR #' + pr.number + ' ' + who + ': ' + (line || body.replace(/\s+/g, ' ').slice(0, 200)), 'github')
@@ -3668,19 +3733,126 @@ async function loadSpend($) {
   if (spend.loadedFor === id) return
   spend.loadedFor = id
   const saved = await readJson($, '_orch/spend.json')
-  Object.assign(spend, { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false }, saved && saved.run_id === id ? { total: saved.total || {}, byRole: saved.byRole || {}, byPhase: saved.byPhase || {}, byNode: saved.byNode || {} } : {})
+  const same = saved && saved.run_id === id
+  Object.assign(spend, { total: {}, byRole: {}, byPhase: {}, byNode: {}, warned: false }, same ? { total: saved.total || {}, byRole: saved.byRole || {}, byPhase: saved.byPhase || {}, byNode: saved.byNode || {} } : {})
+  spend.sidePrior = same && saved.engine ? Number(saved.engine.unmeteredUsd) || 0 : 0
+}
+
+/**
+ * The engine's ledger beside the mod's (R-C3-13): `usd`, this session's total as /cost shows it (every model that
+ * served), and `unmeteredUsd`, what it spent on requests no turn.step sees, over every session of the run. Null
+ * where the host keeps no ledger.
+ */
+async function engineSpend($) {
+  try {
+    const u = await $.session.usage()
+    const usd = Number(u && u.cost && u.cost.usd)
+    if (!Number.isFinite(usd) || spend.engineBase == null) return null
+    const own = usd - spend.engineBase - costOf(spend.sess, config.prices).usd
+    return { usd, unmeteredUsd: (spend.sidePrior || 0) + (own > 1e-9 ? own : 0) }
+  } catch {
+    return null
+  }
+}
+
+/** The session's own transcript, from a classic hook input of the main thread (its `transcript_path`). */
+function noteTranscript(e) {
+  spend.since ??= Date.now()
+  if (e && typeof e.transcript_path === 'string' && e.transcript_path && !e.agent_id) spend.transcript = e.transcript_path
+}
+
+/**
+ * Credits the prime's 1-hour cache writes (R-C3-13): sums, per model, the `cache_creation.ephemeral_1h_input_tokens`
+ * of the main thread's assistant rows this process wrote (one per response: its rows share `message.id`), and moves
+ * that many of the metered cache writes to the 1-hour rate. Read only when the prime wrote more since the last reading;
+ * a transcript the host will not read (missing, over its read limit) leaves the 5-minute rate.
+ */
+async function primeOneHour($) {
+  if (!spend.transcript || spend.primeWrites <= spend.t1hAt) return
+  const at = spend.primeWrites
+  let text
+  try {
+    text = String(await $.fs.read(spend.transcript))
+  } catch {
+    spend.t1hAt = at
+    return
+  }
+  const seen = new Set()
+  const got = {}
+  let written = 0 // the main thread's cache writes the transcript holds for this process
+  for (const line of text.split('\n')) {
+    if (!line.includes('ephemeral_1h_input_tokens')) continue
+    let d
+    try {
+      d = JSON.parse(line)
+    } catch {
+      continue
+    }
+    const msg = d && d.message
+    if (!msg || d.type !== 'assistant' || d.isSidechain || !msg.usage || !msg.model) continue
+    if (spend.since != null && !(Date.parse(d.timestamp) >= spend.since)) continue
+    const key = msg.id || d.requestId || d.uuid
+    if (key && seen.has(key)) continue
+    seen.add(key)
+    const n = Number(msg.usage.cache_creation && msg.usage.cache_creation.ephemeral_1h_input_tokens) || 0
+    if (n > 0) got[msg.model] = (got[msg.model] || 0) + n
+    written += Number(msg.usage.cache_creation_input_tokens) || 0
+  }
+  // The turn's last response can reach the transcript after the turn's end has been metered (seen live, FX7):
+  // read again a moment later, a few times at most, until the transcript holds every metered write.
+  if (written >= at) {
+    spend.t1hAt = at
+    spend.t1hRetries = 0
+  } else if ((spend.t1hRetries = (spend.t1hRetries || 0) + 1) <= 3) {
+    $.clock.after(2000, () => saveSpend($, true).catch(() => {}))
+  } else {
+    spend.t1hAt = at // given up for these writes; the next metered ones read again
+    spend.t1hRetries = 0
+  }
+  const prime = tree.nodes.get(PRIME)
+  for (const [m, n] of Object.entries(got)) {
+    const add = n - (spend.t1hMetered[m] || 0) - (spend.t1hDone[m] || 0)
+    if (add <= 0) continue
+    spend.t1hDone[m] = (spend.t1hDone[m] || 0) + add
+    for (const acc of new Set([spend.total, spend.sess, prime && prime.spend, spend.byRole[prime ? prime.role : 'agent']])) {
+      const k = acc && acc.byModel && acc.byModel[m]
+      if (k) k.cacheWrite1h = Math.min(k.cacheWrite || 0, (k.cacheWrite1h || 0) + add)
+    }
+  }
 }
 
 async function saveSpend($, force = false) {
   if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return
   spend.savedAt = Date.now()
   try {
-    await $.fs.write('_orch/spend.json', JSON.stringify({ run_id: run.manifest && run.manifest.run_id, total: spend.total, byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode }, null, 1) + '\n')
+    await primeOneHour($)
+    // Each model's cost is written beside its tokens (R-C3-13), and the engine's own total beside the mod's.
+    const engine = await engineSpend($)
+    const doc = { run_id: run.manifest && run.manifest.run_id, total: withCosts(spend.total, config.prices), byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode, ...(engine ? { engine } : {}) }
+    await $.fs.write('_orch/spend.json', JSON.stringify(doc, null, 1) + '\n')
   } catch {}
+}
+
+/**
+ * A request the mod made itself ($.model.complete, $.model.fork): counted in the run's total under the role
+ * `mod`, not to an agent. The engine's /cost leaves these out (seen live, FX7), so `sess` does too.
+ */
+function meterOwn(model, usage) {
+  if (!usage || !model) return
+  const u = { ...usage, model: String(model) }
+  addUsage(spend.total, u)
+  addUsage((spend.byRole.mod ??= {}), u)
 }
 
 function meter(agentId, usage) {
   addUsage(spend.total, usage)
+  addUsage(spend.sess, usage)
+  if (!agentId && usage) {
+    // The prime's cache writes, which its transcript splits by duration (primeOneHour).
+    spend.primeWrites += Number(usage.cache_creation_input_tokens) || 0
+    const marked = Number(usage.cache_creation && usage.cache_creation.ephemeral_1h_input_tokens) || 0
+    if (marked > 0 && usage.model) spend.t1hMetered[usage.model] = (spend.t1hMetered[usage.model] || 0) + marked
+  }
   const n = agentId ? tree.nodes.get(agentId) : tree.nodes.get(PRIME)
   if (n) {
     // Each agent's own meter: its spend, and how full its context was on its last request.
@@ -4092,6 +4264,14 @@ export function register(on, options) {
       if (q !== undefined && q !== null && /^(0|false|off|no)$/i.test(String(q).trim())) config.quietOutputLines = 0
     } catch {}
     await readSessionModel($)
+    // The engine's ledger as this process begins (a resumed session's counts from its first launch): R-C3-13.
+    spend.since ??= Date.now()
+    try {
+      const u = await $.session.usage()
+      spend.engineBase = Number(u && u.cost && u.cost.usd) || 0
+    } catch {
+      spend.engineBase = 0
+    }
     // Run membership is recorded once (T7): where the session started, and whose run it is. Here,
     // or already by the startup SessionStart, which 2.1.316 runs first (ensureMembership).
     try {
@@ -4107,9 +4287,7 @@ export function register(on, options) {
         $.ui.log('baton: could not register the memory tools: ' + err.message)
       }
     }
-    // The ticker: runs what a command hook may not — the compaction /baton
-    // rotate owes, the kickoff prompt /baton start owes — from outside any
-    // command's frame. Cheap when idle: two flag checks.
+    // The ticker (wakeTicker): runs what a command hook may not, from outside any command's frame.
     // The doctor runs once, in the background; a failed check shows in the band.
     $.clock.after(1500, () => runDoctor($).catch(() => {}))
     $.clock.after(4000, () => checkUpdate($).catch(() => {}))
@@ -4120,7 +4298,7 @@ export function register(on, options) {
         heartbeat($)
           .catch((err) => $.ui.log('baton: prime heartbeat: ' + err.message))
           .then(() => readUsage($))
-          .then(() => $.ui.invalidate('ui.render')),
+          .then((changed) => (changed ? $.ui.invalidate('ui.render') : undefined)),
       )
     } catch {}
     // GitHub: poll the run's PR while a run is active (cheap when none is).
@@ -4129,25 +4307,7 @@ export function register(on, options) {
         gh.timer = $.clock.every(Math.max(30, config.prPollSeconds) * 1000, () => pollGithub($).then(() => observe($, true)))
       } catch {}
     }
-    if (!rotation.ticker) {
-      try {
-        rotation.ticker = $.clock.every(150, async () => {
-          if (run.kickoff) {
-            const text = run.kickoff
-            run.kickoff = null
-            $.prompt.submit({ text }).catch((err) => $.ui.log('baton: could not start the prime: ' + err.message))
-          }
-          if (!rotation.owed || rotation.compacting) return
-          const r = await compactOnce($)
-          rotation.owedTicks++
-          if (r.ok || /headless/.test(r.text) || rotation.owedTicks > 400) {
-            rotation.owed = false
-            rotation.inFlight = false
-            if (!r.ok) $.ui.log('baton: /baton rotate could not compact: ' + r.text)
-          }
-        })
-      } catch {}
-    }
+    if (run.kickoff || rotation.owed) wakeTicker($)
     // Registered last: a refused name throws, and nothing after it would run.
     try {
       await $.command.register({
@@ -4459,6 +4619,7 @@ export function register(on, options) {
   // prime of that run, picking up where another session left off: it must wake from the memory
   // before anything else. One left unarmed by a live prime elsewhere is told why instead (Q-29).
   on('classic.SessionStart', { source: /^(startup|resume)$/ }, async ($, e, next) => {
+    noteTranscript(e) // the session's own transcript, for the prime's 1-hour cache writes (R-C3-13)
     const r = await next(e)
     // At 2.1.316 this hook runs before session.start: record membership first, or a second session in the
     // run's directory is told it is the prime, gets the memory tools and writes a run note (T7, LV7 §7).
@@ -4481,6 +4642,7 @@ export function register(on, options) {
   }).catch(failOpen)
 
   on('classic.SessionStart', { source: 'compact' }, async ($, e, next) => {
+    noteTranscript(e)
     const r = await next(e)
     const wake = (await runActive($)) ? takeWake() : null
     if (!wake) return r
@@ -4562,6 +4724,7 @@ export function register(on, options) {
         rotation.owed = true
         rotation.owedTicks = 0
         rotation.inFlight = true
+        wakeTicker($)
         return { text: 'baton: handoff noted; compacting as soon as this command returns (rotation #' + (rotation.count + 1) + ') — then the prime calls memory_wake first' }
       }
       case 'status':
@@ -4688,7 +4851,7 @@ export function register(on, options) {
         Object.assign(pane.list, { top: 0, topKey: null, focus: null, alias: new Map() })
         await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
         try {
-          if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30) : null))
+          if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30, true) : null))
         } catch {}
         return {}
       }
