@@ -2,7 +2,8 @@
 
 ## v7.6.0
 
-Tuning, built and checked against Claude Code 2.1.316. 502 plugin tests and 141 node tests pass.
+Tuning, built and checked against Claude Code 2.1.316 (Claude Code updated itself to 2.1.317 during the
+last checks; the final test run was on 2.1.317). 566 plugin tests and 161 node tests pass.
 
 - **T1 · API drift audit.** Every `$` call, event, matcher, option and result shape in
   `mod/hooks/register.js` was checked against the engine's declared types: 896 call sites, 852
@@ -24,8 +25,9 @@ Tuning, built and checked against Claude Code 2.1.316. 502 plugin tests and 141 
   144+ columns with the band's hint below that are verified; the agentId runtime probe is verified
   with the fault injected. Each is marked in `mod/README.md` with what was seen.
 - **T6 · Overhead.** Added latency per tool call, p50 3 → 12 ms, p95 65 → 23 ms, within the 25 ms
-  budget (by point estimate only). Idle CPU is 1.094% of a core against a 1% budget: **still over**.
-  The rulings memo moved off the tool-call path and refreshes less often on the pane.
+  budget (by point estimate only). Idle CPU was first measured at 1.094% of a core against a 1%
+  budget; it is now within budget (see the spend and idle CPU fix below). The rulings memo moved off
+  the tool-call path and refreshes less often on the pane.
 - **T7 · Run membership follows the session**, recorded at `session.start` and keyed to the session
   id, never re-read from the current directory. A session that `cd`s into a run is not armed and
   writes no run notes; a second interactive session is asked before it takes over; a restart picks
@@ -58,22 +60,73 @@ Tuning, built and checked against Claude Code 2.1.316. 502 plugin tests and 141 
 - **Tests checked.** A guard audit made every `guard:` test fail on at least one mutant of the code
   it guards, or removed it.
 
+Fixed after the first live checks. Each fix started from a test that failed, and what was first
+seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
+
+- **Safety checks fail safe when they crash.** If the command gate, the forbidden-file check or the
+  pause check hits an error on a helper agent's command, that command is now refused, not run.
+  Before, the error went to a handler that let the command through. Every gating hook answers an
+  error the same way, whichever handler Claude Code asks.
+- **A second session in the run folder is no longer told it is the prime.** Claude Code 2.1.316
+  runs the start-up hook before, or with, the session hook, and the start-up hook read the run from
+  the folder before the session's place in it was settled. A headless second session was told it
+  was the prime and wrote a run note. Now that is settled first: a second session is not armed,
+  writes nothing to the run's memory, and its own start-up context says why. A session that takes
+  over is told on its next prompt to load the prime skill and wake from memory.
+- **The pane draws its tables at the width it is given.** Docked (73 to 90 columns) or inline (106
+  at a 108-column terminal), the agent table is laid out for the pane, so nothing is squeezed into
+  `…`: the prime's model cell reads `opus 5.5` whole before its first turn, a sub-orchestrator sits
+  one level under its phase, a phase row's stepper shows all four marks, and empty `this agent` and
+  `roll-up` cells are blank. A row too wide for a narrow pane takes two lines, and the agent list
+  counts screen lines when it scrolls. Memory summary rows line up with note rows, their id whole.
+- **Letters work inside opened views; `End` and `Home` move the focus.** In an opened agent or
+  phase view, another row's letter opens that row instead of being typed into the prompt; a dim
+  `rows a: c: d: …` line carries the keys. `End` and `Home` now put the focus on the last or first
+  row, not only the window, so Enter opens that row. A blocked row scrolls out of view like any
+  other row.
+- **An answer given in the pane reaches the asking node.** The note to the prime carries the answer
+  itself, not the question, and the pane wakes the prime with a prompt that names the question, the
+  answer, its file and the node to dispatch again. Live, the blocked node was dispatched again with
+  the answer within a minute.
+- **A ruling cannot be marked under another spelling.** `project_mark` and the pane's `c`, `v` and
+  `u` refuse a ruling whatever the letter case of the store's name, and through a directory link to
+  the rulings store; `project_note` with `Rulings` writes to the one rulings store, not a second
+  one. New tests pin that marks are appended and kept, that each mark action has one key, and that
+  `v` marks the opened note.
+- **Spend shows a cost per model, and idle CPU is within budget.** `_orch/spend.json` now writes a
+  dollar figure beside each model's tokens, and a total; prices a 1-hour cache write at twice the
+  input price (the prime's are told apart from the session's own transcript, which is only read);
+  counts baton's own model calls; and keeps Claude Code's session total, and the part of it baton
+  did not count, beside them. A 150 ms timer that woke for nothing and the redraws it caused at idle
+  are gone: the idle CPU baton adds fell from 2.24% of a core (measured the same way before the fix)
+  to 0.068% (0.149% over all ten runs of each kind), against a 1% budget. Measured in interleaved
+  five-minute windows with and without baton on a shared machine; Claude Code updated itself from
+  2.1.316 to 2.1.317 partway through. Each idle measurement now keeps the screen it was taken on.
+
 Known gaps, seen live and not fixed in this release:
 
-- The agent table needs about 110 columns and Claude Code 2.1.316 gives a pane at most 90 (inline
-  below 110), so table cells are cut with `…`.
-- `_orch/spend.json` holds tokens, not a cost; it misses the engine's own Haiku calls and prices a
-  1-hour cache write as a 5-minute one.
-- A headless second session is not armed, but its start-up context tells it that it is the prime.
-- The prime's model cell is cut to `opus 5.…` until the prime's first turn.
-- Inside an opened agent or phase view, a row's letter goes to the prompt instead of opening the row.
-- A sub-orchestrator's indent, a phase row's stepper, and empty `this agent` / `roll-up` cells are
-  cut or drawn as `…` in the squeezed table.
-- A memory summary row is not aligned with the note rows (its id cut, a stray `…`, its text shifted).
-- An answer given in the pane does not reach the asking node: the prime's note carries the question,
-  not the answer, and nothing wakes the prime.
-- `End` scrolls the agent list to its end but leaves the focus on the old row; `Home` does the mirror of it, and once moved the window only part of the way to the top.
-- Idle CPU is over its 1% budget (1.094%).
+- In a docked pane about 73 columns wide (a 165-column terminal) that is also short (about 19 lines
+  or fewer when questions and rulings are shown, under 14 with neither), the agent list stops
+  scrolling and the lines under it (the key hint, the message field, open questions, rulings) are
+  pushed out of view. Make the terminal taller, or open the pane wider with `/baton`, to see them.
+  Before this release's fixes, cells were cut at every height.
+- At a docked width (73 to 90 columns) the key hint line is cut with `…`, so the hints for `p`
+  (show every node) and `b` (go back) are not shown; the keys still work. The goal progress line
+  and the tree legend are cut there too.
+- `_orch/spend.json` has no cost line of its own for the session-title request Claude Code makes on
+  Haiku by itself (about $0.0002 a session). The only record of that cost by model is in
+  `~/.claude.json`, which baton does not read. The cost is inside Claude Code's session total and
+  the "unmetered" part beside it, and the band's total still matches `/cost`. If the prime's session
+  transcript grows past 4 MiB, the prime's 1-hour cache writes fall back to the 5-minute price; the
+  difference shows in the "unmetered" part.
+- A ruling can still be marked if someone links the rulings store's files into the memory directory
+  by hand, file by file (a hard link or a symbolic link per file). That means editing the store
+  outside baton; every path through baton's tools and the pane refuses it.
+- If the pane's answer dialog stays open longer than 10 seconds, Claude Code stops waiting on
+  baton's handling of that key press, so the open brief is not redrawn with its `answered:` note
+  and still reads `waiting for you`. The answer is written and delivered all the
+  same. This was so before this release too.
+- After a pane dialog closes, keys go to the prompt, not the pane, until the pane is focused again.
 
 ## v7.5.1 — 2026-10-19
 
