@@ -162,8 +162,9 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   orchestrator has to remember to run a script for the board, the cost, the budget; its own lessons
   log records a run where it forgot. Here each one is a hook:
   - **Spend is metered.** A `turn.step` hook reads every model request's usage, attributes it to the
-    agent that made it (its role, and the node or phase in its name), and writes `_orch/spend.json`.
-    Work shows tokens beside each stepper; the band shows the goal's total; the PR carries one spend
+    agent that made it (its role, and the node or phase in its name), and writes `_orch/spend.json`:
+    tokens and a dollar cost per model (a 1-hour cache write at the 1-hour price), a total, and
+    Claude Code's own session total with the part baton did not meter. Work shows tokens beside each stepper; the band shows the goal's total; the PR carries one spend
     comment, edited in place.
   - **A budget on rounds.** With `tokensPerGoal` set, `agent.spawn` refuses another review or fix
     round once the goal has spent it (a note at 80%), and tells the prime to brief the operator.
@@ -276,13 +277,18 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 ### The pane (v7.6)
 
 What each part of the pane does, as the tests pin it. Where a live check in Claude Code 2.1.316
-saw something else, the line says so and names the result; those are known gaps, not features.
+first saw something else, the line says what was fixed and names the check after the fix; what is
+still open is listed under known gaps in `CHANGELOG.md` (v7.6.0).
 
-**Width, first.** The agent table needs about 110 columns. Claude Code 2.1.316 docks a pane at
+**Width, first.** The agent table wants about 110 columns. Claude Code 2.1.316 docks a pane at
 about 73 columns in a 165-column terminal (at most 90), and draws it inline at the terminal's width
-below 110 columns. At every width it gives the pane, the table is wider than the pane, so each cell
-is cut to fit with a `…` rather than the row running past the edge. Several gaps below come from
-that cut.
+below 110 columns, and it squeezes every cell of a row wider than the pane into a `…`. So the
+table is laid out for the width the pane is drawn at: droppable columns drop first, then the agent
+label and the state are cut; the model, steps, `this agent` and `roll-up` cells and a row's indent
+are never cut. A row still too wide for a narrow pane takes two lines, and the agent list counts
+screen lines when it scrolls. At a docked width the legend, the goal line and the key hint are cut
+at the pane's edge with `…`; in a pane that is both docked and short the list can push the lines
+under it out of view (both known gaps).
 
 - **The tree.** A dim legend line reads `the tree: prime › P<n>, a phase: a unit of the plan › its
   sub-orchestrator › agent (worker, verifier)`. The phase rows sit one level under the prime, in
@@ -290,27 +296,28 @@ that cut.
   and verifiers under that. A phase that has not started is a dim `○ P<n>` row reading `pending`,
   with nothing under it. `p` shows the node rows under every phase row, and `p` again hides them.
   Opening a phase row opens the phase view: its steps, its nodes with their states, its spend.
-  Live, the sub-orchestrator's indent was cut at 165 columns, so it did not read one level under
-  its phase (LV10 §4).
+  At 41670d5 the sub-orchestrator's indent was cut live at 165 columns (LV10 §4); after the fix it
+  reads one level under its phase, seen live at 108 and at 73 columns.
 - **Steps on every row.** The prime's row shows the goal's steps, a phase row the phase's
   (briefed → dispatched → verified → approved), a sub-orchestrator row its phase's, and a worker or
   verifier row its node's (red → green → blue → verified); a row that matches no node or phase
   shows its own lifecycle. An agent's view repeats them on its
-  `its work` line with the state names and the time in the current state. Live, at 108 columns a
-  phase row's stepper dropped a mark while its cells were cut (LV10 §6).
+  `its work` line with the state names and the time in the current state. At 41670d5, at 108
+  columns, a phase row's stepper dropped a mark while its cells were cut (LV10 §6); after the fix
+  all four marks are drawn, seen live at 108 and 73 columns.
 - **`this agent` and `roll-up`.** The header groups two pairs of columns: `this agent` (the row's
   own cost and tokens) and `roll-up` (the cost and tokens of the row and everything under it). A
   phase row has no `this agent` figures, and an agent with nothing under it has no `roll-up`
-  figures. Those empty cells should draw nothing; live, the cut table drew them as `…` (LV10 §10,
-  §11).
+  figures. Those empty cells draw nothing. At 41670d5 the cut table drew them as `…` live (LV10
+  §10, §11); after the fix they are blank.
 - **The model column.** Each agent's cell names the family and version of the model that served
   it, then its reasoning effort: `opus 5.5 · high`, `sonnet 5.5 · low`, `haiku 4.5`. An effort known
   only from the request is followed by a dim `cfg` (`opus 5.5 · high cfg`); with no effort known the
   cell is the model alone. An ID it does not know is shown in full. When the served model differs
   from the one requested or bound, or the served effort from the configured one, the cell turns
   red, and the agent's view and the `/baton` text show the requested and served full IDs. The column sizes to its widest
-  cell, never under 10, and never drops. Live, before the prime's first turn its cell was cut to
-  `opus 5.…`; after the first turn it read `opus 5.5` (LV8).
+  cell, never under 10, and never drops. At 41670d5, before the prime's first turn, its cell was
+  cut live to `opus 5.…` (LV8); after the fix it reads `opus 5.5` whole before the first turn too.
 - **The prime's row.** In a run the main session's row is `◆ prime` and shows the session's own
   model. Outside a run it is `◇ session`, not `◆ prime`.
 - **A key for every row.** Every agent and phase row (pending ones too), then every question and
@@ -322,17 +329,21 @@ that cut.
   have no letter and open by focus and Enter. The hint line names the focus keys in the same accent:
   `↑/↓ then Enter on › opens a row, or its letter does · ✉ messages a running one · p shows every
   node · b goes back`. From the Work list a row's letter opens it and Claude Code does nothing with
-  the key; inside an opened agent or phase view it does not yet: Claude Code types the letter into
-  the prompt instead (LV9 §10).
+  the key. Inside an opened agent or phase view, a dim `rows a: c: d: …` line carries every row's
+  letter, so a letter opens that row there too; the view's own keys (`b`, `r`, a brief's `a`, `y`,
+  `w`) win. At 41670d5 Claude Code typed the letter into the prompt instead (LV9 §10); fixed and
+  seen live after the fix.
 - **The agent list scrolls.** The list takes the pane's full height and every agent stays listed;
   the old `… N earlier finished agents folded` line is gone. A finished row is dimmed, its ✓ or ✗
   keeping its colour. When the rows do not fit, `↑`/`↓` past the first or last row shown scrolls
-  the list, `PageUp`/`PageDown` move it by a window, and `Home`/`End` are meant to go to its ends (see the live note below). Dim
+  the list, `PageUp`/`PageDown` move it by a window, and `Home`/`End` go to its ends, the focus with them. Dim
   `↑ <k> more` and `↓ <k> more` lines stand for the hidden rows and carry their letters, and a
   running row scrolled out of the window is pinned in a strip at that edge, so running agents stay
-  in view. A row scrolled into view opens like any other. Live, `End` moved the window to the end
-  but left the focus on the row that had it, and `Home` did the mirror of it (window to the top, focus
-  left behind; once it moved the window only 5 rows instead of to the top) (LV15 §11).
+  in view; a blocked row scrolls out like any other. A row scrolled into view opens like any other.
+  At 41670d5, live, `End` moved the window to the end but left the focus on the row that had it,
+  and `Home` did the mirror of it (LV15 §11). Claude Code holds a pane's focus by its place among
+  the pane's elements, so after the redraw baton now asks it to put the focus on the first or last
+  row; seen live after the fix, Enter then opens that row.
 - **Questions and blocked nodes.** An open question (`_orch/inbox/Q-<n>.md` with no answer file) is
   a `?` row. It reads `? Q-<n> · queued for G<n> · <first line>`, dim, naming the gate that will
   put it, until the run's record shows it was asked (`_orch/inbox/Q-<n>.asked.md`); then it reads
@@ -347,8 +358,11 @@ that cut.
   grant for that kind of block: at a command gate `y` approves that one command and `w` the gate for
   the run; an interpreted block is overruled with `y` and the node re-dispatched on the default it
   recommended. An explicit block, pause, a forbidden file or an enforced ruling has no approve key,
-  and the brief says what must be fixed (or `/baton resume`). Live, the answer did not reach the asking node: the note to the prime carries the
-  question's first line, not the answer, and nothing wakes the prime to re-dispatch (LV13 §11).
+  and the brief says what must be fixed (or `/baton resume`). The run note to the prime carries the
+  answer itself, and the pane wakes the prime with a prompt naming the question, the answer, its
+  file and the node to dispatch again. At 41670d5 the note carried the question's first line and
+  nothing woke the prime (LV13 §11); after the fix, live, the blocked node was dispatched again with
+  the answer.
 - **The memory explorer.** Memory draws the notes as a table with aligned columns: `id`, `mark`,
   `time` (local `HH:MM`), `source`, `text`. A summary row has a `+` and reads `(k notes) …`; `Enter` on
   its `+` drills into its children and `b` comes back out, one level at a time. The keys are shown like `1`, `2` and `r`: `c` marks the
@@ -356,9 +370,10 @@ that cut.
   mark as it was and the hint line reading `no mark: a reason is needed`. The `v: ❌ void` button
   also marks by focus and Enter. `3` shows confirmed only and `4` void only; `s` switches between
   the run's memory and the project memory. A note's view lists its mark history and who marked it.
-  On a ruling the hint reads `no mark: rulings are retracted, not marked`. Live, the note rows were
-  aligned but a summary row was not: its id was cut to `#16-19…`, its empty mark cell drew `…`, and
-  its text started two columns left of the `text` header (LV12 §1).
+  On a ruling the hint reads `no mark: rulings are retracted, not marked`. At 41670d5, live, the
+  note rows were aligned but a summary row was not: its id was cut to `#16-19…`, its empty mark
+  cell drew `…`, and its text started two columns left of the `text` header (LV12 §1). After the
+  fix a summary's id is whole, its mark cell blank and its text under the header, seen live.
 
 ## For experiment E1
 
@@ -454,27 +469,29 @@ session record of each are under the evidence path named.
 
 ## Other v7.6 checks seen live
 
-The same way, one result each; a refuted line is a known gap, listed in `CHANGELOG.md` (v7.6.0).
+The same way, one result each. Every line refuted at 41670d5 was fixed afterwards and checked
+live again the same way; the after-fix screen is named beside the first evidence. What is still
+open is listed under known gaps in `CHANGELOG.md` (v7.6.0).
 
 | unit | what was checked | result | evidence |
 |---|---|---|---|
 | T3 | the band shows a cost covering every model that served | verified, as one total equal to `/cost` | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV6/work/result.md` §2 |
-| T3 | `_orch/spend.json` shows a cost for every model that served | refuted: it holds token counts, no cost; the engine's own Haiku calls are missing; a 1-hour cache write is priced as a 5-minute one | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV6/work/result.md` §1 |
+| T3 | `_orch/spend.json` shows a cost for every model that served | refuted at 41670d5, verified after the fix for every model baton meters: at 41670d5 it held token counts, no cost, and priced a 1-hour cache write as a 5-minute one; after the fix opus and sonnet carry a cost equal to `/cost`'s, the prime's 1-hour writes at the 1-hour price. Still open (known gap): Claude Code's own Haiku session-title request has no line of its own; it is inside the engine total and its unmetered part | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV6/work/result.md` §1; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX7/work/screens/after-fix.txt` |
 | T7 | `cd` into a run arms nothing and writes no notes; a second session is asked, and if declined is not armed and says why; a takeover; a restart picks the run up; a headless second session is not armed | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV7/work/result.md` §1-§6, §8-§10 |
-| T7 | that headless session's output says why it is not armed | refuted: its start-up context says it is the prime | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV7/work/result.md` §7 |
-| T8 | the prime's row reads `opus 5.5` | refuted: cut to `opus 5.…` before the first turn, whole after it | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV8/work/result.md` §1 |
+| T7 | that headless session's output says why it is not armed | refuted at 41670d5, verified after the fix: at 41670d5 its start-up context said it is the prime; after the fix it says the run has a live prime in another session and this session is not armed | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV7/work/result.md` §7; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX2/work/screens/after-fix.txt` and the headless case `/Users/clank/Desktop/projects/baton/_orch/nodes/FX2/work/screens/a3-01-headless-H3.txt` |
+| T8 | the prime's row reads `opus 5.5` | refuted at 41670d5, verified after the fix: at 41670d5 cut to `opus 5.…` before the first turn; after the fix whole before it, and `opus 5.5 · high` whole at 73 columns | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV8/work/result.md` §1; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/after-fix.txt` and `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/A1-prime-165-before-first-turn.txt` |
 | T9 | agent and phase rows open by Enter and by their letters, keys shown like `1`, `2`, `r`, no shared letter, `p` shows and hides node rows | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV9/work/result.md` §1-§9, §11-§13 |
-| T9 | a row's letter opens it from inside an opened view | refuted: Claude Code types the letter into the prompt | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV9/work/result.md` §10 |
+| T9 | a row's letter opens it from inside an opened view | refuted at 41670d5, verified after the fix: at 41670d5 Claude Code typed the letter into the prompt; after the fix the letter opens that row and the prompt stays empty | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV9/work/result.md` §10; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX4/work/screens/after-fix.txt` |
 | T10 | the legend, phase rows under the prime, distinct phase and sub-orchestrator rows, pending rows, the phase view, the column groups, roll-up tokens, no plan section, `p`, the queue line under the goal row | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV10/work/result.md` §1-§3, §5, §7-§9, §12-§16 |
-| T10 | the sub-orchestrator's indent, the phase row's stepper, empty `this agent` and `roll-up` cells | refuted: cut in the squeezed table | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV10/work/result.md` §4, §6, §10, §11 |
+| T10 | the sub-orchestrator's indent, the phase row's stepper, empty `this agent` and `roll-up` cells | refuted at 41670d5, verified after the fix: at 41670d5 cut in the squeezed table; after the fix the indent is whole, the stepper has four marks and the empty cells are blank, at 73 and 108 columns | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV10/work/result.md` §4, §6, §10, §11; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/after-fix.txt` (73 columns) and `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/after-fix.a2.txt` (108) |
 | T11 | steps on the prime, sub-orchestrator, worker and verifier rows | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV11/work/result.md` §1-§4 |
 | T12 | drilling into a summary and back, the keys shown and working | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV12/work/result.md` §2-§6 |
-| T12 | aligned columns | refuted for summary rows (note rows are aligned) | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV12/work/result.md` §1 |
+| T12 | aligned columns | refuted at 41670d5, verified after the fix: at 41670d5 refuted for summary rows (note rows were aligned); after the fix every summary's id is whole and its text starts under the `text` header | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV12/work/result.md` §1; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/after-fix.txt` (the fix group's screen; the memory table is in `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/B2-memory-top-108.txt` and `/Users/clank/Desktop/projects/baton/_orch/nodes/FX3/work/screens/B3-memory-end-108.txt`) |
 | T13 | `?` and blocked rows open by Enter and by letter, their briefs, answering writes the file and removes the row, approving grants the narrowest thing, `queued for G<n>` then `waiting for you`, the band's count | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV13/work/result.md` §1-§10, §12-§22 |
-| T13 | the answer reaches the asking node | refuted: the prime's note carries the question, not the answer, and the prime is not woken | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV13/work/result.md` §11 |
+| T13 | the answer reaches the asking node | refuted at 41670d5, verified after the fix: at 41670d5 the prime's note carried the question, not the answer, and the prime was not woken; after the fix the prime is woken with the answer and the blocked node, dispatched again, quotes it | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV13/work/result.md` §11; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX5/work/screens/after-fix.txt` |
 | T14 | a note marked ❌ in the pane leaves `memory_wake`, `include_void` still finds it, the mark column, filters, keys, reason dialog, project memory | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV14/work/result.md` §1-§27 |
 | T15 | the list fills the pane and scrolls, every agent reached, running rows in view, no fold line, PageDown, `↓ <k> more`, letters kept while scrolled and after a reopen | verified | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV15/work/result.md` §1-§10, §12-§16 |
-| T15 | `End` moves the focus to the last row | refuted: the window moves, the focus stays | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV15/work/result.md` §11 |
+| T15 | `End` moves the focus to the last row | refuted at 41670d5, verified after the fix: at 41670d5 the window moved and the focus stayed; after the fix `End` puts the focus on the last row and `Home` on the first, and Enter opens it | `/Users/clank/Desktop/projects/baton/_orch/nodes/LV15/work/result.md` §11; after the fix `/Users/clank/Desktop/projects/baton/_orch/nodes/FX4/work/screens/after-fix.txt` |
 
 ## Still not verified
 
