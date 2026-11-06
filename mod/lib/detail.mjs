@@ -62,9 +62,8 @@ export function agentDetail(n, x = {}) {
   const cut = prompt.indexOf('\n\nbaton — lessons from earlier refutations')
   const task = cut >= 0 ? prompt.slice(0, cut) : prompt
   if (task.trim()) {
-    lines.push([], L(head('the task it was given')))
-    for (const l of wrap(task, 104).slice(0, 14)) lines.push(L('  ' + l))
-    if (wrap(task, 104).length > 14) lines.push(L(dim('  … ' + (wrap(task, 104).length - 14) + ' more lines')))
+    // prose wrapped where it is drawn (PW1): at the drawn width less its indent, 104 in the text form
+    lines.push([], L(head('the task it was given')), [{ text: '', prose: { text: task, indent: 2, width: 104, max: 14 } }])
   }
   if (cut >= 0) {
     lines.push([], L(head('lessons the mod added to it'), dim('  (from earlier refutations in this code)')))
@@ -154,15 +153,113 @@ export function nodeDetail(nd, x = {}) {
 
 /**
  * A view's lines as drawn `width` cells wide: a line holding a tool-call table (agentDetail's `calls`) becomes the
- * table's rows, fitted to `width` under a header row (TC1); without a width, its text form. Other lines as they are.
+ * table's rows, fitted to `width` under a header row (TC1); a line holding prose (`prose`: the task, a note) is that
+ * text wrapped at the drawn width less its indent (PW1), at its own fixed width without one; any other line wider
+ * than `width` is flowed onto as many lines as it takes (fitLine), so the terminal never cuts or shrinks one. Without
+ * a width, the text form: every line as it is.
  */
 export function viewLines(lines, width = null) {
   return lines.flatMap((l) => {
-    const calls = l.length === 1 && l[0].calls
-    if (!calls) return [l]
-    const t = callTable(calls, width)
-    return t.header ? [t.header, ...t.lines] : t.lines
+    const one = l.length === 1 ? l[0] : null
+    if (one && one.calls) {
+      const t = callTable(one.calls, width)
+      return t.header ? [t.header, ...t.lines] : t.lines
+    }
+    if (one && one.prose) return proseLines(one.prose, width)
+    return width == null ? [l] : fitLine(l, width)
   })
+}
+
+/** Prose as view lines: wrapped at `width` less its indent (its own `width` in the text form), at most `max` of them. */
+function proseLines(p, width) {
+  const ind = ' '.repeat(p.indent || 0)
+  const all = wrap(p.text, width == null ? p.width : Math.max(8, width - (p.indent || 0)))
+  const max = p.max ?? Infinity
+  const out = all.slice(0, max).map((x) => L(ind + x))
+  if (all.length > max) out.push(L(dim(ind + '… ' + (all.length - max) + ' more lines')))
+  return out
+}
+
+const cells = (s) => [...String(s ?? '')].reduce((n, c) => n + (c === '✅' || c === '❌' ? 2 : 1), 0)
+
+/**
+ * One view line flowed onto lines no wider than `width` (PW1): it breaks between words, never inside one that fits
+ * a line (a step's mark stays with its word), each segment keeping its tone; a word wider than a line is cut into
+ * pieces. A line that opens with a label (`model        `, `  red   `) carries on under the label's end, any other
+ * under its own indent; a hang that leaves under 16 cells falls back to two. A line that fits is returned as it is.
+ */
+export function fitLine(segs, width) {
+  const total = segs.reduce((n, s) => n + cells(s.text), 0)
+  if (total <= width || width < 2) return [segs]
+  const first = String(segs[0]?.text ?? '')
+  const lead = /^\s*/.exec(first)[0].length
+  let hang = segs.length > 1 && (/^\s*\S.*?\s{2,}$/.test(first) || !first.trim()) ? cells(first) : lead
+  if (width - hang < 16) hang = Math.min(2, lead, width - 1)
+  // the words, each a run of parts with their tones: a run of spaces is a break; a lone step mark (● ○ ◉ ✓ ✗) holds
+  // on to the word after it, and a separator (─ ·) to the word before it, so a line never starts with one
+  const words = []
+  for (const s of segs) {
+    for (const p of String(s.text ?? '').split(/(\s+)/)) if (p) words.push({ parts: [{ text: p, tone: s.tone }], space: /^\s+$/.test(p) })
+  }
+  const textOf = (w) => w.parts.map((p) => p.text).join('')
+  const join = (i) => words.splice(i, 3, { parts: [...words[i].parts, ...words[i + 1].parts, ...words[i + 2].parts], space: false })
+  for (let i = 0; i + 2 < words.length; i++) {
+    const [a, b, c] = [words[i], words[i + 1], words[i + 2]]
+    const key = a.parts.length === 1 && a.parts[0].tone === 'key' // a hint's key holds on to its first word
+    if (!a.space && b.space && !c.space && (key || /^[●○◉✓✗✉]$/.test(textOf(a)) || /^[─·]$/.test(textOf(c)))) {
+      join(i)
+      i--
+    }
+  }
+  const out = []
+  let line = []
+  let used = 0
+  let gap = null // the spaces before the next word, held until that word is placed
+  const put = (text, tone) => {
+    const last = line[line.length - 1]
+    if (last && last.tone === tone) last.text += text
+    else line.push({ text, tone })
+    used += cells(text)
+  }
+  const newLine = () => {
+    out.push(line)
+    line = []
+    used = 0
+    if (hang) put(' '.repeat(hang), undefined)
+  }
+  for (const w of words) {
+    if (w.space) {
+      gap = w.parts[0]
+      continue
+    }
+    // spaces stay inside a line and at the very start of the first; at a break they go
+    const g = gap && (used > (out.length ? hang : 0) || (!out.length && used === 0)) ? cells(gap.text) : 0
+    const n = cells(textOf(w))
+    if (used + g + n <= width) {
+      if (g) put(gap.text, gap.tone)
+      for (const p of w.parts) put(p.text, p.tone)
+    } else {
+      if (used > (out.length ? hang : 0)) newLine()
+      for (const p of w.parts) {
+        let t = p.text
+        // a word wider than a line: cut into pieces of what a line holds
+        while (used + cells(t) > width) {
+          const room = width - used
+          if (room <= 0) {
+            newLine()
+            continue
+          }
+          put([...t].slice(0, room).join(''), p.tone)
+          t = [...t].slice(room).join('')
+          newLine()
+        }
+        if (t) put(t, p.tone)
+      }
+    }
+    gap = null
+  }
+  if (line.length) out.push(line)
+  return out.map((l) => l.map((s) => ({ text: s.text, tone: s.tone })))
 }
 
 /** Plain text of a view, for -p and /baton show. */
@@ -297,8 +394,7 @@ const markRecordLine = (r) => MARK_LINE[r.mark] + ' · ' + (r.reason || '') + ' 
  * row: { id, lo, hi, ns, store, text }; records: the id's mark records, oldest first.
  */
 export function memDetail(row, records = []) {
-  const lines = []
-  for (const l of wrap(row.text || '', 100)) lines.push(L(l))
+  const lines = [[{ text: '', prose: { text: row.text || '', indent: 0, width: 100 } }]] // wrapped where it is drawn (PW1)
   const last = records.length ? records[records.length - 1] : null
   const current = last && last.mark !== 'clear' ? last : null
   lines.push([], L(dim('mark: '), current ? { text: markRecordLine(current), tone: MARK_TONE[current.mark] } : dim('unmarked')))

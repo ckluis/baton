@@ -126,12 +126,41 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
       cols.lead2 = lead2
       break
     }
-    if (!cols.breakAt) {
+    if (cols.breakAt) cols.breaks = new Map([[cols.breakAt, cols.lead2]])
+    else {
       agent.dw = keep.agent
       state.dw = state.w = keep.state
+      stackRows(cols, width, stateW, floor.agent, span)
     }
   }
   return cols
+}
+
+/**
+ * Narrower than any two-line row (a dock under about 60 columns, PW1): a row takes three lines, the label and the
+ * model, then both column groups, then the steps and state; narrower again, four, the model on a line of its own.
+ * Every line after the first starts under the label (`breaks`: the column each line starts at, and its pad). Nothing
+ * drops here (Q-11, D-T10-group-cells, the operator's ruling that an agent always shows its model and effort): the
+ * label is cut first, then state; a pane narrower than even four lines draws past its edge, as D-F110 has it.
+ */
+function stackRows(cols, width, stateW, agentFloor, span) {
+  const at = (id) => cols.findIndex((c) => c.id === id)
+  const [agent, model, steps, state] = ['agent', 'model', 'steps', 'state'].map((id) => cols[at(id)])
+  if (at('model') !== 1 || at('cost') !== 2 || !steps || !state) return // only the never-dropped columns are left
+  if (span(cols.slice(at('cost'), at('steps'))) > width) return
+  const lastW = Math.min(stateW, width - steps.dw - gapOf(steps))
+  if (lastW < CUT_MIN.state) return
+  for (const four of [false, true]) {
+    const room = four ? width : width - gapOf(agent) - model.dw
+    if (four && model.dw > width) return
+    if (Math.min(agent.w, room) < agentFloor) continue
+    agent.dw = Math.min(agent.w, room)
+    state.dw = state.w = lastW
+    cols.breakAt = 'cost'
+    cols.lead2 = 0
+    cols.breaks = new Map([...(four ? [['model', 0]] : []), ['cost', 0], ['steps', 0]])
+    return
+  }
 }
 
 /**
@@ -219,12 +248,12 @@ export function agentTable(rows, width = 140, opts = {}) {
   // A two-line table (fitDrawn's `wrap`): before the steps, a line break (`brk`, the row's full width, opts.rowWidth)
   // and a pad that sets the second line under the model column (opts.lead: the cells a row draws before its table).
   const wrap = !!cols.breakAt
-  const breaks = (c) => wrap && c.id === cols.breakAt
+  const breaks = (c) => wrap && !!cols.breaks && cols.breaks.has(c.id)
   const lastOf = (i) => i === cols.length - 1 || breaks(cols[i + 1])
-  const breakSegs = () => [{ text: '', brk: opts.rowWidth ?? width }, { text: ' '.repeat((opts.lead ?? 0) + cols.lead2), tone: undefined }]
+  const breakSegs = (c) => [{ text: '', brk: opts.rowWidth ?? width }, { text: ' '.repeat((opts.lead ?? 0) + cols.breaks.get(c.id)), tone: undefined }]
   const header = []
   cols.forEach((c, i) => {
-    if (breaks(c)) header.push(...breakSegs())
+    if (breaks(c)) header.push(...breakSegs(c))
     if (narrowed(c)) header.push(...drawnCell(pad(c.title, c.w, c.right), 'rail', c, lastOf(i), true))
     else header.push({ text: pad(c.title, c.w, c.right) + (!lastOf(i) ? ' '.repeat(gapOf(c)) : ''), tone: 'rail' })
   })
@@ -249,7 +278,7 @@ export function agentTable(rows, width = 140, opts = {}) {
     }
     const segs = []
     cols.forEach((c, i) => {
-      if (breaks(c)) segs.push(...breakSegs())
+      if (breaks(c)) segs.push(...breakSegs(c))
       const parts = cells[c.id]
       const visible = parts.map((p) => p.text).join('')
       const padded = pad(visible, c.w, c.right)
@@ -271,7 +300,8 @@ export function agentTable(rows, width = 140, opts = {}) {
     })
     return segs
   })
-  return { header, groups: groupLine(cols, opts.lead ?? 0), lines, cols: cols.map((c) => c.id), wrap }
+  // rowLines: the lines a row takes (one, or two to four when it is stacked, P4-FX3-d2 and PW1)
+  return { header, groups: groupLine(cols, opts.lead ?? 0), lines, cols: cols.map((c) => c.id), wrap, rowLines: wrap ? cols.breaks.size + 1 : 1 }
 }
 
 /** The group line above the column names: each group's label at the start of its first cell (D-T10R-group-columns). */

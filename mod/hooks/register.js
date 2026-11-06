@@ -24,7 +24,7 @@ import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, g
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
-import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail, viewLines } from '../lib/detail.mjs'
+import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail, viewLines, fitLine } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
@@ -170,6 +170,10 @@ const COMPACT_INSTRUCTIONS =
 
 // The pane: which tab, and what the last refresh read (render hooks do no I/O).
 const PANE = 'baton'
+// The width every open asks for (PW1): past any terminal's ceiling, so the dock opens as wide as Claude Code lets it.
+// Claude Code caps it (2.1.319, no setting): at most min(floor(cols x 0.45), cols - 60), at least 24; a width the
+// person dragged the dock to wins under the same cap. Unasked, it opens at min(floor(cols x 0.45), 90, cols - 70).
+const PANE_COLUMNS = 999
 // Two tabs: Work is everything happening (the goal, the PR, the agents, the plan, what waits for
 // you); Memory is everything the run remembers (your rulings, then the memory itself).
 const TABS = [
@@ -1958,34 +1962,39 @@ async function refreshPane($, paneRows, quiet = false) {
 
 const TONE = { done: 'green', current: 'cyan', flagged: 'red', future: undefined, rail: undefined }
 
-/** One stepper as a row of colored Text segments. */
-function stepperRow({ Box, Text }, key, label, st, tl, tail = '') {
-  const segs = stepper(st, tl)
-  if (tail) segs.push({ text: tail, tone: 'rail' })
-  return Box({
-    key,
-    flexDirection: 'row',
-    children: [
-      Text({ bold: true, children: [label.padEnd(8).slice(0, 12) + ' '] }),
-      ...segs.map((x) => Text({ wrap: 'truncate-end', ...(TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' }), children: [x.text] })),
-    ],
-  })
+const stepTone = (x) => (x.tone === 'bold' ? { bold: true } : TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: x.tone === 'future' || x.tone === 'rail' })
+
+/** One stepper as a row of colored Text segments; narrower than the pane, as many rows as it takes, under its steps (PW1). */
+function stepperRow({ Box, Text }, key, label, st, tl, tail = '', cols = Infinity) {
+  const segs = [{ text: label.padEnd(8).slice(0, 12) + ' ', tone: 'bold' }, ...stepper(st, tl), ...(tail ? [{ text: tail, tone: 'rail' }] : [])]
+  if (segs.reduce((n, x) => n + cellWidth(x.text), 0) > cols) return fitRows({ Box, Text }, key, segs, cols, stepTone)
+  return [
+    Box({
+      key,
+      flexDirection: 'row',
+      children: [Text({ bold: true, children: [segs[0].text] }), ...segs.slice(1).map((x) => Text({ wrap: 'truncate-end', ...stepTone(x), children: [x.text] }))],
+    }),
+  ]
 }
 
-/** The goal's issue and its PR, as links to GitHub. */
-function goalLinks({ Box, Text, Link }, key) {
+/** The goal's issue and its PR, as links to GitHub; narrower than the pane, the PR on a line of its own, each cut to fit (PW1). */
+function goalLinks({ Box, Text, Link }, key, cols = Infinity) {
   const v = track.view
   if (!v) return []
   const g = v.goal
-  const kids = []
-  if (g.issue) kids.push(Link({ href: g.issue.url, label: '#' + g.issue.number + ' ' + g.issue.title + ' ↗' }))
-  else kids.push(Text({ bold: true, wrap: 'truncate-end', children: ['goal: ' + String(g.target || '').slice(0, 80)] })) // one line (P4-FX3-d3)
-  if (v.pr) {
-    kids.push(Text({ dimColor: true, children: ['·'] }))
-    kids.push(Link({ href: v.pr.url, label: 'PR #' + v.pr.number + ' ↗' }))
-    kids.push(Text({ dimColor: true, children: [v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : '')] }))
+  const issue = g.issue ? '#' + g.issue.number + ' ' + g.issue.title : null
+  const goal = issue ? null : 'goal: ' + String(g.target || '').slice(0, 80) // one line (P4-FX3-d3)
+  const prLabel = v.pr ? 'PR #' + v.pr.number + ' ↗' : ''
+  const checks = v.pr ? v.pr.checks + (v.pr.review ? ' · review ' + v.pr.review.verdict + ' (' + v.pr.review.high + ' high, ' + v.pr.review.med + ' med)' : '') : ''
+  const head = (room) => (issue ? Link({ href: g.issue.url, label: cutCells(issue, Math.max(1, room - 2)) + ' ↗' }) : Text({ bold: true, wrap: 'truncate-end', children: [cutCells(goal, Math.max(1, room))] }))
+  const prKids = (room) => [Link({ href: v.pr.url, label: prLabel }), Text({ dimColor: true, wrap: 'truncate-end', children: [cutCells(checks, Math.max(1, room - cellWidth(prLabel) - 1))] })]
+  const whole = cellWidth(issue ? issue + ' ↗' : goal) + (v.pr ? 3 + cellWidth(prLabel) + 1 + cellWidth(checks) : 0)
+  if (whole <= cols) {
+    const kids = [head(Infinity)]
+    if (v.pr) kids.push(Text({ dimColor: true, children: ['·'] }), ...prKids(Infinity))
+    return [Box({ key, flexDirection: 'row', columnGap: 1, children: kids })]
   }
-  return [Box({ key, flexDirection: 'row', columnGap: 1, children: kids })]
+  return [Box({ key, flexDirection: 'row', children: [head(cols)] }), ...(v.pr ? [Box({ key: key + '-pr', flexDirection: 'row', columnGap: 1, children: prKids(cols) })] : [])]
 }
 
 /** Track: the goal, the PR (with the merge-ready rows), every phase and its nodes, each as measured steps. */
@@ -2004,6 +2013,7 @@ function mergeLine(v) {
  */
 function workspaceBody($, ui) {
   const { Box, Text, Button, Link, line } = ui
+  const cols = ui.cols || 80
   if (pane.detail) {
     const d = detailBody($, ui)
     const n = pane.detail.kind === 'agent' ? tree.nodes.get(pane.detail.id) : null
@@ -2013,16 +2023,20 @@ function workspaceBody($, ui) {
   const v = track.view
   const out = []
   if (v) {
-    out.push(...goalLinks(ui, 'w-links'))
-    out.push(stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget)))
-    if (v.pr) out.push(stepperRow(ui, 'w-pr', 'PR', v.pr, v.pr.tl))
+    // Every entry is one line, fitted to the pane by the mod (PW1); one that does not fit is flowed onto more entries.
+    // An entry wrapped in `opt(rank, …)` may give way in a short pane, lowest rank first (placeList, DROP_RANK).
+    const ind = cols < 60 ? '  ' : '         ' // under the steps; narrow, two cells in
+    const flow = (key, text, tone) => fitRows({ Box, Text }, key, [{ text: ind + text }], cols, () => tone)
+    out.push(...goalLinks(ui, 'w-links', cols).map((x) => opt(DROP_RANK.links, x)))
+    out.push(...stepperRow(ui, 'w-goal', 'goal', v.goal, v.goal.tl, spendTail(v.spend.total, v.spend.budget), cols).map((x) => opt(DROP_RANK.goal, x)))
+    if (v.pr) out.push(...stepperRow(ui, 'w-pr', 'PR', v.pr, v.pr.tl, '', cols).map((x) => opt(DROP_RANK.pr, x)))
     const ml = mergeLine(v)
-    if (ml) out.push(line('w-merge', '         ' + ml.text, ml.color ? { color: ml.color } : { dimColor: true }))
+    if (ml) out.push(...flow('w-merge', ml.text, ml.color ? { color: ml.color } : { dimColor: true }).map((x) => opt(DROP_RANK.merge, x)))
     // With p on, every merge-ready row, under the merge-ready line (T10 amendment, Q-56).
-    if (pane.planOpen && v.pr && v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(line('t-mr' + i, '         ' + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok })))
-    if (v.pr && v.pr.ready && v.pr.ready.diagnosis) out.push(line('w-diag', '         ⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }))
-    if (gh.queue.length) out.push(line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true }))
-    // The reviewer's findings, each a link to its line on GitHub.
+    if (pane.planOpen && v.pr && v.pr.ready) v.pr.ready.rows.forEach((r, i) => out.push(opt(DROP_RANK.detail, line('t-mr' + i, ind + (r.ok ? '✓ ' : '✗ ') + r.row, { color: r.ok ? 'green' : undefined, dimColor: !r.ok }))))
+    if (v.pr && v.pr.ready && v.pr.ready.diagnosis) out.push(...flow('w-diag', '⚠ ' + v.pr.ready.diagnosis, { color: 'yellow' }).map((x) => opt(DROP_RANK.detail, x)))
+    if (gh.queue.length) out.push(opt(DROP_RANK.queue, line('t-q', 'queue: ' + gh.queue.map((x) => '#' + x.number).join(' ') + ' — /baton next', { dimColor: true })))
+    // The reviewer's findings, each a link to its line on GitHub; narrower than the pane, its text on the lines under it.
     const rv = v.pr && v.pr.review
     if (rv && rv.verdict === 'CHANGES' && (rv.findings || []).length) {
       const repo = /github\.com\/([^/]+\/[^/]+)\/pull\//.exec(v.pr.url || '')
@@ -2030,46 +2044,53 @@ function workspaceBody($, ui) {
       rv.findings.slice(0, 6).forEach((f, i) => {
         const m = /^(.+):(\d+)$/.exec(f.at)
         const href = repo && head && m ? 'https://github.com/' + repo[1] + '/blob/' + encodeURIComponent(head) + '/' + m[1] + '#L' + m[2] : null
-        out.push(
-          Box({
-            key: 'w-f' + i,
-            flexDirection: 'row',
-            columnGap: 1,
-            children: [
-              Text({ color: f.severity === 'high' ? 'red' : f.severity === 'med' ? 'yellow' : undefined, ...(f.severity === 'low' ? { dimColor: true } : {}), children: ['         ' + f.severity.padEnd(4)] }),
-              href ? Link({ href, label: f.at + ' ↗' }) : Text({ children: [f.at] }),
-              Text({ wrap: 'truncate-end', dimColor: true, children: [f.text] }),
-            ],
-          }),
-        )
+        const sev = ind + f.severity.padEnd(4)
+        const at = (room) => (href ? Link({ href, label: cutCells(f.at, Math.max(1, room - 2)) + ' ↗' }) : Text({ wrap: 'truncate-end', children: [cutCells(f.at, Math.max(1, room))] }))
+        const sevText = Text({ color: f.severity === 'high' ? 'red' : f.severity === 'med' ? 'yellow' : undefined, ...(f.severity === 'low' ? { dimColor: true } : {}), children: [sev] })
+        const whole = cellWidth(sev) + 1 + cellWidth(f.at + (href ? ' ↗' : '')) + 1 + cellWidth(f.text)
+        if (whole <= cols) out.push(opt(DROP_RANK.findings, Box({ key: 'w-f' + i, flexDirection: 'row', columnGap: 1, children: [sevText, at(Infinity), Text({ wrap: 'truncate-end', dimColor: true, children: [f.text] })] })))
+        else {
+          out.push(opt(DROP_RANK.findings, Box({ key: 'w-f' + i, flexDirection: 'row', columnGap: 1, children: [sevText, at(cols - cellWidth(sev) - 1)] })))
+          out.push(...flow('w-ft' + i, f.text, { dimColor: true }).map((x) => opt(DROP_RANK.findings, x)))
+        }
       })
     }
     out.push({ [GAP]: Text({ children: [' '] }) })
   }
   out.push(...agentsBody($, ui))
   if (v && (v.questions || []).length) {
-    out.push(Text({ children: [' '] }))
+    out.push(opt(DROP_RANK.spacer, Text({ children: [' '] })))
     // Each `?` row opens its brief by Enter on its › or by its own letter (T13, Q-39). Put to the operator, it keeps
-    // its red or yellow; queued, it is dim (Q-49).
-    v.questions.forEach((q, i) =>
-      out.push(
-        Box({
-          key: 'w-q' + i,
-          flexDirection: 'row',
-          children: [
-            Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) }),
-            line('w-qt' + i, '? ' + questionLine(q), q.asked ? { color: q.color } : { dimColor: true }),
-          ],
-        }),
-      ),
-    )
+    // its red or yellow; queued, it is dim (Q-49). Cut to what its › leaves (PW1); its brief has the whole text.
+    v.questions.forEach((q, i) => {
+      const open = Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) })
+      out.push(Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), q.asked ? { color: q.color } : { dimColor: true }, cols - buttonWidth(open))] }))
+    })
   }
   if (pane.rulings.length) {
-    out.push(Text({ children: [' '] }))
-    pane.rulings.slice(0, 3).forEach((r, i) => out.push(line('w-r' + i, 'ruling ' + rulingLine(r), { color: 'magenta' })))
-    if (pane.rulings.length > 3) out.push(line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Memory (2)', { dimColor: true }))
+    out.push(opt(DROP_RANK.rulings, Text({ children: [' '] })))
+    pane.rulings.slice(0, 3).forEach((r, i) => out.push(opt(DROP_RANK.rulings, line('w-r' + i, 'ruling ' + rulingLine(r), { color: 'magenta' }))))
+    if (pane.rulings.length > 3) out.push(opt(DROP_RANK.rulings, line('w-rm', '  … ' + (pane.rulings.length - 3) + ' more in Memory (2)', { dimColor: true })))
   }
   return out
+}
+
+/**
+ * What gives way in a pane too short for the agent list's window (PW1, D-P4-10 a), lowest rank first: the reviewer's
+ * findings, the merge-ready rows (p) and the diagnosis, the tree's legend, the ruling rows (Memory has them all),
+ * the spacer above the questions, the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's
+ * steps. Never: the keys row, the read line, a phase waiting for its check, the table header, the list (every agent
+ * with its model, effort and state), the key hint, the message field, the questions. The band above the prompt
+ * keeps the goal's and the PR's state in any case.
+ */
+const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, merge: 6, queue: 7, links: 8, pr: 9, goal: 10 }
+const OPT = Symbol('an entry that may give way in a short pane')
+const opt = (rank, el) => ({ [OPT]: { el, rank } })
+
+/** The cells a Button draws: its `k: ` and label when plain, `[ label ]` else. */
+function buttonWidth(b) {
+  const p = (b && b.props) || {}
+  return p.plain ? (p.hotkey ? cellWidth(p.hotkey) + 2 : 0) + cellWidth(p.label ?? '') : cellWidth(p.label ?? '') + 4
 }
 
 function workspaceLines() {
@@ -2114,8 +2135,9 @@ function memoryTabBody($, ui) {
     const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
     return [
       ...hint,
-      Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ bold: true, children: [d.title] })] }),
-      ...d.lines.map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
+      Box({ key: 'md-h', flexDirection: 'row', columnGap: 2, children: [Button({ key: 'md-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.mdetail = null), $.ui.invalidate('ui.render')) }), Text({ bold: true, wrap: 'truncate-end', children: [cutCells(d.title, Math.max(1, (ui.cols || 80) - 11))] })] }),
+      // its lines fitted to the pane (PW1): a note's text wrapped at the drawn width, a long line flowed
+      ...viewLines(d.lines, ui.cols || 80).map((segs, i) => (segs.length ? Box({ key: 'md-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...tone(x), children: [x.text] })) }) : Text({ children: [' '] }))),
     ]
   }
   return [...hint, Text({ bold: true, children: ['rulings'] }), ...rulingsBody($, ui), Text({ children: [' '] }), Text({ bold: true, children: [pane.memStore === 'project' ? 'project memory' : 'memory'] }), ...memoryBody($, ui)]
@@ -2150,7 +2172,7 @@ async function buildDetail($, kind, id, extra = {}) {
     const m = modelOf(n)
     const view = agentDetail(n, {
       chain: chain(tree, id),
-      model: shortModel(m.shown) || null,
+      model: modelCell(n, m).model || null, // its exact model and effort, as its row shows them (the operator's ruling)
       mismatch: m.mismatch ? { requested: m.expected, served: m.served } : null,
       ctxPct: pct,
       threshold: thr,
@@ -2383,20 +2405,21 @@ async function detailAct($, d, k) {
 function detailBody($, { Box, Text, Button, line, cols }) {
   const d = pane.detail
   const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  const out = [
-    Box({
-      key: 'd-h',
-      flexDirection: 'row',
-      columnGap: 2,
-      children: [
-        Button({ key: 'd-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.detail = null), $.ui.invalidate('ui.render')) }),
-        Text({ bold: true, children: [d.view.title] }),
-        // The brief's own keys (T13, Q-39), drawn as 1, 2 and r are: a answers, y approves once (or overrules), w for the run.
-        ...(d.view.keys || []).map((k) => Button({ key: 'd-key-' + k.hotkey, label: k.label, hotkey: k.hotkey, plain: true, onPress: () => detailAct($, d, k) })),
-        Button({ key: 'd-refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => openDetail($, d.kind, d.id) }),
-      ],
-    }),
+  const back = Button({ key: 'd-back', label: '‹ back', hotkey: 'b', plain: true, autoFocus: true, onPress: () => ((pane.detail = null), $.ui.invalidate('ui.render')) })
+  // The brief's own keys (T13, Q-39), drawn as 1, 2 and r are: a answers, y approves once (or overrules), w for the run.
+  const keys = [
+    ...(d.view.keys || []).map((k) => Button({ key: 'd-key-' + k.hotkey, label: k.label, hotkey: k.hotkey, plain: true, onPress: () => detailAct($, d, k) })),
+    Button({ key: 'd-refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => openDetail($, d.kind, d.id) }),
   ]
+  // The title takes what the keys leave, cut to it (PW1); with under 12 cells left, the keys go on the next line.
+  const w = cols || 80
+  const keysW = keys.reduce((n, b) => n + buttonWidth(b) + 2, 0)
+  const room = w - buttonWidth(back) - 2 - keysW
+  const title = (r) => Text({ bold: true, wrap: 'truncate-end', children: [cutCells(d.view.title, Math.max(1, r))] })
+  const out =
+    room >= 12 || cellWidth(d.view.title) <= room
+      ? [Box({ key: 'd-h', flexDirection: 'row', columnGap: 2, children: [back, title(room), ...keys] })]
+      : [Box({ key: 'd-h', flexDirection: 'row', columnGap: 2, children: [back, title(w - buttonWidth(back) - 2)] }), ...buttonRows(Box, 'd-keys', keys, w, 2)]
   // The rows' letters, under the title: pressed here, each opens its row (R-C9-05), so none reaches the prompt.
   const letters = rowLetterKeys($, Button, new Set((d.view.keys || []).map((k) => k.hotkey)))
   if (letters.length) out.push(Box({ key: 'd-rows', flexDirection: 'row', flexWrap: 'wrap', children: [Text({ dimColor: true, children: ['rows '] }), ...letters] }))
@@ -2544,7 +2567,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
         columnGap: 1,
         children: [
           Button({ key: 'approve-' + i, label: 'approve', plain: true, onPress: () => resolveQueued($, i, 'approve') }),
-          line('qt' + i, '⚑ ' + q.label + ': ' + q.line, { color: 'yellow' }),
+          line('qt' + i, '⚑ ' + q.label + ': ' + q.line, { color: 'yellow' }, (cols || 80) - 8), // after `approve` and its gap
         ],
       }),
     )
@@ -2581,8 +2604,8 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // A table too wide for one line a row is drawn two lines a row (P4-FX3-d2): each row Box wraps at its break.
   const wrapRow = t.wrap ? { flexWrap: 'wrap' } : {}
   const tone = (x) => (x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
-  // one line at any width (cut at the pane's edge): the list counts it as one (P4-FX3-d3)
-  if (track.view) out.push(Text({ wrap: 'truncate-end', dimColor: true, children: [LEGEND] }))
+  // one line at any width: the list counts it as one (P4-FX3-d3); the longest form that fits the pane (PW1)
+  if (track.view) out.push(opt(DROP_RANK.legend, Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(LEGENDS.find((l) => cellWidth(l) <= (cols || 120)) ?? LEGENDS.at(-1), cols || 120)] })))
   const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
   out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
   out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
@@ -2590,7 +2613,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box), wrapRow)
   // The lines each list item takes (P4-FX3-d3): a tree row of a two-line table two, a note row one; the header's
   // second line is one more besides the list.
-  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? (x) => (x.kind === 'note' ? 1 : 2) : () => 1, head: t.wrap ? 1 : 0 } })
+  out.push({ [LIST]: { items, draw, hidden: (x) => hiddenKey($, x, Button), lines: t.wrap ? (x) => (x.kind === 'note' ? 1 : t.rowLines) : () => 1, head: t.rowLines - 1 } })
   out.push(...messageField($, { Box, Text, Input, cols }))
   return out
 }
@@ -2754,22 +2777,40 @@ function itemId(x) {
  * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row). It is all counted in screen lines, a
  * row of a two-line table two (P4-FX3-d3); the spacer stays for the one line such a row may leave over.
  */
-function placeList(body, rows, { Text, Box }) {
+function placeList(body, rows, { Text, Box, cols = Infinity }) {
   const L = pane.list
-  const at = body.findIndex((x) => x && x[LIST])
+  const unwrap = (x) => (x && x[OPT] ? x[OPT].el : x)
+  let at = body.findIndex((x) => x && x[LIST])
   L.on = at >= 0
-  if (!L.on) return body.flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
+  if (!L.on) return body.map(unwrap).flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
   const { items, draw, hidden, lines: linesOf = () => 1, head = 0 } = body[at][LIST]
   // Everything here is in screen lines (P4-FX3-d3): the lines besides the list are the tab row, the `read … · Esc
-  // closes` line, the body's other entries and the header's second line when the table takes two lines a row
-  // (P4-FX3-d2); each list item takes its own lines (`linesOf`), the more and `+<k> running` lines one each.
-  const others = 2 + body.length - 1 + head
-  const gaps = body.filter((x) => x && x[GAP]).length
-  const area = rows - SPARE_ROWS - others + gaps
+  // closes` line, the body's other entries (each one line, PW1) and the header's further lines when the table takes
+  // more than one line a row (P4-FX3-d2); each list item takes its own lines (`linesOf`), the more and `+<k> running`
+  // lines one each.
   const costAll = items.map((x) => linesOf(x))
   const whole = costAll.reduce((a, b) => a + b, 0)
-  // Too short for a window (not one row and its two more lines): the list is drawn whole, as before.
-  const fits = whole <= rows - others || area < 2 + Math.max(1, ...costAll)
+  const need = 2 + Math.max(1, ...costAll)
+  const measure = () => {
+    const others = 2 + body.length - 1 + head
+    const gaps = body.filter((x) => x && x[GAP]).length
+    return { others, gaps, area: rows - SPARE_ROWS - others + gaps }
+  }
+  let { others, gaps, area } = measure()
+  // Too short for a window (not one row and its two more lines) while the list does not fit: the entries that may
+  // give way do, lowest rank first (DROP_RANK, PW1), until the window has its room or none is left.
+  if (whole > rows - others && area < need) {
+    const ranks = [...new Set(body.filter((x) => x && x[OPT]).map((x) => x[OPT].rank))].sort((a, b) => a - b)
+    for (const r of ranks) {
+      if (area >= need) break
+      body = body.filter((x) => !(x && x[OPT] && x[OPT].rank === r))
+      ;({ others, gaps, area } = measure())
+    }
+    at = body.findIndex((x) => x && x[LIST])
+  }
+  body = body.map(unwrap)
+  // Still too short for a window: the list is drawn whole, as before.
+  const fits = whole <= rows - others || area < need
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
   const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)
@@ -2783,7 +2824,14 @@ function placeList(body, rows, { Text, Box }) {
   let keepGap = !fits && gaps > 0 && W.lines < area && costs.some((c) => c > 1) ? 1 : 0
   const lines = []
   // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
-  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: ['  ' + text] }), ...keys] })
+  // Its hidden rows' letters stay bound on it; where text and letters are wider than the pane, the letters are held
+  // in a box no cells wide (PW1), so the line's own text is drawn whole.
+  const dim = (text, key, keys = []) => {
+    const t = '  ' + text
+    const wide = cellWidth(t) + keys.reduce((n, b) => n + buttonWidth(b), 0) > cols
+    const held = wide ? keys.map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] })) : keys
+    return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(t, cols)] }), ...held] })
+  }
   const running = (k) => ' · +' + k + ' running'
   const shown = new Set([...W.above, ...W.below])
   const out = (a, b) => its.slice(a, b).filter((_, j) => !shown.has(a + j))
@@ -2870,6 +2918,8 @@ function saveLetters($) {
 
 /** The legend above the agent table (T10 amendment, Q-55): the tree's levels, and what a phase is. */
 const LEGEND = 'the tree: prime › P<n>, a phase: a unit of the plan › its sub-orchestrator › agent (worker, verifier)'
+// Its shorter forms, for a narrower pane (PW1): the same levels, fewer words.
+const LEGENDS = [LEGEND, 'the tree: prime › P<n> (a phase of the plan) › its sub-orchestrator › agent', 'the tree: prime › P<n> phase › sub-orch › agent', 'prime › P<n> phase › sub-orch › agent']
 
 /**
  * The phase each of the prime's children belongs to (Q-58: a sub-orchestrator by its `P<n>` or its
@@ -3001,14 +3051,38 @@ function letterKey(id) {
   return k ? { hotkey: k } : {}
 }
 
-/** A hint line: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32). */
+/**
+ * A hint: each [key, text] pair draws the key in the accent hotkeys are drawn in, then its text dim (T9, Q-32).
+ * Returned as rows (PW1): one where the hint fits the pane, else as many as it takes, flowed between words, a key
+ * never cut and never parted from its first word (lib/detail.mjs fitLine). Each row is one line the list counts.
+ */
 function keyHint({ Box, Text }, key, parts, tail = '', cols = Infinity) {
-  const spans = [...parts.flatMap(([k, t]) => [Text({ color: KEY_ACCENT, children: [k] }), Text({ dimColor: true, children: [t] })]), ...(tail ? [Text({ dimColor: true, children: [tail] })] : [])]
-  // Wider than the pane, the row's Texts would each be shrunk and wrapped onto a second line the list does not
-  // count: drawn instead as one Text of the same spans, cut at the pane's edge (P4-FX3-d3).
-  const width = cellWidth(parts.map(([k, t]) => k + t).join('') + tail)
-  if (width > cols) return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', children: spans })] })
-  return Box({ key, flexDirection: 'row', children: spans })
+  const segs = [...parts.flatMap(([k, t]) => [{ text: k, tone: 'key' }, { text: t, tone: 'rail' }]), ...(tail ? [{ text: tail, tone: 'rail' }] : [])]
+  const span = (x) => Text({ wrap: 'truncate-end', ...(x.tone === 'key' ? { color: KEY_ACCENT } : { dimColor: true }), children: [x.text] })
+  const lines = Number.isFinite(cols) ? fitLine(segs, cols) : [segs]
+  return lines.map((l, i) => Box({ key: key + (i ? '-' + i : ''), flexDirection: 'row', children: l.map(span) }))
+}
+
+/** Buttons as rows that fit `cols` (PW1): one row `gap` cells apart where they fit, else rows two cells apart. */
+function buttonRows(Box, key, buttons, cols, gap = 3) {
+  const w = (b) => {
+    const p = (b && b.props) || {}
+    return p.plain ? (p.hotkey ? cellWidth(p.hotkey) + 2 : 0) + cellWidth(p.label ?? '') : cellWidth(p.label ?? '') + 4
+  }
+  const span = (bs, g) => bs.reduce((n, b) => n + w(b), 0) + g * Math.max(0, bs.length - 1)
+  if (span(buttons, gap) <= cols) return [Box({ key, flexDirection: 'row', columnGap: gap, children: buttons })]
+  const rows = [[]]
+  for (const b of buttons) {
+    const cur = rows[rows.length - 1]
+    if (cur.length && span([...cur, b], 2) > cols) rows.push([b])
+    else cur.push(b)
+  }
+  return rows.map((r, i) => Box({ key: key + (i ? '-' + i : ''), flexDirection: 'row', columnGap: 2, children: r }))
+}
+
+/** A view line's segments as rows no wider than `cols` (PW1): fitLine's lines, each a row of one-line Texts. */
+function fitRows({ Box, Text }, key, segs, cols, toneOf) {
+  return fitLine(segs, cols).map((l, i) => Box({ key: key + (i ? '-' + i : ''), flexDirection: 'row', children: l.map((x) => Text({ wrap: 'truncate-end', ...toneOf(x), children: [x.text] })) }))
 }
 
 /** The field that messages the targeted running agent (✉ on its row, or its open view). */
@@ -3041,7 +3115,12 @@ function messageField($, { Box, Text, Input, cols = Infinity }) {
   } else {
     // With p on, the old plan section's footer joins the hint line (T10 amendment, Q-56).
     const foot = pane.planOpen && track.view ? ' · states are computed from _orch/ and the PR; each change is a row in _orch/track/ · ' + (gh.polledAt ? 'PR read ' + gh.polledAt.slice(11, 19) : 'PR not read yet') : ''
-    out.push(keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']], foot, cols))
+    // where the pane is too narrow for it on fewer lines, its short form: the same keys, fewer words (PW1)
+    const long = [['↑/↓', ' then '], ['Enter', ' on › opens a row, or its letter does · ✉ messages a running one · '], ['p', ' shows every node · '], ['b', ' goes back']]
+    const short = [['↑/↓', ' then '], ['Enter', ' on › opens · '], ['✉', ' messages · '], ['p', ' shows every node · '], ['b', ' goes back']]
+    const hl = keyHint({ Box, Text }, 'w-hint', long, foot, cols)
+    const hs = keyHint({ Box, Text }, 'w-hint', short, foot, cols)
+    out.push(...(hs.length < hl.length ? hs : hl))
   }
   return out
 }
@@ -3207,7 +3286,8 @@ async function openMemRow($, row) {
 
 /** Memory: open a block (+), go back (b), or search; notes and summaries as a table (T12). */
 function memoryBody($, { Box, Text, Button, Input, line, rows, cols }) {
-  const out = (pane.data.memory ?? []).map((l, i) => line('mh' + i, l, i === 0 ? { dimColor: true } : {}))
+  // its head lines flowed onto the lines the pane needs (PW1)
+  const out = (pane.data.memory ?? []).flatMap((l, i) => fitRows({ Box, Text }, 'mh' + i, [{ text: String(l) }], cols || 80, () => (i === 0 ? { dimColor: true } : {})))
   const reload = () => refreshPane($, rows)
   const nav = [
     Input({
@@ -3245,7 +3325,7 @@ function memoryBody($, { Box, Text, Button, Input, line, rows, cols }) {
   const shown = keep.map((j) => pane.memLines[j])
   const marks = keep.map((j) => glyphs[j])
   const cells = memTableCells(shown, Date.now(), marks)
-  if (shown.length) out.push(Box({ key: 'mem-head', flexDirection: 'row', children: [Text({ children: ['    '] }), line('mem-head-l', memTableHeader(shown, Date.now(), marks), { dimColor: true })] }))
+  if (shown.length) out.push(Box({ key: 'mem-head', flexDirection: 'row', children: [Text({ children: ['    '] }), line('mem-head-l', memTableHeader(shown, Date.now(), marks), { dimColor: true }, (cols || 80) - 4)] }))
   cells.forEach(([idCell, markCell, rest], at) => {
     const j = keep[at]
     const t = pane.memTiles[j]
@@ -3291,12 +3371,12 @@ function memoryBody($, { Box, Text, Button, Input, line, rows, cols }) {
       }),
     )
   })
-  if (pane.memTiles.some((t) => t && t.level > 0)) out.push(keyHint({ Box, Text }, 'mem-hint', [['+', ' then '], ['Enter', ' opens a block · '], ['b', ' goes back']]))
+  if (pane.memTiles.some((t) => t && t.level > 0)) out.push(...keyHint({ Box, Text }, 'mem-hint', [['+', ' then '], ['Enter', ' opens a block · '], ['b', ' goes back']], '', cols || 80))
   return out
 }
 
 /** Rulings: add one, retract one (x); enforcement shows on the line. */
-function rulingsBody($, { Box, Button, Input, line, rows }) {
+function rulingsBody($, { Box, Text, Button, Input, line, rows, cols }) {
   const out = [
     Input({
       key: 'ruling-add',
@@ -3332,12 +3412,12 @@ function rulingsBody($, { Box, Button, Input, line, rows }) {
               await refreshPane($, rows)
             },
           }),
-          line('r' + r.n, rulingLine(r), r.enforce ? { color: 'magenta' } : {}),
+          line('r' + r.n, rulingLine(r), r.enforce ? { color: 'magenta' } : {}, (cols || 80) - 4), // after its › and x
         ],
       }),
     )
   })
-  out.push(line('r-hint', 'x retracts · /baton enforce <#> <regex> makes a ruling refuse matching shell commands', { dimColor: true }))
+  out.push(...fitRows({ Box, Text }, 'r-hint', [{ text: 'x retracts · /baton enforce <#> <regex> makes a ruling refuse matching shell commands' }], cols || 80, () => ({ dimColor: true })))
   return out
 }
 
@@ -4874,7 +4954,7 @@ export function register(on, options) {
         pane.open = true
         pane.waiting = false
         Object.assign(pane.list, { top: 0, topKey: null, focus: null, alias: new Map() })
-        await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
+        await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true, columns: PANE_COLUMNS })
         try {
           if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30, true) : null))
         } catch {}
@@ -4917,17 +4997,17 @@ export function register(on, options) {
     if (pane.tab === 'memory') tabs.push(...memoryKeys($, Button, rows))
     // p shows or hides the node rows under every phase row of the tree (T10 amendment, Q-59).
     if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
-    const line = (key, text, extra = {}) => Text({ wrap: 'truncate-end', ...extra, children: [String(text).slice(0, Math.max(20, cols * 2)) || ' '] })
+    // A one-line Text the mod fits itself (PW1): cut to `room` cells (the pane body, less what its row draws before
+    // it), so the terminal never has to cut or shrink it.
+    const line = (key, text, extra = {}, room = cols) => Text({ wrap: 'truncate-end', ...extra, children: [cutCells(String(text), Math.max(1, room)) || ' '] })
     const ui = { Box, Text, Button, Input, Link, line, rows, cols }
     if (pane.tab !== 'memory') await loadLetters($)
-    const body = placeList(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui), rows, ui)
+    // The keys row takes as many lines as the pane needs for it (PW1); the list is told of the lines it takes.
+    const tabRows = buttonRows(Box, 'tabs', tabs, cols, 3)
+    const body = placeList(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui), rows - (tabRows.length - 1), ui)
     const root = Box({
       flexDirection: 'column',
-      children: [
-        Box({ flexDirection: 'row', columnGap: 3, ...(pane.tab === 'memory' ? { flexWrap: 'wrap' } : {}), children: tabs }),
-        Text({ dimColor: true, children: ['read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes'] }),
-        ...body,
-      ],
+      children: [...tabRows, line('read', 'read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes', { dimColor: true }), ...body],
     })
     pane.list.ring = focusRing(root)
     return root
@@ -5020,13 +5100,27 @@ export function register(on, options) {
       } catch {}
       if (pane.waiting) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: '/baton opens the pane', color: undefined })
     }
-    const lineBox = Box({ key: 'band', flexDirection: 'row', children: segs.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
+    // Every line of the band fitted to its width by the mod (PW1): the segments past it cut, the last one with `…`.
+    const bw = e.props.bodyColumns ?? 200
+    const fitText = (t) => cutCells(t, Math.max(1, bw))
+    let used = 0
+    const shown = []
+    for (const x of segs) {
+      if (used >= bw) break
+      const t = cutCells(x.text, bw - used)
+      shown.push({ ...x, text: t })
+      used += cellWidth(t)
+    }
+    const lineBox = Box({ key: 'band', flexDirection: 'row', children: shown.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work.
     const askedN = v ? (v.questions || []).filter((q) => q.asked).length : 0
     if (askedN) waiting.push(askedN + ' question' + (askedN === 1 ? '' : 's'))
-    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: ['⚑ waiting for you: ' + waiting.join(' · ') + ' — Work (1)'] })] : []
+    // narrower than the band: the phases' names go first, then it is cut (PW1)
+    const waitText = (ws) => '⚑ waiting for you: ' + ws.join(' · ') + ' — Work (1)'
+    const short = waiting.map((x) => x.replace(/ \(.*\)$/, ''))
+    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText(cellWidth(waitText(waiting)) <= bw ? waitText(waiting) : waitText(short))] })] : []
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
       const { Button } = $.ui.resolve(e)
@@ -5037,7 +5131,8 @@ export function register(on, options) {
           flexDirection: 'row',
           columnGap: 2,
           children: [
-            Button({ key: 'band-approve', label: 'approve ' + q0.label, hotkey: '1', plain: true, onPress: () => resolveQueued($, 0, 'approve') }),
+            // the phase's name cut to what `1: approve ` and `2: send back…` leave (PW1)
+            Button({ key: 'band-approve', label: 'approve ' + cutCells(q0.label, Math.max(4, bw - 26)), hotkey: '1', plain: true, onPress: () => resolveQueued($, 0, 'approve') }),
             Button({
               key: 'band-sendback',
               label: 'send back…',
@@ -5045,7 +5140,7 @@ export function register(on, options) {
               plain: true,
               onPress: async () => {
                 pane.tab = 'work'
-                await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true })
+                await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true, columns: PANE_COLUMNS })
                 pane.open = true
                 $.ui.invalidate('ui.render')
               },
@@ -5062,15 +5157,15 @@ export function register(on, options) {
           flexDirection: 'row',
           columnGap: 2,
           children: [
-            Text({ color: 'cyan', children: [update.state === 'updating' ? 'baton: updating to ' + update.remote + '…' : 'baton ' + update.remote + ' is out (you have ' + update.local + ')'] }),
+            Text({ color: 'cyan', wrap: 'truncate-end', children: [cutCells(update.state === 'updating' ? 'baton: updating to ' + update.remote + '…' : 'baton ' + update.remote + ' is out (you have ' + update.local + ')', Math.max(1, bw - (update.state === 'available' ? 15 : 0)))] }),
             ...(update.state === 'available' ? [Button({ key: 'band-update', label: 'update now', hotkey: '9', plain: true, onPress: () => applyUpdate($) })] : []),
           ],
         }),
       )
-    } else if (update.state === 'installed' && update.message) flag.push(Text({ color: 'green', wrap: 'truncate-end', children: [update.message] }))
-    if (pause.on) flag.unshift(Text({ wrap: 'truncate-end', color: 'yellow', children: ['⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume'] }))
+    } else if (update.state === 'installed' && update.message) flag.push(Text({ color: 'green', wrap: 'truncate-end', children: [fitText(update.message)] }))
+    if (pause.on) flag.unshift(Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText('⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume')] }))
     const dw = doctorWarning()
-    if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [dw] }))
+    if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [fitText(dw)] }))
     return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
   })
 
