@@ -1,7 +1,8 @@
 // baton v7 detail views: what Enter opens on an agent, a phase or a node in Work. Pure, no I/O.
 //
 // Each view is { title, lines }, a line being [{ text, tone }] with the stepper's tones
-// (done | current | flagged | future | rail) or a color name. The mod draws them in the pane, the
+// (done | current | flagged | future | rail) or a color name; an agent's tool calls are one line holding
+// `[{ text: '', calls }]`, laid out at the drawn width by `viewLines` (TC1). The mod draws them in the pane, the
 // -p text and /baton show print them, and the page's demo renders the same views.
 
 import { questionState, stepper } from './track.mjs'

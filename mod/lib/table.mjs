@@ -328,7 +328,7 @@ const resultOf = (c, sized) => (c.status ? c.status + (sized && c.size != null &
 /**
  * calls: [{ tool, detail, at, status?, size? }] (agents.mjs addToolCall / noteOutcome), oldest first.
  * With `width`, the table is fitted to it and opens with a header row; without, it is the text form (-p, /baton show):
- * no header, nothing cut. Returns { header: [{ text, tone }] | null, lines: [[{ text, tone }]], cols }.
+ * no header, nothing cut. Returns { header: [{ text, tone }] | null, lines: [[{ text, tone }]] }.
  */
 export function callTable(calls, width = null) {
   const rows = (calls || []).map((c) => ({ c, time: new Date(c.at).toISOString().slice(11, 19), tool: String(c.tool ?? ''), target: String(c.detail ?? '') }))
@@ -363,7 +363,7 @@ export function callTable(calls, width = null) {
     const resTone = r.c.status === 'ok' ? 'green' : r.c.status ? 'red' : 'rail'
     return lead(cells(lay.time === 5 ? r.time.slice(0, 5) : r.time, r.tool, r.target, res).map((s) => ({ text: s.text, tone: s.k === 'result' ? resTone : tones[s.k] })))
   })
-  return { header, lines, cols: [...(lay.time ? ['time'] : []), 'tool', 'target', ...(answered ? ['result'] : [])] }
+  return { header, lines }
 }
 
 const SPARK = '▁▂▃▄▅▆▇█'
