@@ -3,7 +3,7 @@
 ## v7.6.0
 
 Tuning, built and checked against Claude Code 2.1.316 (Claude Code updated itself to 2.1.317 during the
-last checks; the final test run was on 2.1.317). 566 plugin tests and 161 node tests pass.
+last checks; the final test run was on 2.1.317). 569 plugin tests and 161 node tests pass.
 
 - **T1 · API drift audit.** Every `$` call, event, matcher, option and result shape in
   `mod/hooks/register.js` was checked against the engine's declared types: 896 call sites, 852
