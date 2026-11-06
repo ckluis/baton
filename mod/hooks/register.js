@@ -690,7 +690,7 @@ async function autoOpenPane($) {
   if (pane.open || !config.autoPane || !(await interactive($))) return
   pane.tab = 'work'
   try {
-    const r = await $.ui.open({ id: PANE, title: 'baton', closeOnEscape: true }) // no focus: it opens beside the work, unfocused
+    const r = await $.ui.open({ id: PANE, title: 'baton', closeOnEscape: true, columns: PANE_COLUMNS }) // no focus: it opens beside the work, unfocused
     pane.open = !r || r.isPlaced !== false
     // Too narrow to place a pane nobody asked for: it waits, and the band says how to open it.
     pane.waiting = !pane.open

@@ -154,7 +154,8 @@ test('guard: a pane too narrow to place by itself: the band says /baton opens it
   await clock.advance(1000)
   await clock.settle()
   // opened by itself, unfocused (focus: false is refused by the engine; it must be left out)
-  expect(opens).toEqual([{ id: 'baton', title: 'baton', closeOnEscape: true }])
+  // amended by verifier (XTPW1): the first open also asks for the ceiling width, columns: 999 = PANE_COLUMNS in hooks/register.js, which Claude Code caps at its dock limit (PW1 "fit baton to the limit"; /Users/clank/Desktop/projects/baton/_orch/inbox/Q-PW1-1.answer.md)
+  expect(opens).toEqual([{ id: 'baton', title: 'baton', closeOnEscape: true, columns: 999 }])
   const band = async () => {
     const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 86, scroll: {} } as any })
     const t = await ui.find({ type: 'Text', text: /^\/baton opens the pane$/ })
