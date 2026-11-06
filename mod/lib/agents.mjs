@@ -167,7 +167,9 @@ export function finishAgent(t, agentId, { line, text = null, aborted = false, at
   n.line = line ? String(line).slice(0, 200) : null
   const v = VERDICT.exec(n.line ?? '')
   n.verdict = aborted ? 'ABORTED' : v ? v[1] : 'returned'
-  // its newest return is what waits now (WT1): an older one it replaces is gone with it
+  // its newest return is what waits now (WT1): an older one it replaces is gone with it, kept in `past` so the
+  // questions it named leave with it
+  if (isWaiting(n)) pastItem(n, at)
   n.answer = text == null ? null : String(text).slice(0, 4000)
   n.superseded = null
 }
@@ -185,8 +187,14 @@ export const isWaiting = (n) => !!n && n.id !== PRIME && n.endedAt != null && n.
 export function supersede(t, agentId, why, at = Date.now()) {
   const n = t.nodes.get(agentId)
   if (!isWaiting(n)) return false
+  pastItem(n, at)
   n.superseded = { why, at }
   return true
+}
+
+/** Keep a BLOCKED return that stopped waiting (its text and when): `n.past`, newest last, at most 8. */
+function pastItem(n, at) {
+  n.past = [...(n.past || []), { text: String(n.answer || n.line || ''), at }].slice(-8)
 }
 
 /** The agent a SendMessage `to` names: an agent id, else the newest agent of that label. */

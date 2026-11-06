@@ -2058,21 +2058,30 @@ function workspaceBody($, ui) {
     out.push({ [GAP]: Text({ children: [' '] }) })
   }
   out.push(...agentsBody($, ui))
-  if (v && (v.questions || []).length) {
+  // only what waits now: a superseded item's questions are not drawn (WT1, waitState)
+  const ws = waitState(v)
+  const qs = ws.questions
+  if (qs.length) {
     out.push(opt(DROP_RANK.spacer, Text({ children: [' '] })))
     // Each `?` row opens its brief by Enter on its › or by its own letter (T13, Q-39). Put to the operator, it keeps
     // its red or yellow; queued, it is dim (Q-49). Cut to what its › leaves (PW1); its brief has the whole text.
-    const opens = v.questions.map((q) => Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) }))
+    const opens = qs.map((q) => Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) }))
     const tone = (q) => (q.asked ? { color: q.color } : { dimColor: true })
     // In a pane too short for the list's window the questions fold to one line (PW1 attempt 2, DROP_RANK): their count
     // and the first, by its ›; the others' keys stay bound, held in boxes no cells wide, and each brief opens as before.
-    const q0 = v.questions[0]
-    const many = v.questions.length > 1 ? v.questions.length + ' open questions · ' : ''
+    const q0 = qs[0]
+    const many = qs.length > 1 ? qs.length + ' open questions · ' : ''
     const held = opens.slice(1).map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
     const folded = Box({ key: 'w-qs', flexDirection: 'row', children: [opens[0], line('w-qst', '? ' + many + questionLine(q0), tone(q0), cols - buttonWidth(opens[0])), ...held] })
-    v.questions.forEach((q, i) => {
+    const drawn = new Set()
+    qs.forEach((q, i) => {
       const open = opens[i]
       out.push(opt(DROP_RANK.questions, Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), tone(q), cols - buttonWidth(open))] }), i === 0 ? folded : null))
+      // the pane its blocked agent asks you to press, and what pressing it does, under its row (WT1), once an agent
+      for (const n of ws.panes(q).filter((x) => !drawn.has(x.id))) {
+        drawn.add(n.id)
+        out.push(...waitRows(n, 'w-qw' + i + '-' + drawn.size, line, cols, '  '))
+      }
     })
   }
   if (pane.rulings.length) {
@@ -2116,7 +2125,7 @@ function workspaceLines() {
     out.push('')
   }
   out.push(...queueLines(), ...treeText(), ...mismatchLines())
-  if (v) for (const q of v.questions || []) out.push('? ' + questionLine(q))
+  if (v) for (const q of waitState(v).questions) out.push('? ' + questionLine(q))
   for (const r of pane.rulings.slice(0, 3)) out.push('ruling ' + rulingLine(r))
   return out
 }
@@ -2599,16 +2608,8 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   }
   // What a BLOCKED return leaves waiting on you now (WT1): its agent and the pane it names, then one plain line of
   // what pressing it does, each cut to the row; gone once superseded. Its brief opens from the agent's row.
-  const width = cols || 80
-  waitingAgents().forEach((n, i) => {
-    const w = waitItem(n)
-    const tone = { color: (parseBlockedBy(n.blockedBy) || {}).kind === 'interpreted' ? 'yellow' : 'red' }
-    const tail = w.surface ? ' · ' + w.surface + (w.title ? ' "' + w.title + '"' : '') : ' waits for you'
-    // the label gives way before the surface id; the title is cut last, at the line's end
-    const label = cutCells(n.label, Math.max(8, width - 2 - cellWidth(w.surface ? ' · ' + w.surface : tail)))
-    out.push(opt(DROP_RANK.waiting, line('wt' + i, '⚑ ' + label + tail, tone, width)))
-    if (w.plain) out.push(opt(DROP_RANK.questions, line('wp' + i, '  ' + w.plain, { dimColor: true }, width)))
-  })
+  // One that waits on an open question is drawn under that question's `?` row instead (questionRows).
+  waitState().standalone.forEach((n, i) => out.push(...waitRows(n, 'w' + i, line, cols || 80)))
   // The one tree (T10 amendment): the prime, the phase rows, their sub-orchestrators and agents, each
   // row with its own context against its own budget, its model, its tokens by kind, its `this agent`
   // and `roll-up` groups, and the parcel steps of what it works on.
@@ -2619,7 +2620,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   const v = track.view
   const ids = rowKeyIds({
     tree: items.flatMap((x) => (x.kind === 'agent' && x.r.id ? ['agent:' + x.r.id] : x.kind === 'phase' ? ['phase:' + x.p.id] : [])),
-    questions: v ? (v.questions || []).map((q) => q.id) : [],
+    questions: v ? waitState(v).questions.map((q) => q.id) : [],
     blocked: items.filter((x) => x.kind === 'node' && isBlocked(x.x)).map((x) => x.x.id),
   })
   restoreLetters(ids)
@@ -2686,19 +2687,67 @@ function segEl(y, text, Box, Text) {
 }
 
 /**
- * The agents whose BLOCKED return waits on the operator now (WT1), in the order they returned. One that waits on an
- * open question (its return names the question, or the question names the node it works on) is left out: its `?` row
- * is that item, so it is shown once.
+ * What waits on the operator now (WT1). An item is an agent's BLOCKED return together with the open inbox questions
+ * it names (its text names the question's id, or the question's `Nodes it blocks:` names the node the agent works
+ * on). Returns:
+ *   current     the agents whose BLOCKED return waits now (isWaiting), in the order they returned;
+ *   questions   the open questions to show: v.questions less those a superseded item leaves (below);
+ *   standalone  current agents that name no open question: drawn by their own `⚑` line;
+ *   panes(q)    the current agents with a pane (a `surface:<n>` in their return) that name question q: drawn under
+ *               its `?` row, since the one waiting row has to show the pane and what pressing it does;
+ *   flagged     the agents the band counts as `N blocked`: the standalone ones, and every current one with a pane,
+ *               asked or queued, since its return itself asks the operator to press it. A question one of them names
+ *               is counted with it, once, not again as a question.
+ * The rule for a superseded item (agent sent a message, resumed, returned again, re-dispatched): its questions leave
+ * the band and Work with it, the `?` rows included. A question stays only while (1) a current item names it, or
+ * (2) it was put to the operator separately after the item was superseded: its asked record's asked_at is later than
+ * the newest supersede of an item that named it (put to the operator again, so it is current on its own, and drawn
+ * without the old pane), or (3) no item ever named it. An asked record with no readable asked_at counts as before.
+ * Only what is drawn changes: the files in _orch/inbox are never deleted or edited for this.
  */
-function waitingAgents(v = track.view) {
+function waitState(v = track.view) {
   const qs = (v && v.questions) || []
-  const asked = (n) => {
-    const text = String(n.answer || n.line || '')
-    if (qs.some((q) => new RegExp('(^|[^\\w-])' + String(q.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])').test(text))) return true
-    const node = qs.length ? workOf(n.label, runIds(v)).node : null
-    return !!node && qs.some((q) => (q.nodes || []).includes(node))
+  const ids = qs.length ? runIds(v) : undefined
+  const nodeOf = (n) => workOf(n.label, ids).node
+  const idRe = (id) => new RegExp('(^|[^\\w-])' + String(id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])')
+  const names = (n, text, q) => {
+    if (idRe(q.id).test(String(text || ''))) return true
+    const node = nodeOf(n)
+    return !!node && (q.nodes || []).includes(node)
   }
-  return [...tree.nodes.values()].filter((n) => isWaiting(n) && !asked(n)).sort((a, b) => a.endedAt - b.endedAt)
+  const all = [...tree.nodes.values()]
+  const current = all.filter(isWaiting).sort((a, b) => a.endedAt - b.endedAt)
+  const owners = new Map(qs.map((q) => [q.id, current.filter((n) => names(n, n.answer || n.line, q))]))
+  const left = (q) => {
+    let at = null
+    for (const n of all) for (const p of n.past || []) if (names(n, p.text, q)) at = Math.max(at ?? 0, p.at)
+    return at
+  }
+  const questions = qs.filter((q) => {
+    if (owners.get(q.id).length) return true
+    const at = left(q)
+    return at == null || (q.asked && q.askedAt != null && q.askedAt > at)
+  })
+  const owning = new Set(questions.flatMap((q) => owners.get(q.id)))
+  const standalone = current.filter((n) => !owning.has(n))
+  const flagged = current.filter((n) => !owning.has(n) || waitItem(n).surface)
+  const panes = (q) => (owners.get(q.id) || []).filter((n) => waitItem(n).surface)
+  return { current, questions, standalone, panes, flagged }
+}
+
+/**
+ * A waiting agent's rows (WT1): `⚑ <agent> · surface:<n> "<title>"` (no pane: `⚑ <agent> waits for you`), red or
+ * yellow by its Blocked-by kind, then one plain line of what pressing it does, dim; each cut to the row. `ind` indents
+ * both (under a `?` row). The label gives way before the surface id; the title is cut last, at the line's end.
+ */
+function waitRows(n, key, line, width, ind = '') {
+  const w = waitItem(n)
+  const tone = { color: (parseBlockedBy(n.blockedBy) || {}).kind === 'interpreted' ? 'yellow' : 'red' }
+  const tail = w.surface ? ' · ' + w.surface + (w.title ? ' "' + w.title + '"' : '') : ' waits for you'
+  const label = cutCells(n.label, Math.max(8, width - 2 - cellWidth(ind) - cellWidth(w.surface ? ' · ' + w.surface : tail)))
+  const out = [opt(DROP_RANK.waiting, line(key + 't', ind + '⚑ ' + label + tail, tone, width))]
+  if (w.plain) out.push(opt(DROP_RANK.questions, line(key + 'p', ind + '  ' + w.plain, { dimColor: true }, width)))
+  return out
 }
 
 /** An agent row that has returned, other than a blocked one that still waits for the operator (Q-69). */
@@ -4281,8 +4330,11 @@ async function observe($, force = false) {
       text = await $.fs.read('_orch/inbox/' + f)
     } catch {}
     const asked = inbox.includes(id + '.asked.md')
+    // when it was put to the operator (its asked record's asked_at), for what a superseded item leaves (WT1)
+    const at = asked ? /^asked_at:\s*(\S+)/m.exec((await readText($, '_orch/inbox/' + id + '.asked.md', 600)) || '') : null
+    const askedAt = at && Number.isFinite(Date.parse(at[1])) ? Date.parse(at[1]) : null
     const blockedBy = parseBlockedBy(text)
-    questions.push({ id, first: firstLine(text), blockedBy, asked, gate: asked ? null : gate, unauthorized, nodes: nodesBlocked(text), color: questionColor(blockedBy) })
+    questions.push({ id, first: firstLine(text), blockedBy, asked, askedAt, gate: asked ? null : gate, unauthorized, nodes: nodesBlocked(text), color: questionColor(blockedBy) })
     await notify($, 'q:' + (m.run_id || '') + f + (asked ? ':asked' : ''), (asked ? 'a question waits for you: ' : 'a question is ' + questionState({ asked, gate }) + ': ') + firstLine(text).slice(0, 120))
   }
   await loadSpend($)
@@ -4328,7 +4380,7 @@ function trackLines(v) {
     for (const x of p.nodes.slice(0, 16)) out.push('    ' + x.id + '  ' + stepperText(x, x.tl) + spendTail(v.spend.byNode[x.id]))
     if (p.nodes.length > 16) out.push('    … ' + (p.nodes.length - 16) + ' more')
   }
-  for (const q of v.questions || []) out.push('? ' + questionLine(q))
+  for (const q of waitState(v).questions) out.push('? ' + questionLine(q))
   return out
 }
 
@@ -5163,11 +5215,13 @@ export function register(on, options) {
     const lineBox = Box({ key: 'band', flexDirection: 'row', children: shown.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
-    // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work.
-    const askedN = v ? (v.questions || []).filter((q) => q.asked).length : 0
+    // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work. Not one a
+    // superseded item left, nor one a blocked agent with a pane names: that counts once, as blocked (WT1, waitState).
+    const ws = waitState(v)
+    const askedN = ws.questions.filter((q) => q.asked && !ws.panes(q).length).length
     if (askedN) waiting.push(askedN + ' question' + (askedN === 1 ? '' : 's'))
     // Agents whose BLOCKED return waits now (WT1), each with the pane it names; superseded ones are not counted.
-    const blockedNow = waitingAgents().map((n) => ({ label: n.label, surface: waitItem(n).surface }))
+    const blockedNow = ws.flagged.map((n) => ({ label: n.label, surface: waitItem(n).surface }))
     const panes = blockedNow.map((x) => x.surface).filter(Boolean)
     if (blockedNow.length) waiting.push(blockedNow.length + ' blocked (' + blockedNow.map((x) => x.label + (x.surface ? ' · ' + x.surface : '')).join(', ') + ')')
     // narrower than the band: the names go first (a blocked agent's pane stays while it fits), then it is cut (PW1)
