@@ -44,6 +44,9 @@ const gapOf = (c) => c.gap ?? GAP
 // The model column sizes to its widest value, never under 10 (Q-10: `sonnet 5.5`).
 export const MODEL_MIN = 10
 const CUT_MIN = { agent: 4, state: 4 }
+// The cells of a label, past its indent and mark, that a cut leaves while a layout of more lines has room (fitDrawn):
+// enough for the role and the node (`verifier T204 …`).
+const LABEL_READ = 18
 // Given the widest label, the agent column sizes to it, from 16 to 40 (the tree's levels make some
 // labels longer, and the two column groups need the room a short label leaves); 28 when not given.
 const AGENT_MIN = 16
@@ -72,10 +75,11 @@ export function fitColumns(width, modelW = MODEL_MIN, agentW = 0) {
  * row wider than its pane, each to a `…`, so the table is fitted to the width itself. The droppable columns
  * drop in DROP_ORDER as fitColumns drops them; then the never-dropped columns of fixed width (both groups'
  * cells and the steps) narrow to their widest value (never under their title); then the agent label is cut in
- * the drawing (`dw`, its drawn width), never into its indent and mark (`need.agentMin`); then state (Q-11).
- * The label stays whole in the table's text (`w`, D-F110: a row is told by its whole label): only the drawn
- * cell is narrower. `need` holds the widest value of each column. Still too wide, a row takes two lines
- * (`breakAt`, below, P4-FX3-d2); a pane narrower than even that draws the rest past its edge, as D-F110 has it.
+ * the drawing (`dw`, its drawn width), but on one line no shorter than it reads (`need.agentRead`, PW1 attempt 2)
+ * and with state whole. The label stays whole in the table's text (`w`, D-F110: a row is told by its whole label):
+ * only the drawn cell is narrower. `need` holds the widest value of each column. Still too wide, a row takes two
+ * lines (`breakAt`, below, P4-FX3-d2), then three or four (stackRows); a pane narrower than even that cuts the label
+ * into its floor (`need.agentMin`), then state (Q-11), and draws the rest past its edge, as D-F110 has it.
  * Widths count the gaps between columns only, as a row draws them.
  */
 export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
@@ -90,48 +94,49 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
     for (const c of cols) if (['cost', 'tokens', 'rollCost', 'rollTokens', 'steps', 'state'].includes(c.id)) c.w = c.dw = Math.min(c.w, Math.max(c.title.length, need[c.id] ?? 0))
   }
   const floor = { agent: Math.max(CUT_MIN.agent, need.agentMin ?? 0), state: CUT_MIN.state }
-  for (const id of ['agent', 'state']) {
+  if (total() <= width) return cols
+  const agent = cols.find((c) => c.id === 'agent')
+  const state = cols.find((c) => c.id === 'state')
+  // PW1 attempt 2: the label is cut no shorter than `read` (its indent and mark and LABEL_READ more cells, need.agentRead;
+  // never past its whole width, never under its floor) and state not at all while a layout of more lines has the room,
+  // so a row is told by its label and state at every docked width. Only the one-line row gives the label more than
+  // `read`, and it is the widest layout, so a wider pane never draws less of a label than a narrower one.
+  const read = Math.min(agent.w, Math.max(floor.agent, need.agentRead ?? 0))
+  const stateW = Math.max(state.title.length, Math.min(COLUMNS.find((c) => c.id === 'state').w, need.state ?? 0))
+  const span = (cs) => cs.reduce((n, c, i) => n + c.dw + (i < cs.length - 1 ? gapOf(c) : 0), 0)
+  if (agent.dw - (total() - width) >= read && state.dw >= stateW) {
+    agent.dw -= total() - width
+    return cols
+  }
+  // Too wide for one line (a 73-column dock under a deep tree with effort-marked models, FX3 attempt 3, P4-FX3-d2): a
+  // row takes two lines so no cell is cut. The first line holds the label, the model and both groups, the second the
+  // steps and state, set under the model column (`breakAt` steps); narrower still, the first line holds the label and
+  // the model and the second the groups, steps and state, set under the label (`breakAt` cost). The label is drawn
+  // `read` wide, state whole.
+  const keep = { agent: agent.dw, state: state.dw }
+  for (const id of ['steps', 'cost']) {
+    const at = cols.findIndex((c) => c.id === id)
+    if (at <= 0) continue
+    agent.dw = read
+    if (span(cols.slice(0, at)) > width) continue
+    const lead2 = id === 'steps' ? agent.dw + gapOf(agent) : 0 // where the second line starts, past the row's own lead
+    state.dw = stateW
+    if (lead2 + span(cols.slice(at)) > width) continue
+    state.w = state.dw
+    cols.breakAt = id
+    cols.breaks = new Map([[id, lead2]])
+    return cols
+  }
+  agent.dw = keep.agent
+  state.dw = keep.state
+  if (stackRows(cols, width, stateW, floor.agent, read, span)) return cols
+  // Narrower than every layout (under 40 columns): one line, the label cut to its floor, then state (Q-11); what is
+  // still too wide draws past the pane's edge, as D-F110 has it.
+  for (const c of [agent, state]) {
     const over = total() - width
     if (over <= 0) break
-    const c = cols.find((x) => x.id === id)
-    c.dw = Math.max(Math.min(c.dw, floor[id]), c.dw - over)
-    if (id === 'state') c.w = c.dw
-  }
-  if (total() > width) {
-    // Still too wide (a 73-column dock under a deep tree with effort-marked models, FX3 attempt 3, P4-FX3-d2): a row
-    // takes two lines so no cell is cut. The first line holds the label, the model and both groups, the second the
-    // steps and state, set under the model column (`breakAt` steps); narrower still, the first line holds the label
-    // and the model and the second the groups, steps and state, set under the label (`breakAt` cost). The label gets
-    // back what the first line leaves; state is whole again where the second line has room, else cut (Q-11).
-    const agent = cols.find((c) => c.id === 'agent')
-    const state = cols.find((c) => c.id === 'state')
-    const stateW = Math.max(state.title.length, Math.min(COLUMNS.find((c) => c.id === 'state').w, need.state ?? 0))
-    const span = (cs) => cs.reduce((n, c, i) => n + c.dw + (i < cs.length - 1 ? gapOf(c) : 0), 0)
-    const keep = { agent: agent.dw, state: state.dw }
-    for (const id of ['steps', 'cost']) {
-      const at = cols.findIndex((c) => c.id === id)
-      if (at <= 0) continue
-      const first = cols.slice(0, at)
-      agent.dw = keep.agent
-      if (span(first) > width) continue
-      agent.dw = Math.min(agent.w, agent.dw + (width - span(first)))
-      const lead2 = id === 'steps' ? agent.dw + gapOf(agent) : 0 // where the second line starts, past the row's own lead
-      const second = cols.slice(at)
-      state.dw = stateW
-      const over = lead2 + span(second) - width
-      if (over > 0) state.dw = Math.max(CUT_MIN.state, state.dw - over)
-      if (lead2 + span(second) > width) continue
-      state.w = state.dw
-      cols.breakAt = id
-      cols.lead2 = lead2
-      break
-    }
-    if (cols.breakAt) cols.breaks = new Map([[cols.breakAt, cols.lead2]])
-    else {
-      agent.dw = keep.agent
-      state.dw = state.w = keep.state
-      stackRows(cols, width, stateW, floor.agent, span)
-    }
+    c.dw = Math.max(Math.min(c.dw, floor[c.id]), c.dw - over)
+    if (c === state) c.w = c.dw
   }
   return cols
 }
@@ -143,24 +148,24 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
  * drops here (Q-11, D-T10-group-cells, the operator's ruling that an agent always shows its model and effort): the
  * label is cut first, then state; a pane narrower than even four lines draws past its edge, as D-F110 has it.
  */
-function stackRows(cols, width, stateW, agentFloor, span) {
+function stackRows(cols, width, stateW, agentFloor, read, span) {
   const at = (id) => cols.findIndex((c) => c.id === id)
   const [agent, model, steps, state] = ['agent', 'model', 'steps', 'state'].map((id) => cols[at(id)])
-  if (at('model') !== 1 || at('cost') !== 2 || !steps || !state) return // only the never-dropped columns are left
-  if (span(cols.slice(at('cost'), at('steps'))) > width) return
+  if (at('model') !== 1 || at('cost') !== 2 || !steps || !state) return false // only the never-dropped columns are left
+  if (span(cols.slice(at('cost'), at('steps'))) > width) return false
   const lastW = Math.min(stateW, width - steps.dw - gapOf(steps))
-  if (lastW < CUT_MIN.state) return
+  if (lastW < CUT_MIN.state) return false
   for (const four of [false, true]) {
     const room = four ? width : width - gapOf(agent) - model.dw
-    if (four && model.dw > width) return
-    if (Math.min(agent.w, room) < agentFloor) continue
-    agent.dw = Math.min(agent.w, room)
+    if (four && model.dw > width) return false
+    if (Math.min(read, room) < agentFloor) continue
+    agent.dw = Math.min(read, room) // `read` at most, as the two-line rows draw it (fitDrawn)
     state.dw = state.w = lastW
     cols.breakAt = 'cost'
-    cols.lead2 = 0
     cols.breaks = new Map([...(four ? [['model', 0]] : []), ['cost', 0], ['steps', 0]])
-    return
+    return true
   }
+  return false
 }
 
 /**
@@ -242,6 +247,8 @@ export function agentTable(rows, width = 140, opts = {}) {
     // a label is cut after its indent, its mark and two more cells; the first row's (the pane's: the main
     // session's `◆ prime` or `session`, T8 L114-115) is never cut
     agentMin: Math.max(widest((r) => (/^\s*\S\s?/.exec(String(r.label || '')) || [''])[0]) + 2, rows[0] ? [...String(rows[0].label || '').trimEnd()].length : 0),
+    // the width a label reads at (PW1 attempt 2): its indent, its mark and LABEL_READ more cells (the role and the node)
+    agentRead: widest((r) => (/^\s*\S\s?/.exec(String(r.label || '')) || [''])[0]) + LABEL_READ,
   })
   const cols = opts.fit ? fitDrawn(width, widest((r) => r.model), widest((r) => r.label), need()) : fitColumns(width, widest((r) => r.model), widest((r) => r.label))
   const narrowed = (c) => c.dw != null && c.dw < c.w

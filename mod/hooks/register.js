@@ -2062,9 +2062,17 @@ function workspaceBody($, ui) {
     out.push(opt(DROP_RANK.spacer, Text({ children: [' '] })))
     // Each `?` row opens its brief by Enter on its › or by its own letter (T13, Q-39). Put to the operator, it keeps
     // its red or yellow; queued, it is dim (Q-49). Cut to what its › leaves (PW1); its brief has the whole text.
+    const opens = v.questions.map((q) => Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) }))
+    const tone = (q) => (q.asked ? { color: q.color } : { dimColor: true })
+    // In a pane too short for the list's window the questions fold to one line (PW1 attempt 2, DROP_RANK): their count
+    // and the first, by its ›; the others' keys stay bound, held in boxes no cells wide, and each brief opens as before.
+    const q0 = v.questions[0]
+    const many = v.questions.length > 1 ? v.questions.length + ' open questions · ' : ''
+    const held = opens.slice(1).map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
+    const folded = Box({ key: 'w-qs', flexDirection: 'row', children: [opens[0], line('w-qst', '? ' + many + questionLine(q0), tone(q0), cols - buttonWidth(opens[0])), ...held] })
     v.questions.forEach((q, i) => {
-      const open = Button({ key: 'open-q-' + q.id, label: '›', ...letterKey('q:' + q.id), plain: true, onPress: () => openDetail($, 'question', q.id) })
-      out.push(Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), q.asked ? { color: q.color } : { dimColor: true }, cols - buttonWidth(open))] }))
+      const open = opens[i]
+      out.push(opt(DROP_RANK.questions, Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), tone(q), cols - buttonWidth(open))] }), i === 0 ? folded : null))
     })
   }
   if (pane.rulings.length) {
@@ -2078,14 +2086,15 @@ function workspaceBody($, ui) {
 /**
  * What gives way in a pane too short for the agent list's window (PW1, D-P4-10 a), lowest rank first: the reviewer's
  * findings, the merge-ready rows (p) and the diagnosis, the tree's legend, the ruling rows (Memory has them all),
- * the spacer above the questions, the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's
- * steps. Never: the keys row, the read line, a phase waiting for its check, the table header, the list (every agent
- * with its model, effort and state), the key hint, the message field, the questions. The band above the prompt
- * keeps the goal's and the PR's state in any case.
+ * the spacer above the questions, the open questions (folded to one line, their count and the first: PW1 attempt 2),
+ * the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's steps. Never: the keys row, the
+ * read line, a phase waiting for its check, the table header, the list (every agent with its model, effort and
+ * state), the key hint, the message field. The band above the prompt keeps the goal's and the PR's state in any case.
  */
-const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, merge: 6, queue: 7, links: 8, pr: 9, goal: 10 }
+const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11 }
 const OPT = Symbol('an entry that may give way in a short pane')
-const opt = (rank, el) => ({ [OPT]: { el, rank } })
+// `alt`: what the entry gives way to (the folded questions line), else nothing
+const opt = (rank, el, alt = null) => ({ [OPT]: { el, rank, alt } })
 
 /** The cells a Button draws: its `k: ` and label when plain, `[ label ]` else. */
 function buttonWidth(b) {
@@ -2803,7 +2812,7 @@ function placeList(body, rows, { Text, Box, cols = Infinity }) {
     const ranks = [...new Set(body.filter((x) => x && x[OPT]).map((x) => x[OPT].rank))].sort((a, b) => a - b)
     for (const r of ranks) {
       if (area >= need) break
-      body = body.filter((x) => !(x && x[OPT] && x[OPT].rank === r))
+      body = body.flatMap((x) => (x && x[OPT] && x[OPT].rank === r ? (x[OPT].alt ? [x[OPT].alt] : []) : [x]))
       ;({ others, gaps, area } = measure())
     }
     at = body.findIndex((x) => x && x[LIST])
