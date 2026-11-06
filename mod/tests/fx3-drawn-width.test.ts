@@ -50,7 +50,7 @@ function truncEnd(t: string, w: number): string {
   }
   return out + '…'
 }
-type Leaf = { kind: 'text' | 'button'; text: string; drawn: string; x: number }
+type Leaf = { kind: 'text' | 'button'; text: string; drawn: string; x: number; y?: number } // y: the line of a wrapping row (XTPW2)
 const buttonText = (c: any) => {
   const p = c.props || {}
   const label = (c.children ?? []).length ? textOf(c.children) : String(p.label ?? '')
@@ -122,20 +122,52 @@ function layout(kids: any[], width: number, x0: number, out: Leaf[]) {
     x += w
   })
 }
-/** One row Box as the terminal draws it `width` cells wide: each leaf's text, what is drawn of it, and its column. */
+/**
+ * One row Box as the terminal draws it `width` cells wide: each leaf's text, what is drawn of it, its column, and
+ * its line. A row with `flexWrap: 'wrap'` is packed into lines first: an element starts a new line when what it asks
+ * for does not fit what is left of the current one, and each line is laid out on its own. So the break Box, a Box
+ * with a numeric `width` as wide as the row and `height: 0` (register.js segEl `Box({ width: y.brk, height: 0 })`),
+ * takes a line of its own that has nothing on it and no screen rows, and the cells after it start the next line.
+ * Amended in PW1 attempt 2 (Q-PW1-2, answered D-P7-3, node XTPW2): this model drew every row as one line, so a
+ * two-line row's break was laid out as a cell the whole row wide and every cell after it shrunk to `…`, which is not
+ * what the engine draws; the packing is pw1-fit.test.ts's drawRow. The assertions, fixtures and widths are unchanged.
+ */
 function drawRow(box: any, width: number): Leaf[] {
   const out: Leaf[] = []
-  layout(kidsOf(box), width, 0, out)
+  const kids = kidsOf(box)
+  if (box.props?.flexWrap !== 'wrap') {
+    layout(kids, width, 0, out)
+    return out
+  }
+  const lines: any[][] = [[]]
+  let used = 0
+  for (const c of kids) {
+    const b = basisOf(c, width)
+    const cur = lines[lines.length - 1]!
+    if (cur.length && used + b > width) {
+      lines.push([c])
+      used = b
+    } else {
+      used += b
+      cur.push(c)
+    }
+  }
+  lines.forEach((l, y) => {
+    const ls: Leaf[] = []
+    layout(l, width, 0, ls)
+    for (const x of ls) out.push({ ...x, y })
+  })
   return out
 }
-/** The drawn line: each leaf's drawn text at its column (a cell a leaf leaves blank is a space). */
+/** The drawn row: each leaf's drawn text at its column (a cell a leaf leaves blank is a space), its lines joined with ` ⏎ `; a line with nothing on it (a break's) is left out. */
 const drawnLine = (ls: Leaf[]) => {
-  let s = ''
+  const rows: string[] = []
   for (const l of ls) {
+    let s = rows[l.y ?? 0] ?? ''
     if (cellW(s) < l.x) s += ' '.repeat(l.x - cellW(s))
-    s += l.drawn
+    rows[l.y ?? 0] = s + l.drawn
   }
-  return s
+  return rows.filter((r) => r !== undefined).join(' ⏎ ')
 }
 
 /** Every outermost row Box, top to bottom. */
