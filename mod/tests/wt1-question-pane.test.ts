@@ -382,7 +382,7 @@ const pick = (x: any) => {
 async function itemGone($: any, ui: any, b: any, w: World, cols: number, q = 'Q-90', surface = SURFACE) {
   const l = await work($, ui, w, cols)
   const bl = await bandL(b, cols)
-  return { qrow: has(l, q), surface: has(l, surface) || has(bl, surface), plain: has(l, PLAIN.slice(0, 20)), agentFlag: l.some((x) => x.includes('⚑') && x.includes(QLAND)), bandFlag: flagOf(bl) !== '', lines: l, band: bl }
+  return { qrow: has(l, q), surface: has(l, surface) || has(bl, surface), plain: has(l, PLAIN), agentFlag: l.some((x) => x.includes('⚑') && x.includes(QLAND)), bandFlag: flagOf(bl) !== '', lines: l, band: bl }
 }
 const GONE = { qrow: false, surface: false, plain: false, agentFlag: false, bandFlag: false }
 
