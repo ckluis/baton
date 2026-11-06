@@ -257,7 +257,7 @@ const SPEND_SAVE_MS = 5000
 // and `t1hAt` their count at the last reading; `t1hMetered` / `t1hDone`: per model, the 1-hour writes a usage already
 // marked and those credited from the transcript.
 function sessionSpend() {
-  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hRetries: 0, t1hMetered: {}, t1hDone: {} }
+  return { sess: {}, engineBase: null, sidePrior: 0, transcript: null, since: null, primeWrites: 0, t1hAt: 0, t1hRetries: 0, t1hBusy: false, t1hMetered: {}, t1hDone: {} }
 }
 
 // The goal on GitHub: the label last set, labels ensured, the board's ids.
@@ -3821,16 +3821,39 @@ async function primeOneHour($) {
   }
 }
 
-async function saveSpend($, force = false) {
-  if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return
+/**
+ * Writes `_orch/spend.json` (at most every SPEND_SAVE_MS unless forced) and tells whether it ran. `transcript` false
+ * skips the transcript read (primeOneHour): the model-request hook saves that way and leaves the reading to
+ * creditOneHourLater, so it never waits on a transcript of up to 4 MiB (PR #57 review, RV2).
+ */
+async function saveSpend($, force = false, transcript = true) {
+  if (!force && Date.now() - spend.savedAt < SPEND_SAVE_MS) return false
   spend.savedAt = Date.now()
   try {
-    await primeOneHour($)
+    if (transcript) await primeOneHour($)
     // Each model's cost is written beside its tokens (R-C3-13), and the engine's own total beside the mod's.
     const engine = await engineSpend($)
     const doc = { run_id: run.manifest && run.manifest.run_id, total: withCosts(spend.total, config.prices), byRole: spend.byRole, byPhase: spend.byPhase, byNode: spend.byNode, ...(engine ? { engine } : {}) }
     await $.fs.write('_orch/spend.json', JSON.stringify(doc, null, 1) + '\n')
   } catch {}
+  return true
+}
+
+/**
+ * The prime's 1-hour cache crediting (R-C3-13) off the model-request hook's path: a timer, not awaited by the hook,
+ * reads the transcript and saves again. One at a time; a read that never answers holds back only this, and the turn's
+ * end still credits (turn.complete's own save).
+ */
+function creditOneHourLater($) {
+  if (spend.t1hBusy || !spend.transcript || spend.primeWrites <= spend.t1hAt) return
+  spend.t1hBusy = true
+  $.clock.after(0, () =>
+    saveSpend($, true)
+      .catch(() => {})
+      .finally(() => {
+        spend.t1hBusy = false
+      }),
+  )
 }
 
 /**
@@ -5126,7 +5149,8 @@ export function register(on, options) {
           spend.warned = true
           await noteQuietly($, 'spend at ' + b.pct + '% of the goal budget (' + shortTokens(b.used) + ' of ' + shortTokens(b.limit) + '); another fix round will need the operator at 100%', 'budget')
         }
-        if (inRun) await saveSpend($)
+        // The transcript is read off this path (RV2): the request's result never waits on it.
+        if (inRun && (await saveSpend($, false, false))) creditOneHourLater($)
         if (pane.open) $.ui.invalidate('ui.render')
       }
     } catch {}
