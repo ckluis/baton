@@ -81,9 +81,10 @@ export function addSpawn(t, { id, parent, type, label, description = '', model, 
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME
   const role = String(type ?? 'agent').replace(/^baton:/, '')
+  const name = String(label || role).slice(0, 48)
   // a newer dispatch under the same name replaces what the older one left waiting (WT1)
-  for (const o of t.nodes.values()) if (o.label === String(label || role).slice(0, 48)) supersede(t, o.id, 'a newer agent was dispatched under its name', at)
-  t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), description: String(description || '').slice(0, 200), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
+  for (const o of t.nodes.values()) if (o.label === name) supersede(t, o.id, 'a newer agent was dispatched under its name', at)
+  t.nodes.set(id, { id, parent: p, role, label: name, description: String(description || '').slice(0, 200), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
   t.nodes.get(p).children.push(id)
 }
 
