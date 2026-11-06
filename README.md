@@ -1,6 +1,6 @@
 # baton
 
-**v7.5** · Agents do the work. baton keeps the record.
+**v7.6** · Agents do the work. baton keeps the record.
 
 **v7 is a Claude Code mod** (`mod/`): a prime orchestrator that only dispatches, a memory instead
 of a growing context, rulings that stick, the agent tree in a pane, and approvals from anywhere in
@@ -32,6 +32,41 @@ node with the verdict as a check.
 [v6](https://ckluis.github.io/baton/baton-v6.html)
 
 ---
+
+## What's new in v7.6
+
+v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live on Claude Code
+2.1.316; its final test runs were on 2.1.317. In full:
+[CHANGELOG.md](CHANGELOG.md) (v7.6.0) and [mod/README.md](mod/README.md).
+
+- **Checked against the engine.** Every `$` call, event and result shape in the hooks module was
+  checked against Claude Code's declared types, and 42 mismatches were fixed. The prime guard, the
+  command gate, forbidden files, pause, the phase gate, enforced rulings and checkpoints fail
+  closed when they crash: a command the gate cannot check is refused, not run.
+- **Models and spend.** Haiku 5.5 is the mechanical model and condenses PR comments; merges and
+  ruling extraction stay on Sonnet 5.5 after a blind A/B. `_orch/spend.json` writes a dollar
+  figure beside each model's tokens, and keeps Claude Code's own session total beside them. Idle
+  CPU is within its budget.
+- **Run membership follows the session**, not the current directory: a session that `cd`s into a
+  run is not armed, a second interactive session is asked before it takes over, and a restart
+  picks the run up.
+- **The pane.** Each agent shows its exact model and reasoning effort (`opus 5.5 · high`), red when
+  what served differs from what was asked. Phases are rows of the agent tree, each with its
+  sub-orchestrator under it. Two column groups, `this agent` and `roll-up`; steps on every row;
+  a letter for every agent and phase row; the list scrolls in the pane's full height with running
+  agents pinned in view. A question is answered with `a` and a blocked node approved with `y` or
+  `w` from the pane, and the answer reaches the asking node.
+- **Memory.** The explorer is a table (id, mark, time, source, text) with summaries you drill into.
+  `memory_mark`, `project_mark` and `c` / `v` / `u` in the pane mark a note ✅ or ❌ with a reason;
+  a ❌ note leaves wake, recall and the summaries, and nothing is deleted. `memory_note` takes a tag.
+
+Known gaps, seen live and not fixed: in a docked pane that is also short, the agent list stops
+scrolling and pushes the lines under it out of view; at a docked width the key hint is cut; the
+spend file has no line of its own for Claude Code's Haiku session-title request; a ruling can
+still be marked by linking its files into the memory by hand; an answer dialog left open over 10
+seconds leaves the brief un-redrawn; after a pane dialog closes, keys go to the prompt. Details in
+[CHANGELOG.md](CHANGELOG.md). A run started under 7.5.1 records no heartbeat, so a 7.6 session
+opened in its folder takes it over as a restart would: close or finish a 7.5.1 run first.
 
 ## v7.0 — since v6.0
 
@@ -442,10 +477,10 @@ its past reviews found 6.00 of 6 per task, and so did a plain reviewer
 Find and fix what the test suite is failing to catch in the billing module.
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.5/MIGRATING.md
+Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.6.0/MIGRATING.md
 ```
 
 Say what you want, paste, answer one question. The router reads your goal, works
@@ -469,7 +504,7 @@ Find and fix what the test suite is failing to catch in the billing module.
 TEAM:        github
 
 # Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
+Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.6.0/prompt/baton.md
 You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
 against that same base URL. Read it completely before you start any work.
 ```
