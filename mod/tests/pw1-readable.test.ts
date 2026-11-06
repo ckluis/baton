@@ -323,7 +323,7 @@ test('PW1 attempt 2: a wider pane never draws less of an agent label, and every 
     labels.forEach((l, i) => { if (!l.includes(a.description.slice(0, 8))) bad.push(a.id + ' label at ' + [60, 75, 90, 120][i] + ' does not show ' + a.description.slice(0, 8) + ': |' + l + '|') })
     states.forEach((s, i) => { if (s !== states[3]) bad.push(a.id + ' state at ' + [60, 75, 90, 120][i] + ' is |' + s + '|, at 120 |' + states[3] + '|') })
   }
-  if (bad.length) console.log([60, 75, 90, 120].map((width) => '@@RENDER work-' + width + dump(at[width]!)).join('\n'))
+  if (bad.length) (globalThis as any).console.log([60, 75, 90, 120].map((width) => '@@RENDER work-' + width + dump(at[width]!)).join('\n'))
   expect(rows).toBeGreaterThan(20)
   expect(bad).toEqual([])
 })
@@ -351,7 +351,7 @@ for (const nq of [3, 6]) {
       if (listRows < 1) bad.push('no row of the agent list drawn')
       if (!all.some((l) => l.includes('Q-20'))) bad.push('the questions are not told')
       if (!all.some((l) => l.includes('Q-2' + (nq - 1))) && !all.some((l) => l.includes(nq + ' open questions'))) bad.push('neither every question nor their count is drawn')
-      if (bad.length) console.log('@@RENDER work-' + width + 'x' + rows + '-q' + nq + dump(els))
+      if (bad.length) (globalThis as any).console.log('@@RENDER work-' + width + 'x' + rows + '-q' + nq + dump(els))
       expect(bad).toEqual([])
     })
   }
