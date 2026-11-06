@@ -81,6 +81,8 @@ export function addSpawn(t, { id, parent, type, label, description = '', model, 
   if (!id || t.nodes.has(id)) return
   const p = parent && t.nodes.has(parent) ? parent : PRIME
   const role = String(type ?? 'agent').replace(/^baton:/, '')
+  // a newer dispatch under the same name replaces what the older one left waiting (WT1)
+  for (const o of t.nodes.values()) if (o.label === String(label || role).slice(0, 48)) supersede(t, o.id, 'a newer agent was dispatched under its name', at)
   t.nodes.set(id, { id, parent: p, role, label: String(label || role).slice(0, 48), description: String(description || '').slice(0, 200), model: shortModel(model), requested: requested || null, prompt: String(prompt || '').slice(0, 4000), startedAt: at, endedAt: null, tools: 0, lastTool: null, recent: [], line: null, verdict: null, children: [] })
   t.nodes.get(p).children.push(id)
 }
@@ -135,6 +137,8 @@ export function toolDetail(e) {
 export function addToolCall(t, agentId, tool, detail = '', at = Date.now()) {
   const n = t.nodes.get(agentId || PRIME)
   if (!n) return
+  // a call of its own after its return: it resumed, so what it returned no longer waits (WT1)
+  supersede(t, n.id, 'it resumed', at)
   n.tools++
   n.lastTool = String(tool ?? '').replace(/^mcp__baton__/, '')
   const call = { tool: n.lastTool, detail, at }
@@ -155,13 +159,64 @@ export function noteOutcome(call, r) {
   return r
 }
 
-export function finishAgent(t, agentId, { line, aborted = false, at = Date.now() } = {}) {
+export function finishAgent(t, agentId, { line, text = null, aborted = false, at = Date.now() } = {}) {
   const n = t.nodes.get(agentId)
   if (!n || n.id === PRIME) return
   n.endedAt = at
   n.line = line ? String(line).slice(0, 200) : null
   const v = VERDICT.exec(n.line ?? '')
   n.verdict = aborted ? 'ABORTED' : v ? v[1] : 'returned'
+  // its newest return is what waits now (WT1): an older one it replaces is gone with it
+  n.answer = text == null ? null : String(text).slice(0, 4000)
+  n.superseded = null
+}
+
+// ------------------------------------------------------------------ what waits on the operator (WT1)
+//
+// An agent that returned BLOCKED waits on the operator until that is superseded: the agent is sent new
+// instructions (SendMessage to it), it resumes (a call of its own after its return) or reports again, or a
+// newer agent is dispatched under its name. Only what waits now is shown (operator decision 2026-11-06).
+
+/** Does this agent's BLOCKED return still wait on the operator? */
+export const isWaiting = (n) => !!n && n.id !== PRIME && n.endedAt != null && n.verdict === 'BLOCKED' && !n.superseded
+
+/** Mark an agent's waiting return superseded (`why`, plain words); true when something stopped waiting. */
+export function supersede(t, agentId, why, at = Date.now()) {
+  const n = t.nodes.get(agentId)
+  if (!isWaiting(n)) return false
+  n.superseded = { why, at }
+  return true
+}
+
+/** The agent a SendMessage `to` names: an agent id, else the newest agent of that label. */
+export function agentNamed(t, to) {
+  const s = String(to ?? '').trim()
+  if (!s) return null
+  if (t.nodes.has(s)) return t.nodes.get(s)
+  let hit = null
+  for (const n of t.nodes.values()) if (n.id !== PRIME && n.label === s) hit = n
+  return hit
+}
+
+/**
+ * What a waiting return asks of the operator, from its own text: the pane it names (its last `surface:<n>`, with
+ * the title the text gives it in quotes or brackets right after one of its mentions) and one plain line of what
+ * pressing it does (its `Blocked by:` quote, else its first line that asks a question, else its one line). baton
+ * reads nothing from cmux, so a pane the text gives no title is shown by its id.
+ */
+export function waitItem(n) {
+  const text = String((n && (n.answer || n.line)) ?? '')
+  const mentions = [...text.matchAll(/\bsurface:(\d+)\b(?:\s*(?:"([^"\n]+)"|“([^”\n]+)”|\(([^)\n]+)\)))?/g)]
+  const id = mentions.length ? mentions.at(-1)[1] : null
+  const titled = mentions.find((x) => x[1] === id && (x[2] || x[3] || x[4]))
+  const bb = /Blocked by:[^\n]*?"([^\n]+)"\s*\((?:explicit|interpreted)\)\s*$/im.exec(text)
+  const asks = text.split('\n').map((l) => l.trim()).find((l) => /\?$/.test(l))
+  const one = String(n && n.line ? n.line : '').replace(/^.*?\bBLOCKED\b\s*[·:—-]?\s*/, '')
+  return {
+    surface: id ? 'surface:' + id : null,
+    title: titled ? (titled[2] || titled[3] || titled[4]).trim() : null,
+    plain: ((bb && bb[1]) || asks || one || '').trim() || null,
+  }
 }
 
 /**

@@ -16,7 +16,7 @@ import { clampBytes, cleanTag, currentMarks, cutBytes, fallbackMerge, idRange, i
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, effortOf, finishAgent, lifecycle, modelMismatch, newTree, noteOutcome, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, agentNamed, chain, effortOf, finishAgent, isWaiting, lifecycle, modelMismatch, newTree, noteOutcome, phaseOfAgent, PRIME, subtree, supersede, treeRows, waitItem } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor, withCosts } from '../lib/ledger.mjs'
@@ -2087,11 +2087,12 @@ function workspaceBody($, ui) {
  * What gives way in a pane too short for the agent list's window (PW1, D-P4-10 a), lowest rank first: the reviewer's
  * findings, the merge-ready rows (p) and the diagnosis, the tree's legend, the ruling rows (Memory has them all),
  * the spacer above the questions, the open questions (folded to one line, their count and the first: PW1 attempt 2),
- * the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's steps. Never: the keys row, the
+ * the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's steps, and last a blocked agent's
+ * `⚑` line (its plain line goes with the questions; WT1: the band still names it). Never: the keys row, the
  * read line, a phase waiting for its check, the table header, the list (every agent with its model, effort and
  * state), the key hint, the message field. The band above the prompt keeps the goal's and the PR's state in any case.
  */
-const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11 }
+const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11, waiting: 12 }
 const OPT = Symbol('an entry that may give way in a short pane')
 // `alt`: what the entry gives way to (the folded questions line), else nothing
 const opt = (rank, el, alt = null) => ({ [OPT]: { el, rank, alt } })
@@ -2193,12 +2194,15 @@ async function buildDetail($, kind, id, extra = {}) {
       stepsTl: st && st.tl,
     })
     // An agent that returned BLOCKED is a blocked row (Q-38): its view gains the brief at its top.
-    if (n.endedAt != null && n.verdict === 'BLOCKED') {
+    // Only while it waits (WT1): once superseded, its view says so instead.
+    if (isWaiting(n)) {
       const bb = parseBlockedBy(n.blockedBy)
       const target = workOf(n.label, runIds(v)).node || n.label
       const grant = blockGrant({ text: (n.line || '') + '\n' + (n.blockedBy || ''), blockedBy: bb, who: target })
-      view.lines = [...blockedBrief({ id: n.label, verdict: 'BLOCKED', line: n.line, blockedBy: n.blockedBy, kind: bb && bb.kind, grant, note: extra.note }), ...view.lines]
+      view.lines = [...blockedBrief({ id: n.label, verdict: 'BLOCKED', line: n.line, blockedBy: n.blockedBy, kind: bb && bb.kind, grant, note: extra.note, ...waitItem(n) }), ...view.lines]
       Object.assign(view, { grant, target, keys: grantKeys(grant) })
+    } else if (n.endedAt != null && n.verdict === 'BLOCKED' && n.superseded) {
+      view.lines = [[{ text: 'no longer waiting for you: ' + n.superseded.why, tone: 'rail' }], [], ...view.lines]
     }
     return view
   }
@@ -2593,6 +2597,18 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
       }),
     )
   }
+  // What a BLOCKED return leaves waiting on you now (WT1): its agent and the pane it names, then one plain line of
+  // what pressing it does, each cut to the row; gone once superseded. Its brief opens from the agent's row.
+  const width = cols || 80
+  waitingAgents().forEach((n, i) => {
+    const w = waitItem(n)
+    const tone = { color: (parseBlockedBy(n.blockedBy) || {}).kind === 'interpreted' ? 'yellow' : 'red' }
+    const tail = w.surface ? ' · ' + w.surface + (w.title ? ' "' + w.title + '"' : '') : ' waits for you'
+    // the label gives way before the surface id; the title is cut last, at the line's end
+    const label = cutCells(n.label, Math.max(8, width - 2 - cellWidth(w.surface ? ' · ' + w.surface : tail)))
+    out.push(opt(DROP_RANK.waiting, line('wt' + i, '⚑ ' + label + tail, tone, width)))
+    if (w.plain) out.push(opt(DROP_RANK.questions, line('wp' + i, '  ' + w.plain, { dimColor: true }, width)))
+  })
   // The one tree (T10 amendment): the prime, the phase rows, their sub-orchestrators and agents, each
   // row with its own context against its own budget, its model, its tokens by kind, its `this agent`
   // and `roll-up` groups, and the parcel steps of what it works on.
@@ -2669,12 +2685,27 @@ function segEl(y, text, Box, Text) {
   return [Box({ width: y.drawn, flexShrink: 0, overflow: 'hidden', children: text({ ...y, text: vis.join('') }, true) }), ...rest(vis.length)]
 }
 
+/**
+ * The agents whose BLOCKED return waits on the operator now (WT1), in the order they returned. One that waits on an
+ * open question (its return names the question, or the question names the node it works on) is left out: its `?` row
+ * is that item, so it is shown once.
+ */
+function waitingAgents(v = track.view) {
+  const qs = (v && v.questions) || []
+  const asked = (n) => {
+    const text = String(n.answer || n.line || '')
+    if (qs.some((q) => new RegExp('(^|[^\\w-])' + String(q.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w-])').test(text))) return true
+    const node = qs.length ? workOf(n.label, runIds(v)).node : null
+    return !!node && qs.some((q) => (q.nodes || []).includes(node))
+  }
+  return [...tree.nodes.values()].filter((n) => isWaiting(n) && !asked(n)).sort((a, b) => a.endedAt - b.endedAt)
+}
+
 /** An agent row that has returned, other than a blocked one that still waits for the operator (Q-69). */
 function finishedRow(x) {
   if (x.kind !== 'agent' || !x.r.id || x.r.id === PRIME || x.r.live) return false
-  const n = tree.nodes.get(x.r.id)
-  const waits = n && n.verdict === 'BLOCKED' && (!track.view || (track.view.questions || []).length > 0)
-  return !waits
+  // it waits until its return is superseded (WT1): a message to it, its resuming, a newer return or dispatch
+  return !isWaiting(tree.nodes.get(x.r.id))
 }
 
 /**
@@ -4625,6 +4656,19 @@ export function register(on, options) {
     return r
   }).catch(toolCallCaught)
 
+  // New instructions to an agent (SendMessage to it) supersede what its BLOCKED return left waiting (WT1).
+  on('tool.call', { tool: 'SendMessage' }, async ($, e, next) => {
+    const r = await next(e)
+    try {
+      const n = r && !r.deny ? agentNamed(tree, e.to) : null
+      if (n && supersede(tree, n.id, 'it was sent new instructions')) {
+        track.dirty = true
+        $.ui.invalidate('ui.render')
+      }
+    } catch {}
+    return r
+  }).catch(toolCallCaught)
+
   // Quiet output: a long shell result is cut to head, failures and tail; the whole goes to a file.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const r = await next(e)
@@ -5122,10 +5166,16 @@ export function register(on, options) {
     // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work.
     const askedN = v ? (v.questions || []).filter((q) => q.asked).length : 0
     if (askedN) waiting.push(askedN + ' question' + (askedN === 1 ? '' : 's'))
-    // narrower than the band: the phases' names go first, then it is cut (PW1)
+    // Agents whose BLOCKED return waits now (WT1), each with the pane it names; superseded ones are not counted.
+    const blockedNow = waitingAgents().map((n) => ({ label: n.label, surface: waitItem(n).surface }))
+    const panes = blockedNow.map((x) => x.surface).filter(Boolean)
+    if (blockedNow.length) waiting.push(blockedNow.length + ' blocked (' + blockedNow.map((x) => x.label + (x.surface ? ' · ' + x.surface : '')).join(', ') + ')')
+    // narrower than the band: the names go first (a blocked agent's pane stays while it fits), then it is cut (PW1)
     const waitText = (ws) => '⚑ waiting for you: ' + ws.join(' · ') + ' — Work (1)'
     const short = waiting.map((x) => x.replace(/ \(.*\)$/, ''))
-    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText(cellWidth(waitText(waiting)) <= bw ? waitText(waiting) : waitText(short))] })] : []
+    const mid = short.map((x) => (panes.length && /^\d+ blocked$/.test(x) ? x + ' (' + panes.join(', ') + ')' : x))
+    const flagText = [waiting, mid, short].map(waitText).find((t) => cellWidth(t) <= bw) ?? waitText(short)
+    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText(flagText)] })] : []
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
       const { Button } = $.ui.resolve(e)
@@ -5188,7 +5238,7 @@ export function register(on, options) {
   on('turn.complete', async ($, e, next) => {
     track.dirty = true
     if (e.agentId) {
-      finishAgent(tree, e.agentId, { line: firstLine(e.answer), aborted: e.isAborted })
+      finishAgent(tree, e.agentId, { line: firstLine(e.answer), text: e.answer, aborted: e.isAborted })
       // A BLOCKED return's `Blocked by:` line, for its brief (Q-38): the line its final text ends with.
       const ended = tree.nodes.get(e.agentId)
       if (ended) ended.blockedBy = blockedByLine(e.answer)
