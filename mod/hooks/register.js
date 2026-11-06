@@ -3065,11 +3065,7 @@ function keyHint({ Box, Text }, key, parts, tail = '', cols = Infinity) {
 
 /** Buttons as rows that fit `cols` (PW1): one row `gap` cells apart where they fit, else rows two cells apart. */
 function buttonRows(Box, key, buttons, cols, gap = 3) {
-  const w = (b) => {
-    const p = (b && b.props) || {}
-    return p.plain ? (p.hotkey ? cellWidth(p.hotkey) + 2 : 0) + cellWidth(p.label ?? '') : cellWidth(p.label ?? '') + 4
-  }
-  const span = (bs, g) => bs.reduce((n, b) => n + w(b), 0) + g * Math.max(0, bs.length - 1)
+  const span = (bs, g) => bs.reduce((n, b) => n + buttonWidth(b), 0) + g * Math.max(0, bs.length - 1)
   if (span(buttons, gap) <= cols) return [Box({ key, flexDirection: 'row', columnGap: gap, children: buttons })]
   const rows = [[]]
   for (const b of buttons) {
