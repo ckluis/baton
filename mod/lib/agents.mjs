@@ -137,7 +137,22 @@ export function addToolCall(t, agentId, tool, detail = '', at = Date.now()) {
   if (!n) return
   n.tools++
   n.lastTool = String(tool ?? '').replace(/^mcp__baton__/, '')
-  n.recent = [...(n.recent || []), { tool: n.lastTool, detail, at }].slice(-10)
+  const call = { tool: n.lastTool, detail, at }
+  n.recent = [...(n.recent || []), call].slice(-10)
+  return call
+}
+
+/**
+ * What a recorded call came to (TC1), from what `tool.call` resolved to: `status` ok, error or denied, and
+ * `size`, the characters of the result as the model read it (`text`, else a string `result`), when known.
+ * Returns `r`, so a hook can pass its result through it.
+ */
+export function noteOutcome(call, r) {
+  if (!call || !r) return r
+  call.status = r.deny ? 'denied' : r.isError ? 'error' : 'ok'
+  const text = typeof r.text === 'string' ? r.text : typeof r.result === 'string' ? r.result : null
+  if (text != null && !r.deny) call.size = text.length
+  return r
 }
 
 export function finishAgent(t, agentId, { line, aborted = false, at = Date.now() } = {}) {

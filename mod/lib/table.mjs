@@ -309,6 +309,63 @@ function groupLine(cols, lead = 0) {
   return segs
 }
 
+// ------------------------------------------------------------------ an agent's last tool calls (TC1)
+
+// The agent view's `last tool calls` as a table: time, tool, target (what the call touched: a path, a command, a
+// pattern) and result (ok, error or denied, with the size of what it answered). Each column is as wide as its widest
+// value (the tool at most TOOL_MAX), two cells apart, as the agent and memory tables are; the target takes the room
+// left and is cut at its end with `…` (`pad`). When the pane is too narrow for a target of TARGET_MIN cells, the
+// lower-value cells give way in turn: the result's size, the time's seconds, the time itself; then the tool is cut.
+// The tool and the target always show.
+const CALL_LEAD = 2
+const TOOL_MIN = 12 // the text form's tool column (-p, /baton show): at least this wide, as it was before the table
+const TOOL_MAX = 16
+const TARGET_MIN = 12
+
+/** An answered call's result cell: its status, then its size where known (`ok 812`, `ok 14k`); `…` while in flight. */
+const resultOf = (c, sized) => (c.status ? c.status + (sized && c.size != null && c.status === 'ok' ? ' ' + shortTokens(c.size) : '') : '…')
+
+/**
+ * calls: [{ tool, detail, at, status?, size? }] (agents.mjs addToolCall / noteOutcome), oldest first.
+ * With `width`, the table is fitted to it and opens with a header row; without, it is the text form (-p, /baton show):
+ * no header, nothing cut. Returns { header: [{ text, tone }] | null, lines: [[{ text, tone }]], cols }.
+ */
+export function callTable(calls, width = null) {
+  const rows = (calls || []).map((c) => ({ c, time: new Date(c.at).toISOString().slice(11, 19), tool: String(c.tool ?? ''), target: String(c.detail ?? '') }))
+  const widest = (f) => Math.max(0, ...rows.map((r) => [...f(r)].length))
+  const answered = rows.some((r) => r.c.status)
+  const toolW = widest((r) => r.tool)
+  const lay = { time: 8, tool: Math.min(TOOL_MAX, Math.max(width != null ? 'tool'.length : TOOL_MIN, toolW)), sized: true }
+  const resultW = () => (answered ? Math.max('result'.length, widest((r) => resultOf(r.c, lay.sized))) : 0)
+  const fixed = () => CALL_LEAD + (lay.time ? lay.time + GAP : 0) + lay.tool + GAP + (answered ? GAP + resultW() : 0)
+  if (width != null) {
+    const steps = [() => (lay.sized = false), () => (lay.time = 5), () => (lay.time = 0)]
+    for (const step of steps) {
+      if (width - fixed() >= TARGET_MIN) break
+      step()
+    }
+    const over = TARGET_MIN - (width - fixed())
+    if (over > 0) lay.tool = Math.max('tool'.length, lay.tool - over)
+  }
+  const targetW = width != null ? Math.max(1, width - fixed()) : widest((r) => r.target)
+  const resW = resultW()
+  const cells = (time, tool, target, result) => [
+    ...(lay.time ? [{ k: 'time', text: pad(time, lay.time) + ' '.repeat(GAP) }] : []),
+    { k: 'tool', text: pad(tool, lay.tool) + ' '.repeat(GAP) },
+    { k: 'target', text: answered ? pad(target, targetW) + ' '.repeat(GAP) : pad(target, targetW).trimEnd() },
+    ...(answered ? [{ k: 'result', text: pad(result, resW) }] : []),
+  ]
+  const lead = (segs) => [{ text: ' '.repeat(CALL_LEAD) + segs[0].text, tone: segs[0].tone }, ...segs.slice(1)]
+  const header = width != null ? lead(cells('time', 'tool', 'target', 'result').map((s) => ({ text: s.text, tone: 'rail' }))) : null
+  const tones = { time: 'rail', tool: undefined, target: undefined }
+  const lines = rows.map((r) => {
+    const res = resultOf(r.c, lay.sized)
+    const resTone = r.c.status === 'ok' ? 'green' : r.c.status ? 'red' : 'rail'
+    return lead(cells(lay.time === 5 ? r.time.slice(0, 5) : r.time, r.tool, r.target, res).map((s) => ({ text: s.text, tone: s.k === 'result' ? resTone : tones[s.k] })))
+  })
+  return { header, lines, cols: [...(lay.time ? ['time'] : []), 'tool', 'target', ...(answered ? ['result'] : [])] }
+}
+
 const SPARK = '▁▂▃▄▅▆▇█'
 
 /** A context-percent history as a sparkline, newest last (0–100 on a fixed scale). */

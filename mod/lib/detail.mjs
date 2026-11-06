@@ -7,7 +7,7 @@
 import { questionState, stepper } from './track.mjs'
 import { shortTokens } from './ledger.mjs'
 import { elapsed } from './agents.mjs'
-import { sparkline } from './table.mjs'
+import { callTable, sparkline } from './table.mjs'
 
 const L = (...segs) => segs.filter((s) => s != null).map((s) => (typeof s === 'string' ? { text: s } : s))
 const dim = (text) => ({ text, tone: 'rail' })
@@ -70,8 +70,8 @@ export function agentDetail(n, x = {}) {
     for (const l of prompt.slice(cut).split('\n').filter((t) => t.startsWith('- '))) lines.push(L({ text: '  ' + l, tone: 'magenta' }))
   }
   if ((n.recent || []).length) {
-    lines.push([], L(head('last tool calls')))
-    for (const r of n.recent.slice(-10)) lines.push(L(dim('  ' + new Date(r.at).toISOString().slice(11, 19) + '  '), (r.tool.length > 13 ? r.tool.slice(0, 12) + '…' : r.tool.padEnd(13)) + ' ', r.detail || ''))
+    // a table fitted to the width it is drawn at (TC1): `viewLines` lays it out there
+    lines.push([], L(head('last tool calls')), [{ text: '', calls: n.recent.slice(-10) }])
   }
   if (!live && n.line) lines.push([], L(head('returned')), L('  ' + n.line))
   return { title: (live ? '● ' : n.verdict && /BLOCKED|REFUTED|FAILED|ABORTED/.test(n.verdict) ? '✗ ' : '✓ ') + (n.role === 'sub-orchestrator' ? 'sub-orch' : n.role) + ' ' + n.label, lines }
@@ -151,9 +151,22 @@ export function nodeDetail(nd, x = {}) {
   return { title: nd.id + ' · ' + (nd.flag === 'pending' ? 'not started' : nd.state) + (nd.flag && nd.flag !== 'pending' ? ' (' + nd.flag + ')' : ''), lines }
 }
 
+/**
+ * A view's lines as drawn `width` cells wide: a line holding a tool-call table (agentDetail's `calls`) becomes the
+ * table's rows, fitted to `width` under a header row (TC1); without a width, its text form. Other lines as they are.
+ */
+export function viewLines(lines, width = null) {
+  return lines.flatMap((l) => {
+    const calls = l.length === 1 && l[0].calls
+    if (!calls) return [l]
+    const t = callTable(calls, width)
+    return t.header ? [t.header, ...t.lines] : t.lines
+  })
+}
+
 /** Plain text of a view, for -p and /baton show. */
 export function detailText(v) {
-  return [v.title, ...v.lines.map((l) => l.map((s) => s.text).join(''))].join('\n')
+  return [v.title, ...viewLines(v.lines).map((l) => l.map((s) => s.text).join(''))].join('\n')
 }
 
 /** A ruling: what it says, where it came from, whether it is enforced, what you can do with it. */

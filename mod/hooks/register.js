@@ -16,7 +16,7 @@ import { clampBytes, cleanTag, currentMarks, cutBytes, fallbackMerge, idRange, i
 import { mightBeRuling } from '../lib/rulings.mjs'
 import { lessonBlock, lessonNote, lessonsFromVerdict, parseLessonNote, relevantLessons } from '../lib/lessons.mjs'
 import { activeRulings, enforcedHit, fallbackRuling, isOperatorPrompt, parseEnforce, parseRuling, RULING_SYSTEM, rulingLine, rulingPrompt, RULINGS_HEAD } from '../lib/rulings.mjs'
-import { addSpawn, addToolCall, chain, effortOf, finishAgent, lifecycle, modelMismatch, newTree, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
+import { addSpawn, addToolCall, chain, effortOf, finishAgent, lifecycle, modelMismatch, newTree, noteOutcome, phaseOfAgent, PRIME, subtree, treeRows } from '../lib/agents.mjs'
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor, withCosts } from '../lib/ledger.mjs'
@@ -24,7 +24,7 @@ import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, g
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
-import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail } from '../lib/detail.mjs'
+import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodesBlocked, phaseDetail, questionDefault, questionDetail, questionOptions, resolveTarget, rulingDetail, memDetail, viewLines } from '../lib/detail.mjs'
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
@@ -2380,7 +2380,7 @@ async function detailAct($, d, k) {
 }
 
 /** The open view, drawn in Work: a back button, the title, then its lines. */
-function detailBody($, { Box, Text, Button, line }) {
+function detailBody($, { Box, Text, Button, line, cols }) {
   const d = pane.detail
   const tone = (x) => (x.tone === 'head' ? { bold: true } : x.tone in TONE ? (TONE[x.tone] ? { color: TONE[x.tone] } : { dimColor: true }) : x.tone ? { color: x.tone } : {})
   const out = [
@@ -2400,7 +2400,7 @@ function detailBody($, { Box, Text, Button, line }) {
   // The rows' letters, under the title: pressed here, each opens its row (R-C9-05), so none reaches the prompt.
   const letters = rowLetterKeys($, Button, new Set((d.view.keys || []).map((k) => k.hotkey)))
   if (letters.length) out.push(Box({ key: 'd-rows', flexDirection: 'row', flexWrap: 'wrap', children: [Text({ dimColor: true, children: ['rows '] }), ...letters] }))
-  d.view.lines.forEach((segs, i) => {
+  viewLines(d.view.lines, cols || 80).forEach((segs, i) => {
     if (!segs.length) out.push(Text({ children: [' '] }))
     else out.push(Box({ key: 'd-l' + i, flexDirection: 'row', children: segs.map((x) => Text({ wrap: x.wrap ? 'wrap' : 'truncate-end', ...tone(x), children: [x.text] })) }))
   })
@@ -4349,8 +4349,10 @@ export function register(on, options) {
 
   // Every tool.call hook below handles its own failure (closedOnThrow / openOnThrow) and carries the
   // same .catch, toolCallCaught: see "The tool.call hooks' own failure handling" above.
-  on('tool.call', async ($, e, next) => closedOnThrow($, e, next, 'the prime guard', async (pass) => {
-    addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool, toolDetail(e))
+  on('tool.call', async ($, e, next) => closedOnThrow($, e, next, 'the prime guard', async (passOn) => {
+    // The call is recorded now and its outcome (ok, error or denied, and its size) once it is answered (TC1).
+    const call = addToolCall(tree, isPrimeCall(e) ? PRIME : e.agentId, e.tool, toolDetail(e))
+    const pass = (x) => Promise.resolve(passOn(x)).then((r) => noteOutcome(call, r))
     if (!isPrimeCall(e)) track.dirty = true
     if (pane.open && pane.tab === 'agents') $.ui.invalidate('ui.render')
     if (!isPrimeCall(e)) {
@@ -4380,7 +4382,7 @@ export function register(on, options) {
     const live = [...probe.spawned].some((id) => !probe.seen.has(id))
     if (live) probe.deniedWhileLive++
     $.ui.log('prime denied ' + e.tool + ' → dispatch a sub-orchestrator')
-    return verdict
+    return noteOutcome(call, verdict)
   })).catch(toolCallCaught)
 
   // ---------------------------------------------------------------- memory tools
