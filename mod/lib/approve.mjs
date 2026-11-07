@@ -466,8 +466,10 @@ function api(a) {
     else if (w === '-f' || w === '-F' || w === '--field' || w === '--raw-field') fields.push(a[++k] ?? '')
     else if (w.startsWith('--field=') || w.startsWith('--raw-field=')) fields.push(w.slice(eq + 1))
     else if (/^-[fF]./.test(w)) fields.push(w.slice(2))
-    else if (w === '--input') (input = true), k++
-    else if (w.startsWith('--input=')) input = true
+    else if (w === '--input') {
+      input = true
+      k++
+    } else if (w.startsWith('--input=')) input = true
     else if (VALUE.includes(w)) k++
     else if (!w.startsWith('-') && endpoint === null) endpoint = w
   }
