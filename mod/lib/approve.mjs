@@ -269,7 +269,10 @@ function lex(src, depth) {
 
 // ------------------------------------------------------------------ judging one simple command
 
-const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'fi', 'do', 'done', 'while', 'until', 'for', 'select', 'case', 'esac', '!', '{', '}', '[[', 'coproc', 'noglob', 'nocorrect', 'builtin', 'nohup', 'chronic', 'unbuffer'])
+/** Shell words that may lead a command, as written. */
+const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'fi', 'do', 'done', 'while', 'until', 'for', 'select', 'case', 'esac', '!', '{', '}', '[[', 'coproc', 'noglob', 'nocorrect'])
+/** Wrappers with no options of their own, by program name (a full path counts). */
+const PLAIN_WRAPPERS = new Set(['builtin', 'nohup', 'chronic', 'unbuffer'])
 const ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/
 const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'mksh', 'ash', 'fish'])
 /** Programs the tokenizer judges; any other program's words are read as a mention. */
@@ -289,12 +292,12 @@ function dropOptions(a, withValue) {
 
 /** Strip assignments, keywords and wrappers off the front of argv: what program actually runs, with its words. */
 function unwrap(argv) {
-  let a = argv.slice()
+  const a = argv.slice()
   for (;;) {
     const w = a[0]
     if (w === undefined) return a
     const p = base(w)
-    if (KEYWORDS.has(w) || ASSIGN.test(w)) a.shift()
+    if (KEYWORDS.has(w) || ASSIGN.test(w) || PLAIN_WRAPPERS.has(p)) a.shift()
     else if (p === 'env') {
       a.shift()
       while (a.length && (/^-/.test(a[0] ?? '') || ASSIGN.test(a[0] ?? ''))) {
