@@ -228,11 +228,15 @@ export const firstFit = (forms, width) => forms.find((f) => cellWidth(f) <= widt
 /** The `/tui` value each layout wants from Claude Code. */
 const TUI = { strip: 'default', panel: 'fullscreen' }
 
-/** What the strip and the panel's hint say of the layout, richest first: the mode, then the command that switches. */
+/**
+ * What the strip and the panel's hint say of the layout, richest first (LM1): the mode and the command that switches
+ * it, then shorter, then `layout: /baton layout`, then `/baton layout` alone (it prints the mode and how to switch).
+ * The strip takes the richest that fits and never none (from 45 columns).
+ */
 export function layoutForms(mode) {
   const m = layoutOf(mode)
   const o = otherLayout(m)
-  return [m + ' layout · /baton layout ' + o + ' switches', m + ' · /baton layout ' + o]
+  return [m + ' layout · /baton layout ' + o + ' switches', m + ' · /baton layout ' + o, 'layout: /baton layout', '/baton layout']
 }
 
 /**

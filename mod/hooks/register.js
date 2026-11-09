@@ -764,10 +764,12 @@ async function paneBody($, els, cols, rows) {
   // keys then held on the hint's line, placeList). The read line starts with the way back (P7-CS-d1 item 3), so a
   // narrow pane that cuts it keeps that.
   const read = wayBack() + ' · read ' + (pane.refreshedAt ?? 'never') + (layout.mode === 'panel' ? '' : ' · Esc closes')
-  // In the panel layout the key hint says the layout and the command that switches it (LM1), its richest form that fits.
+  // In both layouts the key hint says the layout and the command that switches it (LM1), its richest form that fits.
+  // In the strip layout's dive-in views it gives way to agent rows in a list that scrolls (the legend's rank), so the
+  // rows a view is measured for stay; in the panel it goes with the read line.
   const forms = layoutForms(layout.mode)
   const modeLine = line('layout', firstFit(forms, cols) ?? forms[forms.length - 1], { dimColor: true })
-  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true })), ...(layout.mode === 'panel' ? [opt(DROP_RANK.read, modeLine)] : [])]
+  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true })), opt(layout.mode === 'panel' ? DROP_RANK.read : DROP_RANK.legend, modeLine)]
   return { ui, tabs, body: [...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))] }
 }
 
@@ -5483,8 +5485,6 @@ export function register(on, options) {
       ...(live ? [{ key: 'live', forms: [{ text: live + ' live', pri: 6 }] }] : []),
       ...(waiting.length ? [{ key: 'flag', forms: flagForms, color: 'yellow', cut: true }] : []),
       ...(usage.cost && typeof usage.cost.usd === 'number' ? [{ key: 'cost', forms: [{ text: '$' + usage.cost.usd.toFixed(2), pri: 7 }] }] : []),
-      // the layout and the command that switches it (LM1), last: in the cells the items above leave, else on line 1
-      { key: 'layout', forms: layoutForms(layout.mode).map((text, i) => ({ text, pri: 9 - i * 0.5 })) },
     ]
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     const keysBox = (label) => {
@@ -5510,8 +5510,54 @@ export function register(on, options) {
         ],
       })
     }
-    const stripSegs = fitStrip(items, bw)
+    let stripSegs = fitStrip(items, bw)
     const keysOn2 = stripSegs.some((x) => x.key === 'keys')
+    // line 1: the gauges, after the keys where line 2 had not the cells for them
+    const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
+    let g1 = gauges(Math.max(1, bw - keysW))
+    // The layout and the command that switches it (LM1), on one of the two lines, in its richest form that fits
+    // (layoutForms, down to `/baton layout`), never left out where 16 cells can be had: (1) in the cells the strip
+    // leaves, line 2 first; (2) else the gauges give up their reset times and all but one reason, then that one too,
+    // never a figure, for it on line 1; (3) else on line 2 the goal, live count, cost, PR, the flag's words and the approval's phase name
+    // give way to it. From 120 columns that is done for a form that names the layout first, then for any.
+    const all = layoutForms(layout.mode)
+    const SEPW = cellWidth(' · ')
+    const used = (segs) => segs.reduce((n, x) => n + cellWidth(x.text), 0)
+    const kinds = (segs) => segs.filter((x) => /%|n\/a/.test(x.text)).map((x) => x.text.split(' ')[0].replace(/^week$/, 'wk'))
+    const reasoned = (segs) => segs.some((x) => /\(.+\)/.test(x.text))
+    const had = kinds(g1)
+    const hadWhy = reasoned(g1)
+    let modeAt = null
+    for (const forms of bw >= 120 ? [all.slice(0, 2), all] : [all]) {
+      for (const f of modeAt ? [] : forms) {
+        if (cellWidth(f) <= bw - used(stripSegs) - SEPW) modeAt = { line: 2, text: f }
+        else if (cellWidth(f) <= bw - keysW - used(g1) - SEPW) modeAt = { line: 1, text: f }
+        if (modeAt) break
+      }
+      for (const keepWhy of [hadWhy, false]) {
+        for (const f of modeAt ? [] : forms) {
+          const room = bw - keysW - SEPW - cellWidth(f)
+          const g = gauges(Math.max(1, room))
+          const whole = used(g) <= room && !g.some((x) => x.text.endsWith('…'))
+          if (whole && had.every((k) => kinds(g).includes(k)) && (!keepWhy || reasoned(g))) {
+            g1 = g
+            modeAt = { line: 1, text: f }
+            break
+          }
+        }
+      }
+      for (const f of modeAt ? [] : forms) {
+        const segs = fitStrip([...items, { key: 'layout', forms: [{ text: f, pri: 2.9 }] }], bw)
+        const at = segs.find((x) => x.key === 'layout')
+        if (at && at.text === f) {
+          stripSegs = segs // the layout item is the last: it ends line 2
+          modeAt = { line: 3, text: f }
+          break
+        }
+      }
+    }
+    if (modeAt && modeAt.line === 2) stripSegs = [...stripSegs, ...(stripSegs.length ? [{ text: ' · ' }] : []), { key: 'layout', text: modeAt.text }]
+    const modeOn1 = modeAt && modeAt.line === 1 ? ' · ' + modeAt.text : null
     const segEl = (x) => (x.key === 'keys' ? keysBox((keyForms.find((f) => f.text === x.text) || { label: '' }).label) : segText(x))
     // The dive-in keys (CS2, P7-CS-d1 item 1): w opens Work, m Memory. Band Buttons on letters, so they press only
     // while the strip holds the focus (ctrl+x tab, a click), never from the prompt: a prompt that starts with w or m
@@ -5522,12 +5568,6 @@ export function register(on, options) {
       Button({ key: 'band-memory', label: 'memory', hotkey: 'm', plain: true, onPress: () => diveIn($, 'memory') }),
     ].map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
     const flag = [Box({ key: 'strip', flexDirection: 'row', children: [...stripSegs.map(segEl), ...dive] })]
-    // line 1: the gauges, after the keys where line 2 had not the cells for them
-    const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
-    const g1 = gauges(Math.max(1, bw - keysW))
-    // the layout on line 1, after the gauges in the form they take anyway, where line 2 had not the cells for it
-    const g1w = keysW + g1.reduce((n, x) => n + cellWidth(x.text), 0)
-    const modeOn1 = stripSegs.some((x) => x.key === 'layout') ? null : firstFit(layoutForms(layout.mode).map((t) => ' · ' + t), bw - g1w)
     const lineBox = Box({
       key: 'band',
       flexDirection: 'row',
