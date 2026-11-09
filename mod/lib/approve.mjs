@@ -117,6 +117,7 @@ function lex(src, depth) {
   let word = null
   let start = -1
   let dropNext = false
+  let hereString = false // the next word is a here-string: the command's stdin, like a heredoc body
   const heredocs = []
   const n = src.length
   const sub = (inner) => {
@@ -145,7 +146,10 @@ function lex(src, depth) {
   }
   const endWord = () => {
     if (word === null) return
-    if (dropNext) dropNext = false
+    if (hereString) {
+      hereString = false
+      stdin.push(braces(word).join(' '))
+    } else if (dropNext) dropNext = false
     else argv.push(...braces(word))
     word = null
   }
@@ -156,6 +160,7 @@ function lex(src, depth) {
     stdin = []
     start = -1
     dropNext = false
+    hereString = false
   }
   let i = 0
   while (i < n) {
@@ -239,7 +244,7 @@ function lex(src, depth) {
       if (start < 0) start = i
       if (src.startsWith('<<<', i)) {
         i += 3
-        dropNext = true
+        hereString = true
       } else if (two === '<<') {
         i += 2
         const strip = src[i] === '-'
