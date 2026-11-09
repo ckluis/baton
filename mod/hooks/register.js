@@ -5368,7 +5368,7 @@ export function register(on, options) {
   // 2, unchanged) stand within the two lines. Under the strip, and only while they are there: the update notice, the
   // pause and a doctor warning.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
     const theirs = await next(e)
     const inRun = run.active || run.startedHere
     const v = inRun ? track.view : null
@@ -5454,7 +5454,6 @@ export function register(on, options) {
     ]
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     const keysBox = (label) => {
-      const { Button } = $.ui.resolve(e)
       return Box({
         key: 'keys',
         flexDirection: 'row',
@@ -5484,10 +5483,9 @@ export function register(on, options) {
     // while the strip holds the focus (ctrl+x tab, a click), never from the prompt: a prompt that starts with w or m
     // is the person's. The hint says them in plain words; the Buttons are held in boxes no cells wide beside it, so
     // line 2 reads as the hint, not `w: work m: memory` drawn twice.
-    const { Button: DiveButton } = $.ui.resolve(e)
     const dive = [
-      DiveButton({ key: 'band-work', label: 'work', hotkey: 'w', plain: true, onPress: () => diveIn($, 'work') }),
-      DiveButton({ key: 'band-memory', label: 'memory', hotkey: 'm', plain: true, onPress: () => diveIn($, 'memory') }),
+      Button({ key: 'band-work', label: 'work', hotkey: 'w', plain: true, onPress: () => diveIn($, 'work') }),
+      Button({ key: 'band-memory', label: 'memory', hotkey: 'm', plain: true, onPress: () => diveIn($, 'memory') }),
     ].map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
     const flag = [Box({ key: 'strip', flexDirection: 'row', children: [...stripSegs.map(segEl), ...dive] })]
     // line 1: the gauges, after the keys where line 2 had not the cells for them
