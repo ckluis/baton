@@ -231,7 +231,8 @@ const TUI = { strip: 'default', panel: 'fullscreen' }
 /**
  * What the strip and the panel's hint say of the layout, richest first (LM1): the mode and the command that switches
  * it, then shorter, then `layout: /baton layout`, then `/baton layout` alone (it prints the mode and how to switch).
- * The strip takes the richest that fits and never none (from 45 columns).
+ * From 45 columns the strip takes only the first two (Q-LM1-2 A), the shorter two only beside an approval's keys at
+ * 45 to 54 columns, where CS1 leaves no room for them, and below 45 (register.js, the AbovePrompt render).
  */
 export function layoutForms(mode) {
   const m = layoutOf(mode)
@@ -264,9 +265,10 @@ export function tuiHint(mode, isFullscreen, width = 200) {
 export function layoutText(mode) {
   const m = layoutOf(mode)
   const def = m === DEFAULT_LAYOUT ? ' (the default)' : ''
+  const shown = ' The strip shows the layout and this command from 45 columns (from 55 while a phase waits for approval); every view you dive into shows them too.'
   return m === 'panel'
-    ? 'baton layout: panel' + def + ', the side panel beside the transcript, opened by itself. /baton layout strip switches to the strip above the prompt.'
-    : 'baton layout: strip' + def + ', the two-line strip above the prompt (ctrl+x tab, then w work · m memory). /baton layout panel switches to the side panel.'
+    ? 'baton layout: panel' + def + ', the side panel beside the transcript, opened by itself. /baton layout strip switches to the strip above the prompt.' + shown
+    : 'baton layout: strip' + def + ', the two-line strip above the prompt (ctrl+x tab, then w work · m memory). /baton layout panel switches to the side panel.' + shown
 }
 
 /** What `/baton layout <mode>` says once it has switched: one line. */

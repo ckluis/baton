@@ -62,9 +62,11 @@ v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live
   Work and `m` Memory inline at full width, and `Esc` goes back to the strip. While a phase waits,
   `1` approves it and `2` sends it back. `/baton layout panel` switches to the side panel docked
   beside the transcript, which opens by itself; `/baton layout strip` switches back, and
-  `/baton layout` says which one is on. The choice is saved for every session, and the strip
-  always shows the layout and how to switch it (`strip · /baton layout panel`, shortened to
-  `/baton layout` when narrow; from 45 columns). The strip wants
+  `/baton layout` says which one is on. The choice is saved for every session. From 45 columns
+  the strip names the layout and the command that switches it (`strip · /baton layout panel`),
+  except while a phase waits for approval at 45 to 54 columns, where only `/baton layout` fits
+  beside the keys. Below 45 the strip may leave it out; `/baton layout` and every view you dive
+  into still say it. The strip wants
   Claude Code's main-screen renderer and the panel its fullscreen one. When they don't match, one
   line under the strip says what to type (`/tui default` or `/tui fullscreen`; Claude Code
   restarts and resumes the session). baton never changes a Claude Code setting itself.

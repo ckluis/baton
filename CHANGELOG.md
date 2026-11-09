@@ -102,9 +102,11 @@ seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
   as before. The strip is the default layout. `/baton layout panel` switches to the side panel
   (docked, opening by itself), `/baton layout strip` switches back, and `/baton layout` prints the
   current one. The choice is kept in baton's own store for every session. From 45 columns the
-  strip always says the layout and the command that switches it, shortened as the width shrinks
-  (`strip · /baton layout panel`, then `layout: /baton layout`, then `/baton layout`), and every
-  view you dive into says it under its read line. When
+  strip names the layout and the command that switches it (`strip layout · /baton layout panel
+  switches` where it fits, else `strip · /baton layout panel`), the goal, cost and gauge details
+  giving way for it; while a phase waits for approval it does so from 55 columns, and at 45 to 54
+  says `/baton layout` beside the keys. Below 45 columns the strip may leave it out, and
+  `/baton layout` and every view you dive into (which says it under its read line) still say it. When
   the layout does not match Claude Code's renderer, one line under the strip says what to type:
   `/tui default` for the strip, `/tui fullscreen` for the panel, and that Claude Code restarts and
   resumes the session. baton writes no Claude Code setting.
