@@ -661,7 +661,7 @@ export async function stagedForbidden(command, { cwd, run, patterns = FORBIDDEN_
   const plan = stagingPlan(command, cwd, { home })
   const hits = forbiddenHits(plan.named, patterns)
   if (hits.length) return { hits, reason: null }
-  if (plan.reason) return { hits: [], reason: plan.reason }
+  if (plan.reason) return { hits: [], reason: plan.needsHome ? plan.reason + ': it uses ~ or $HOME, and the mod does not read the home directory' : plan.reason }
   for (const q of plan.asks) {
     let r
     try {
