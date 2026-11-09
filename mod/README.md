@@ -121,13 +121,32 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   turns both off):
   - *Command gate.* During a run, `git push`, `gh pr create|merge|close`, a release or package
     publish, `git reset --hard` / `git clean -f` / `git checkout -- .` and `rm -r` wait for the
-    operator, from any agent at any depth. The question names the chain (`prime › P3 › T7 wants to
+    operator, from any agent at any depth, when the gate reads them on the line (what it reads and
+    misses is below). The question names the chain (`prime › P3 › T7 wants to
     git push`) and the top rulings. **Approve**, **Approve every … for this run**, **Refuse**, or a
     typed reason, which the agent reads as its refusal. With nobody to ask (`claude -p`, or the
     dialog dismissed) the command is refused and the agent is told to return `BLOCKED`. Each answer
     is a run note (tag `approval`) saying what the command does (writes a file, pushes, runs), and
     a second note records its exit code, the files it wrote and the refs it pushed, so a heredoc
-    that writes a file is not recorded as a push.
+    that writes a file is not recorded as a push. The gate (`gateFor` in `lib/approve.mjs`) reads
+    the line the way the shell splits it and asks when one of these commands is spelled out on it:
+    through git's and gh's global options, gh's aliases and git aliases given with `-c`, flags
+    split, combined, long, abbreviated to a unique prefix or after the operand, gh's short flags as
+    gh reads them (`-iXPOST`, `-iX POST`, `-X=POST`, fields in a cluster), program names in any
+    letter case, git's subcommand programs (`git-push`, `git-reset`, `git-clean`, `git-checkout`,
+    `git-restore`, `git-branch`, `git-switch`) by any path, ANSI-C quoting and brace expansion, a
+    full path, the wrappers it lists (env, command, sudo, doas, xargs, nice, time, timeout, nohup,
+    setsid, xcrun, arch and a few more) or any other program followed by the command as separate
+    words, inside `$( )`, backticks, `sh -c`, eval, a heredoc or here-string fed to a shell, and
+    after any separator. It does not see what the line does not spell out: a script file's
+    contents, a shell alias or function, a git alias set in git config, a command built from a
+    variable (`eval "$cmd"`), text piped into a shell, an unlisted wrapper that takes the command
+    as one quoted string (`ssh host '...'`, `su -c '...'`), a git subcommand program after an
+    unlisted program or under another name, or a package script or build recipe. It also asks
+    when the plain wording of one of these commands appears in quoted or heredoc text (a false
+    alarm). Known gap: gh's value-taking flags placed before the subcommand with two or more value
+    words (`gh -H a:b -X POST api …`, `gh -f a=b -f c=d api …`) are misread, so that API write is
+    not asked about; one value flag before `api` (`gh -XDELETE api …`) is caught.
   - *Phase gate.* In an interactive session, a sub-orchestrator whose return leads with a DONE
     verdict is queued. The prime's next dispatch waits on a dialog: **Approve**, or type what is
     wrong to send the phase back, which refuses the dispatch and tells the prime to re-dispatch that
@@ -170,8 +189,17 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
     round once the goal has spent it (a note at 80%), and tells the prime to brief the operator.
   - **The reviewer waits for a clean base.** A `pr-reviewer` spawn on a PR that conflicts with its
     base is refused: merge the base in first. A PR with no checks and a conflict is diagnosed as such.
-  - **Forbidden files.** `git add` naming a secret, key or env file is refused outright, from any
-    agent; a forbidden file in the PR fails merge-ready.
+  - **Forbidden files.** A staging line the check finds would stage a secret, key or env file is
+    refused outright, from any agent; a forbidden file in the PR fails merge-ready. The check
+    (`stagingPlan` in `lib/ledger.mjs`) resolves `-C`, `cd`, `.`, `-A`, `-u`, directories, globs,
+    `commit -a`, pathspecs, `GIT_DIR` and its kin by asking git, read-only, which paths the line
+    would include. A staging line that also does what the check cannot follow is refused with a
+    plain reason: a directory or path it cannot resolve, an alias or function defined on the line,
+    `source` or `eval`, `CDPATH`, `IFS` and similar shell-reading variables, `~` or `$HOME` (the
+    mod never reads HOME). Known gaps: staging built through further indirection gets through (a
+    variable or `declare` that sets `CDPATH` by a name held in another variable, `source` or `eval`
+    run through a variable, a command word assembled from variables such as `${g}t add .`), and
+    `git stash -u`, `git update-index`, `git apply --cached` and git config aliases are not covered.
   - **More merge-ready rows:** the PR closes the issue, no other open PR claims it, and the main
     checkout is clean (a worktree's relative write leaking out shows here).
   - **The goal on GitHub.** Each goal state change sets one `baton:<state>` label on the issue and,
@@ -180,10 +208,11 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
     cause) or `interpreted` (you may overrule it).
 - **Always there, no command.** In any interactive session with the mod loaded, the band above the
   prompt carries plan usage (each rate-limit window the API reports: `5h`, `week`, a model's own week
-  such as `Fable week`, a gateway's `spend`, with reset times) and the session's cost. The pane opens
-  by itself, unfocused (`autoPane`), at session start and when the first subagent spawns, on Work,
-  where Claude Code places it (at 144 or more columns); where it does not, the band ends with
-  `/baton opens the pane`.
+  such as `Fable week`, a gateway's `spend`, with reset times) and the session's cost. In the panel
+  layout the pane opens by itself, unfocused (`autoPane`), at session start and when the first
+  subagent spawns, on Work, where Claude Code places it (at 144 or more columns on 2.1.316); where it
+  does not, the band ends with `/baton opens the pane`. In the strip layout (the default) it opens
+  only when you dive in.
   Spend is metered in every session; it is written to
   `_orch/spend.json` only in a run.
 - **The agent table.** Work's agent list is a tree drawn as a table (see "The pane" below), one row
@@ -240,7 +269,9 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
 - **Drill in.** In Work, every agent, phase, node, question and blocked row has a `›`: `↑`/`↓`
   moves over them, `Enter` opens a view in place, `b` goes back. An agent shows where it sits in the
   tree, its model and meter, the task it was given (the lessons the mod added shown apart), its last
-  ten tool calls and what it returned; a phase its steps, brief, nodes and envelope; a node its
+  ten tool calls as an aligned table (a header row, then time, tool, target and status; long cells
+  cut at the end with `…`; at the narrowest widths the size and seconds drop first, while the tool
+  and target stay, as the tests pin at 40 to 120 columns) and what it returned; a phase its steps, brief, nodes and envelope; a node its
   done-criteria, its red, green and blue records, the verifier's row for each criterion and the
   lessons it left. In Memory, a ruling opens to the message it was lifted from and its enforcement.
   The views are `lib/detail.mjs`; `/baton show <P3 | T12 | an agent>` prints the same thing.
@@ -280,18 +311,29 @@ What each part of the pane does, as the tests pin it. Where a live check in Clau
 first saw something else, the line says what was fixed and names the check after the fix; what is
 still open is listed under known gaps in `CHANGELOG.md` (v7.6.0).
 
-**Width, first.** The agent table wants about 110 columns. Claude Code 2.1.316 docks a pane at
-about 73 columns in a 165-column terminal (at most 90), and draws it inline at the terminal's width
-below 110 columns, and it squeezes every cell of a row wider than the pane into a `…`. So the
-table is laid out for the width the pane is drawn at: droppable columns drop first, then the agent
-label and the state are cut; the model, steps, `this agent` and `roll-up` cells and a row's indent
-are never cut. A row still too wide for a narrow pane takes two lines, and the agent list counts
-screen lines when it scrolls. At a docked width the legend, the goal line and the key hint are cut
-at the pane's edge with `…`; in a pane that is both docked and short the list can push the lines
-under it out of view (both known gaps).
+**Width, first.** The agent table wants about 110 columns. Claude Code 2.1.305 added a cap on a
+mod's docked pane; in 2.1.319 the dock is min(floor(cols × 0.45), cols − 60), and by default
+min(floor(cols × 0.45), 90, cols − 70), at least 24, hard-coded with no setting. So a 110-column
+terminal docks baton at 49 columns, a 165-column one at 74 and a 200-column one at 90, and Claude
+Code squeezes every cell of a row wider than the pane into a `…`. baton asks for the ceiling width
+each time it opens the pane (`PANE_COLUMNS`) and lays every tab and view out for the width it is
+drawn at: droppable columns drop first, then the agent label and the state are cut. In the tests
+and renders at every width from 40 to 200, an agent row keeps its exact model, effort and state,
+its label reads at least its role and node (`worker T201 strea…`), and a wider pane never shows
+less of a label or a state than a narrower one. A row too wide for the pane takes more lines: at
+49 columns and below, four (label, model, costs, then steps and state); below 49 the keys row and
+the key hint take two lines each. The key hint flows onto further lines instead of being cut, and
+the agent list counts screen lines when it scrolls. In a short pane the lines that hold no agent
+give way first, so the key hint and an agent row stay on screen down to about 7 rows at 49 columns
+(about 5 at 90). Known gap: in a shorter pane (under about 7 rows at 49 columns, 5 at 75 to 110, 4
+at 120 and more, 9 at 40) the key hint wins and no agent row is drawn, even where one would fit
+beside it; the rows are still opened by their letters.
 
 **Layouts.** `strip` (the default, `DEFAULT_LAYOUT` in `lib/view.mjs`) is the two-line strip
-above the prompt. The pane opens only when you dive in: `ctrl+x tab` focuses the strip, then `w`
+above the prompt; a third line appears only while a notice shows (baton paused, an update
+available, a doctor warning) and goes when it clears. Tests pin the two, three, then two lines for
+the pause and doctor notices at 40 to 200 columns; the update notice's line is not pinned, since it
+is raised only for an installed copy and clears only on a plugin reload. The pane opens only when you dive in: `ctrl+x tab` focuses the strip, then `w`
 opens Work and `m` Memory inline at full width, and `Esc` goes back to the strip. `panel` is the
 side panel, docked and opening by itself. `/baton layout strip|panel` switches and saves the
 choice in baton's own store (key `layout`), and `/baton layout` prints the current one. From 45
@@ -302,8 +344,8 @@ and weekly reset; then the goal, live count, cost, PR and the flag's full words 
 the gauges' reasons and resets, then the weekly and the 5-hour figure (the context last), then the
 gauges altogether. One band is short of room: while a phase waits for approval at 45 to 54
 columns, the hint and the approval keys leave room only for a short form: `/baton layout`, or
-`layout: /baton layout` at 53 and 54 columns. Below 45 columns the
-strip may leave the layout out (`/baton layout` where it fits); `/baton layout` and every view you
+`layout: /baton layout` at 53 and 54 columns. At 40 to 44 columns the
+strip leaves the layout out (`/baton layout` where it fits); `/baton layout` and every view you
 dive into, in either layout, say it (under the view's read line).
 When the layout does not match the renderer Claude Code reports (`isFullscreen`), one line under
 the strip says what to type, `/tui default` or `/tui fullscreen`, and that Claude Code restarts
@@ -339,8 +381,8 @@ and resumes the session. baton writes no Claude Code setting.
   cut live to `opus 5.…` (LV8); after the fix it reads `opus 5.5` whole before the first turn too.
 - **The prime's row.** In a run the main session's row is `◆ prime` and shows the session's own
   model. Outside a run it is `◇ session`, not `◆ prime`.
-- **A key for every row.** Every agent and phase row (pending ones too), then every question and
-  blocked row, has a letter of its own, shown like `1`, `2` and `r` (the hotkey in the accent, a
+- **A key for each row, up to 22.** Agent and phase rows (pending ones too), then question and
+  blocked rows, each get a letter of their own while the 22 letters last, shown like `1`, `2` and `r` (the hotkey in the accent, a
   colon, the label): `a` for the prime, then `c d e f …` top to bottom from the pool
   `a c d e f g h i j k l m n o q s t u v w y z` (no `b`, `p`, `r` or `x`). A row keeps its letter for
   as long as it exists, scrolled out of view or not, and across a reload and a restart; a later row
@@ -382,6 +424,14 @@ and resumes the session. baton writes no Claude Code setting.
   file and the node to dispatch again. At 41670d5 the note carried the question's first line and
   nothing woke the prime (LV13 §11); after the fix, live, the blocked node was dispatched again with
   the answer.
+- **Waiting for you, only what waits now.** An agent that returned `BLOCKED` naming a cmux surface
+  (`surface:<n>` and its title) shows in Work as `⚑ <agent> · surface:<n> "<title>"` with its plain
+  instruction line under it, and the band reads `1 blocked (<agent> · surface:<n>)`. When the prime
+  sends that agent new instructions (`SendMessage`, by name or id), the item, its line and the
+  band's flag go at once, the agent's row is dim, and its view says `no longer waiting for you: it
+  was sent new instructions`; a wait that is still current stays. With an open question the item
+  is drawn under the `?` row and leaves with it; the inbox files are not touched. Tests pin a
+  current wait staying at 49 to 120 columns.
 - **The memory explorer.** Memory draws the notes as a table with aligned columns: `id`, `mark`,
   `time` (local `HH:MM`), `source`, `text`. A summary row has a `+` and reads `(k notes) …`; `Enter` on
   its `+` drills into its children and `b` comes back out, one level at a time. The keys are shown like `1`, `2` and `r`: `c` marks the
@@ -514,6 +564,10 @@ open is listed under known gaps in `CHANGELOG.md` (v7.6.0).
 
 ## Still not verified
 
+- **The last round's changes, live.** The strip and the two layouts, the pane's fit to the 2.1.319
+  width cap, the command gate's and the forbidden-file check's new reading, the tool-call table and
+  the waiting items were checked by fresh verifiers through the plugin test harness and its
+  renders; the run's record holds no live check of them.
 - **Drawing in the Desktop app.** The pane and the band have now been seen in a real terminal
   (above); nobody has looked at them in the Desktop app.
 - **Which wake channel fires,** and whether the prime's first act after an interactive rotation is

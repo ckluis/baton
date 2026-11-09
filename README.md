@@ -36,28 +36,54 @@ node with the verdict as a check.
 ## What's new in v7.6
 
 v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live on Claude Code
-2.1.316; its final test runs were on 2.1.317. In full:
+2.1.316; the last round (the strip, the pane's fit to the width cap, the command checks) was
+tested through the plugin harness, the final suites on 2.1.321. In full:
 [CHANGELOG.md](CHANGELOG.md) (v7.6.0) and [mod/README.md](mod/README.md).
 
 - **Checked against the engine.** Every `$` call, event and result shape in the hooks module was
-  checked against Claude Code's declared types, and 42 mismatches were fixed. The prime guard, the
-  command gate, forbidden files, pause, the phase gate, enforced rulings and checkpoints fail
-  closed when they crash: a command the gate cannot check is refused, not run.
+  checked against Claude Code's declared types; 42 mismatches were found, and all but three (which
+  behave right and are pinned by tests) were fixed. The prime guard, the command gate, forbidden
+  files, pause, the phase gate, enforced rulings and checkpoints fail closed when they crash: a
+  command whose check throws an error is refused, not run.
+- **The command gate and the forbidden-file check read a line as the shell does.** The gate asks
+  before a push, a PR create, merge or close, a release or package publish, a GitHub API write, a
+  hard reset or other discard of local changes, or a recursive delete when the line spells it out,
+  through global options, aliases given with `-c`, combined or abbreviated flags, gh's short-flag
+  clusters, git's `git-<sub>` programs by path, quoting tricks, the wrappers it lists, `$( )`,
+  `sh -c`, eval, heredocs and here-strings. It does not see a script file's contents, shell or git
+  config aliases, a command built from a variable, text piped into a shell, unlisted wrappers that
+  take the command as one string, or package scripts. The forbidden-file check asks git what a
+  staging line would stage and refuses a secret, key or env file in it, and refuses with a reason
+  a staging line it cannot follow (unresolvable paths, aliases or functions defined on the line,
+  `source`/`eval`, `CDPATH`/`IFS`-style variables, `~` or `$HOME`). Known gaps, first on the v7.7
+  list: the gate misreads gh's value-taking flags placed before the subcommand (`gh -H a:b -X POST
+  api …` is not asked about); the staging check misses staging built through further indirection (a
+  variable that names `CDPATH`, a command word built from variables) and does not cover `git stash
+  -u`, `git update-index`, `git apply --cached` or git config aliases.
 - **Models and spend.** Haiku 5.5 is the mechanical model and condenses PR comments; merges and
   ruling extraction stay on Sonnet 5.5 after a blind A/B. `_orch/spend.json` writes a dollar
   figure beside each model's tokens, and keeps Claude Code's own session total beside them. Idle
-  CPU is within its budget.
+  CPU is within its budget, as measured with no run active before the last round of changes; a
+  re-measure at the release tip, during a run, is pending.
 - **Run membership follows the session**, not the current directory: a session that `cd`s into a
   run is not armed, a second interactive session is asked before it takes over, and a restart
   picks the run up.
 - **The pane.** Each agent shows its exact model and reasoning effort (`opus 5.5 · high`), red when
   what served differs from what was asked. Phases are rows of the agent tree, each with its
   sub-orchestrator under it. Two column groups, `this agent` and `roll-up`; steps on every row;
-  a letter for every agent and phase row; the list scrolls in the pane's full height with running
+  a letter for each agent and phase row while the 22 letters last; the list scrolls in the pane's full height with running
   agents pinned in view. A question is answered with `a` and a blocked node approved with `y` or
-  `w` from the pane, and the answer reaches the asking node.
+  `w` from the pane, and the answer reaches the asking node. `⚑ waiting for you` lists only what
+  waits now: an agent the prime has since sent new instructions leaves it. An agent's view lists
+  its last tool calls as an aligned table (time, tool, target, status).
+- **Fitted to Claude Code's pane cap.** Claude Code 2.1.319 caps a docked pane at
+  min(floor(cols × 0.45), cols − 60), by default min(floor(cols × 0.45), 90, cols − 70), with no
+  setting, so a 110-column terminal docks baton at 49 columns and a 200-column one at 90. baton asks
+  for the ceiling each time it opens the pane and fits each view to it; in the tests at 40 to 200
+  columns every agent row keeps its exact model, effort and state, and its label reads at least
+  its role and node. At 49 columns and below an agent row takes four lines.
 - **Two layouts: the strip (the default) and the side panel.** The strip is two lines above the
-  prompt: the context, 5-hour and weekly gauges (`n/a` and why when a figure is missing), then
+  prompt (a third only while a notice shows: baton paused, an update, a doctor warning): the context, 5-hour and weekly gauges (`n/a` and why when a figure is missing), then
   `open: ctrl+x tab, then w work · m memory`. `ctrl+x tab` puts the keys on the strip, `w` opens
   Work and `m` Memory inline at full width, and `Esc` goes back to the strip. While a phase waits,
   `1` approves it and `2` sends it back. `/baton layout panel` switches to the side panel docked
@@ -65,7 +91,8 @@ v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live
   `/baton layout` says which one is on. The choice is saved for every session. From 45 columns
   the strip names the layout and the command that switches it (`strip · /baton layout panel`),
   except while a phase waits for approval at 45 to 54 columns, where only a short form fits
-  beside the keys (`/baton layout`, or `layout: /baton layout` at 53 and 54). Below 45 the strip may leave it out; `/baton layout` and every view you dive
+  beside the keys (`/baton layout`, or `layout: /baton layout` at 53 and 54). At 40 to 44 columns
+  the strip leaves it out (`/baton layout` where it fits); `/baton layout` and every view you dive
   into still say it. The strip wants
   Claude Code's main-screen renderer and the panel its fullscreen one. When they don't match, one
   line under the strip says what to type (`/tui default` or `/tui fullscreen`; Claude Code
@@ -74,13 +101,22 @@ v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live
   `memory_mark`, `project_mark` and `c` / `v` / `u` in the pane mark a note ✅ or ❌ with a reason;
   a ❌ note leaves wake, recall and the summaries, and nothing is deleted. `memory_note` takes a tag.
 
-Known gaps, seen live and not fixed: in a docked pane that is also short, the agent list stops
-scrolling and pushes the lines under it out of view; at a docked width the key hint is cut; the
+Known gaps, not fixed: the two command-check gaps above; in a very short pane (under about 7 rows
+at 49 columns) the key hint is kept and no agent row is drawn; while a phase waits for approval on
+a strip 45 to 54 columns wide the layout hint is a short form (`/baton layout`); at 40 to 44 columns the strip
+leaves out the layout hint; the update notice's strip line is not pinned by a test; the tests that
+timed out under load got a 60 s budget, not a speedup; the
 spend file has no line of its own for Claude Code's Haiku session-title request; a ruling can
 still be marked by linking its files into the memory by hand; an answer dialog left open over 10
 seconds leaves the brief un-redrawn; after a pane dialog closes, keys go to the prompt. Details in
 [CHANGELOG.md](CHANGELOG.md). A run started under 7.5.1 records no heartbeat, so a 7.6 session
 opened in its folder takes it over as a restart would: close or finish a 7.5.1 run first.
+
+Planned for v7.7, in order: (1) the command gate reads gh's value-taking flags placed before the
+subcommand; (2) the forbidden-file check refuses indirectly built staging lines and covers
+`git stash -u`, `update-index`, `apply --cached` and git config aliases; (3) a real speedup of the
+tests that start the mod; then the approvals unit, a new session never taking over without asking,
+a cheaper verifier tier, and `NODE_OPTIONS` hardening.
 
 ## v7.0 — since v6.0
 

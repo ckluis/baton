@@ -3,13 +3,18 @@
 ## v7.6.0
 
 Tuning, built and checked against Claude Code 2.1.316 (Claude Code updated itself to 2.1.317 during the
-last checks; the final test run was on 2.1.317). 569 plugin tests and 161 node tests pass.
+P4 measurements). The last round (P7: the pane, the command gate, the staging check) was tested
+through the plugin harness; at the release tip, on 2.1.321, 950 plugin tests and 265 node tests
+pass.
 
 - **T1 · API drift audit.** Every `$` call, event, matcher, option and result shape in
   `mod/hooks/register.js` was checked against the engine's declared types: 896 call sites, 852
-  matched, 42 mismatches fixed (each with a failing test first), 2 not checkable with the reason
-  given. The call sites this release added were re-checked against the 2.1.316 types: 39 of 39
-  match. `tsc -p mod` passes.
+  matched, 42 mismatches (plus 3 found beside the table), 2 not checkable with the reason given.
+  Every mismatch was fixed, each with a failing test first, except three whose behaviour is right
+  and which guard tests now pin. The call sites added up to `92c5ff3` were re-checked against the
+  2.1.316 types: 39 of 39 match. `tsc` passes against the 2.1.316 types, run through a config
+  outside the repository (mod's generated `tsconfig.json` is gitignored, so `tsc -p mod` alone has
+  no config to read).
 - **T2 · Failure handling on blocking hooks.** Every gating hook has a `.catch`. The prime guard,
   the command gate, forbidden files, pause, the phase gate, enforced rulings and checkpoints fail
   closed (a checkpoint that cannot be taken refuses the `rm`); notes and the rest fail open.
@@ -27,7 +32,10 @@ last checks; the final test run was on 2.1.317). 569 plugin tests and 161 node t
 - **T6 · Overhead.** Added latency per tool call, p50 3 → 12 ms, p95 65 → 23 ms, within the 25 ms
   budget (by point estimate only). Idle CPU was first measured at 1.094% of a core against a 1%
   budget; it is now within budget (see the spend and idle CPU fix below). The rulings memo moved off
-  the tool-call path and refreshes less often on the pane.
+  the tool-call path and refreshes less often on the pane. These numbers were measured at
+  `f3b6c85` (latency) and after the P4 idle fix (idle CPU), each with no run active; they do not
+  cover the run path or the P7 changes. A re-measure at the release tip, during a run, is pending
+  (M6C).
 - **T7 · Run membership follows the session**, recorded at `session.start` and keyed to the session
   id, never re-read from the current directory. A session that `cd`s into a run is not armed and
   writes no run notes; a second interactive session is asked before it takes over; a restart picks
@@ -36,8 +44,9 @@ last checks; the final test run was on 2.1.317). 569 plugin tests and 161 node t
   effort (`opus 5.5 · high`, a dim `cfg` when only the configured effort is known). Red when the
   served model or effort differs from the one asked for. The prime's row shows the session's model;
   outside a run the main row is `◇ session`.
-- **T9 · Every pane row has a key.** Agent and phase rows each get a letter, fixed for the row's life
-  and kept across a reload and a restart; ↑/↓, Enter, `b` and `+` are drawn in the accent like `1`,
+- **T9 · Pane rows have keys.** Agent and phase rows each get a letter while the 22 letters last
+  (a row past them opens by focus and Enter), fixed for the row's life and kept across a reload and
+  a restart; ↑/↓, Enter, `b` and `+` are drawn in the accent like `1`,
   `2` and `r`.
 - **T10 · Phases are rows of the agent tree.** A legend says what a phase is; each P<n> sits under
   the prime with its sub-orchestrator under it; a pending phase is a dim row; the separate plan
@@ -57,8 +66,9 @@ last checks; the final test run was on 2.1.317). 569 plugin tests and 161 node t
 - **T15 · The agent list scrolls** in the pane's full height, every agent listed (finished ones
   dimmed), running agents pinned in view, `↑ <k> more` / `↓ <k> more` for the hidden rows, and no
   "earlier finished agents" fold line.
-- **Tests checked.** A guard audit made every `guard:` test fail on at least one mutant of the code
-  it guards, or removed it.
+- **Tests checked.** A guard audit of 128 `guard:` tests made each one fail on at least one mutant
+  of the code it guards, or removed it (2 removed); ten of them were tightened after the last confirm round and
+  were not confirmed again, and are named as weak checks in the pull request.
 
 Fixed after the first live checks. Each fix started from a test that failed, and what was first
 seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
@@ -93,8 +103,82 @@ seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
   the rulings store; `project_note` with `Rulings` writes to the one rulings store, not a second
   one. New tests pin that marks are appended and kept, that each mark action has one key, and that
   `v` marks the opened note.
+- **Spend shows a cost per model, and idle CPU is within budget.** `_orch/spend.json` now writes a
+  dollar figure beside each model's tokens, and a total; prices a 1-hour cache write at twice the
+  input price (the prime's are told apart from the session's own transcript, which is only read);
+  counts baton's own model calls; and keeps Claude Code's session total, and the part of it baton
+  did not count, beside them. A 150 ms timer that woke for nothing and the redraws it caused at idle
+  are gone: the idle CPU baton adds fell from 2.24% of a core (measured the same way before the fix)
+  to 0.068% (0.149% over all ten runs of each kind), against a 1% budget. Measured in interleaved
+  five-minute windows with and without baton on a shared machine, with the pane open and no run
+  active; Claude Code updated itself from 2.1.316 to 2.1.317 partway through. Each idle measurement
+  now keeps the screen it was taken on.
+
+Added in the last round (P7). Each change started from a failing test and was checked by a fresh
+verifier through the plugin test harness and its renders; none of it was checked live in this
+record:
+
+- **The command gate reads a command line the way the shell splits it (GT1).** It asks before a
+  push, a PR create, merge or close, a release or package publish, a write through the GitHub API,
+  a hard reset or other discard of local changes, or a recursive delete, when that command is
+  spelled out on the line: through git's and gh's global options, gh's aliases and git aliases
+  given on the line with `-c`, flags split, combined, long, abbreviated to a unique prefix or after
+  the operand, gh's short flags read as gh reads them (`-iXPOST`, `-iX POST`, `-X=POST`, fields in a
+  cluster), program names in any letter case, git's own subcommand programs (`git-push`,
+  `git-reset`, `git-clean`, `git-checkout`, `git-restore`, `git-branch`, `git-switch`) by any path,
+  ANSI-C quoting and brace expansion, a full path, the wrappers it lists (env, command, sudo, doas,
+  xargs, nice, time, timeout, nohup, setsid, xcrun, arch and a few more) or any other program
+  followed by the command as separate words, inside `$( )`, backticks, `sh -c`, eval, or a heredoc
+  or here-string fed to a shell, and after any separator. It does not see a command the line does
+  not spell out: a script file's contents, a shell alias or function, a git alias set in git
+  config, a command built from a variable (`eval "$cmd"`), text piped into a shell, a wrapper it
+  does not list that takes the command as one quoted string (`ssh host '...'`, `su -c '...'`), a
+  git subcommand program after a program it does not list or under another name (a link to it), or
+  a package script or build recipe (`npm run x`, `make x`). As before, it also asks when the plain
+  wording of one appears in quoted or heredoc text (a false alarm). Known gap: gh's value-taking
+  flags placed before the subcommand with two or more value words (`gh -H a:b -X POST api …`,
+  `gh -f a=b -f c=d api …`) are misread, so that GitHub API write is not asked about; one value flag
+  before `api` (`gh -XDELETE api …`) is caught.
+- **The forbidden-file check asks git what a staging line would stage (FF1).** For `-C`, `cd`, `.`,
+  `-A`, `-u`, directories, globs, `commit -a`, pathspecs, `GIT_DIR` and its kin, it asks git
+  (read-only) which paths the line would include and refuses when one is a secret, key or env
+  file. A staging line that also does what the check cannot follow is refused with a plain reason:
+  a directory or path it cannot resolve, an alias or function defined on the line, `source` or
+  `eval`, `CDPATH`, `IFS` and similar shell-reading variables, and `~` or `$HOME` (the mod never
+  reads HOME). Known gaps: staging built through further indirection still gets through (a variable
+  or `declare` that sets `CDPATH` by a name held in another variable, `source` or `eval` run
+  through a variable, a command word assembled from variables such as `${g}t add .`; 13 such lines
+  in the verifier's attack); not covered at all: `git stash -u`, `git update-index`,
+  `git apply --cached` and aliases set in git config.
+- **The pane fits the width Claude Code allows it (PW1).** Claude Code 2.1.305 added a cap on a
+  mod's docked pane; in 2.1.319 the dock is min(floor(cols × 0.45), cols − 60), and by default
+  min(floor(cols × 0.45), 90, cols − 70), at least 24, with no setting to change it, so a
+  110-column terminal docks baton at 49 columns, a 165-column one at 74 and a 200-column one at 90.
+  baton asks for the ceiling width each time it opens the pane and fits each tab and view to it. In
+  the tests and renders at every width from 40 to 200, each agent row keeps its exact model, effort
+  and state, its label reads at least its role and node (`worker T201 strea…`), and a wider pane
+  never shows less of a label or a state than a narrower one. In a short pane the lines that hold
+  no agent give way first, so the key hint and an agent row stay on screen down to about 7 rows at
+  49 columns (about 5 at 90). At 49 columns and below an agent row takes four lines (label, model,
+  costs, then steps and state), and below 49 the keys row and the key hint take two lines each.
+- **An agent's last tool calls are an aligned table (TC1).** The agent view lists them with a
+  header row and the columns time, tool, target (path, command or pattern) and status, each long
+  cell cut at its end with `…`. In the tests at 40, 49, 60, 75, 90 and 120 columns no row wraps or
+  passes the width; at the narrowest the size and seconds drop first, and the tool and target stay.
+- **"Waiting for you" shows only what waits now (WT1).** An agent that returned `BLOCKED` naming a
+  cmux surface shows as `⚑ <agent> · surface:<n> "<title>"` with its plain instruction line, and the
+  band reads `1 blocked (<agent> · surface:<n>)`. Once the prime sends that agent new instructions,
+  the item, its line and the band's flag go, and its brief says `no longer waiting for you: it was
+  sent new instructions`; a wait that is still current stays. With an open question the item sits
+  under the `?` row and goes with it.
+- **Tests that timed out under load (XTFL1).** Under four suites run at once, 40 tests ran past the
+  5 s default. The t15 paging loop now stops at the bottom, and every test file that starts the
+  mod (35 files) has a 60 s budget per test; 5 rounds of 4 concurrent suites then ran 20 of 20
+  green. This is a larger time budget, not a faster test.
 - **The strip, and a layout to choose (CS1, CS2, LM1).** The band above the prompt is a strip of
-  two lines: the gauges (context against rotate-at, the 5-hour and weekly limits with their resets,
+  two lines, with a third only while a notice shows (baton paused, an update available, a doctor
+  warning) that goes when the notice clears; tests pin this for the pause and doctor notices, not
+  for the update notice, which the test harness cannot raise. The two lines: the gauges (context against rotate-at, the 5-hour and weekly limits with their resets,
   `n/a` and why for a missing figure), then the way in, `open: ctrl+x tab, then w work · m memory`
   (`ctrl+x tab: w work · m memory` when narrow), the goal, the live count and the cost. With the
   strip focused (`ctrl+x tab`), `w` opens Work and `m` Memory inline at full width, and every view
@@ -105,31 +189,32 @@ seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
   strip names the layout and the command that switches it (`strip layout · /baton layout panel
   switches` where it fits, else `strip · /baton layout panel`), the goal, cost and gauge details
   giving way for it; while a phase waits for approval it does so from 55 columns, and at 45 to 54
-  says `/baton layout` (`layout: /baton layout` at 53 and 54) beside the keys. Below 45 columns the strip may leave it out, and
-  `/baton layout` and every view you dive into (which says it under its read line) still say it. When
+  says `/baton layout` (`layout: /baton layout` at 53 and 54) beside the keys. At 40 to 44 columns
+  the strip leaves it out (in some states `/baton layout` still fits there); `/baton layout` and every view you dive into (which says it under its
+  read line) still say it. The pane opens by itself only in the panel layout. When
   the layout does not match Claude Code's renderer, one line under the strip says what to type:
   `/tui default` for the strip, `/tui fullscreen` for the panel, and that Claude Code restarts and
   resumes the session. baton writes no Claude Code setting.
-- **Spend shows a cost per model, and idle CPU is within budget.** `_orch/spend.json` now writes a
-  dollar figure beside each model's tokens, and a total; prices a 1-hour cache write at twice the
-  input price (the prime's are told apart from the session's own transcript, which is only read);
-  counts baton's own model calls; and keeps Claude Code's session total, and the part of it baton
-  did not count, beside them. A 150 ms timer that woke for nothing and the redraws it caused at idle
-  are gone: the idle CPU baton adds fell from 2.24% of a core (measured the same way before the fix)
-  to 0.068% (0.149% over all ten runs of each kind), against a 1% budget. Measured in interleaved
-  five-minute windows with and without baton on a shared machine; Claude Code updated itself from
-  2.1.316 to 2.1.317 partway through. Each idle measurement now keeps the screen it was taken on.
 
-Known gaps, seen live and not fixed in this release:
+Known gaps, not fixed in this release:
 
-- In a docked pane about 73 columns wide (a 165-column terminal) that is also short (about 19 lines
-  or fewer when questions and rulings are shown, under 14 with neither), the agent list stops
-  scrolling and the lines under it (the key hint, the message field, open questions, rulings) are
-  pushed out of view. Make the terminal taller, or open the pane wider with `/baton`, to see them.
-  Before this release's fixes, cells were cut at every height.
-- At a docked width (73 to 90 columns) the key hint line is cut with `…`, so the hints for `p`
-  (show every node) and `b` (go back) are not shown; the keys still work. The goal progress line
-  and the tree legend are cut there too.
+- The command gate misreads gh's value-taking flags placed before the subcommand (`gh -H a:b -X
+  POST api …`), so that GitHub API write is not asked about (GT1, above). First on the v7.7 list.
+- The forbidden-file check lets through staging built from further indirection, and does not cover
+  `git stash -u`, `git update-index`, `git apply --cached` or aliases set in git config (FF1, above).
+- In a very short pane the key hint is kept and no agent row is drawn, even where one would fit
+  beside it: under about 7 rows at 49 columns, 5 at 75 to 110, 4 at 120 and more, 9 at 40. This
+  replaces the first live checks' short-docked-pane gap (the list stopped scrolling and pushed the
+  key hint out of view): in the checks of this release the key hint stays in a pane of every height
+  drawn (1 to 24 rows, 40 to 200 columns), and the key hint now flows onto a second line instead of
+  being cut with `…` at a docked width.
+- While a phase waits for approval on a strip 45 to 54 columns wide, the layout hint is the short
+  `/baton layout` (`layout: /baton layout` at 53 and 54), not the layout's name and switch command.
+- At 40 to 44 columns the strip leaves out the layout-switch hint; the views and `/baton layout`
+  still show it.
+- The update notice's third strip line is not pinned by a test (the harness cannot raise it; it
+  clears only on a plugin reload).
+- The tests that timed out under load have a 60 s budget per test instead of being made faster.
 - `_orch/spend.json` has no cost line of its own for the session-title request Claude Code makes on
   Haiku by itself (about $0.0002 a session). The only record of that cost by model is in
   `~/.claude.json`, which baton does not read. The cost is inside Claude Code's session total and
@@ -144,6 +229,18 @@ Known gaps, seen live and not fixed in this release:
   and still reads `waiting for you`. The answer is written and delivered all the
   same. This was so before this release too.
 - After a pane dialog closes, keys go to the prompt, not the pane, until the pane is focused again.
+
+Planned for v7.7, in this order:
+
+1. The command gate reads gh's value-taking flags placed before the subcommand.
+2. The forbidden-file check refuses staging lines whose command word or shell variables are built
+   indirectly, and covers `git stash -u`, `git update-index`, `git apply --cached` and git config
+   aliases.
+3. A real speedup of the tests that start the mod, in place of the 60 s per-test budget.
+4. Then: approvals (a command to take back a run-wide approval; the gate's false alarm on command
+   words in file text; an approval coming back run-scoped when once was meant), a new session
+   never taking over a run without asking, a cheaper verifier tier for criteria a command alone
+   can settle, and hardening against `NODE_OPTIONS`.
 
 ## v7.5.1 — 2026-10-19
 
