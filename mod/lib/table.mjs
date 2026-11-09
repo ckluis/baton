@@ -143,7 +143,8 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
 
 /**
  * Narrower than any two-line row (a dock under about 60 columns, PW1): a row takes three lines, the label and the
- * model, then both column groups, then the steps and state; narrower again, four, the model on a line of its own.
+ * model, then both column groups, then the steps and state; where the label would be cut under `read` beside the
+ * model (a 49-column dock), four, the model on a line of its own.
  * Every line after the first starts under the label (`breaks`: the column each line starts at, and its pad). Nothing
  * drops here (Q-11, D-T10-group-cells, the operator's ruling that an agent always shows its model and effort): the
  * label is cut first, then state; a pane narrower than even four lines draws past its edge, as D-F110 has it.
@@ -158,6 +159,10 @@ function stackRows(cols, width, stateW, agentFloor, read, span) {
   for (const four of [false, true]) {
     const room = four ? width : width - gapOf(agent) - model.dw
     if (four && model.dw > width) return false
+    // Three lines only while the label keeps `read` beside the model (PW1 attempt 3): else the model takes a line of its
+    // own and the label its `read`, so a 49-column dock reads `worker T201 strea…` as a 40-column pane does, not
+    // `worker T2…` (a wider pane never draws less of a label).
+    if (!four && room < read) continue
     if (Math.min(read, room) < agentFloor) continue
     agent.dw = Math.min(read, room) // `read` at most, as the two-line rows draw it (fitDrawn)
     state.dw = state.w = lastW

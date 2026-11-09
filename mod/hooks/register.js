@@ -2076,7 +2076,7 @@ function workspaceBody($, ui) {
     const drawn = new Set()
     qs.forEach((q, i) => {
       const open = opens[i]
-      out.push(opt(DROP_RANK.questions, Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), tone(q), cols - buttonWidth(open))] }), i === 0 ? folded : null))
+      out.push(opt(DROP_RANK.questions, Box({ key: 'w-q' + i, flexDirection: 'row', children: [open, line('w-qt' + i, '? ' + questionLine(q), tone(q), cols - buttonWidth(open))] }), i === 0 ? opt(DROP_RANK.folded, folded) : null))
       // the pane its blocked agent asks you to press, and what pressing it does, under its row (WT1), once an agent
       for (const n of ws.panes(q).filter((x) => !drawn.has(x.id))) {
         drawn.add(n.id)
@@ -2097,13 +2097,18 @@ function workspaceBody($, ui) {
  * findings, the merge-ready rows (p) and the diagnosis, the tree's legend, the ruling rows (Memory has them all),
  * the spacer above the questions, the open questions (folded to one line, their count and the first: PW1 attempt 2),
  * the merge-ready line, the queue line, the goal's links, the PR's steps, the goal's steps, and last a blocked agent's
- * `⚑` line (its plain line goes with the questions; WT1: the band still names it). Never: the keys row, the
- * read line, a phase waiting for its check, the table header, the list (every agent with its model, effort and
- * state), the key hint, the message field. The band above the prompt keeps the goal's and the PR's state in any case.
+ * `⚑` line (its plain line goes with the questions; WT1: the band still names it). The band above the prompt keeps
+ * the goal's and the PR's state in any case.
+ * Shorter still (a pane of about 16 rows or fewer, PW1 attempt 3), the lines that hold no agent: the read line, the
+ * table's group line, its header, a phase waiting for its check (`approve` and its send-back field: the band keeps
+ * `1: approve` and `2: send back`), the folded questions line, and then the key hint takes its one-line form (every
+ * key, fewer words). Then the list is drawn as a window of one row and one more line (placeList). Never: the list's
+ * row (an agent with its model, effort and state), the key hint, the message field; the keys row only when not even
+ * it and the hint's line fit (`keys`, placeList).
  */
-const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11, waiting: 12 }
+const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11, waiting: 12, read: 13, groups: 14, head: 15, approvals: 16, folded: 17, hint: 18, keys: 19 }
 const OPT = Symbol('an entry that may give way in a short pane')
-// `alt`: what the entry gives way to (the folded questions line), else nothing
+// `alt`: what the entry gives way to (the folded questions line, the hint's one-line form: an entry or a list), else nothing
 const opt = (rank, el, alt = null) => ({ [OPT]: { el, rank, alt } })
 
 /** The cells a Button draws: its `k: ` and label when plain, `[ label ]` else. */
@@ -2581,8 +2586,11 @@ function agentRow(r) {
 function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }) {
   const out = []
   if (onlyInput) return messageField($, { Box, Text, Input })
+  // a phase waiting for its check gives way in a pane too short for even one row of the list (DROP_RANK.approvals):
+  // the band above the prompt keeps its `1: approve` and `2: send back`
+  const waits = (el) => out.push(opt(DROP_RANK.approvals, el))
   approvals.queue.forEach((q, i) => {
-    out.push(
+    waits(
       Box({
         key: 'q' + i,
         flexDirection: 'row',
@@ -2595,7 +2603,7 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
     )
   })
   if (approvals.queue.length) {
-    out.push(
+    waits(
       Input({
         key: 'send-back',
         label: 'Send back ' + approvals.queue[0].label,
@@ -2633,8 +2641,9 @@ function agentsBody($, { Box, Text, Button, Input, Link, line, cols, onlyInput }
   // one line at any width: the list counts it as one (P4-FX3-d3); the longest form that fits the pane (PW1)
   if (track.view) out.push(opt(DROP_RANK.legend, Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(LEGENDS.find((l) => cellWidth(l) <= (cols || 120)) ?? LEGENDS.at(-1), cols || 120)] })))
   const dimSeg = (y) => [Text({ dimColor: true, children: [y.text] })]
-  out.push(Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
-  out.push(Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] }))
+  // the group line and the header give way in a pane too short for one row of the list (DROP_RANK.groups, .head)
+  out.push(opt(DROP_RANK.groups, Box({ key: 'ag', flexDirection: 'row', children: [Text({ children: ['  '] }), ...t.groups.flatMap((x) => segEl(x, dimSeg, Box, Text))] })))
+  out.push(opt(DROP_RANK.head, Box({ key: 'ah', flexDirection: 'row', ...wrapRow, children: [Text({ children: ['  '] }), ...t.header.flatMap((x) => segEl(x, dimSeg, Box, Text))] })))
   // The list itself is drawn by the Pane, which knows the rows it has left for it (T15, Q-68).
   const draw = (x, at) => itemLine($, x, at, { Box, Text, Button }, (y) => rowCells(x, lineOf.get(x), t.cols[0] === 'agent', tone, Text, Box), wrapRow)
   // The lines each list item takes (P4-FX3-d3): a tree row of a two-line table two, a note row one; the header's
@@ -2865,44 +2874,62 @@ function itemId(x) {
  * and the pane's last row stays empty, so the engine's Home and End (`contentRows`) are told from its
  * PageUp and PageDown (`bodyRows`) (Q-F115-1 A, D-F115-spare-row). It is all counted in screen lines, a
  * row of a two-line table two (P4-FX3-d3); the spacer stays for the one line such a row may leave over.
+ * `body` opens with the keys row and the read line (the Pane's); `keys`, the keys row's Buttons (PW1 attempt 3).
  */
-function placeList(body, rows, { Text, Box, cols = Infinity }) {
+function placeList(body, rows, { Text, Box, cols = Infinity, keys = [] }) {
   const L = pane.list
   const unwrap = (x) => (x && x[OPT] ? x[OPT].el : x)
   let at = body.findIndex((x) => x && x[LIST])
   L.on = at >= 0
   if (!L.on) return body.map(unwrap).flatMap((x) => (x && x[GAP] ? [x[GAP]] : [x]))
   const { items, draw, hidden, lines: linesOf = () => 1, head = 0 } = body[at][LIST]
-  // Everything here is in screen lines (P4-FX3-d3): the lines besides the list are the tab row, the `read … · Esc
+  // Everything here is in screen lines (P4-FX3-d3): the lines besides the list are the keys row, the `read … · Esc
   // closes` line, the body's other entries (each one line, PW1) and the header's further lines when the table takes
-  // more than one line a row (P4-FX3-d2); each list item takes its own lines (`linesOf`), the more and `+<k> running`
-  // lines one each.
+  // more than one line a row (P4-FX3-d2) and the header is drawn; each list item takes its own lines (`linesOf`), the
+  // more and `+<k> running` lines one each.
   const costAll = items.map((x) => linesOf(x))
   const whole = costAll.reduce((a, b) => a + b, 0)
   const need = 2 + Math.max(1, ...costAll)
+  const has = (rank) => body.some((x) => x && x[OPT] && x[OPT].rank === rank)
   const measure = () => {
-    const others = 2 + body.length - 1 + head
+    const others = body.length - 1 + (has(DROP_RANK.head) ? head : 0)
     const gaps = body.filter((x) => x && x[GAP]).length
     return { others, gaps, area: rows - SPARE_ROWS - others + gaps }
   }
+  const giveWay = (rank) => {
+    body = body.flatMap((x) => (x && x[OPT] && x[OPT].rank === rank ? (x[OPT].alt ? [].concat(x[OPT].alt) : []) : [x]))
+    ;({ others, gaps, area } = measure())
+  }
   let { others, gaps, area } = measure()
   // Too short for a window (not one row and its two more lines) while the list does not fit: the entries that may
-  // give way do, lowest rank first (DROP_RANK, PW1), until the window has its room or none is left.
+  // give way do, lowest rank first (DROP_RANK, PW1), until the window has its room or none is left; the keys row is
+  // not among them (below).
   if (whole > rows - others && area < need) {
-    const ranks = [...new Set(body.filter((x) => x && x[OPT]).map((x) => x[OPT].rank))].sort((a, b) => a - b)
+    const ranks = [...new Set(Object.values(DROP_RANK))].filter((r) => r !== DROP_RANK.keys).sort((a, b) => a - b)
     for (const r of ranks) {
       if (area >= need) break
-      body = body.flatMap((x) => (x && x[OPT] && x[OPT].rank === r ? (x[OPT].alt ? [x[OPT].alt] : []) : [x]))
-      ;({ others, gaps, area } = measure())
+      giveWay(r)
     }
-    at = body.findIndex((x) => x && x[LIST])
   }
+  const fits = whole <= rows - others
+  // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
+  // Its hidden rows' letters stay bound on it; where text and letters are wider than the pane, the letters are held
+  // in a box no cells wide (PW1), so the line's own text is drawn whole.
+  const hold = (bs) => bs.map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
+  const dim = (text, key, keys = []) => {
+    const t = '  ' + text
+    const wide = cellWidth(t) + keys.reduce((n, b) => n + buttonWidth(b), 0) > cols
+    return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(t, cols)] }), ...(wide ? hold(keys) : keys)] })
+  }
+  // The keys a list line's elements are drawn under (its › and ✉), at a window slot or a strip place.
+  const keysAt = (x, at) => { const k = lineKeys(x || { kind: 'agent' }, at); return [k.open, k.msg] }
+  const pinOf = (x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME
+  if (!fits && area < need) return tinyList()
   body = body.map(unwrap)
-  // Still too short for a window: the list is drawn whole, as before.
-  const fits = whole <= rows - others || area < need
+  at = body.findIndex((x) => x && x[LIST])
   const its = fits ? items : items.filter((x) => x.key !== 't-nophase')
   const ids = its.map(itemId)
-  const pins = its.map((x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME)
+  const pins = its.map(pinOf)
   const pin = (i) => pins[i]
   const costs = its.map((x) => linesOf(x))
   const cost = (i) => costs[i] ?? 1
@@ -2912,14 +2939,41 @@ function placeList(body, rows, { Text, Box, cols = Infinity }) {
   // pane is filled to its height less its spare row, as with one-line rows.
   let keepGap = !fits && gaps > 0 && W.lines < area && costs.some((c) => c > 1) ? 1 : 0
   const lines = []
-  // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
-  // Its hidden rows' letters stay bound on it; where text and letters are wider than the pane, the letters are held
-  // in a box no cells wide (PW1), so the line's own text is drawn whole.
-  const dim = (text, key, keys = []) => {
-    const t = '  ' + text
-    const wide = cellWidth(t) + keys.reduce((n, b) => n + buttonWidth(b), 0) > cols
-    const held = wide ? keys.map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] })) : keys
-    return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(t, cols)] }), ...held] })
+
+  /**
+   * Too short for a window even with everything above given way (PW1 attempt 3: a pane of about 6 to 16 rows): the
+   * list is one row, its top row, and one more line under it that holds every other row's letters, so the person
+   * still opens any row by its letter and steps the row with ↑/↓. No spare row: what is drawn fits the pane.
+   * Shorter than the keys row, the hint's line, a row and its more line, the KEY HINT WINS over the agent row: it is
+   * the one line that says how to reach every row (the letters stay bound on the more line while that fits), where a
+   * row of a stacked table needs up to four lines and still shows one agent of many; the more line goes next, then
+   * the keys row last of all, only when not even it and the hint's line fit (a one- or two-row pane): its keys are
+   * held on the hint's line, in boxes no cells wide, so 1, 2, r and p still work.
+   */
+  function tinyList() {
+    let room = rows - others + gaps
+    let tabKeys = []
+    const hinted = () => body.some((x) => (unwrap(x) || {}).props?.key === 'w-hint')
+    if (room < 0 && keys.length && hinted()) {
+      giveWay(DROP_RANK.keys)
+      room = rows - others + gaps
+      tabKeys = keys
+    }
+    body = body.map(unwrap).map((x) => (tabKeys.length && x && x.props && x.props.key === 'w-hint' ? Box({ key: 'w-hint-keys', flexDirection: 'row', children: [x, ...hold(tabKeys)] }) : x))
+    at = body.findIndex((x) => x && x[LIST])
+    const its = items.filter((x) => x.key !== 't-nophase')
+    const ids = its.map(itemId)
+    const costs = its.map((x) => linesOf(x))
+    const found = L.topKey ? ids.indexOf(L.topKey) : -1
+    const top = Math.max(0, Math.min(found >= 0 ? found : L.top || 0, its.length - 1))
+    const one = room >= (costs[top] ?? 1) + 1
+    const rest = its.filter((_, i) => !(one && i === top))
+    const lines = []
+    if (one) lines.push(draw(its[top], '0'))
+    if (room >= 1) lines.push(dim((one && top > 0 ? '↑/↓ ' : '↓ ') + rest.length + ' more', 'l-down', rest.flatMap(hidden)))
+    const slot = one ? keysAt(its[top], '0') : []
+    Object.assign(L, { fits: false, n: its.length, area: Math.max(1, room), size: one ? 1 : 0, top, topKey: ids[top] ?? null, ids, pins: its.map(pinOf), costs, items: its, win: new Set(slot), keys: new Set(slot), first: new Set(slot), last: new Set(slot) })
+    return [...body.slice(0, at), ...lines, ...body.slice(at + 1)].filter((x) => !(x && x[GAP]))
   }
   const running = (k) => ' · +' + k + ' running'
   const shown = new Set([...W.above, ...W.below])
@@ -2931,8 +2985,6 @@ function placeList(body, rows, { Text, Box, cols = Infinity }) {
   W.below.forEach((i, j) => lines.push(draw(its[i], 'sb' + j)))
   if (W.plusBelow && W.stripBelow) lines.push(Text({ color: 'cyan', children: ['  +' + W.plusBelow + ' running'] }))
   if (W.hiddenBelow) lines.push(dim('↓ ' + W.hiddenBelow + ' more' + (W.plusBelow && !W.stripBelow ? running(W.plusBelow) : ''), 'l-down', out(W.top + W.size, its.length).flatMap(hidden)))
-  // The keys a list line's elements are drawn under (its › and ✉), at a window slot or a strip place.
-  const keysAt = (x, at) => { const k = lineKeys(x || { kind: 'agent' }, at); return [k.open, k.msg] }
   const slot = (s) => keysAt(its[W.top + s], String(s))
   const win = Array.from({ length: W.size }, (_, s) => slot(s)).flat()
   const strip = [...W.above.flatMap((i, j) => keysAt(its[i], 'sa' + j)), ...W.below.flatMap((i, j) => keysAt(its[i], 'sb' + j))]
@@ -3205,7 +3257,11 @@ function messageField($, { Box, Text, Input, cols = Infinity }) {
     const short = [['↑/↓', ' then '], ['Enter', ' on › opens · '], ['✉', ' messages · '], ['p', ' shows every node · '], ['b', ' goes back']]
     const hl = keyHint({ Box, Text }, 'w-hint', long, foot, cols)
     const hs = keyHint({ Box, Text }, 'w-hint', short, foot, cols)
-    out.push(...(hs.length < hl.length ? hs : hl))
+    // In a pane too short for one row of the list, the hint gives way to its one-line form (PW1 attempt 3,
+    // DROP_RANK.hint): every key still, with one word each.
+    const one = keyHint({ Box, Text }, 'w-hint', [['↑/↓', ' '], ['Enter', ' opens · '], ['✉', ' messages · '], ['p', ' nodes · '], ['b', ' back']], '', cols)
+    const rows = hs.length < hl.length ? hs : hl
+    out.push(...(one.length < rows.length ? rows.map((r, i) => opt(DROP_RANK.hint, r, i === 0 ? one : null)) : rows))
   }
   return out
 }
@@ -5105,11 +5161,12 @@ export function register(on, options) {
     if (pane.tab !== 'memory') await loadLetters($)
     // The keys row takes as many lines as the pane needs for it (PW1); the list is told of the lines it takes.
     const tabRows = buttonRows(Box, 'tabs', tabs, cols, 3)
-    const body = placeList(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui), rows - (tabRows.length - 1), ui)
-    const root = Box({
-      flexDirection: 'column',
-      children: [...tabRows, line('read', 'read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes', { dimColor: true }), ...body],
-    })
+    // The keys row and the read line lead the body the list is placed in (PW1 attempt 3): in a pane too short for one
+    // row of the list the read line gives way, and the keys row too where not even it and the hint's line fit (their
+    // keys then held on the hint's line, placeList).
+    const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', 'read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes', { dimColor: true }))]
+    const body = placeList([...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))], rows, { ...ui, keys: tabs })
+    const root = Box({ flexDirection: 'column', children: body })
     pane.list.ring = focusRing(root)
     return root
   })
