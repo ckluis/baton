@@ -27,10 +27,13 @@ const mentioned = (text) => GATES.find((g) => g.re && g.re.test(text)) ?? null
 /**
  * The gate a shell command line must wait at, or null. The line is read as the shell reads it:
  * split into simple commands (at ; & | && || newlines and parentheses, and inside $( ), backticks,
- * <( ), sh -c strings and eval), each stripped of assignments, shell keywords, wrappers (env,
- * command, sudo, xargs, nohup, time, timeout, ...) and the program's global options (git -C/-c/
- * --git-dir..., gh -R/--repo/--hostname), then judged by subcommand and flag set, flags split,
- * combined, long or after the operand. What the shell does not run is read as v7.7 read it (see
+ * <( ), sh -c strings, eval, and heredocs or here-strings fed to a shell), with ANSI-C quoting
+ * decoded and braces expanded; each is stripped of assignments, shell keywords, the wrappers in
+ * WRAPPERS (plus env and command) with their option tables, and the program's global options
+ * (git's own list, -c aliases followed; gh -R/--repo/--hostname), then judged by subcommand and
+ * flag set: flags split, combined, long, abbreviated to a unique prefix, or after the operand;
+ * program names in any case. A program it does not know is read as a possible wrapper of a
+ * judged one named later in its words. What the shell does not run is read as v7.7 read it (see
  * GATES). A line the reader cannot take apart is read the v7.7 way whole.
  */
 export function gateFor(command) {
@@ -561,7 +564,10 @@ function judge(argv, stdin = [], depth = 0) {
   }
   if (p === 'git') return git(a, depth, line)
   if (p === 'gh') return gh(a)
-  if (p === 'rm') return flags(a).has('r', 'recursive') || flags(a).short.has('R') ? gate('rm') : null
+  if (p === 'rm') {
+    const f = flags(a)
+    return f.has('r', 'recursive') || f.short.has('R') ? gate('rm') : null
+  }
   if (p === 'find') return find(a, depth)
   if (p === 'npm' || p === 'pnpm' || p === 'yarn') return pkg(p, a)
   if (p === 'cargo') {
