@@ -5550,13 +5550,13 @@ export function register(on, options) {
         const segs = fitStrip([...items, { key: 'layout', forms: [{ text: f, pri: 2.9 }] }], bw)
         const at = segs.find((x) => x.key === 'layout')
         if (at && at.text === f) {
-          stripSegs = segs // the layout item is the last: it ends line 2
-          modeAt = { line: 3, text: f }
+          stripSegs = segs // the layout item is the last: it ends line 2, already placed
+          modeAt = { line: 2, text: f, placed: true }
           break
         }
       }
     }
-    if (modeAt && modeAt.line === 2) stripSegs = [...stripSegs, ...(stripSegs.length ? [{ text: ' · ' }] : []), { key: 'layout', text: modeAt.text }]
+    if (modeAt && modeAt.line === 2 && !modeAt.placed) stripSegs = [...stripSegs, ...(stripSegs.length ? [{ text: ' · ' }] : []), { key: 'layout', text: modeAt.text }]
     const modeOn1 = modeAt && modeAt.line === 1 ? ' · ' + modeAt.text : null
     const segEl = (x) => (x.key === 'keys' ? keysBox((keyForms.find((f) => f.text === x.text) || { label: '' }).label) : segText(x))
     // The dive-in keys (CS2, P7-CS-d1 item 1): w opens Work, m Memory. Band Buttons on letters, so they press only

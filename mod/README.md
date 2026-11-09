@@ -294,8 +294,13 @@ under it out of view (both known gaps).
 above the prompt. The pane opens only when you dive in: `ctrl+x tab` focuses the strip, then `w`
 opens Work and `m` Memory inline at full width, and `Esc` goes back to the strip. `panel` is the
 side panel, docked and opening by itself. `/baton layout strip|panel` switches and saves the
-choice in baton's own store (key `layout`), and `/baton layout` prints the current one. The strip
-and the panel's key hint name the layout and the command that switches it where they have room.
+choice in baton's own store (key `layout`), and `/baton layout` prints the current one. From 45
+columns the strip always names the layout and the command that switches it, in the richest of
+`strip layout · /baton layout panel switches`, `strip · /baton layout panel`,
+`layout: /baton layout` and `/baton layout` that fits (`lib/view.mjs` layoutForms); to make room,
+the gauges give up their reset times and reasons (never a figure), then the goal, live count and
+cost give way. Below 45 columns there is no room for it beside the gauges, the hint and the
+approval keys. Every view you dive into, in either layout, says it under its read line.
 When the layout does not match the renderer Claude Code reports (`isFullscreen`), one line under
 the strip says what to type, `/tui default` or `/tui fullscreen`, and that Claude Code restarts
 and resumes the session. baton writes no Claude Code setting.

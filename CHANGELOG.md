@@ -101,8 +101,10 @@ seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
   says its way back (`Esc: back to the strip`). `1` approves a waiting phase and `2` sends it back,
   as before. The strip is the default layout. `/baton layout panel` switches to the side panel
   (docked, opening by itself), `/baton layout strip` switches back, and `/baton layout` prints the
-  current one. The choice is kept in baton's own store for every session. The strip and the
-  panel's key hint name the layout and the command that switches it, where they have room. When
+  current one. The choice is kept in baton's own store for every session. From 45 columns the
+  strip always says the layout and the command that switches it, shortened as the width shrinks
+  (`strip · /baton layout panel`, then `layout: /baton layout`, then `/baton layout`), and every
+  view you dive into says it under its read line. When
   the layout does not match Claude Code's renderer, one line under the strip says what to type:
   `/tui default` for the strip, `/tui fullscreen` for the panel, and that Claude Code restarts and
   resumes the session. baton writes no Claude Code setting.
