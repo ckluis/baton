@@ -261,8 +261,10 @@ const COMMIT_VALUED_LONG = ['message', 'file', 'reuse-message', 'reedit-message'
  *           (`cd`, `-C`, --git-dir, --work-tree, GIT_DIR=, GIT_WORK_TREE=), over its pathspecs:
  *           `.`, a directory, a glob, -A/--all, -u/--update, -p, commit -a/--all or a pathspec;
  *           -f/--force also lists ignored files;
- *   reason  set when the line cannot be read for this (too deep, a pathspec file), or when the
- *           directory, repository, subcommand or paths a staging command uses are not on the line.
+ *   reason  set when the line cannot be read for this (too deep, a pathspec file), when the
+ *           directory, repository, subcommand or paths a staging command uses are not on the line,
+ *           or when a line that may stage also does what this reader does not follow (unfollowed:
+ *           an alias, a function, source, eval, a shell fed its commands, a shell-reading variable).
  * `cwd` is the directory the command runs in, `home` the user's home directory (absent: `~` and
  * $HOME are not known, and `needsHome` says the plan wanted them). Pure.
  *
