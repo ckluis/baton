@@ -31,8 +31,9 @@ const mentioned = (text) => GATES.find((g) => g.re && g.re.test(text)) ?? null
  * decoded and braces expanded; each is stripped of assignments, shell keywords, the wrappers in
  * WRAPPERS (plus env and command) with their option tables, and the program's global options
  * (git's own list, -c aliases followed; gh -R/--repo/--hostname), then judged by subcommand and
- * flag set: flags split, combined, long, abbreviated to a unique prefix, or after the operand;
- * program names in any case. A program it does not know is read as a possible wrapper of a
+ * flag set: flags split, combined, long, abbreviated to a unique prefix, or after the operand
+ * (gh's read as pflag reads clusters, before `api` too); program names in any case, and git's
+ * own subcommand programs (git-push ...) as git. A program it does not know is read as a possible wrapper of a
  * judged one named later in its words. What the shell does not run is read as v7.7 read it (see
  * GATES). A line the reader cannot take apart is read the v7.7 way whole.
  */
