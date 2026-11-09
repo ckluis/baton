@@ -30,7 +30,7 @@ import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
 import { assignLetters, cellWidth, compareVersions, cutCells, fitStrip, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, STRIP_HINT, stripGauges, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
-import { DEFAULT_LAYOUT, LAYOUTS, layoutForms, layoutOf, layoutSwitched, layoutText, tuiHint } from '../lib/view.mjs'
+import { DEFAULT_LAYOUT, firstFit, LAYOUTS, layoutForms, layoutOf, layoutSwitched, layoutText, tuiHint } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
 
@@ -765,11 +765,9 @@ async function paneBody($, els, cols, rows) {
   // narrow pane that cuts it keeps that.
   const read = wayBack() + ' · read ' + (pane.refreshedAt ?? 'never') + (layout.mode === 'panel' ? '' : ' · Esc closes')
   // In the panel layout the key hint says the layout and the command that switches it (LM1), its richest form that fits.
-  const modeLine = () => {
-    const forms = layoutForms(layout.mode)
-    return line('layout', forms.find((f) => cellWidth(f) <= cols) ?? forms[forms.length - 1], { dimColor: true })
-  }
-  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true })), ...(layout.mode === 'panel' ? [opt(DROP_RANK.read, modeLine())] : [])]
+  const forms = layoutForms(layout.mode)
+  const modeLine = line('layout', firstFit(forms, cols) ?? forms[forms.length - 1], { dimColor: true })
+  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true })), ...(layout.mode === 'panel' ? [opt(DROP_RANK.read, modeLine)] : [])]
   return { ui, tabs, body: [...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))] }
 }
 
@@ -5529,11 +5527,11 @@ export function register(on, options) {
     const g1 = gauges(Math.max(1, bw - keysW))
     // the layout on line 1, after the gauges in the form they take anyway, where line 2 had not the cells for it
     const g1w = keysW + g1.reduce((n, x) => n + cellWidth(x.text), 0)
-    const modeOn1 = stripSegs.some((x) => x.key === 'layout') ? null : layoutForms(layout.mode).find((t) => g1w + cellWidth(' · ' + t) <= bw)
+    const modeOn1 = stripSegs.some((x) => x.key === 'layout') ? null : firstFit(layoutForms(layout.mode).map((t) => ' · ' + t), bw - g1w)
     const lineBox = Box({
       key: 'band',
       flexDirection: 'row',
-      children: [...(keysW ? [keysBox(''), segText({ text: ' · ' })] : []), ...g1.map(segText), ...(modeOn1 ? [segText({ text: ' · ' + modeOn1 })] : [])],
+      children: [...(keysW ? [keysBox(''), segText({ text: ' · ' })] : []), ...g1.map(segText), ...(modeOn1 ? [segText({ text: modeOn1 })] : [])],
     })
     if (update.state === 'available' || update.state === 'updating') {
       const { Button } = $.ui.resolve(e)

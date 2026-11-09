@@ -56,6 +56,16 @@ v7.6 tunes the mod for the Claude Code it runs on. It was built and checked live
   a letter for every agent and phase row; the list scrolls in the pane's full height with running
   agents pinned in view. A question is answered with `a` and a blocked node approved with `y` or
   `w` from the pane, and the answer reaches the asking node.
+- **Two layouts: the strip (the default) and the side panel.** The strip is two lines above the
+  prompt: the context, 5-hour and weekly gauges (`n/a` and why when a figure is missing), then
+  `open: ctrl+x tab, then w work · m memory`. `ctrl+x tab` puts the keys on the strip, `w` opens
+  Work and `m` Memory inline at full width, and `Esc` goes back to the strip. While a phase waits,
+  `1` approves it and `2` sends it back. `/baton layout panel` switches to the side panel docked
+  beside the transcript, which opens by itself; `/baton layout strip` switches back, and
+  `/baton layout` says which one is on. The choice is saved for every session. The strip wants
+  Claude Code's main-screen renderer and the panel its fullscreen one. When they don't match, one
+  line under the strip says what to type (`/tui default` or `/tui fullscreen`; Claude Code
+  restarts and resumes the session). baton never changes a Claude Code setting itself.
 - **Memory.** The explorer is a table (id, mark, time, source, text) with summaries you drill into.
   `memory_mark`, `project_mark` and `c` / `v` / `u` in the pane mark a note ✅ or ❌ with a reason;
   a ❌ note leaves wake, recall and the summaries, and nothing is deleted. `memory_note` takes a tag.

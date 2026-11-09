@@ -93,6 +93,19 @@ seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
   the rulings store; `project_note` with `Rulings` writes to the one rulings store, not a second
   one. New tests pin that marks are appended and kept, that each mark action has one key, and that
   `v` marks the opened note.
+- **The strip, and a layout to choose (CS1, CS2, LM1).** The band above the prompt is a strip of
+  two lines: the gauges (context against rotate-at, the 5-hour and weekly limits with their resets,
+  `n/a` and why for a missing figure), then the way in, `open: ctrl+x tab, then w work · m memory`
+  (`ctrl+x tab: w work · m memory` when narrow), the goal, the live count and the cost. With the
+  strip focused (`ctrl+x tab`), `w` opens Work and `m` Memory inline at full width, and every view
+  says its way back (`Esc: back to the strip`). `1` approves a waiting phase and `2` sends it back,
+  as before. The strip is the default layout. `/baton layout panel` switches to the side panel
+  (docked, opening by itself), `/baton layout strip` switches back, and `/baton layout` prints the
+  current one. The choice is kept in baton's own store for every session. The strip and the
+  panel's key hint name the layout and the command that switches it, where they have room. When
+  the layout does not match Claude Code's renderer, one line under the strip says what to type:
+  `/tui default` for the strip, `/tui fullscreen` for the panel, and that Claude Code restarts and
+  resumes the session. baton writes no Claude Code setting.
 - **Spend shows a cost per model, and idle CPU is within budget.** `_orch/spend.json` now writes a
   dollar figure beside each model's tokens, and a total; prices a 1-hour cache write at twice the
   input price (the prime's are told apart from the session's own transcript, which is only read);

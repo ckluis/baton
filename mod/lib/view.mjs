@@ -223,6 +223,8 @@ export const DEFAULT_LAYOUT = 'strip'
 export const layoutOf = (v) => (typeof v === 'string' && LAYOUTS.includes(v) ? v : DEFAULT_LAYOUT)
 /** The layout the switch command names from `mode`. */
 export const otherLayout = (mode) => LAYOUTS.find((m) => m !== layoutOf(mode))
+/** The first of `forms` (texts, richest first) that fits `width` cells; undefined when none does. */
+export const firstFit = (forms, width) => forms.find((f) => cellWidth(f) <= width)
 /** The `/tui` value each layout wants from Claude Code. */
 const TUI = { strip: 'default', panel: 'fullscreen' }
 
@@ -251,7 +253,7 @@ export function tuiHint(mode, isFullscreen, width = 200) {
     'type ' + cmd + ' (Claude Code restarts and resumes the session)',
     'type ' + cmd + ' (restarts and resumes the session)',
   ]
-  return forms.find((f) => cellWidth(f) <= width) ?? cutCells(forms[forms.length - 1], width)
+  return firstFit(forms, width) ?? cutCells(forms[forms.length - 1], width)
 }
 
 /** What `/baton layout` alone says: the mode, what it is, and how to switch. */

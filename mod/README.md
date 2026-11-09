@@ -290,6 +290,16 @@ screen lines when it scrolls. At a docked width the legend, the goal line and th
 at the pane's edge with `…`; in a pane that is both docked and short the list can push the lines
 under it out of view (both known gaps).
 
+**Layouts.** `strip` (the default, `DEFAULT_LAYOUT` in `lib/view.mjs`) is the two-line strip
+above the prompt. The pane opens only when you dive in: `ctrl+x tab` focuses the strip, then `w`
+opens Work and `m` Memory inline at full width, and `Esc` goes back to the strip. `panel` is the
+side panel, docked and opening by itself. `/baton layout strip|panel` switches and saves the
+choice in baton's own store (key `layout`), and `/baton layout` prints the current one. The strip
+and the panel's key hint name the layout and the command that switches it where they have room.
+When the layout does not match the renderer Claude Code reports (`isFullscreen`), one line under
+the strip says what to type, `/tui default` or `/tui fullscreen`, and that Claude Code restarts
+and resumes the session. baton writes no Claude Code setting.
+
 - **The tree.** A dim legend line reads `the tree: prime › P<n>, a phase: a unit of the plan › its
   sub-orchestrator › agent (worker, verifier)`. The phase rows sit one level under the prime, in
   plan order; each phase's sub-orchestrator is a row of its own under its phase row, and its workers
