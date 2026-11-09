@@ -30,6 +30,7 @@ import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
 import { assignLetters, cellWidth, compareVersions, cutCells, fitStrip, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, STRIP_HINT, stripGauges, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
+import { DEFAULT_LAYOUT, LAYOUTS, layoutForms, layoutOf, layoutSwitched, layoutText, tuiHint } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
 
@@ -174,19 +175,23 @@ const PANE = 'baton'
 // Claude Code caps it (2.1.319, no setting): at most min(floor(cols x 0.45), cols - 60), at least 24; a width the
 // person dragged the dock to wins under the same cap. Unasked, it opens at min(floor(cols x 0.45), 90, cols - 70).
 const PANE_COLUMNS = 999
-// The layout (P7-CS-d1 items 3, 5, 6; operator decision 2026-11-09): `strip`, the default, is the two-line strip above
+// The layout (P7-CS-d1 items 3, 5, 6; operator decision 2026-11-09): the strip, the default, is the two-line strip above
 // the prompt, the pane opening only when the person dives in (w, m) and never by itself; `panel` is the side panel,
-// which opens by itself as T5 had it. One internal flag until LM1's `/baton layout`: the store's `layout` key, read
-// at session start; anything but 'panel' is the strip.
+// which opens by itself as T5 had it. `/baton layout strip|panel` (LM1) saves it in baton's own per-user store
+// (`$.store`, key `layout`), read at every session start; anything that is no layout reads as DEFAULT_LAYOUT. Baton
+// never changes a Claude Code setting: where the renderer does not suit the layout it says what to type (tuiHint).
 const LAYOUT_KEY = 'layout'
-const layout = { mode: 'strip' }
+const layout = { mode: DEFAULT_LAYOUT }
 async function readLayout($) {
   try {
-    layout.mode = (await $.store.get(LAYOUT_KEY)) === 'panel' ? 'panel' : 'strip'
+    layout.mode = layoutOf(await $.store.get(LAYOUT_KEY))
   } catch {
-    layout.mode = 'strip'
+    layout.mode = DEFAULT_LAYOUT
   }
 }
+// Claude Code's renderer as the band last saw it (RenderViewport.isFullscreen on the terminal): true fullscreen,
+// false the main screen, undefined not reported. `/baton layout` reads it where its command carries no presentation.
+const renderer = { full: undefined }
 /** The way back every dive-in view says on its first lines (P7-CS-d1 item 3). */
 const wayBack = () => (layout.mode === 'panel' ? 'Esc: close' : 'Esc: back to the strip')
 // The band's last width, what a dive-in measures the inline pane's rows at (the strip is drawn full width).
@@ -759,7 +764,12 @@ async function paneBody($, els, cols, rows) {
   // keys then held on the hint's line, placeList). The read line starts with the way back (P7-CS-d1 item 3), so a
   // narrow pane that cuts it keeps that.
   const read = wayBack() + ' · read ' + (pane.refreshedAt ?? 'never') + (layout.mode === 'panel' ? '' : ' · Esc closes')
-  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true }))]
+  // In the panel layout the key hint says the layout and the command that switches it (LM1), its richest form that fits.
+  const modeLine = () => {
+    const forms = layoutForms(layout.mode)
+    return line('layout', forms.find((f) => cellWidth(f) <= cols) ?? forms[forms.length - 1], { dimColor: true })
+  }
+  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true })), ...(layout.mode === 'panel' ? [opt(DROP_RANK.read, modeLine())] : [])]
   return { ui, tabs, body: [...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))] }
 }
 
@@ -4721,8 +4731,8 @@ export function register(on, options) {
     try {
       await $.command.register({
         name: 'baton',
-        description: 'baton v7: start | stop | pause | resume | rotate | status | show | doctor | watch | next | rule | rulings | retract | enforce | checkpoints | restore — or no argument for the pane',
-        argumentHint: '[start <MODE> <TARGET|#issue> | stop | pause | resume | rotate | status | show <id> | doctor | watch | next | rule <text> | rulings | retract <#> | enforce <#> <regex> | checkpoints | restore <id>]',
+        description: 'baton v7: start | stop | pause | resume | rotate | status | show | layout | doctor | watch | next | rule | rulings | retract | enforce | checkpoints | restore — or no argument for the pane',
+        argumentHint: '[start <MODE> <TARGET|#issue> | stop | pause | resume | rotate | status | show <id> | layout [strip | panel] | doctor | watch | next | rule <text> | rulings | retract <#> | enforce <#> <regex> | checkpoints | restore <id>]',
         immediate: true,
       })
     } catch (err) {
@@ -5153,6 +5163,27 @@ export function register(on, options) {
       }
       case 'status':
         return { text: await statusText($) }
+      case 'layout': {
+        // The layout (LM1, P7-CS-d1 item 6): saved in baton's own store; Claude Code's settings are the person's.
+        const full = e.presentation && typeof e.presentation.isFullscreen === 'boolean' ? e.presentation.isFullscreen : renderer.full
+        const want = String(rest[0] || '').toLowerCase()
+        const withHint = (t) => {
+          const h = tuiHint(layout.mode, full)
+          return h ? t + '\n' + h : t
+        }
+        if (!want) return { text: withHint(layoutText(layout.mode)) }
+        if (!LAYOUTS.includes(want)) return { text: 'usage: /baton layout [strip | panel] — strip: the two-line strip above the prompt (the default); panel: the side panel. Now: ' + layout.mode + '.' }
+        try {
+          await $.store.set(LAYOUT_KEY, want)
+        } catch (err) {
+          return { text: 'baton: could not save the layout: ' + err.message }
+        }
+        layout.mode = want
+        $.ui.invalidate('ui.render')
+        // the side panel opens as it does by itself in that layout; in the strip an open pane stays until Esc
+        if (want === 'panel') await autoOpenPane($)
+        return { text: withHint(layoutSwitched(want)) }
+      }
       case 'show': {
         const what = rest.join(' ').trim()
         await observe($, true)
@@ -5374,6 +5405,9 @@ export function register(on, options) {
     const v = inRun ? track.view : null
     const bw = e.props.bodyColumns ?? 200
     band.cols = bw
+    // Claude Code's renderer, as it tells every terminal drawing (LM1): what the layout's /tui line is measured against.
+    const fullscreen = e.surface === 'terminal' && e.viewport && typeof e.viewport.isFullscreen === 'boolean' ? e.viewport.isFullscreen : undefined
+    if (fullscreen !== undefined) renderer.full = fullscreen
     const fitText = (t) => cutCells(t, Math.max(1, bw))
     const segText = (x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })
     const ctx = typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null
@@ -5451,6 +5485,8 @@ export function register(on, options) {
       ...(live ? [{ key: 'live', forms: [{ text: live + ' live', pri: 6 }] }] : []),
       ...(waiting.length ? [{ key: 'flag', forms: flagForms, color: 'yellow', cut: true }] : []),
       ...(usage.cost && typeof usage.cost.usd === 'number' ? [{ key: 'cost', forms: [{ text: '$' + usage.cost.usd.toFixed(2), pri: 7 }] }] : []),
+      // the layout and the command that switches it (LM1), last: in the cells the items above leave, else on line 1
+      { key: 'layout', forms: layoutForms(layout.mode).map((text, i) => ({ text, pri: 9 - i * 0.5 })) },
     ]
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     const keysBox = (label) => {
@@ -5490,10 +5526,14 @@ export function register(on, options) {
     const flag = [Box({ key: 'strip', flexDirection: 'row', children: [...stripSegs.map(segEl), ...dive] })]
     // line 1: the gauges, after the keys where line 2 had not the cells for them
     const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
+    const g1 = gauges(Math.max(1, bw - keysW))
+    // the layout on line 1, after the gauges in the form they take anyway, where line 2 had not the cells for it
+    const g1w = keysW + g1.reduce((n, x) => n + cellWidth(x.text), 0)
+    const modeOn1 = stripSegs.some((x) => x.key === 'layout') ? null : layoutForms(layout.mode).find((t) => g1w + cellWidth(' · ' + t) <= bw)
     const lineBox = Box({
       key: 'band',
       flexDirection: 'row',
-      children: [...(keysW ? [keysBox(''), segText({ text: ' · ' })] : []), ...gauges(Math.max(1, bw - keysW)).map(segText)],
+      children: [...(keysW ? [keysBox(''), segText({ text: ' · ' })] : []), ...g1.map(segText), ...(modeOn1 ? [segText({ text: ' · ' + modeOn1 })] : [])],
     })
     if (update.state === 'available' || update.state === 'updating') {
       const { Button } = $.ui.resolve(e)
@@ -5512,6 +5552,10 @@ export function register(on, options) {
     if (pause.on) flag.splice(1, 0, Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText('⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume')] }))
     const dw = doctorWarning()
     if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [fitText(dw)] }))
+    // The layout does not suit Claude Code's renderer (LM1): one line saying exactly what to type. Baton changes no
+    // Claude Code setting; it goes once the renderer matches or the person switches the layout.
+    const th = tuiHint(layout.mode, fullscreen, bw)
+    if (th) flag.push(Text({ wrap: 'truncate-end', color: 'yellow', children: [th] }))
     // the engine's own drawing, unless it draws nothing (an empty Text would be a third line under the strip, CS1)
     const textIn = (x) => (typeof x === 'string' || typeof x === 'number' ? String(x) : Array.isArray(x) ? x.map(textIn).join('') : x && typeof x === 'object' ? textIn(x.children ?? (x.props && x.props.children)) : '')
     const blank = !theirs || (theirs.type === 'Text' && textIn(theirs) === '')

@@ -209,6 +209,68 @@ export function bandSegs({ limits = [], cost = null, ctx = null, threshold = nul
 /** The plain way to open each view, on the strip's second line (P7-CS-d1 item 2): its long form, and its short one. */
 export const STRIP_HINT = { long: 'open: ctrl+x tab, then w work · m memory', short: 'ctrl+x tab: w work · m memory' }
 
+// ------------------------------------------------------------------ the layout (LM1)
+
+/**
+ * The two layouts (P7-CS-d1 item 6): `strip`, the two-line strip above the prompt, the pane opening only when the
+ * person dives in, for Claude Code's main-screen renderer (`/tui default`); `panel`, the side panel docked beside the
+ * transcript, which opens by itself, for the fullscreen renderer (`/tui fullscreen`).
+ */
+export const LAYOUTS = Object.freeze(['strip', 'panel'])
+/** The layout when none is saved (operator decision 2026-11-09): every default path reads this one constant. */
+export const DEFAULT_LAYOUT = 'strip'
+/** A saved value as a layout: a layout as itself, anything else (nothing saved, an old or mistyped value) the default. */
+export const layoutOf = (v) => (typeof v === 'string' && LAYOUTS.includes(v) ? v : DEFAULT_LAYOUT)
+/** The layout the switch command names from `mode`. */
+export const otherLayout = (mode) => LAYOUTS.find((m) => m !== layoutOf(mode))
+/** The `/tui` value each layout wants from Claude Code. */
+const TUI = { strip: 'default', panel: 'fullscreen' }
+
+/** What the strip and the panel's hint say of the layout, richest first: the mode, then the command that switches. */
+export function layoutForms(mode) {
+  const m = layoutOf(mode)
+  const o = otherLayout(m)
+  return [m + ' layout · /baton layout ' + o + ' switches', m + ' · /baton layout ' + o]
+}
+
+/**
+ * One plain line saying exactly what to type when the layout does not match Claude Code's renderer (`isFullscreen`,
+ * as Claude Code reports it to a drawing or a command): the strip wants `/tui default`, the panel `/tui fullscreen`.
+ * Null when they match or the renderer is not known. Fitted to `width`: the command and that Claude Code restarts
+ * and resumes the session are kept at every width from 60.
+ */
+export function tuiHint(mode, isFullscreen, width = 200) {
+  if (typeof isFullscreen !== 'boolean') return null
+  const m = layoutOf(mode)
+  if ((m === 'panel') === isFullscreen) return null
+  const cmd = '/tui ' + TUI[m]
+  const what = m === 'panel' ? 'for the side panel' : 'for the full-width strip'
+  const forms = [
+    'baton: type ' + cmd + ' ' + what + ' (Claude Code restarts and resumes this session), or /baton layout ' + otherLayout(m),
+    'type ' + cmd + ' ' + what + ' (Claude Code restarts and resumes this session)',
+    'type ' + cmd + ' (Claude Code restarts and resumes the session)',
+    'type ' + cmd + ' (restarts and resumes the session)',
+  ]
+  return forms.find((f) => cellWidth(f) <= width) ?? cutCells(forms[forms.length - 1], width)
+}
+
+/** What `/baton layout` alone says: the mode, what it is, and how to switch. */
+export function layoutText(mode) {
+  const m = layoutOf(mode)
+  const def = m === DEFAULT_LAYOUT ? ' (the default)' : ''
+  return m === 'panel'
+    ? 'baton layout: panel' + def + ', the side panel beside the transcript, opened by itself. /baton layout strip switches to the strip above the prompt.'
+    : 'baton layout: strip' + def + ', the two-line strip above the prompt (ctrl+x tab, then w work · m memory). /baton layout panel switches to the side panel.'
+}
+
+/** What `/baton layout <mode>` says once it has switched: one line. */
+export function layoutSwitched(mode) {
+  const m = layoutOf(mode)
+  return m === 'panel'
+    ? 'baton: layout is now panel, the side panel beside the transcript (saved for your next sessions). /baton layout strip switches back.'
+    : 'baton: layout is now strip, the two-line strip above the prompt (saved for your next sessions). /baton layout panel switches back.'
+}
+
 const SEP = ' · '
 const widthOf = (segs) => segs.reduce((n, x) => n + cellWidth(x.text), 0)
 
