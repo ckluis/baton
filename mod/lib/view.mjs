@@ -287,10 +287,11 @@ const widthOf = (segs) => segs.reduce((n, x) => n + cellWidth(x.text), 0)
  * then `5h →14:20Z`, then without bars, then without resets. A figure not there reads `n/a` and why: `no reading yet`
  * before any response, `not on a subscription` when one came with no window at all (`measured`), `not reported` when
  * the others came without it; never a number the input did not hold. Narrow, the reasons of neighbouring gauges are
- * said once, then not at all.
+ * said once, then not at all. With `keepFive` (beside the layout's form, LM1) one more form before the resets go: the
+ * 5-hour reset alone (`5h →14:20Z`).
  * Segments: [{ text, color }], a color left undefined drawn dim.
  */
-export function stripGauges({ limits = [], ctx = null, threshold = null, rotations = null, measured = false, width = 200, now = Date.now() }) {
+export function stripGauges({ limits = [], ctx = null, threshold = null, rotations = null, measured = false, width = 200, now = Date.now(), keepFive = false }) {
   const list = (Array.isArray(limits) ? limits : []).filter((l) => l && Number.isFinite(Number(l.percentUsed)))
   const byKind = new Map(list.map((l) => [String(l.kind), l]))
   const why = list.length ? 'not reported' : measured ? 'not on a subscription' : 'no reading yet'
@@ -307,6 +308,7 @@ export function stripGauges({ limits = [], ctx = null, threshold = null, rotatio
     { bar: 5, reset: ' →', other: true, why: 'each' },
     { bar: 5, reset: ' →', other: false, why: 'once' },
     { bar: 0, reset: ' →', other: false, why: 'once' },
+    ...(keepFive ? [{ bar: 0, reset: ' →', other: false, why: 'once', resets: ['five_hour'] }] : []),
     { bar: 0, reset: null, other: false, why: 'once' },
     { bar: 0, reset: null, other: false, why: 'none' },
   ]
@@ -335,7 +337,7 @@ export function stripGauges({ limits = [], ctx = null, threshold = null, rotatio
     })
     // when each window resets, where known: `5h resets 14:20Z`, narrower `5h →14:20Z`
     for (const g of shown) {
-      const r = f.reset && !g.na && g.kind !== 'ctx' ? resetLabel(g.resetsAt, now) : ''
+      const r = f.reset && !g.na && g.kind !== 'ctx' && (!f.resets || f.resets.includes(g.kind)) ? resetLabel(g.resetsAt, now) : ''
       if (!r) continue
       sep()
       out.push({ text: label(g, f) + f.reset + r })

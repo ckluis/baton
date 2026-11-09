@@ -5411,8 +5411,9 @@ export function register(on, options) {
     const fitText = (t) => cutCells(t, Math.max(1, bw))
     const segText = (x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })
     const ctx = typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null
-    const gauges = (width) =>
+    const gauges = (width, keepFive = false) =>
       stripGauges({
+        keepFive,
         limits: usage.limits,
         ctx,
         threshold: inRun ? config.rotateAtPercent : null,
@@ -5515,49 +5516,62 @@ export function register(on, options) {
     // line 1: the gauges, after the keys where line 2 had not the cells for them
     const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
     let g1 = gauges(Math.max(1, bw - keysW))
-    // The layout and the command that switches it (LM1), on one of the two lines, in its richest form that fits
-    // (layoutForms, down to `/baton layout`), never left out where 16 cells can be had: (1) in the cells the strip
-    // leaves, line 2 first; (2) else the gauges give up their reset times and all but one reason, then that one too,
-    // never a figure, for it on line 1; (3) else on line 2 the goal, live count, cost, PR, the flag's words and the approval's phase name
-    // give way to it. From 120 columns that is done for a form that names the layout first, then for any.
+    // The layout and the command that switches it (LM1), on one of the two lines. From 45 columns always a form that
+    // names the layout and its exact switch command (`strip · /baton layout panel` or richer, Q-LM1-2 A), placed by
+    // the first of these that gives it room: (1) the cells the strip leaves, line 2 first; (2) the gauges give up their
+    // bars, other windows and the weekly reset, keeping every figure, every reason and the 5-hour reset; (3) on line 2
+    // the goal, live count, cost, PR, the flag's full words and the approval's phase name give way (the flag keeps its
+    // few words and the names in them); (4) the gauges give up
+    // their reasons and resets, never a figure; (5) the weekly window, then the 5-hour one, give way, the context
+    // last; (6) no gauge beside it. Below 45 columns, and beside an approval's keys at 45 to 54 (where CS1's hint and
+    // keys leave no 30 cells on either line, conflicts.md C3), the shorter forms down to `/baton layout`, by (1) to (4).
     const all = layoutForms(layout.mode)
     const SEPW = cellWidth(' · ')
     const used = (segs) => segs.reduce((n, x) => n + cellWidth(x.text), 0)
     const kinds = (segs) => segs.filter((x) => /%|n\/a/.test(x.text)).map((x) => x.text.split(' ')[0].replace(/^week$/, 'wk'))
     const reasoned = (segs) => segs.some((x) => /\(.+\)/.test(x.text))
+    const fiveReset = (segs) => segs.some((x) => /^5h (resets |→)/.test(x.text))
     const had = kinds(g1)
     const hadWhy = reasoned(g1)
+    const hadReset = fiveReset(g1)
+    // line 1 holds the keys (where they stand there), the gauges `g` and the form `f`
+    const fits1 = (g, f) => keysW + used(g) + (g.length ? SEPW : 0) + cellWidth(f) <= bw
+    const onGauges = (f, keepFive, ok) => {
+      const room = bw - keysW - SEPW - cellWidth(f)
+      if (room < 1) return null
+      const g = gauges(room, keepFive)
+      return used(g) <= room && !g.some((x) => x.text.endsWith('…')) && ok(g) ? { line: 1, text: f, g } : null
+    }
+    const keepsKinds = (g) => had.every((k) => kinds(g).includes(k))
+    const free = (f) => (cellWidth(f) <= bw - used(stripSegs) - SEPW ? { line: 2, text: f } : fits1(g1, f) ? { line: 1, text: f } : null)
+    // on line 2, the items of a higher `pri` giving way to it
+    const onLine2 = (pri) => (f) => {
+      const segs = fitStrip([...items, { key: 'layout', forms: [{ text: f, pri }] }], bw)
+      const at = segs.find((x) => x.key === 'layout')
+      return at && at.text === f ? { line: 2, text: f, segs } : null // the layout item is the last: it ends line 2
+    }
+    const NAMED = [
+      free,
+      (f) => onGauges(f, true, (g) => keepsKinds(g) && (!hadWhy || reasoned(g)) && (!hadReset || fiveReset(g))),
+      onLine2(3.05), // after the flag's few words (pri 3)
+      (f) => onGauges(f, false, keepsKinds),
+      (f) => onGauges(f, false, () => true),
+      (f) => (fits1([], f) ? { line: 1, text: f, g: [] } : null),
+    ]
+    // the shorter forms: never a figure given way, the flag's words before the layout's (pri 2.9)
+    const SHORT = [free, (f) => onGauges(f, false, (g) => keepsKinds(g) && (!hadWhy || reasoned(g))), (f) => onGauges(f, false, keepsKinds), onLine2(2.9)]
+    const tries = bw >= 45 ? [{ forms: all.slice(0, 2), steps: NAMED }, { forms: all.slice(2), steps: SHORT }] : [{ forms: all, steps: SHORT }]
     let modeAt = null
-    for (const forms of bw >= 120 ? [all.slice(0, 2), all] : [all]) {
-      for (const f of modeAt ? [] : forms) {
-        if (cellWidth(f) <= bw - used(stripSegs) - SEPW) modeAt = { line: 2, text: f }
-        else if (cellWidth(f) <= bw - keysW - used(g1) - SEPW) modeAt = { line: 1, text: f }
+    for (const t of tries) {
+      for (const step of modeAt ? [] : t.steps) {
+        for (const f of t.forms) if ((modeAt = step(f))) break
         if (modeAt) break
       }
-      for (const keepWhy of [hadWhy, false]) {
-        for (const f of modeAt ? [] : forms) {
-          const room = bw - keysW - SEPW - cellWidth(f)
-          const g = gauges(Math.max(1, room))
-          const whole = used(g) <= room && !g.some((x) => x.text.endsWith('…'))
-          if (whole && had.every((k) => kinds(g).includes(k)) && (!keepWhy || reasoned(g))) {
-            g1 = g
-            modeAt = { line: 1, text: f }
-            break
-          }
-        }
-      }
-      for (const f of modeAt ? [] : forms) {
-        const segs = fitStrip([...items, { key: 'layout', forms: [{ text: f, pri: 2.9 }] }], bw)
-        const at = segs.find((x) => x.key === 'layout')
-        if (at && at.text === f) {
-          stripSegs = segs // the layout item is the last: it ends line 2, already placed
-          modeAt = { line: 2, text: f, placed: true }
-          break
-        }
-      }
     }
-    if (modeAt && modeAt.line === 2 && !modeAt.placed) stripSegs = [...stripSegs, ...(stripSegs.length ? [{ text: ' · ' }] : []), { key: 'layout', text: modeAt.text }]
-    const modeOn1 = modeAt && modeAt.line === 1 ? ' · ' + modeAt.text : null
+    if (modeAt && modeAt.g) g1 = modeAt.g
+    if (modeAt && modeAt.segs) stripSegs = modeAt.segs
+    else if (modeAt && modeAt.line === 2) stripSegs = [...stripSegs, ...(stripSegs.length ? [{ text: ' · ' }] : []), { key: 'layout', text: modeAt.text }]
+    const modeOn1 = modeAt && modeAt.line === 1 ? (g1.length ? ' · ' : '') + modeAt.text : null
     const segEl = (x) => (x.key === 'keys' ? keysBox((keyForms.find((f) => f.text === x.text) || { label: '' }).label) : segText(x))
     // The dive-in keys (CS2, P7-CS-d1 item 1): w opens Work, m Memory. Band Buttons on letters, so they press only
     // while the strip holds the focus (ctrl+x tab, a click), never from the prompt: a prompt that starts with w or m
