@@ -146,7 +146,7 @@ function lex(src, depth) {
   const endWord = () => {
     if (word === null) return
     if (dropNext) dropNext = false
-    else argv.push(word)
+    else argv.push(...braces(word))
     word = null
   }
   const endCmd = (at) => {
@@ -167,6 +167,17 @@ function lex(src, depth) {
         add(src[i + 1] ?? '', i)
         i += 2
       }
+    } else if (ch === '$' && src[i + 1] === "'") {
+      // ANSI-C quoting: $'\x67it' is the word git.
+      const j = ansiEnd(src, i + 2)
+      const text = src.slice(i + 2, j)
+      add(ansiC(text), i)
+      out.texts.push(text)
+      i = j + 1
+    } else if (ch === '$' && src[i + 1] === '"') {
+      // Locale quoting: $"git" is "git".
+      if (start < 0) start = i
+      i++
     } else if (ch === "'") {
       const j = until(src, i + 1, "'")
       const text = src.slice(i + 1, j)
@@ -259,7 +270,9 @@ function lex(src, depth) {
       endCmd(i)
       i += two === '&&' || two === '||' || two === '|&' || two === ';;' ? 2 : 1
     } else {
-      add(ch, i)
+      // Unquoted braces and commas are marked for brace expansion (not `${`).
+      const mark = ch === '{' ? (word !== null && word.endsWith('$') ? ch : BRACE_OPEN) : ch === ',' ? BRACE_COMMA : ch === '}' ? BRACE_CLOSE : ch
+      add(mark, i)
       i++
     }
   }
@@ -267,26 +280,132 @@ function lex(src, depth) {
   return out
 }
 
+const BRACE_OPEN = '\u0001'
+const BRACE_COMMA = '\u0002'
+const BRACE_CLOSE = '\u0003'
+const MAX_BRACE_WORDS = 256
+const MAX_BRACE_WORD = 4096
+
+/** Brace expansion of one word with marked braces: {git,-C,r,push} is four words. Marks left over are the literal characters. */
+function braces(w) {
+  const unmark = (s) => s.replace(/\u0001/g, '{').replace(/\u0002/g, ',').replace(/\u0003/g, '}')
+  if (!w.includes(BRACE_OPEN) || w.length > MAX_BRACE_WORD) return [unmark(w)]
+  const out = []
+  const go = (s) => {
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] !== BRACE_OPEN) continue
+      let d = 0
+      let j = i
+      const commas = []
+      for (; j < s.length; j++) {
+        if (s[j] === BRACE_OPEN) d++
+        else if (s[j] === BRACE_CLOSE && --d === 0) break
+        else if (s[j] === BRACE_COMMA && d === 1) commas.push(j)
+      }
+      if (j >= s.length || !commas.length) continue
+      let from = i + 1
+      for (const c of [...commas, j]) {
+        if (out.length >= MAX_BRACE_WORDS) return
+        go(s.slice(0, i) + s.slice(from, c) + s.slice(j + 1))
+        from = c + 1
+      }
+      return
+    }
+    out.push(unmark(s))
+  }
+  go(w)
+  return out
+}
+
+/** The index of the `'` closing an ANSI-C string that starts at `i` (backslash escapes apply); src.length if none. */
+function ansiEnd(src, i) {
+  for (; i < src.length; i++) {
+    if (src[i] === '\\') i++
+    else if (src[i] === "'") return i
+  }
+  return src.length
+}
+
+/** The text of an ANSI-C quoted string, escapes decoded as bash decodes them. */
+function ansiC(s) {
+  const SIMPLE = { a: '\x07', b: '\b', e: '\x1b', E: '\x1b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v', '\\': '\\', "'": "'", '"': '"', '?': '?' }
+  return s.replace(/\\(?:([0-7]{1,3})|x([0-9a-fA-F]{1,2})|u([0-9a-fA-F]{1,4})|U([0-9a-fA-F]{1,8})|c(.)|(.))/gs, (m, oct, hex, u4, u8, ctl, one) => {
+    if (oct) return String.fromCharCode(parseInt(oct, 8) & 0xff)
+    if (hex) return String.fromCharCode(parseInt(hex, 16))
+    if (u4 || u8) {
+      const cp = parseInt(u4 || u8, 16)
+      return cp <= 0x10ffff ? String.fromCodePoint(cp) : ''
+    }
+    if (ctl) return String.fromCharCode(ctl.charCodeAt(0) & 0x1f)
+    return SIMPLE[one] ?? m
+  })
+}
+
 // ------------------------------------------------------------------ judging one simple command
 
 /** Shell words that may lead a command, as written. */
 const KEYWORDS = new Set(['if', 'then', 'else', 'elif', 'fi', 'do', 'done', 'while', 'until', 'for', 'select', 'case', 'esac', '!', '{', '}', '[[', 'coproc', 'noglob', 'nocorrect'])
-/** Wrappers with no options of their own, by program name (a full path counts). */
-const PLAIN_WRAPPERS = new Set(['builtin', 'nohup', 'chronic', 'unbuffer'])
 const ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*(\[[^\]]*\])?\+?=/
 const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'mksh', 'ash', 'fish'])
 /** Programs the tokenizer judges; any other program's words are read as a mention. */
 const JUDGED = new Set(['git', 'gh', 'rm', 'find', 'npm', 'pnpm', 'yarn', 'cargo'])
+/** Programs that print or look up their words rather than run them: their words stay mentions (v7.7). */
+const PRINTERS = new Set(['echo', 'printf', 'print', 'man', 'tldr', 'help', 'info', 'whatis', 'apropos', 'which', 'type', 'whence', 'where', 'alias'])
 
-const base = (w) => w.replace(/^.*\//, '')
+/**
+ * Wrappers: programs that run the rest of their words as a command, by name (a full path and
+ * any case count). `short` holds the option letters that take a value (attached, or the next word
+ * when the letter ends its cluster, as getopt reads `-iu bob`); `long` the long options that take
+ * the next word when written without `=` (any unique prefix counts, as getopt_long accepts);
+ * `words` single-dash option words that take the next word (arch, xcrun read whole words);
+ * `then` the operands before the command (timeout's duration). env and command are read apart.
+ */
+const WRAPPERS = {
+  builtin: {},
+  nohup: {},
+  chronic: {},
+  unbuffer: {},
+  setsid: {},
+  exec: { short: 'a' },
+  time: { short: 'fo', long: ['format', 'output'] },
+  nice: { short: 'n', long: ['adjustment'] },
+  ionice: { short: 'cnpPu', long: ['class', 'classdata', 'pid', 'pgid', 'uid'] },
+  stdbuf: { short: 'ioe', long: ['input', 'output', 'error'] },
+  caffeinate: { short: 'wt' },
+  sudo: { short: 'aCcDgpRrTtUu', long: ['user', 'group', 'host', 'prompt', 'chdir', 'close-from', 'role', 'type', 'command-timeout', 'other-user', 'login-class', 'chroot', 'auth-type'] },
+  doas: { short: 'aCu' },
+  timeout: { short: 'sk', long: ['signal', 'kill-after'], then: 1 },
+  gtimeout: { short: 'sk', long: ['signal', 'kill-after'], then: 1 },
+  xargs: { short: 'adEIJLnPRSs', long: ['arg-file', 'delimiter', 'max-args', 'max-procs', 'max-chars', 'process-slot-var'] },
+  xcrun: { words: ['-sdk', '--sdk', '-toolchain', '--toolchain'] },
+  arch: { words: ['-arch', '-d', '-e'] },
+}
 
-/** Drop leading options from `a`; `withValue` names the options that take the next word. Stops at `--` (dropped) or the first operand. */
-function dropOptions(a, withValue) {
-  while (a.length && /^-./.test(a[0] ?? '')) {
-    const w = a.shift() ?? ''
+/** A program word's name: no directory, lower case (a case-insensitive filesystem runs GIT as git). */
+const base = (w) => w.replace(/^.*\//, '').toLowerCase()
+
+/** Drop leading options from `a` as `spec` (a WRAPPERS entry) reads them. Stops at `--` (dropped) or the first operand. */
+function dropOpts(a, spec = {}) {
+  const short = spec.short ?? ''
+  const long = spec.long ?? []
+  let i = 0
+  while (i < a.length && /^-./.test(a[i] ?? '')) {
+    const w = a[i++] ?? ''
     if (w === '--') break
-    if (withValue.includes(w)) a.shift()
+    if (spec.words) {
+      if (spec.words.includes(w)) i++
+    } else if (w.startsWith('--')) {
+      const name = w.slice(2)
+      if (!name.includes('=') && long.some((l) => l.startsWith(name))) i++
+    } else {
+      for (let k = 1; k < w.length; k++) {
+        if (!short.includes(w[k] ?? '')) continue
+        if (k === w.length - 1) i++
+        break
+      }
+    }
   }
+  a.splice(0, i)
   return a
 }
 
@@ -297,33 +416,46 @@ function unwrap(argv) {
     const w = a[0]
     if (w === undefined) return a
     const p = base(w)
-    if (KEYWORDS.has(w) || ASSIGN.test(w) || PLAIN_WRAPPERS.has(p)) a.shift()
+    if (KEYWORDS.has(w) || ASSIGN.test(w)) a.shift()
     else if (p === 'env') {
       a.shift()
-      while (a.length && (/^-/.test(a[0] ?? '') || ASSIGN.test(a[0] ?? ''))) {
-        const o = a.shift() ?? ''
-        if (o === '--') break
-        if (o === '-u' || o === '--unset' || o === '-C' || o === '--chdir') a.shift()
-        else if (o === '-S' || o === '--split-string') return [...splitWords(a.shift() ?? ''), ...a]
-      }
+      const split = env(a)
+      if (split) return split
     } else if (p === 'command') {
       a.shift()
       if (a[0] === '-v' || a[0] === '-V') return []
-      dropOptions(a, [])
-    } else if (p === 'exec') a.shift(), dropOptions(a, ['-a'])
-    else if (p === 'time') a.shift(), dropOptions(a, ['-f', '-o', '--format', '--output'])
-    else if (p === 'nice') a.shift(), dropOptions(a, ['-n', '--adjustment'])
-    else if (p === 'ionice') a.shift(), dropOptions(a, ['-c', '-n', '-p', '-t'])
-    else if (p === 'stdbuf') a.shift(), dropOptions(a, ['-i', '-o', '-e'])
-    else if (p === 'caffeinate') a.shift(), dropOptions(a, ['-w', '-t'])
-    else if (p === 'sudo' || p === 'doas') a.shift(), dropOptions(a, ['-u', '-g', '-h', '-p', '-C', '-D', '-r', '-t', '-U', '-T', '-R', '--user', '--group', '--host', '--prompt', '--chdir'])
-    else if (p === 'timeout' || p === 'gtimeout') {
+      dropOpts(a)
+    } else if (Object.hasOwn(WRAPPERS, p)) {
       a.shift()
-      dropOptions(a, ['-s', '-k', '--signal', '--kill-after'])
-      a.shift() // the duration
-    } else if (p === 'xargs') a.shift(), dropOptions(a, ['-I', '-n', '-P', '-L', '-d', '-E', '-e', '-s', '-a', '--arg-file', '--delimiter', '--max-args', '--max-procs', '--max-lines', '--replace', '--max-chars', '--eof', '-J', '-R', '-S'])
-    else return a
+      const spec = WRAPPERS[/** @type {keyof typeof WRAPPERS} */ (p)]
+      dropOpts(a, spec)
+      for (let k = 0; k < ('then' in spec ? spec.then : 0); k++) a.shift()
+    } else return a
   }
+}
+
+/** env's options and assignments, dropped from `a`; with -S/--split-string, the command that string runs. */
+function env(a) {
+  while (a.length && (/^-/.test(a[0] ?? '') || ASSIGN.test(a[0] ?? ''))) {
+    const o = a.shift() ?? ''
+    if (o === '--') break
+    if (ASSIGN.test(o) || o === '-') continue
+    if (o.startsWith('--')) {
+      const eq = o.indexOf('=')
+      const name = o.slice(2, eq < 0 ? undefined : eq)
+      if ('split-string'.startsWith(name)) return [...splitWords(eq < 0 ? a.shift() ?? '' : o.slice(eq + 1)), ...a]
+      if (eq < 0 && ['unset', 'chdir'].some((l) => l.startsWith(name))) a.shift()
+      continue
+    }
+    for (let k = 1; k < o.length; k++) {
+      const ch = o[k] ?? ''
+      if (ch === 'S') return [...splitWords(o.slice(k + 1) || (a.shift() ?? '')), ...a]
+      if (!'uCP'.includes(ch)) continue
+      if (k === o.length - 1) a.shift()
+      break
+    }
+  }
+  return null
 }
 
 /** A string the shell will run (sh -c, eval, env -S), split as a command line of its own. */
@@ -332,21 +464,37 @@ function splitWords(s) {
   return cmds[0]?.argv ?? []
 }
 
-/** Flags of a program's words: short letters from clusters, long names (no =value), operands, and what follows `--`. */
-function flags(words) {
+/**
+ * Flags of a program's words: short letters from clusters, long names (no =value), operands, and
+ * what follows `--`. `valued` names the short letters that take a value: the rest of the cluster,
+ * or the next word when the letter ends it (`-bfix` is -b fix, not -f). `long(name)` is true when a
+ * long flag is `name` or a prefix of it, as git and getopt_long accept `--har` for `--hard`.
+ */
+function flags(words, valued = '') {
   const short = new Set()
-  const long = new Set()
+  const longs = new Set()
   const pos = []
   const after = []
   let dd = false
+  let skip = false
   for (const w of words) {
-    if (dd) after.push(w)
+    if (skip) skip = false
+    else if (dd) after.push(w)
     else if (w === '--') dd = true
-    else if (w.startsWith('--')) long.add(w.slice(2).replace(/=.*$/, ''))
-    else if (/^-[A-Za-z]/.test(w)) for (const ch of w.slice(1)) short.add(ch)
-    else pos.push(w)
+    else if (w.startsWith('--')) longs.add(w.slice(2).replace(/=.*$/, ''))
+    else if (/^-[A-Za-z]/.test(w)) {
+      for (let k = 1; k < w.length; k++) {
+        const ch = w[k] ?? ''
+        short.add(ch)
+        if (!valued.includes(ch)) continue
+        skip = k === w.length - 1
+        break
+      }
+    } else pos.push(w)
   }
-  return { short, long, pos, after, dd }
+  const long = (name, min = 1) => [...longs].some((l) => l.length >= min && name.startsWith(l))
+  const has = (s, name, min = 1) => short.has(s) || long(name, min)
+  return { short, long, has, pos, after, dd }
 }
 
 /** Is argv's program one the tokenizer judges (after unwrapping)? */
@@ -365,69 +513,148 @@ function judge(argv, stdin = [], depth = 0) {
   if (depth > MAX_DEPTH) throw new Error('too deep')
   const a = unwrap(argv)
   const p = base(a.shift() ?? '')
+  // A string the shell runs (eval, sh -c, a ! alias) is read as gateFor reads a line: its
+  // commands judged, and the words of a program not judged read as mentions (v7.7).
   const line = (s) => {
-    for (const cmd of lex(s, depth + 1).cmds) {
+    const { cmds } = lex(s, depth + 1)
+    for (const cmd of cmds) {
       const g = judge(cmd.argv, cmd.stdin, depth + 1)
+      if (g) return g
+    }
+    for (const cmd of cmds) {
+      const g = judges(cmd.argv) ? null : mentioned(cmd.raw)
       if (g) return g
     }
     return null
   }
   if (p === 'eval') return line(a.join(' '))
   if (SHELLS.has(p)) {
+    // Options in any clusters: each o/O takes the next word (`-euo pipefail`), c anywhere means
+    // the first operand is the command string, s means the commands come on stdin.
     let c = false
+    let s = false
     while (a.length && /^[-+]/.test(a[0] ?? '')) {
       const o = a.shift() ?? ''
       if (o === '--' || o === '-') break
-      if (o === '-o' || o === '+o' || o === '-O' || o === '+O' || o === '--rcfile' || o === '--init-file') a.shift()
-      else if (!o.startsWith('--') && o.includes('c')) c = true
+      if (o.startsWith('--')) {
+        if (o === '--rcfile' || o === '--init-file') a.shift()
+        continue
+      }
+      for (const ch of o.slice(1)) {
+        if (ch === 'o' || ch === 'O') a.shift()
+        else if (ch === 'c') c = true
+        else if (ch === 's') s = true
+      }
     }
     if (c) return a.length ? line(a[0] ?? '') : null
-    if (a.length) return null // a script file: its text is not on the line
+    if (a.length && !s) return null // a script file: its text is not on the line
     for (const body of stdin) {
       const g = line(body)
       if (g) return g
     }
     return null
   }
-  if (p === 'git') return git(a)
+  if (p === 'git') return git(a, depth, line)
   if (p === 'gh') return gh(a)
-  if (p === 'rm') {
-    const f = flags(a)
-    return f.short.has('r') || f.short.has('R') || f.long.has('recursive') ? gate('rm') : null
-  }
+  if (p === 'rm') return flags(a).has('r', 'recursive') || flags(a).short.has('R') ? gate('rm') : null
   if (p === 'find') return find(a, depth)
-  if (p === 'npm' || p === 'pnpm' || p === 'yarn') {
-    const rest = dropOptions(a, ['--prefix', '-C', '--dir', '-w', '--workspace', '--filter', '-F', '--registry', '--tag', '--otp', '--access', '--cwd'])
-    return rest[0] === 'publish' || (rest[0] === 'npm' && rest[1] === 'publish') ? gate('release') : null
-  }
+  if (p === 'npm' || p === 'pnpm' || p === 'yarn') return pkg(p, a)
   if (p === 'cargo') {
-    const rest = dropOptions(a.filter((w, k) => !(k === 0 && w.startsWith('+'))), ['-Z', '--config', '-C', '--color'])
+    const rest = dropOpts(
+      a.filter((w, k) => !(k === 0 && w.startsWith('+'))),
+      { short: 'ZC', long: ['config', 'color'] },
+    )
     return rest[0] === 'publish' ? gate('release') : null
+  }
+  if (!p || PRINTERS.has(p)) return null
+  return unlisted(argv, depth)
+}
+
+/**
+ * A program the tokenizer does not know: if one of its words names a judged program (or a
+ * shell, or eval), it may be a wrapper (flock, taskset, chrt, ssh ...), so the command from that
+ * word on is judged too. The first few such words are tried.
+ */
+function unlisted(argv, depth) {
+  let tries = 0
+  for (let k = 1; k < argv.length && tries < 8; k++) {
+    const q = base(argv[k] ?? '')
+    if (!JUDGED.has(q) && !SHELLS.has(q) && q !== 'eval') continue
+    tries++
+    const g = judge(argv.slice(k), [], depth + 1)
+    if (g) return g
   }
   return null
 }
 
-function git(a) {
-  dropOptions(a, ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env'])
+/** npm, pnpm, yarn: publish, after options in any order; npm also takes any unique prefix of a command (`npm pu`). */
+function pkg(p, a) {
+  const VALUE = ['--prefix', '-C', '--dir', '-w', '--workspace', '--filter', '-F', '--registry', '--tag', '--otp', '--access', '--cwd']
+  const skip = (k) => {
+    for (; k < a.length && /^-/.test(a[k] ?? ''); k++) {
+      if (a[k] === '--') return k + 1
+      if (VALUE.includes(a[k] ?? '')) k++
+    }
+    return k
+  }
+  const isPublish = (k) => {
+    const w = a[k] ?? ''
+    if (w === 'publish' || (p === 'npm' && w.length >= 2 && 'publish'.startsWith(w))) return true
+    return p === 'yarn' && w === 'npm' && a[k + 1] === 'publish'
+  }
+  // The subcommand is the first operand, unless that operand is the value of the option before
+  // it (`--loglevel silly publish`): an option whose value is not known to be absent may take it.
+  const k = skip(0)
+  if (isPublish(k)) return gate('release')
+  const prev = a[k - 1] ?? ''
+  if (k > 0 && /^-./.test(prev) && prev !== '--' && !prev.includes('=') && !VALUE.includes(a[k - 2] ?? '') && isPublish(skip(k + 1))) return gate('release')
+  return null
+}
+
+/** git's global options that take the next word (git.c handle_options); the others take none or only `=value`. */
+const GIT_VALUE = ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env', '--attr-source', '--shallow-file']
+/** The git subcommands judged here; git runs these itself, so an alias of one of their names is ignored, as git ignores it. */
+const GIT_JUDGED = new Set(['push', 'reset', 'clean', 'checkout', 'restore', 'branch', 'switch'])
+/** Short options of a git subcommand that take a value (the rest of the cluster or the next word). */
+const GIT_VALUED = { checkout: 'bB', switch: 'cC', clean: 'e', restore: 's', reset: '', branch: 'u' }
+
+/** git: global options, then an alias defined on the line with `-c alias.x=...`, then the subcommand and its flags in any spelling. */
+function git(a, depth, line, aliases = new Map()) {
+  if (depth > MAX_DEPTH) return null
+  while (a.length && /^-/.test(a[0] ?? '')) {
+    const w = a.shift() ?? ''
+    if (w === '--') break
+    if (!GIT_VALUE.includes(w)) continue
+    const v = a.shift() ?? ''
+    const m = w === '-c' ? /^alias\.([^=]+)=([\s\S]*)$/i.exec(v) : null
+    if (m) aliases.set((m[1] ?? '').toLowerCase(), m[2] ?? '')
+  }
   const sub = a.shift()
-  const f = flags(a)
-  const has = (s, l) => f.short.has(s) || f.long.has(l)
+  if (sub === undefined) return null
+  const alias = GIT_JUDGED.has(sub) ? undefined : aliases.get(sub.toLowerCase())
+  if (alias !== undefined) {
+    if (alias.startsWith('!')) return line(alias.slice(1) + ' ' + a.join(' '))
+    return git([...splitWords(alias), ...a], depth + 1, line, aliases)
+  }
+  const f = flags(a, GIT_VALUED[/** @type {keyof typeof GIT_VALUED} */ (sub)] ?? '')
   switch (sub) {
     case 'push':
       return gate('push')
     case 'reset':
-      return f.long.has('hard') ? gate('reset') : null
+      return f.long('hard') ? gate('reset') : null
     case 'clean':
-      return has('f', 'force') ? gate('reset') : null
+      return f.has('f', 'force') ? gate('reset') : null
     case 'checkout':
-      return has('f', 'force') || f.after.length > 0 || f.pos.includes('.') ? gate('reset') : null
+      return f.has('f', 'force') || f.after.length > 0 || f.pos.includes('.') ? gate('reset') : null
+    case 'switch':
+      return f.has('f', 'force') || f.long('discard-changes') ? gate('reset') : null
     case 'restore': {
-      const staged = has('S', 'staged')
-      const worktree = has('W', 'worktree')
-      return (!staged || worktree) && (f.pos.length > 0 || f.after.length > 0 || f.long.has('pathspec-from-file')) ? gate('reset') : null
+      const staged = f.has('S', 'staged', 2)
+      const worktree = f.has('W', 'worktree')
+      return (!staged || worktree) && (f.pos.length > 0 || f.after.length > 0 || f.long('pathspec-from-file', 10)) ? gate('reset') : null
     }
     case 'branch':
-      return f.short.has('D') || (has('d', 'delete') && has('f', 'force')) ? gate('reset') : null
+      return f.short.has('D') || (f.has('d', 'delete') && f.has('f', 'force')) ? gate('reset') : null
     default:
       return null
   }
@@ -445,8 +672,9 @@ function gh(a) {
     }
   }
   const [top, sub] = pos
-  if (top === 'pr' && (sub === 'create' || sub === 'merge' || sub === 'close')) return gate('pr')
-  if (top === 'release' && sub === 'create') return gate('release')
+  // gh's aliases: `gh pr new` is gh pr create, `gh release new` is gh release create.
+  if (top === 'pr' && (sub === 'create' || sub === 'new' || sub === 'merge' || sub === 'close')) return gate('pr')
+  if (top === 'release' && (sub === 'create' || sub === 'new')) return gate('release')
   return null
 }
 
