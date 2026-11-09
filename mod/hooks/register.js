@@ -2893,13 +2893,9 @@ function placeList(body, rows, { Text, Box, cols = Infinity, keys = [] }) {
   const whole = costAll.reduce((a, b) => a + b, 0)
   const need = 2 + Math.max(1, ...costAll)
   const has = (rank) => body.some((x) => x && x[OPT] && x[OPT].rank === rank)
-  const measure = () => {
-    const others = body.length - 1 + (has(DROP_RANK.head) ? head : 0)
-    const gaps = body.filter((x) => x && x[GAP]).length
-    return { others, gaps, area: rows - SPARE_ROWS - others + gaps }
-  }
+  const measure = () => measureIn(body, rows)
   const giveWay = (rank) => {
-    body = body.flatMap((x) => (x && x[OPT] && x[OPT].rank === rank ? (x[OPT].alt ? [].concat(x[OPT].alt) : []) : [x]))
+    body = without(body, rank)
     ;({ others, gaps, area } = measure())
   }
   // Too short for a window (not one row and its two more lines) while the list does not fit: the entries that may
