@@ -266,11 +266,12 @@ const COMMIT_VALUED_LONG = ['message', 'file', 'reuse-message', 'reedit-message'
  */
 export function stagingPlan(command, cwd) {
   const plan = { named: [], asks: [], reason: null }
+  const line = String(command ?? '')
   let cmds
   try {
-    cmds = commandsOf(command)
+    cmds = commandsOf(line)
   } catch {
-    if (/\bgit\b/.test(String(command)) && /\b(add|stage|commit)\b/.test(String(command))) plan.reason = 'the line is too deep to read'
+    if (/\bgit\b/i.test(line) && /\b(add|stage|commit)\b/.test(line)) plan.reason = 'the line is too deep to read'
     return plan
   }
   let dir = String(cwd || '/')
