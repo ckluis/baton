@@ -12,8 +12,8 @@
 // commands against clean trees are allowed.
 //
 // API (ledger.mjs): stagedForbidden(command, { cwd, run, home?, patterns? }) resolves to
-// { hits, reason }. `home` is the user's home directory (absent: the check asks `printenv HOME`
-// through run).
+// { hits, reason }. `home` is the user's home directory when the caller gives one; absent, the
+// check never reads HOME (R-C3-13) and a staging line using ~ or $HOME is refused with a reason.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, execFile } from 'node:child_process'
@@ -227,22 +227,53 @@ test('FF1 2: fail closed even when every tree in sight is clean', async () => {
   )
 })
 
-test('FF1 2: no home given, ~ is resolved by asking printenv HOME through run', async () => {
+test('FF1 3: no home given: a staging line using ~ or $HOME is refused with a reason, and HOME is never read', async () => {
+  // R-C3-13 (Q-FX7-1, Q-99 = A): the mod never builds a path from the home directory, so without a
+  // `home` from the caller a line that stages from ~ or $HOME cannot be resolved and fails closed,
+  // with a reason that names the home directory.
+  const lines = [
+    'cd ~/A && git add .',
+    'cd ~ && cd A && git add -A',
+    'cd "$HOME/A" && git add .',
+    'cd ${HOME}/A && git commit -am x',
+    'git -C ~/A add .',
+    'export GIT_DIR=$HOME/A/.git GIT_WORK_TREE=$HOME/A; git add .',
+  ]
   const asked = []
   const spy = async (argv, init = {}) => {
-    asked.push({ argv, cwd: init.cwd })
-    if (argv[0] === 'printenv') return { exitCode: 0, stdout: '/h\n', stderr: '' }
+    asked.push({ argv, cwd: init.cwd, env: init.env })
     return { exitCode: 0, stdout: '', stderr: '' }
   }
-  const out = await ledger.stagedForbidden('cd ~/A && git add .', { cwd: '/w/D', run: spy })
-  assert.deepEqual(out, { hits: [], reason: null })
-  assert.ok(
-    asked.some((q) => q.argv[0] === 'git' && q.cwd === '/h/A'),
-    'git asked in /h/A, got ' + JSON.stringify(asked),
-  )
-  const failing = async (argv) => (argv[0] === 'printenv' ? { exitCode: 1, stdout: '', stderr: '' } : { exitCode: 0, stdout: '', stderr: '' })
-  const shut = await ledger.stagedForbidden('cd ~/A && git add .', { cwd: '/w/D', run: failing })
-  assert.equal(typeof shut.reason, 'string', 'no HOME: a plain reason')
+  const realEnv = process.env
+  const envReads = []
+  process.env = new Proxy(realEnv, {
+    get(t, k) {
+      if (k === 'HOME') envReads.push('get')
+      return Reflect.get(t, k)
+    },
+    has(t, k) {
+      if (k === 'HOME') envReads.push('has')
+      return Reflect.has(t, k)
+    },
+    getOwnPropertyDescriptor(t, k) {
+      if (k === 'HOME') envReads.push('descriptor')
+      return Reflect.getOwnPropertyDescriptor(t, k)
+    },
+  })
+  const got = []
+  try {
+    for (const line of lines) {
+      const out = await ledger.stagedForbidden(line, { cwd: '/w/D', run: spy })
+      // The reason is plain: it says the line uses the home directory, which the mod does not read.
+      got.push([line, typeof out.reason === 'string' && /home directory/.test(out.reason) ? 'reason' : JSON.stringify(out)])
+    }
+  } finally {
+    process.env = realEnv
+  }
+  assert.deepEqual(got, lines.map((l) => [l, 'reason']))
+  assert.deepEqual(envReads, [], 'process.env.HOME is never read')
+  const homeAsks = asked.filter((q) => JSON.stringify(q.argv).match(/HOME|printenv|\benv\b|echo ~|pwd/))
+  assert.deepEqual(homeAsks, [], 'run is never asked for the home directory')
 })
 
 test('FF1 2 guard: lines with substitutions that do not decide what is staged are still allowed', async () => {
