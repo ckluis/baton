@@ -11,14 +11,14 @@
 // The gauges are fed through the real paths: `$.session.usage()` (register.js readUsage) and the `session.measure` hook.
 // A figure the input does not hold is never drawn: no reading at all reads `n/a (no reading yet)`; a reading with no
 // window at all `n/a (not on a subscription)`; a window the others came without `n/a (not reported)`. While an approval
-// waits, `1: approve` and `2: send back…` are drawn and work as before (P7-CS-d1 item 4), on their own line under the
-// strip. The drawing model is PW1's (mod/tests/pw1-a3/kit.ts), the world CS1's (mod/tests/cs1/kit.ts).
+// waits, `1: approve` and `2: send back…` are drawn and work as before (P7-CS-d1 item 4), within the strip's two lines
+// (CS1 red 2, Q-98 A). The drawing model is PW1's (mod/tests/pw1-a3/kit.ts), the world CS1's (mod/tests/cs1/kit.ts).
 import { expect, test } from 'claude-code/testing'
 import { cellW, dump, elements, screen, type El } from './pw1-a3/kit'
 import { stripWorld, type Opts } from './cs1/kit'
 
 const WIDTHS = [40, 60, 80, 120, 200]
-const FIVE = { kind: 'five_hour', percentUsed: 41, resetsAt: '2026-11-06T14:20:00Z' } // fixture: Friday 14:20Z
+const FIVE = { kind: 'five_hour', percentUsed: 41, resetsAt: '2026-11-06T14:20:00Z' } // fixture: Friday 2026-11-06, 14:20Z
 const WEEK = { kind: 'seven_day', percentUsed: 62, resetsAt: '2026-11-12T09:00:00Z' } // fixture: Thursday 09:00Z
 const OPUS = { kind: 'seven_day_opus', percentUsed: 22, resetsAt: '2026-11-12T09:00:00Z' } // fixture: a per-model window
 const READ = { limits: [FIVE, WEEK, OPUS], ctx: 23, usd: 9.94 } // every figure the band may show, below
@@ -41,7 +41,7 @@ async function fed($: any, on: any, f: Feed, o: Opts = {}) {
 /** The band at `width`: its elements and its lines, the engine's own (empty) drawing left out. */
 async function strip($: any, w: any, width: number) {
   const ui = await w.band($, width)
-  const els = elements(await ui.drawn(), width).filter((e: El) => keyOf(e.node) !== 'engine' && !(e.node?.type === 'Text' && e.text === ''))
+  const els = elements(await ui.drawn(), width).filter((e: El) => keyOf(e.node) !== 'engine')
   return { ui, els, lines: screen(els) }
 }
 /** What is wrong with a drawn band: a line over the width, a Text the terminal has to cut. */
@@ -63,13 +63,13 @@ for (const width of WIDTHS) {
     expect(overs(els, width), say).toEqual([])
     const [g, s] = lines as [string, string]
     // line 1: the context against rotate-at, the 5-hour and the weekly window, each with the input's figure
-    // (in the band's order, each window and then the context: the hooks smoke fixes it, mod/test/fixtures/hooks-smoke.mjs)
-    expect(g, say).toMatch(/ctx [^·]*23%\/35%/)
+    // (anywhere on line 1, Q-98 A: the existing hooks smoke puts it after the windows, mod/test/fixtures/hooks-smoke.mjs:211)
+    expect(g, say).toMatch(/ctx .*23%\/35%/)
     expect(g, say).toMatch(/5h [^·]*41%/)
     expect(g, say).toMatch(/(week|wk) [^·]*62%/)
     if (width >= 80) expect(g, say).toContain('14:20Z') // the 5-hour reset
-    // (resetLabel reads the wall clock: `14:20Z` on the day, `Fri 14:20Z` after it)
-    if (width >= 120) expect([/resets (Fri )?14:20Z/.test(g), g.includes('resets Thu 09:00Z')], say).toEqual([true, true])
+    // (with or without its day, Q-98 A: the label is read against the wall clock, `14:20Z` on the day, `Fri 14:20Z` after)
+    if (width >= 120) expect([/resets (Fri )?14:20Z/.test(g), g.includes('Thu 09:00Z')], say).toEqual([true, true])
     if (width >= 200) expect(g, say).toMatch(/Opus[^·]*22%/) // the per-model window, where it fits
     // no figure the input did not hold
     expect(percents(g).filter((p) => !FIGURES.has(p)), say).toEqual([])
@@ -102,7 +102,7 @@ for (const width of WIDTHS) {
 test('CS1 1: a reading with no window at all says the 5-hour and the weekly limit are n/a, not on a subscription', async ($, on) => {
   const w = await fed($, on, { limits: [], ctx: 23 })
   const { els, lines } = await strip($, w, 120)
-  expect([lines[0]!.includes('5h n/a (not on a subscription)'), lines[0]!.includes('week n/a (not on a subscription)'), /ctx [^·]*23%\/35%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
+  expect([lines[0]!.includes('5h n/a (not on a subscription)'), lines[0]!.includes('week n/a (not on a subscription)'), /ctx .*23%\/35%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
 test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (not reported)', async ($, on) => {
@@ -115,7 +115,7 @@ test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (n
 test('CS1 1: with no context reading, the context gauge reads n/a', async ($, on) => {
   const w = await fed($, on, { limits: [FIVE, WEEK] })
   const { els, lines } = await strip($, w, 120)
-  expect([/ctx n\/a/.test(lines[0]!), /5h [^·]*41%/.test(lines[0]!), /(week|wk) [^·]*62%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
+  expect([/ctx n\/a/.test(lines[0]!), /5h [^·]*41%/.test(lines[0]!), /week [^·]*62%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
 for (const width of [40, 49, 60, 80, 120, 200]) {
@@ -126,8 +126,11 @@ for (const width of [40, 49, 60, 80, 120, 200]) {
     expect(overs(els, width), say).toEqual([])
     expect(lines[0], say).toMatch(/ctx /)
     expect(lines[1]!.startsWith(width >= 80 ? HINT_LONG : HINT_SHORT), say).toBe(true)
-    expect(lines.slice(2).some((l) => l.includes('1: approve') && l.includes('2: send back…')), say).toBe(true)
-    expect(lines.length, 'the strip and the keys row' + say).toBe(3)
+    // the keys within the strip's two lines (Q-98 A): on line 2 after the hint wherever it has the cells (from 60
+    // columns), on line 1 where it has not (40 and 49: the short hint and both keys need 54 cells)
+    const keyed = (l: string) => l.includes('1: approve') && l.includes('2: send back…')
+    expect(keyed(lines[width >= 60 ? 1 : 0] ?? ''), say).toBe(true)
+    expect(lines.length, 'the strip, the keys within it' + say).toBe(2)
     const one = (await ui.findAll({ type: 'Button' })).find((b: any) => b.props?.hotkey === '1')
     expect(!!one, say).toBe(true)
     await ui.press({ key: keyOf(one) })

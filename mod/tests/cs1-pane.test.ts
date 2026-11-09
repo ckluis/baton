@@ -94,14 +94,12 @@ for (const name of ['pw1', 'q3']) {
       const els = await draw(width)
       const rows = agentRows(els)
       if (rows.length !== wide.length) bad.push(width + ': ' + rows.length + ' rows, not ' + wide.length)
-      // the two cells every row keeps after its table for a running agent's ` ✉` (register.js, the agent table's width)
-      const mail = rows.some((e) => e.lines.some((l) => l.includes('✉'))) ? 2 : 0
       rows.forEach((e, i) => {
         const s = stateOf(e)
         if (!s.endsWith('…')) return
         const line = [...e.lines].reverse().find((x) => x.includes(s))!.replace(/✉/g, '').trimEnd()
         const want = whole[i] ?? ''
-        if (width - mail - cellW(line) >= cellW(want) - cellW(s)) bad.push(width + ': |' + s + '| cut, its line ' + cellW(line) + ' cells, whole |' + want + '|' + dump([e]))
+        if (width - cellW(line) >= cellW(want) - cellW(s)) bad.push(width + ': |' + s + '| cut, its line ' + cellW(line) + ' cells, whole |' + want + '|' + dump([e]))
       })
     }
     expect(bad.slice(0, 6), bad.length + ' faults').toEqual([])
