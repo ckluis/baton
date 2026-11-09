@@ -20,7 +20,7 @@ import { addSpawn, addToolCall, agentNamed, chain, effortOf, finishAgent, isWait
 import { langOf } from '../lib/codeidx.mjs'
 import { quietText } from '../lib/quiet.mjs'
 import { contextNudge, contextOf, costOf, ctxTone, PRICES, shortUsd, windowFor, withCosts } from '../lib/ledger.mjs'
-import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, gitAddPaths, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, workOf } from '../lib/ledger.mjs'
+import { addUsage, boardColumn, budgetCheck, FORBIDDEN_DEFAULT, forbiddenHits, goalLabel, isRoundSpawn, LABEL_COLORS, LABEL_PREFIX, parseBlockedBy, shortTokens, spendMarkdown, stagedForbidden, stagingPlan, workOf } from '../lib/ledger.mjs'
 import { stepperMini, stepperMiniText } from '../lib/track.mjs'
 import { agentTable, components, sumAccounts, tokensIn } from '../lib/table.mjs'
 import { shortModel, toolDetail } from '../lib/agents.mjs'
@@ -1185,7 +1185,8 @@ async function doorShut($, e, what) {
     }
     case 'the forbidden-file check':
       try {
-        return forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles).length > 0
+        const plan = stagingPlan(e.command, '/')
+        return forbiddenHits(plan.named, config.forbiddenFiles).length > 0 || plan.asks.length > 0 || !!plan.reason
       } catch {
         return /\bgit\b[\s\S]*\badd\b/.test(String(e.command))
       }
@@ -4850,8 +4851,21 @@ export function register(on, options) {
   // run. Prevention at the moment it happens; the PR's merge-ready row catches
   // what a broad `git add -A` let through. (Beneath pause and the command gate since
   // FX1, so each of the three is the first to read a command in its own case.)
+  // FF1: a broad form (`.`, a directory, a glob, -A, -u, commit -a or a pathspec, after -C or cd)
+  // is resolved by asking git, read-only, what it would include; when git cannot say, it is refused.
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => closedOnThrow($, e, next, 'the forbidden-file check', async (pass) => {
-    const hits = forbiddenHits(gitAddPaths(e.command), config.forbiddenFiles)
+    const command = String(e.command)
+    // The directory matters only to a line that may run git (read in any case, as the reader does).
+    const cwd = /git/i.test(command) ? await $.session.cwd() : '/'
+    const { hits, reason } = await stagedForbidden(command, {
+      cwd,
+      run: (argv, init) => $.process.run(argv, { ...init, timeoutMs: 15000 }),
+      patterns: config.forbiddenFiles,
+    })
+    if (reason) {
+      if (await runActive($)) await noteQuietly($, 'refused git staging (' + reason + ') for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
+      return { deny: 'baton: could not tell what this command would stage (' + reason + '), so it was refused: a forbidden file (secrets, keys, env files) might be included. Stage the files by name, or return BLOCKED and say why.' }
+    }
     if (!hits.length) return pass(e)
     if (await runActive($)) await noteQuietly($, 'refused git add of ' + hits.join(', ') + ' for ' + chain(tree, isPrimeCall(e) ? PRIME : e.agentId), 'approval')
     return { deny: 'baton: ' + hits.join(', ') + ' matches a forbidden-file pattern (secrets, keys, env files) and is never committed. Leave it untracked; if the work needs it, return BLOCKED and say why.' }

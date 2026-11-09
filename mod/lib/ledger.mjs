@@ -6,6 +6,9 @@
 // says whether it rests on a rule or on a judgment. What changes here is who
 // does it. In talos the orchestrator has to remember to run a script; in the
 // mod each one is a hook, so it happens whether or not anyone remembers.
+// (stagedForbidden asks git only through the `run` its caller passes.)
+
+import { commandsOf, GIT_VALUE, programOf } from './approve.mjs'
 
 // ------------------------------------------------------------------ spend
 
@@ -224,15 +227,201 @@ export function forbiddenHits(paths, patterns = FORBIDDEN_DEFAULT) {
   return (paths ?? []).filter((f) => patterns.some((p) => globMatch(p, f)) && !/\.(example|sample|template)$/i.test(f))
 }
 
-/** The explicit paths a `git add …` names (flags dropped); [] for anything else. */
+/** The paths a `git add`, `git stage` or `git commit` names on the line (flags dropped); [] for anything else. */
 export function gitAddPaths(command) {
+  return stagingPlan(command, '/').named
+}
+
+/** A path joined onto a directory, `.` and `..` resolved (POSIX); an absolute path stands alone. */
+function resolvePath(dir, p) {
+  const parts = []
+  for (const seg of (String(p).startsWith('/') ? String(p) : String(dir) + '/' + String(p)).split('/')) {
+    if (seg === '..') parts.pop()
+    else if (seg && seg !== '.') parts.push(seg)
+  }
+  return '/' + parts.join('/')
+}
+
+/** A long option `w` (`--name` or `--name=v`) is `name` or a prefix of it at least `min` long, as git's parse-options accepts. */
+const longIs = (w, name, min = 1) => {
+  const n = w.slice(2).replace(/=.*$/, '')
+  return n.length >= min && name.startsWith(n)
+}
+
+// git add / git stage: flags that change what is staged. Their options take no separate value.
+// git commit: short letters and long names that take a value (the next word when not attached).
+const COMMIT_VALUED_SHORT = 'mFCct'
+const COMMIT_VALUED_LONG = ['message', 'file', 'reuse-message', 'reedit-message', 'template', 'author', 'date', 'cleanup', 'fixup', 'squash', 'trailer']
+
+/**
+ * What a command line would stage or commit, read with gateFor's shell reader (approve.mjs
+ * commandsOf), as far as the line alone can tell:
+ *   named   the paths written on the line after add/stage/commit (checked as names, always);
+ *   asks    one read-only `git status` per broad form, in the directory the command resolves to
+ *           (`cd`, `-C`, --git-dir, --work-tree, GIT_DIR=, GIT_WORK_TREE=), over its pathspecs:
+ *           `.`, a directory, a glob, -A/--all, -u/--update, -p, commit -a/--all or a pathspec;
+ *           -f/--force also lists ignored files;
+ *   reason  set when the line cannot be read for this (too deep, a pathspec file, a shell alias).
+ * `cwd` is the directory the command runs in. Pure.
+ */
+export function stagingPlan(command, cwd) {
+  const plan = { named: [], asks: [], reason: null }
+  let cmds
+  try {
+    cmds = commandsOf(command)
+  } catch {
+    if (/\bgit\b/.test(String(command)) && /\b(add|stage|commit)\b/.test(String(command))) plan.reason = 'the line is too deep to read'
+    return plan
+  }
+  let dir = String(cwd || '/')
+  for (const { argv, assigns } of cmds) {
+    const p = programOf(argv[0])
+    if (p === 'cd' || p === 'pushd') {
+      const t = argv.slice(1).find((w) => !w.startsWith('-'))
+      if (t !== undefined && !/^[~$]/.test(t)) dir = resolvePath(dir, t)
+      continue
+    }
+    if (p === 'git') gitStaging(argv.slice(1), dir, assigns, plan, new Map())
+  }
+  return plan
+}
+
+/** One git command's part of the plan (see stagingPlan). `aliases` are those set on the line with -c alias.x=... */
+function gitStaging(a, dir, assigns, plan, aliases, depth = 0) {
+  if (depth > 8) {
+    plan.reason = 'an alias refers to itself'
+    return
+  }
+  const globals = []
+  let at = dir
+  for (const s of assigns) {
+    const m = /^GIT_(DIR|WORK_TREE)=([\s\S]*)$/.exec(s)
+    if (m) globals.push((m[1] === 'DIR' ? '--git-dir=' : '--work-tree=') + resolvePath(dir, m[2]))
+  }
+  a = a.slice()
+  while (a.length && /^-/.test(a[0] ?? '')) {
+    const w = a.shift() ?? ''
+    if (w === '--') break
+    const eq = w.indexOf('=')
+    const name = eq < 0 ? w : w.slice(0, eq)
+    const value = () => (eq < 0 ? a.shift() ?? '' : w.slice(eq + 1))
+    if (w === '-C') at = resolvePath(at, a.shift() ?? '')
+    else if (name === '--git-dir' || name === '--work-tree') globals.push(name + '=' + resolvePath(at, value()))
+    else if (w === '-c') {
+      const v = a.shift() ?? ''
+      globals.push('-c', v)
+      const m = /^alias\.([^=]+)=([\s\S]*)$/i.exec(v)
+      if (m) aliases.set((m[1] ?? '').toLowerCase(), m[2] ?? '')
+    } else if (GIT_VALUE.includes(w)) a.shift()
+  }
+  const sub = a.shift()
+  if (sub === undefined) return
+  if (sub !== 'add' && sub !== 'stage' && sub !== 'commit' && aliases.has(sub.toLowerCase())) {
+    const alias = aliases.get(sub.toLowerCase()) ?? ''
+    // Re-read in the directory resolved so far; the globals already read stay on every ask.
+    const before = plan.asks.length
+    if (alias.startsWith('!')) {
+      // A shell alias: its line, with the words after it, read as commands run in the same place.
+      for (const c of commandsOf(alias.slice(1) + ' ' + a.join(' '))) if (programOf(c.argv[0]) === 'git') gitStaging(c.argv.slice(1), at, c.assigns, plan, aliases, depth + 1)
+    } else gitStaging([...(commandsOf(alias)[0]?.argv ?? []), ...a], at, [], plan, aliases, depth + 1)
+    for (const q of plan.asks.slice(before)) q.argv.splice(1, 0, ...globals)
+    return
+  }
+  const pathspecs = []
+  let broad = false // the whole tree when no pathspec is given
+  let force = false
+  let dryRun = false
+  let fromFile = false
+  let valueNext = false
+  let dd = false
+  const isCommit = sub === 'commit'
+  if (sub !== 'add' && sub !== 'stage' && !isCommit) return
+  let tracked = isCommit // only tracked files: commit, add -u/-p/-i/-e
+  for (const w of a) {
+    if (valueNext) valueNext = false
+    else if (dd || !w.startsWith('-') || w === '-') pathspecs.push(w)
+    else if (w === '--') dd = true
+    else if (w.startsWith('--')) {
+      if (longIs(w, 'pathspec-from-file', 10)) fromFile = true
+      else if (longIs(w, 'dry-run', 2)) dryRun = true
+      else if (isCommit) {
+        if (w === '--all' || longIs(w, 'interactive', 3) || longIs(w, 'patch', 3)) broad = true
+        else if (!w.includes('=') && COMMIT_VALUED_LONG.some((n) => longIs(w, n, 3))) valueNext = true
+      } else if (longIs(w, 'all') || longIs(w, 'no-ignore-removal', 4)) broad = true
+      else if (longIs(w, 'update') || longIs(w, 'patch', 3) || longIs(w, 'interactive', 3) || longIs(w, 'edit', 2)) broad = tracked = true
+      else if (longIs(w, 'force')) force = true
+    } else {
+      for (let k = 1; k < w.length; k++) {
+        const ch = w[k] ?? ''
+        if (isCommit) {
+          if (ch === 'a' || ch === 'p') broad = true
+          if (ch === 'S' || ch === 'u') break // an optional value, attached
+          if (COMMIT_VALUED_SHORT.includes(ch)) {
+            valueNext = k === w.length - 1
+            break
+          }
+        } else if (ch === 'A') broad = true
+        else if ('upie'.includes(ch)) broad = tracked = true
+        else if (ch === 'f') force = true
+        else if (ch === 'n') dryRun = true
+      }
+    }
+  }
+  plan.named.push(...pathspecs)
+  if (dryRun) return
+  if (fromFile) {
+    plan.reason = 'it reads its paths from a file'
+    return
+  }
+  if (!pathspecs.length && !broad) return
+  plan.asks.push({
+    cwd: at,
+    tracked,
+    argv: ['git', ...globals, 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=' + (tracked ? 'no' : 'all'), ...(force && !tracked ? ['--ignored=traditional'] : []), '--', ...(pathspecs.length ? pathspecs : [':/'])],
+  })
+}
+
+/**
+ * The paths a `git status --porcelain=v1 -z` answer shows would be staged or committed: every
+ * entry except one that only deletes (a deleted secret leaving the tree is not a secret committed),
+ * and, when only tracked files are taken (`tracked`), an untracked (`??`) or ignored (`!!`) one.
+ */
+export function stagedPaths(stdout, { tracked = false } = {}) {
   const out = []
-  for (const part of String(command ?? '').split(/&&|\|\||;/)) {
-    const m = /\bgit\s+add\s+(.+)$/.exec(part.trim())
-    if (!m) continue
-    for (const tok of m[1].split(/\s+/)) if (tok && !tok.startsWith('-')) out.push(tok.replace(/^["']|["']$/g, ''))
+  for (const e of String(stdout ?? '').split('\0')) {
+    if (e.length < 4) continue
+    const xy = e.slice(0, 2)
+    if (/^[ D][ D]$/.test(xy)) continue
+    if (tracked && (xy === '??' || xy === '!!')) continue
+    out.push(e.slice(3))
   }
   return out
+}
+
+/**
+ * The forbidden paths a command line would stage or commit: the names on the line, then for each
+ * broad form what git says it would include, asked through `run(argv, { cwd })` (register.js passes
+ * $.process.run). Resolves to { hits, reason }: reason is a plain sentence when git could not say
+ * (fail closed: the caller refuses), else null.
+ */
+export async function stagedForbidden(command, { cwd, run, patterns = FORBIDDEN_DEFAULT }) {
+  const plan = stagingPlan(command, cwd)
+  const hits = forbiddenHits(plan.named, patterns)
+  if (hits.length) return { hits, reason: null }
+  if (plan.reason) return { hits: [], reason: plan.reason }
+  for (const q of plan.asks) {
+    let r
+    try {
+      r = await run(q.argv, { cwd: q.cwd })
+    } catch (err) {
+      return { hits: [], reason: 'git status could not run in ' + q.cwd + ' (' + String((err && err.message) || err) + ')' }
+    }
+    if (!r || r.exitCode !== 0) return { hits: [], reason: 'git status failed in ' + q.cwd + ': ' + String((r && r.stderr) || 'exit ' + (r && r.exitCode)).trim().slice(0, 200) }
+    if (r.isStdoutTruncated) return { hits: [], reason: 'git status listed more than the mod can read in ' + q.cwd }
+    const found = forbiddenHits(stagedPaths(r.stdout, q), patterns)
+    if (found.length) return { hits: found, reason: null }
+  }
+  return { hits: [], reason: null }
 }
 
 // ------------------------------------------------------------------ the goal on GitHub
