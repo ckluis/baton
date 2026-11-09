@@ -277,12 +277,19 @@ export function stagingPlan(command, cwd, { home } = {}) {
   const plan = { named: [], asks: [], reason: null, needsHome: false }
   const line = String(command ?? '')
   let cmds
+  /** @type {string[]} */
+  const notes = []
   try {
-    cmds = commandsOf(line)
+    cmds = commandsOf(line, notes)
   } catch {
     if (/\bgit\b/i.test(line) && /\b(add|stage|commit)\b/.test(line)) plan.reason = 'the line is too deep to read'
     return plan
   }
+  // One rule (FF1 attempt 3, Q-FF1-1 = A): a line that stages or commits and also does something this
+  // reader does not follow is refused, whatever it is, rather than read as if that part were not there.
+  const stages = mayStage(line, cmds)
+  const why = stages ? unfollowed(line, cmds, notes) : null
+  if (why) plan.reason = 'the line ' + why + ', and the mod cannot follow that to see what it stages'
   const scoped = /[(`|&]/.test(line.replace(/&&|\|\|/g, ''))
   /** @type {Map<string, string[]>} shell variables set on the line: the values each may hold */
   const vars = new Map()
@@ -319,7 +326,7 @@ export function stagingPlan(command, cwd, { home } = {}) {
     if (/[$`~]/.test(argv[0] ?? '')) {
       const progs = new Set(ctxs.flatMap((c) => word(argv[0], c)).map((w) => programOf(w)))
       if ([...progs].some((w) => w.includes(UNREAD))) {
-        if (rest.some((w) => /^(add|stage|commit)$/.test(w))) plan.reason = plan.reason ?? 'the program it runs is not written on the line'
+        if (stages || rest.some((w) => /^(add|stage|commit)$/.test(w))) plan.reason = plan.reason ?? 'the program it runs is not written on the line'
         continue
       }
       p = progs.has('git') ? 'git' : progs.size === 1 ? [...progs][0] ?? '' : ''
@@ -368,6 +375,120 @@ export function stagingPlan(command, cwd, { home } = {}) {
     }
   }
   return plan
+}
+
+/**
+ * Whether a line may stage or commit: it says git and add, stage or commit somewhere, in its text or
+ * in its words as the shell reads them (quotes removed, $'...' decoded), so an alias or function body,
+ * a here-string or a string another program runs counts too.
+ */
+function mayStage(line, cmds) {
+  const text = [line, ...cmds.flatMap((c) => [...c.pre, ...c.argv])].join('\n')
+  return /\bgit\b/i.test(text) && /\b(?:add|stage|commit)\b/i.test(text)
+}
+
+/**
+ * Variables that change how the shell reads the words, paths or commands of the rest of a line, so a
+ * line that sets one is not read as the shell reads it. From the bash manual (Shell Variables, Bash
+ * Variables) and zshparam for zsh's own names:
+ *   IFS                         how expansions are split into words (and how read splits)
+ *   CDPATH, cdpath              where cd looks for a relative directory
+ *   PATH, path, EXECIGNORE      which program a command name runs
+ *   (HOME, what ~ and a bare cd mean, is not listed: a line that sets it already leaves ~ unread, and
+ *   the mod never names that variable in a string, R-C3-13)
+ *   PWD, OLDPWD, DIRSTACK, dirstack   what cd -, ~-, ~+, pushd and popd use
+ *   GLOBIGNORE                  filename expansion (setting it also turns on dotglob)
+ *   BASH_ENV, ENV               a file a child shell sources before it runs its commands
+ *   SHELLOPTS, BASHOPTS, POSIXLY_CORRECT, BASH_COMPAT   shell options (posix mode expands aliases)
+ *   BASH_ALIASES, BASH_CMDS, aliases, galiases, saliases, functions, commands, nameddirs, options,
+ *   fpath                       aliases, functions, hashed commands, named directories and options
+ *                               set through variables
+ */
+const SHELL_READS = ['IFS', 'CDPATH', 'cdpath', 'PATH', 'path', 'EXECIGNORE', 'PWD', 'OLDPWD', 'DIRSTACK', 'dirstack', 'GLOBIGNORE', 'BASH_ENV', 'ENV', 'SHELLOPTS', 'BASHOPTS', 'POSIXLY_CORRECT', 'BASH_COMPAT', 'BASH_ALIASES', 'BASH_CMDS', 'aliases', 'galiases', 'saliases', 'functions', 'commands', 'nameddirs', 'options', 'fpath']
+/** Builtins that change how the shell reads what follows, and what each does. */
+const SHELL_CHANGES = {
+  alias: 'defines an alias',
+  source: 'sources a file',
+  '.': 'sources a file',
+  shopt: 'changes shell options',
+  setopt: 'changes shell options',
+  unsetopt: 'changes shell options',
+  emulate: 'changes shell options',
+  enable: 'turns shell builtins on or off',
+  hash: 'sets where a command name runs from',
+  trap: 'sets a trap, which runs commands of its own',
+  autoload: 'loads functions',
+}
+/** Programs that run code given as text on the line, with the options that give it (awk: any program calling out). */
+const INLINE_CODE = /^(?:python[0-9.]*|pypy[0-9.]*|perl|ruby|node|nodejs|bun|deno|php|osascript|pwsh|powershell|lua|rscript|tclsh)$/
+const INLINE_FLAG = /^(?:-[a-zA-Z]*[ceE]|-[pr]|--eval|--print|-command|eval)$/i
+/** `set` options that only stop on errors or trace (o names one of SET_PLAIN_O): any other changes how the shell reads (-o posix, -k, -B ...). */
+const SET_PLAIN = /^[-+][euxvEo]+$/
+const SET_PLAIN_O = ['pipefail', 'errexit', 'nounset', 'xtrace', 'verbose', 'errtrace']
+
+/**
+ * What a line does that this reader does not follow, as a phrase for the reason ("defines an alias"),
+ * or null: an alias or a function defined, text sourced or run through eval, a shell fed its commands
+ * from its input or a file, a shell option, trap, hash or builtin changed, a variable of SHELL_READS
+ * set (by assignment, export/declare/local/readonly/typeset, read, a for loop or ${NAME:=...}), a
+ * name reference, a function imported through the environment, or code run by another program
+ * (python -c, a shell named among another program's words).
+ */
+function unfollowed(line, cmds, notes) {
+  if (notes.includes('function')) return 'defines a function'
+  if (notes.includes('eval')) return 'runs text through eval'
+  if (notes.includes('shell')) return 'runs a shell that reads its commands from its input or a file'
+  if (notes.includes('shell-env')) return 'runs a shell with an environment, directory or options of its own'
+  const reads = (name) => (SHELL_READS.includes(name) ? 'sets ' + name + ', which changes how the shell reads words, paths or commands' : null)
+  const viaDefault = new RegExp('\\$\\{(' + SHELL_READS.join('|') + ')(?:\\[[^\\]]*\\])?:?=').exec(line)
+  if (viaDefault) return reads(viaDefault[1] ?? '')
+  for (const c of cmds) {
+    if ([...c.pre, ...c.argv].some((w) => /^BASH_FUNC_/.test(w))) return 'imports a function through the environment'
+    for (const s of c.assigns) {
+      const r = reads(splitAssign(s)[0])
+      if (r) return r
+    }
+    if (!c.argv.length) continue
+    const p = programOf(c.argv[0])
+    const rest = c.argv.slice(1)
+    if (c.pre.includes('for') || c.pre.includes('select')) {
+      const r = reads(c.argv[0] ?? '')
+      if (r) return r
+      continue
+    }
+    if (Object.hasOwn(SHELL_CHANGES, p)) return SHELL_CHANGES[/** @type {keyof typeof SHELL_CHANGES} */ (p)]
+    if (p === 'export' || p === 'declare' || p === 'typeset' || p === 'local' || p === 'readonly') {
+      if (rest.some((w) => /^-[a-zA-Z]*n/.test(w))) return 'makes a name reference (' + p + ' -n)'
+      for (const w of rest) {
+        const r = w.startsWith('-') ? null : reads(splitAssign(w)[0])
+        if (r) return r
+      }
+      continue
+    }
+    if (p === 'read' || p === 'mapfile' || p === 'readarray' || p === 'getopts' || p === 'printf') {
+      const names = p === 'printf' ? (rest[0] === '-v' ? rest.slice(1, 2) : []) : rest.filter((w) => !w.startsWith('-'))
+      for (const w of names) {
+        const r = reads(w)
+        if (r) return r
+      }
+      continue
+    }
+    if (p === 'set') {
+      for (let i = 0; i < rest.length; i++) {
+        const w = rest[i] ?? ''
+        if (w === '--' || !/^[-+]/.test(w)) break
+        if (!SET_PLAIN.test(w)) return 'changes shell options with set'
+        if (w.includes('o') && !SET_PLAIN_O.includes(rest[++i] ?? '')) return 'changes shell options with set'
+      }
+      continue
+    }
+    if (INLINE_CODE.test(p) && rest.some((w) => INLINE_FLAG.test(w))) return 'runs code through ' + p
+    if (/^[gmn]?awk$/.test(p) && rest.some((w) => /system|\|/.test(w))) return 'runs commands through ' + p
+    if (p === 'git' || ['echo', 'printf', 'print', 'which', 'type', 'whence', 'where', 'man', 'help'].includes(p)) continue
+    const inner = rest.find((w) => /^(?:sh|bash|zsh|dash|ksh|mksh|ash|fish)$/.test(programOf(w)) || INLINE_CODE.test(programOf(w)))
+    if (inner !== undefined) return 'runs ' + programOf(inner) + ' through ' + p
+  }
+  return null
 }
 
 /** A word's unknown part: the value of a variable, substitution or `~user` the line does not show. */

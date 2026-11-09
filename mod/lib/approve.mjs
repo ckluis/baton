@@ -159,7 +159,8 @@ function lex(src, depth) {
   }
   const endCmd = (at) => {
     endWord()
-    if (argv.length) out.cmds.push({ argv, raw: src.slice(start, at), stdin })
+    // `name ()` (a function definition) is marked `defines` for commandsOf; the gate does not read it.
+    if (argv.length) out.cmds.push({ argv, raw: src.slice(start, at), stdin, ...(argv.length === 1 && /^\(\s*\)/.test(src.slice(at, at + 64)) ? { defines: true } : {}) })
     argv = []
     stdin = []
     start = -1
@@ -601,8 +602,13 @@ function shellRuns(a, stdin) {
  * here-string) is read as a line in turn; a program not known whose words name git (flock, ssh,
  * find -exec ...) also yields the command from that word on. A command of assignments alone is
  * listed with empty argv. Throws on a line too deep to take apart.
+ *
+ * `notes`, when given, collects what the line does that a reader of these commands cannot follow
+ * (FF1): 'function' (a function defined), 'eval' (text run through eval), 'shell' (a shell that reads
+ * its commands from its input or a script file, not from -c), 'shell-env' (a shell started with words
+ * stripped off its front: assignments, env or wrapper options, which its commands are not given).
  */
-export function commandsOf(command) {
+export function commandsOf(command, notes = []) {
   const out = []
   const one = (argv, stdin, depth, shell, from, carry = []) => {
     if (depth > MAX_DEPTH) throw new Error('too deep')
@@ -617,11 +623,19 @@ export function commandsOf(command) {
       if (assigns.length) out.push({ argv: [], assigns, pre, shell, from })
       return
     }
-    if (p === 'eval') return lines(a.slice(1).join(' '), depth + 1, shell, from)
+    if (p === 'eval') {
+      notes.push('eval')
+      return lines(a.slice(1).join(' '), depth + 1, shell, from)
+    }
     if (SHELLS.has(p)) {
-      for (const body of shellRuns(a.slice(1), stdin)) lines(body, depth + 1, true, from)
+      const runs = shellRuns(a.slice(1), stdin)
+      if (runs === stdin || !runs.length) notes.push('shell')
+      // What was stripped off its front (env -C, assignments, wrappers) is not carried into its commands.
+      if (pre.some((w) => !KEYWORDS.has(w))) notes.push('shell-env')
+      for (const body of runs) lines(body, depth + 1, true, from)
       return
     }
+    if (p === 'function') notes.push('function')
     out.push({ argv: a, assigns, pre, shell, from })
     if (p === 'git' || PRINTERS.has(p)) return
     let tries = 0
@@ -632,7 +646,10 @@ export function commandsOf(command) {
     }
   }
   const lines = (s, depth, shell = false, from = null) => {
-    for (const cmd of lex(s, depth).cmds) one(cmd.argv, cmd.stdin, depth, shell, from)
+    for (const cmd of lex(s, depth).cmds) {
+      if (cmd.defines) notes.push('function')
+      one(cmd.argv, cmd.stdin, depth, shell, from)
+    }
   }
   lines(String(command ?? ''), 0)
   return out
