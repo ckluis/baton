@@ -144,6 +144,7 @@ test('guard: the band shows the context against the rotation threshold during a 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 test('guard: a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', async ($, on) => {
   const { clock, opens } = world(on, { placed: false })
+  mock.store(on, { layout: 'panel' }) // amended by verifier (CS2, D-P7-7): the panel layout, where the pane still opens by itself; the strip, the default, never auto-opens (Q-CS2-1 A)
   on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
   on('session.version', () => ({ value: { version: '2.1.302', base: '2.1.302' } }))
   on('tool.register', (_$: any, e: any) => ({ value: { tool: 'mcp__baton__' + e.name } }))

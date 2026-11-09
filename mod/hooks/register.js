@@ -174,6 +174,23 @@ const PANE = 'baton'
 // Claude Code caps it (2.1.319, no setting): at most min(floor(cols x 0.45), cols - 60), at least 24; a width the
 // person dragged the dock to wins under the same cap. Unasked, it opens at min(floor(cols x 0.45), 90, cols - 70).
 const PANE_COLUMNS = 999
+// The layout (P7-CS-d1 items 3, 5, 6; operator decision 2026-11-09): `strip`, the default, is the two-line strip above
+// the prompt, the pane opening only when the person dives in (w, m) and never by itself; `panel` is the side panel,
+// which opens by itself as T5 had it. One internal flag until LM1's `/baton layout`: the store's `layout` key, read
+// at session start; anything but 'panel' is the strip.
+const LAYOUT_KEY = 'layout'
+const layout = { mode: 'strip' }
+async function readLayout($) {
+  try {
+    layout.mode = (await $.store.get(LAYOUT_KEY)) === 'panel' ? 'panel' : 'strip'
+  } catch {
+    layout.mode = 'strip'
+  }
+}
+/** The way back every dive-in view says on its first lines (P7-CS-d1 item 3). */
+const wayBack = () => (layout.mode === 'panel' ? 'Esc: close' : 'Esc: back to the strip')
+// The band's last width, what a dive-in measures the inline pane's rows at (the strip is drawn full width).
+const band = { cols: null }
 // Two tabs: Work is everything happening (the goal, the PR, the agents, the plan, what waits for
 // you); Memory is everything the run remembers (your rulings, then the memory itself).
 const TABS = [
@@ -685,9 +702,12 @@ async function readUsage($) {
   return shown() !== was
 }
 
-/** Open the pane by itself (unfocused): in every interactive session, the mod is simply there. */
+/**
+ * Open the pane by itself (unfocused): in every interactive session, the mod is simply there. In the panel layout
+ * only: in the strip layout the strip is the resting state and the pane opens when the person dives in (CS4).
+ */
 async function autoOpenPane($) {
-  if (pane.open || !config.autoPane || !(await interactive($))) return
+  if (pane.open || !config.autoPane || layout.mode !== 'panel' || !(await interactive($))) return
   pane.tab = 'work'
   try {
     const r = await $.ui.open({ id: PANE, title: 'baton', closeOnEscape: true, columns: PANE_COLUMNS }) // no focus: it opens beside the work, unfocused
@@ -701,6 +721,97 @@ async function autoOpenPane($) {
   try {
     if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30, true) : null))
   } catch {}
+}
+
+/**
+ * The pane's body before placeList fits it to the rows: the keys row, the read line (with the way back first, CS2),
+ * then the tab's view. `els` are the element constructors ($.ui.resolve, or plain records where paneRows measures).
+ */
+async function paneBody($, els, cols, rows) {
+  const { Box, Text, Button, Input, Link } = els
+  const tabs = TABS.map((t) =>
+    Button({
+      key: 'tab-' + t.id,
+      label: t.label,
+      hotkey: t.hotkey,
+      plain: true,
+      ...(pane.tab === t.id ? {} : { dimColor: true }),
+      onPress: () => {
+        pane.tab = t.id
+        $.ui.invalidate('ui.render')
+        return refreshPane($, rows)
+      },
+    }),
+  )
+  tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
+  if (pane.tab === 'memory') tabs.push(...memoryKeys($, Button, rows))
+  // p shows or hides the node rows under every phase row of the tree (T10 amendment, Q-59).
+  if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
+  // A one-line Text the mod fits itself (PW1): cut to `room` cells (the pane body, less what its row draws before
+  // it), so the terminal never has to cut or shrink it.
+  const line = (key, text, extra = {}, room = cols) => Text({ wrap: 'truncate-end', ...extra, children: [cutCells(String(text), Math.max(1, room)) || ' '] })
+  const ui = { Box, Text, Button, Input, Link, line, rows, cols }
+  if (pane.tab !== 'memory') await loadLetters($)
+  // The keys row takes as many lines as the pane needs for it (PW1); the list is told of the lines it takes.
+  const tabRows = buttonRows(Box, 'tabs', tabs, cols, 3)
+  // The keys row and the read line lead the body the list is placed in (PW1 attempt 3): in a pane too short for one
+  // row of the list the read line gives way, and the keys row too where not even it and the hint's line fit (their
+  // keys then held on the hint's line, placeList). The read line starts with the way back (P7-CS-d1 item 3), so a
+  // narrow pane that cuts it keeps that.
+  const read = wayBack() + ' · read ' + (pane.refreshedAt ?? 'never') + (layout.mode === 'panel' ? '' : ' · Esc closes')
+  const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', read, { dimColor: true }))]
+  return { ui, tabs, body: [...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))] }
+}
+
+/** Plain element records, for measuring a view without drawing it (paneRows). */
+const MEASURE_ELS = new Proxy({}, { get: (_, type) => (props) => ({ type, props }) })
+
+/**
+ * The rows a dive-in asks for (CS2): the lines the tab's view takes whole at `cols`, so the inline pane opens tall
+ * enough that the agent list fits (placeList) and the Memory table is drawn whole; at least 8.
+ */
+async function paneRows($, cols) {
+  const { body } = await paneBody($, MEASURE_ELS, cols, 200)
+  let n = 0
+  for (const x of body) {
+    const l = x && x[LIST]
+    if (!l) {
+      n += 1
+      continue
+    }
+    const linesOf = l.lines || (() => 1)
+    n += l.items.reduce((a, it) => a + linesOf(it), 0)
+    if (body.some((y) => y && y[OPT] && y[OPT].rank === DROP_RANK.head)) n += l.head || 0
+  }
+  return Math.max(8, n)
+}
+
+/**
+ * Dive in from the strip (CS2, P7-CS-d1 item 1): `w` opens the pane on Work, `m` on Memory, focused, as wide as
+ * Claude Code lets it dock (PANE_COLUMNS) and, inline, as tall as the view (paneRows). Esc closes it (closeOnEscape),
+ * and the strip, which never went, is there again.
+ */
+async function diveIn($, tab) {
+  pane.tab = tab
+  pane.detail = null
+  pane.mdetail = null
+  if (tab === 'memory' && pane.memStore !== 'run') {
+    Object.assign(pane, { memStore: 'run', memFocusRow: null })
+    Object.assign(browse, { stack: [], search: null })
+  }
+  Object.assign(pane.list, { top: 0, topKey: null, focus: null, alias: new Map() })
+  await refreshPane($, 30)
+  let rows = 30
+  try {
+    rows = await paneRows($, band.cols || 120)
+  } catch {}
+  await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true, columns: PANE_COLUMNS, rows })
+  pane.open = true
+  pane.waiting = false
+  try {
+    if (!pane.timer) pane.timer = $.clock.every(5000, () => (pane.open ? refreshPane($, 30, true) : null))
+  } catch {}
+  $.ui.invalidate('ui.render')
 }
 
 // What the code tools and quiet output did, for /baton status and the experiment (#48).
@@ -4587,7 +4698,9 @@ export function register(on, options) {
     // The doctor runs once, in the background; a failed check shows in the band.
     $.clock.after(1500, () => runDoctor($).catch(() => {}))
     $.clock.after(4000, () => checkUpdate($).catch(() => {}))
-    // The pane opens by itself, and plan usage refreshes on the clock: no /baton needed.
+    // In the panel layout the pane opens by itself (in the strip layout, the default, only when the person dives in),
+    // and plan usage refreshes on the clock: no /baton needed.
+    await readLayout($)
     $.clock.after(500, () => autoOpenPane($).catch(() => {}))
     try {
       $.clock.every(30000, () =>
@@ -5182,39 +5295,11 @@ export function register(on, options) {
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
     if (e.requestId !== PANE) return next(e)
-    const { Box, Text, Button, Input, Link } = $.ui.resolve(e)
     const cols = e.props.bodyColumns ?? 80
-    const tabs = TABS.map((t) =>
-      Button({
-        key: 'tab-' + t.id,
-        label: t.label,
-        hotkey: t.hotkey,
-        plain: true,
-        ...(pane.tab === t.id ? {} : { dimColor: true }),
-        onPress: () => {
-          pane.tab = t.id
-          $.ui.invalidate('ui.render')
-          return refreshPane($, (e.props.scroll && e.props.scroll.bodyRows) || 30)
-        },
-      }),
-    )
     const rows = (e.props.scroll && e.props.scroll.bodyRows) || 30
-    tabs.push(Button({ key: 'refresh', label: 'refresh', hotkey: 'r', plain: true, dimColor: true, onPress: () => refreshPane($, rows) }))
-    if (pane.tab === 'memory') tabs.push(...memoryKeys($, Button, rows))
-    // p shows or hides the node rows under every phase row of the tree (T10 amendment, Q-59).
-    if (pane.tab === 'work' && !pane.detail && track.view) tabs.push(Button({ key: 'nodes-toggle', label: pane.planOpen ? 'hide the nodes' : 'every node', hotkey: 'p', plain: true, dimColor: true, onPress: () => ((pane.planOpen = !pane.planOpen), $.ui.invalidate('ui.render')) }))
-    // A one-line Text the mod fits itself (PW1): cut to `room` cells (the pane body, less what its row draws before
-    // it), so the terminal never has to cut or shrink it.
-    const line = (key, text, extra = {}, room = cols) => Text({ wrap: 'truncate-end', ...extra, children: [cutCells(String(text), Math.max(1, room)) || ' '] })
-    const ui = { Box, Text, Button, Input, Link, line, rows, cols }
-    if (pane.tab !== 'memory') await loadLetters($)
-    // The keys row takes as many lines as the pane needs for it (PW1); the list is told of the lines it takes.
-    const tabRows = buttonRows(Box, 'tabs', tabs, cols, 3)
-    // The keys row and the read line lead the body the list is placed in (PW1 attempt 3): in a pane too short for one
-    // row of the list the read line gives way, and the keys row too where not even it and the hint's line fit (their
-    // keys then held on the hint's line, placeList).
-    const lead = [...tabRows.map((r) => opt(DROP_RANK.keys, r)), opt(DROP_RANK.read, line('read', 'read ' + (pane.refreshedAt ?? 'never') + ' · Esc closes', { dimColor: true }))]
-    const body = placeList([...lead, ...(pane.tab === 'memory' ? memoryTabBody($, ui) : workspaceBody($, ui))], rows, { ...ui, keys: tabs })
+    const { ui, tabs, body: whole } = await paneBody($, $.ui.resolve(e), cols, rows)
+    const body = placeList(whole, rows, { ...ui, keys: tabs })
+    const { Box } = ui
     const root = Box({ flexDirection: 'column', children: body })
     pane.list.ring = focusRing(root)
     return root
@@ -5288,6 +5373,7 @@ export function register(on, options) {
     const inRun = run.active || run.startedHere
     const v = inRun ? track.view : null
     const bw = e.props.bodyColumns ?? 200
+    band.cols = bw
     const fitText = (t) => cutCells(t, Math.max(1, bw))
     const segText = (x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })
     const ctx = typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null
@@ -5394,7 +5480,16 @@ export function register(on, options) {
     const stripSegs = fitStrip(items, bw)
     const keysOn2 = stripSegs.some((x) => x.key === 'keys')
     const segEl = (x) => (x.key === 'keys' ? keysBox((keyForms.find((f) => f.text === x.text) || { label: '' }).label) : segText(x))
-    const flag = [Box({ key: 'strip', flexDirection: 'row', children: stripSegs.map(segEl) })]
+    // The dive-in keys (CS2, P7-CS-d1 item 1): w opens Work, m Memory. Band Buttons on letters, so they press only
+    // while the strip holds the focus (ctrl+x tab, a click), never from the prompt: a prompt that starts with w or m
+    // is the person's. The hint says them in plain words; the Buttons are held in boxes no cells wide beside it, so
+    // line 2 reads as the hint, not `w: work m: memory` drawn twice.
+    const { Button: DiveButton } = $.ui.resolve(e)
+    const dive = [
+      DiveButton({ key: 'band-work', label: 'work', hotkey: 'w', plain: true, onPress: () => diveIn($, 'work') }),
+      DiveButton({ key: 'band-memory', label: 'memory', hotkey: 'm', plain: true, onPress: () => diveIn($, 'memory') }),
+    ].map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
+    const flag = [Box({ key: 'strip', flexDirection: 'row', children: [...stripSegs.map(segEl), ...dive] })]
     // line 1: the gauges, after the keys where line 2 had not the cells for them
     const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
     const lineBox = Box({

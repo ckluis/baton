@@ -612,6 +612,7 @@ for (const width of WIDTHS) {
 }
 
 test('PW1: every open of the pane asks Claude Code for its ceiling width (columns), at the spawn, at /baton and from the band', SLOW, async ($, on) => {
+  on('store.get', { key: 'layout' }, () => ({ value: 'panel' })) // amended by verifier (CS2, D-P7-7): the panel layout, where the pane still opens by itself; the strip, the default, never auto-opens (Q-CS2-1 A)
   const w = world(on)
   await w.begin($) // the first spawn opens the pane by itself (autoOpenPane)
   await $.command.run({ command: 'baton', args: '' } as any) // /baton

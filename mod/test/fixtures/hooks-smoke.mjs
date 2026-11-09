@@ -57,6 +57,7 @@ const $ = {
   store: { get: async () => null, set: async () => {} },
 }
 const ok = (c, msg) => { if (!c) { console.log('FAIL', msg); process.exitCode = 1 } else console.log('ok  ', msg) }
+$.store.get = async (k) => (k === 'layout' ? 'panel' : null) // amended by verifier (CS2, D-P7-7): the panel layout, where the pane still opens by itself; the strip, the default, never auto-opens (Q-CS2-1 A)
 await fire('session.start', { cwd: W })
 for (const f of timers.splice(0)) await f()
 ok(opened.some((x) => x.id === 'baton' && !('focus' in x)), 'the pane opened by itself at session start, unfocused: no focus key, which the engine refuses as false (no /baton needed)')
