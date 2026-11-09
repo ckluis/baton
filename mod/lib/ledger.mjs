@@ -261,11 +261,20 @@ const COMMIT_VALUED_LONG = ['message', 'file', 'reuse-message', 'reedit-message'
  *           (`cd`, `-C`, --git-dir, --work-tree, GIT_DIR=, GIT_WORK_TREE=), over its pathspecs:
  *           `.`, a directory, a glob, -A/--all, -u/--update, -p, commit -a/--all or a pathspec;
  *           -f/--force also lists ignored files;
- *   reason  set when the line cannot be read for this (too deep, a pathspec file, a shell alias).
- * `cwd` is the directory the command runs in. Pure.
+ *   reason  set when the line cannot be read for this (too deep, a pathspec file), or when the
+ *           directory, repository, subcommand or paths a staging command uses are not on the line.
+ * `cwd` is the directory the command runs in, `home` the user's home directory (absent: `~` and
+ * $HOME are not known, and `needsHome` says the plan wanted them). Pure.
+ *
+ * What the line spells it works out: `~`, $HOME, $PWD, $OLDPWD and `cd -`, pushd/popd, a plain
+ * VAR=value set earlier on the line, export/declare -x/env of GIT_DIR, GIT_WORK_TREE and
+ * GIT_INDEX_FILE, env -C. Anything else in a word that matters (another variable, $( ), backticks,
+ * a loop or read variable) makes that word unread; so does a git command fed by xargs or found in
+ * another program's words (find -exec ...). A line with a subshell, a pipe or a background job, and
+ * a child shell, may scope a cd or an assignment: what was in effect before it is kept as well.
  */
-export function stagingPlan(command, cwd) {
-  const plan = { named: [], asks: [], reason: null }
+export function stagingPlan(command, cwd, { home } = {}) {
+  const plan = { named: [], asks: [], reason: null, needsHome: false }
   const line = String(command ?? '')
   let cmds
   try {
@@ -274,31 +283,239 @@ export function stagingPlan(command, cwd) {
     if (/\bgit\b/i.test(line) && /\b(add|stage|commit)\b/.test(line)) plan.reason = 'the line is too deep to read'
     return plan
   }
-  let dir = String(cwd || '/')
-  for (const { argv, assigns } of cmds) {
-    const p = programOf(argv[0])
-    if (p === 'cd' || p === 'pushd') {
-      const t = argv.slice(1).find((w) => !w.startsWith('-'))
-      if (t !== undefined && !/^[~$]/.test(t)) dir = resolvePath(dir, t)
+  const scoped = /[(`|&]/.test(line.replace(/&&|\|\|/g, ''))
+  /** @type {Map<string, string[]>} shell variables set on the line: the values each may hold */
+  const vars = new Map()
+  /** @type {{ dir: string, old: string, stack: string[], env: Record<string, string> }[]} where the line may stand */
+  let ctxs = [{ dir: String(cwd || '/'), old: UNREAD, stack: [], env: {} }]
+  const word = (w, ctx) => expandWord(w, ctx, vars, home, plan)
+  const set = (list) => {
+    const seen = new Map()
+    for (const c of list) seen.set(JSON.stringify(c), c)
+    if (seen.size > MAX_PLACES) plan.reason = plan.reason ?? 'the line may run in too many places to check'
+    return [...seen.values()].slice(0, MAX_PLACES)
+  }
+  const setVar = (name, vals, keep) => vars.set(name, [...new Set([...(keep ? vars.get(name) ?? [UNREAD] : []), ...vals])].slice(0, MAX_PLACES))
+  const setEnv = (name, valsOf, keep) => {
+    ctxs = set(ctxs.flatMap((c) => [...(keep ? [c] : []), ...valsOf(c).map((v) => ({ ...c, env: v === null ? omit(c.env, name) : { ...c.env, [name]: v } }))]))
+  }
+  for (const { argv, assigns, pre = [], shell = false, from = null } of cmds) {
+    const keep = scoped || shell
+    if (pre.includes('for') || pre.includes('select')) {
+      if (argv[0] !== undefined) setVar(argv[0], [UNREAD], false)
       continue
     }
-    if (p === 'git') gitStaging(argv.slice(1), dir, assigns, plan, new Map())
+    if (!argv.length) {
+      // VAR=value alone: a shell variable; GIT_* may already be exported, so git may see it or not.
+      for (const s of assigns) {
+        const [name, rhs] = splitAssign(s)
+        setVar(name, ctxs.flatMap((c) => word(rhs, c)), keep)
+        if (GIT_ENV.includes(name)) setEnv(name, (c) => word(rhs, c), true)
+      }
+      continue
+    }
+    let p = programOf(argv[0])
+    let rest = argv.slice(1)
+    if (/[$`~]/.test(argv[0] ?? '')) {
+      const progs = new Set(ctxs.flatMap((c) => word(argv[0], c)).map((w) => programOf(w)))
+      if ([...progs].some((w) => w.includes(UNREAD))) {
+        if (rest.some((w) => /^(add|stage|commit)$/.test(w))) plan.reason = plan.reason ?? 'the program it runs is not written on the line'
+        continue
+      }
+      p = progs.has('git') ? 'git' : progs.size === 1 ? [...progs][0] ?? '' : ''
+    }
+    if (p === 'export' || p === 'declare' || p === 'typeset' || p === 'local' || p === 'readonly') {
+      const exported = p === 'export' || rest.some((w) => /^-[a-z]*x/.test(w))
+      for (const w of rest) {
+        if (w.startsWith('-')) continue
+        const [name, rhs] = splitAssign(w)
+        if (rhs !== null) setVar(name, ctxs.flatMap((c) => word(rhs, c)), keep)
+        if (!GIT_ENV.includes(name)) continue
+        const vals = rhs !== null ? null : vars.get(name) ?? [UNREAD]
+        setEnv(name, (c) => (vals ?? word(rhs ?? '', c)), keep || !exported)
+      }
+      continue
+    }
+    if (p === 'unset') {
+      for (const w of rest) {
+        if (w.startsWith('-')) continue
+        if (keep) setVar(w, [''], true)
+        else vars.set(w, [''])
+        if (GIT_ENV.includes(w)) setEnv(w, () => [null], keep)
+      }
+      continue
+    }
+    if (p === 'read' || p === 'mapfile' || p === 'readarray' || p === 'getopts' || (p === 'printf' && rest[0] === '-v')) {
+      for (const w of p === 'printf' ? rest.slice(1, 2) : rest.filter((x) => !x.startsWith('-'))) setVar(w, [UNREAD], false)
+      continue
+    }
+    if (p === 'cd' || p === 'pushd' || p === 'popd') {
+      const moved = ctxs.flatMap((c) => moveTo(p, rest, c, word))
+      ctxs = set(keep ? [...ctxs, ...moved] : moved)
+      continue
+    }
+    if (p !== 'git') continue
+    const fed = from !== null ? 'the words of ' + from : pre.some((w) => programOf(w) === 'xargs') ? 'xargs' : null
+    for (const c of ctxs) {
+      const at = chdirOf(pre, c, word)
+      const env = envOf(pre, assigns, c, word)
+      const variants = expandArgs(rest, c, word)
+      if (!variants) {
+        plan.reason = plan.reason ?? 'the line may run in too many places to check'
+        continue
+      }
+      for (const dir of at) for (const e of env) for (const v of variants) gitStaging(v, dir, e, plan, new Map(), fed)
+    }
   }
   return plan
 }
 
-/** One git command's part of the plan (see stagingPlan). `aliases` are those set on the line with -c alias.x=... */
-function gitStaging(a, dir, assigns, plan, aliases, depth = 0) {
+/** A word's unknown part: the value of a variable, substitution or `~user` the line does not show. */
+const UNREAD = '\u0000'
+const MAX_PLACES = 16
+const GIT_ENV = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']
+const omit = (o, k) => Object.fromEntries(Object.entries(o).filter(([n]) => n !== k))
+/** NAME=value as [name, value]; a bare NAME as [name, null]. */
+const splitAssign = (s) => {
+  const m = /^([A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]*\])?\+?=([\s\S]*)$/.exec(s)
+  return m ? [m[1] ?? '', m[2] ?? ''] : [s, null]
+}
+
+/**
+ * The values a word may take where the line stands (`ctx`): `~` and `~/`, $NAME and ${NAME} filled
+ * from the variables set on the line ($HOME from `home`, $PWD and $OLDPWD from ctx); any other
+ * expansion is the UNREAD mark in its place.
+ */
+function expandWord(w, ctx, vars, home, plan) {
+  // $HOME or ${HOME} leading a word is the home directory as `~` names it (known only when the caller
+  // gives it); a line that sets that variable itself leaves both unread.
+  const homeSet = [...vars.keys()].some((k) => /^HOME$/.test(k))
+  let s = String(w)
+    .replace(/\$\((?:[^()]|\([^()]*\))*\)?|`[^`]*`?/g, UNREAD)
+    .replace(/^(?:\$\{HOME\}|\$HOME(?![A-Za-z0-9_]))(?=\/|$)/, '~')
+  let heads = ['']
+  if (homeSet && s.startsWith('~')) {
+    heads = [UNREAD]
+    s = s.replace(/^~[^/]*/, '')
+  } else if (s === '~' || s.startsWith('~/')) {
+    if (home === undefined) plan.needsHome = true
+    heads = [home ?? UNREAD]
+    s = s.slice(1)
+  } else if (s.startsWith('~')) {
+    heads = [UNREAD]
+    s = s.replace(/^~[^/]*/, '')
+  }
+  const lookup = (name) => {
+    if (name === 'PWD') return [ctx.dir]
+    if (name === 'OLDPWD') return [ctx.old]
+    return vars.get(name) ?? [UNREAD]
+  }
+  const parts = []
+  let last = 0
+  for (const m of s.matchAll(/\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*)|(\{[^}]*\}?|[\s\S])?)/g)) {
+    parts.push([s.slice(last, m.index)])
+    last = (m.index ?? 0) + m[0].length
+    const name = m[1] ?? m[2]
+    if (name !== undefined) parts.push(lookup(name))
+    else parts.push([m[3] === undefined ? '$' : UNREAD])
+  }
+  parts.push([s.slice(last)])
+  let out = heads
+  for (const p of parts) {
+    out = [...new Set(out.flatMap((h) => p.map((x) => h + x)))]
+    if (out.length > MAX_PLACES) return [UNREAD]
+  }
+  return out
+}
+
+/** A git command's words, each expanded; a value with blanks may be one word or several. Null when too many. */
+function expandArgs(words, ctx, word) {
+  let outs = [[]]
+  for (const w of words) {
+    const alts = []
+    for (const v of /[$`~]/.test(w) ? word(w, ctx) : [w]) {
+      alts.push([v])
+      // Unquoted, a value with blanks is split; a word with blanks of its own was quoted, so it is not.
+      if (v !== w && !/\s/.test(w) && (/\s/.test(v) || v === '')) alts.push(v.split(/\s+/).filter(Boolean))
+    }
+    outs = outs.flatMap((o) => alts.map((a) => [...o, ...a]))
+    if (outs.length > MAX_PLACES) return null
+  }
+  return outs
+}
+
+/** Where cd, pushd or popd (words `rest`) leaves the line, from ctx: the places it may be. */
+function moveTo(p, rest, ctx, word) {
+  const ops = rest.filter((w) => !/^-[LPe@]+$/.test(w) && w !== '--')
+  const t = ops[0]
+  const to = (dirs, stack) => dirs.map((d) => ({ ...ctx, dir: d.includes(UNREAD) || ctx.dir.includes(UNREAD) ? UNREAD : resolvePath(ctx.dir, d), old: ctx.dir, stack }))
+  if (p === 'popd') {
+    if (t !== undefined || !ctx.stack.length) return [{ ...ctx, dir: UNREAD, old: ctx.dir }]
+    return [{ ...ctx, dir: ctx.stack[ctx.stack.length - 1] ?? UNREAD, old: ctx.dir, stack: ctx.stack.slice(0, -1) }]
+  }
+  const stack = p === 'pushd' ? [...ctx.stack, ctx.dir] : ctx.stack
+  if (t === undefined) {
+    if (p === 'pushd') return [{ ...ctx, dir: ctx.stack[ctx.stack.length - 1] ?? UNREAD, old: ctx.dir, stack: [...ctx.stack.slice(0, -1), ctx.dir] }]
+    return to(word('~', ctx), stack)
+  }
+  if (t === '-') return to([ctx.old], stack)
+  if (/^[+-]\d/.test(t)) return to([UNREAD], stack)
+  return to(word(t, ctx), stack)
+}
+
+/** The directories a git command starts in: the line's, or env -C / --chdir, sudo -D / --chdir in front of it. */
+function chdirOf(pre, ctx, word) {
+  let dirs = [ctx.dir]
+  for (let i = 0; i < pre.length; i++) {
+    const w = pre[i] ?? ''
+    let v = null
+    if (w === '-C' || w === '-D' || /^--chd?i?r?$/.test(w)) v = pre[++i] ?? UNREAD
+    else if (/^--chd?i?r?=/.test(w)) v = w.slice(w.indexOf('=') + 1)
+    else if (/^-[A-Za-z]*[CD].+/.test(w) && !w.startsWith('--')) v = w.slice(w.search(/[CD]/) + 1)
+    if (v === null) continue
+    const vals = word(v, ctx)
+    dirs = dirs.flatMap((d) => vals.map((x) => (d.includes(UNREAD) || x.includes(UNREAD) ? UNREAD : resolvePath(d, x))))
+  }
+  return [...new Set(dirs)]
+}
+
+/** The GIT_* environment a git command sees: the line's exports, then env -i / -u and assignments in front of it. */
+function envOf(pre, assigns, ctx, word) {
+  let envs = [{ ...ctx.env }]
+  for (let i = 0; i < pre.length; i++) {
+    const w = pre[i] ?? ''
+    if (w === '-i' || w === '-' || w === '--ignore-environment' || (/^-[A-Za-z]*i/.test(w) && !w.startsWith('--') && programOf(pre[i - 1]) === 'env')) envs = [{}]
+    else if ((w === '-u' || w === '--unset') && GIT_ENV.includes(pre[i + 1] ?? '')) {
+      const n = pre[++i] ?? ''
+      envs = envs.map((e) => omit(e, n))
+    } else if (/^--unset=/.test(w)) {
+      const n = w.slice(8)
+      envs = envs.map((e) => omit(e, n))
+    } else if (assigns.includes(w)) {
+      const [name, rhs] = splitAssign(w)
+      if (!GIT_ENV.includes(name) || rhs === null) continue
+      const vals = word(rhs, ctx)
+      envs = envs.flatMap((e) => vals.map((v) => ({ ...e, [name]: v })))
+    }
+  }
+  return envs.slice(0, MAX_PLACES)
+}
+
+/**
+ * One git command's part of the plan (see stagingPlan): its words `a` (UNREAD marks what the line
+ * does not show), started in `dir` with the GIT_* environment `env`. `aliases` are those set on the
+ * line with -c alias.x=...; `fed` names what adds words to it (xargs, find -exec), else null.
+ */
+function gitStaging(a, dir, env, plan, aliases, fed, depth = 0) {
   if (depth > 8) {
     plan.reason = 'an alias refers to itself'
     return
   }
-  const globals = []
-  let at = dir
-  for (const s of assigns) {
-    const m = /^GIT_(DIR|WORK_TREE)=([\s\S]*)$/.exec(s)
-    if (m) globals.push((m[1] === 'DIR' ? '--git-dir=' : '--work-tree=') + resolvePath(dir, m[2]))
+  const unread = (why) => {
+    plan.reason = plan.reason ?? why
   }
+  const cli = [] // --git-dir / --work-tree values and -c settings, in order
+  let at = dir
   a = a.slice()
   while (a.length && /^-/.test(a[0] ?? '')) {
     const w = a.shift() ?? ''
@@ -306,26 +523,54 @@ function gitStaging(a, dir, assigns, plan, aliases, depth = 0) {
     const eq = w.indexOf('=')
     const name = eq < 0 ? w : w.slice(0, eq)
     const value = () => (eq < 0 ? a.shift() ?? '' : w.slice(eq + 1))
-    if (w === '-C') at = resolvePath(at, a.shift() ?? '')
-    else if (name === '--git-dir' || name === '--work-tree') globals.push(name + '=' + resolvePath(at, value()))
+    if (w === '-C') {
+      const v = a.shift() ?? ''
+      at = at.includes(UNREAD) || v.includes(UNREAD) ? UNREAD : resolvePath(at, v)
+    } else if (name === '--git-dir' || name === '--work-tree') cli.push([name, value()])
     else if (w === '-c') {
       const v = a.shift() ?? ''
-      globals.push('-c', v)
+      cli.push(['-c', v])
       const m = /^alias\.([^=]+)=([\s\S]*)$/i.exec(v)
       if (m) aliases.set((m[1] ?? '').toLowerCase(), m[2] ?? '')
     } else if (GIT_VALUE.includes(w)) a.shift()
   }
+  // GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE, then --git-dir/--work-tree, read relative to where git ends up (after -C).
+  let place = !at.includes(UNREAD)
+  const abs = (v) => {
+    if (v.includes(UNREAD) || !place) {
+      place = false
+      return v
+    }
+    return resolvePath(at, v)
+  }
+  const globals = []
+  if (env.GIT_DIR !== undefined) globals.push('--git-dir=' + abs(env.GIT_DIR))
+  if (env.GIT_WORK_TREE !== undefined) globals.push('--work-tree=' + abs(env.GIT_WORK_TREE))
+  for (const [k, v] of cli) {
+    if (k === '-c') {
+      if (v.includes(UNREAD)) place = false
+      globals.push('-c', v)
+    } else globals.push(k + '=' + abs(v))
+  }
+  const index = env.GIT_INDEX_FILE !== undefined ? abs(env.GIT_INDEX_FILE) : null
   const sub = a.shift()
   if (sub === undefined) return
+  if (sub.includes(UNREAD)) return unread('the git subcommand is not written on the line')
   if (sub !== 'add' && sub !== 'stage' && sub !== 'commit' && aliases.has(sub.toLowerCase())) {
     const alias = aliases.get(sub.toLowerCase()) ?? ''
     // Re-read in the directory resolved so far; the globals already read stay on every ask.
     const before = plan.asks.length
     if (alias.startsWith('!')) {
-      // A shell alias: its line, with the words after it, read as commands run in the same place.
-      for (const c of commandsOf(alias.slice(1) + ' ' + a.join(' '))) if (programOf(c.argv[0]) === 'git') gitStaging(c.argv.slice(1), at, c.assigns, plan, aliases, depth + 1)
-    } else gitStaging([...(commandsOf(alias)[0]?.argv ?? []), ...a], at, [], plan, aliases, depth + 1)
-    for (const q of plan.asks.slice(before)) q.argv.splice(1, 0, ...globals)
+      // A shell alias: its line, with the words after it, read as commands run in the same place
+      // (a word with an expansion in it is not on the line).
+      for (const c of commandsOf(alias.slice(1) + ' ' + a.join(' ')))
+        if (programOf(c.argv[0]) === 'git') gitStaging(c.argv.slice(1).map((w) => (/[$`]/.test(w) ? UNREAD : w)), at, {}, plan, aliases, fed, depth + 1)
+    } else gitStaging([...(commandsOf(alias)[0]?.argv ?? []), ...a], at, {}, plan, aliases, fed, depth + 1)
+    for (const q of plan.asks.slice(before)) {
+      q.argv.splice(1, 0, ...globals)
+      if (index !== null) q.env = { GIT_INDEX_FILE: index }
+    }
+    if (!place && plan.asks.length > before) unread('the repository it uses is not written on the line')
     return
   }
   const pathspecs = []
@@ -368,17 +613,21 @@ function gitStaging(a, dir, assigns, plan, aliases, depth = 0) {
       }
     }
   }
-  plan.named.push(...pathspecs)
+  plan.named.push(...pathspecs.map((p) => p.split(UNREAD).join('?')))
   if (dryRun) return
   if (fromFile) {
     plan.reason = 'it reads its paths from a file'
     return
   }
+  if (fed !== null) return unread('its paths come from ' + fed + ', not from the line')
+  if (pathspecs.some((p) => p.includes(UNREAD))) return unread('a path it stages is not written on the line')
   if (!pathspecs.length && !broad) return
+  if (!place) return unread('the directory or repository it uses is not written on the line')
   plan.asks.push({
     cwd: at,
     tracked,
     argv: ['git', ...globals, 'status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=' + (tracked ? 'no' : 'all'), ...(force && !tracked ? ['--ignored=traditional'] : []), '--', ...(pathspecs.length ? pathspecs : [':/'])],
+    ...(index !== null ? { env: { GIT_INDEX_FILE: index } } : {}),
   })
 }
 
@@ -403,17 +652,20 @@ export function stagedPaths(stdout, { tracked = false } = {}) {
  * The forbidden paths a command line would stage or commit: the names on the line, then for each
  * broad form what git says it would include, asked through `run(argv, { cwd })` (register.js passes
  * $.process.run). Resolves to { hits, reason }: reason is a plain sentence when git could not say
- * (fail closed: the caller refuses), else null.
+ * or the line does not show what is staged (fail closed: the caller refuses), else null. `home` is
+ * the user's home directory, used for `~` and $HOME when given; the mod never reads it (R-C3-13,
+ * Q-FX7-1: no mod source builds a path from the home directory), so there a line that stages from
+ * `~` is refused with a reason.
  */
-export async function stagedForbidden(command, { cwd, run, patterns = FORBIDDEN_DEFAULT }) {
-  const plan = stagingPlan(command, cwd)
+export async function stagedForbidden(command, { cwd, run, patterns = FORBIDDEN_DEFAULT, home }) {
+  const plan = stagingPlan(command, cwd, { home })
   const hits = forbiddenHits(plan.named, patterns)
   if (hits.length) return { hits, reason: null }
   if (plan.reason) return { hits: [], reason: plan.reason }
   for (const q of plan.asks) {
     let r
     try {
-      r = await run(q.argv, { cwd: q.cwd })
+      r = await run(q.argv, q.env ? { cwd: q.cwd, env: q.env } : { cwd: q.cwd })
     } catch (err) {
       return { hits: [], reason: 'git status could not run in ' + q.cwd + ' (' + String((err && err.message) || err) + ')' }
     }

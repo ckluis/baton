@@ -591,39 +591,45 @@ function shellRuns(a, stdin) {
 
 /**
  * The simple commands a line runs, read by the same shell reader as gateFor: each is the words of
- * the program that actually runs (assignments, keywords and wrappers stripped), with `assigns` the
- * assignments written before it. A string a shell runs (sh -c, eval, a shell fed a heredoc or
- * here-string) is read as a line in turn; a program not known whose words name git (flock, ssh ...)
- * also yields the command from that word on. Throws on a line too deep to take apart.
+ * the program that actually runs (assignments, keywords and wrappers stripped), with `pre` the words
+ * stripped off its front (keywords, assignments, wrappers and their options: `env -C d`, `xargs`),
+ * `assigns` the assignments among them, `shell` true when a child shell runs it, and `from` the
+ * program whose words it was found in. A string a shell runs (sh -c, eval, a shell fed a heredoc or
+ * here-string) is read as a line in turn; a program not known whose words name git (flock, ssh,
+ * find -exec ...) also yields the command from that word on. A command of assignments alone is
+ * listed with empty argv. Throws on a line too deep to take apart.
  */
 export function commandsOf(command) {
   const out = []
-  const one = (argv, stdin, depth) => {
+  const one = (argv, stdin, depth, shell, from, carry = []) => {
     if (depth > MAX_DEPTH) throw new Error('too deep')
-    const assigns = []
-    for (const w of argv) {
-      if (!ASSIGN.test(w)) break
-      assigns.push(w)
-    }
     const a = unwrap(argv)
+    const k0 = argv.length - a.length
+    // env -S splits a string into new words: read them again, with what was stripped so far.
+    if (k0 < 0 || a.some((w, k) => w !== argv[k0 + k])) return one(a, stdin, depth + 1, shell, from, [...carry, ...argv])
+    const pre = [...carry, ...argv.slice(0, k0)]
+    const assigns = pre.filter((w) => ASSIGN.test(w))
     const p = base(a[0] ?? '')
-    if (!p) return
-    if (p === 'eval') return lines(a.slice(1).join(' '), depth + 1)
-    if (SHELLS.has(p)) {
-      for (const body of shellRuns(a.slice(1), stdin)) lines(body, depth + 1)
+    if (!p) {
+      if (assigns.length) out.push({ argv: [], assigns, pre, shell, from })
       return
     }
-    out.push({ argv: a, assigns })
+    if (p === 'eval') return lines(a.slice(1).join(' '), depth + 1, shell, from)
+    if (SHELLS.has(p)) {
+      for (const body of shellRuns(a.slice(1), stdin)) lines(body, depth + 1, true, from)
+      return
+    }
+    out.push({ argv: a, assigns, pre, shell, from })
     if (p === 'git' || PRINTERS.has(p)) return
     let tries = 0
     for (let k = 1; k < a.length && tries < 8; k++) {
       if (base(a[k] ?? '') !== 'git') continue
       tries++
-      one(a.slice(k), [], depth + 1)
+      one(a.slice(k), [], depth + 1, shell, p)
     }
   }
-  const lines = (s, depth) => {
-    for (const cmd of lex(s, depth).cmds) one(cmd.argv, cmd.stdin, depth)
+  const lines = (s, depth, shell = false, from = null) => {
+    for (const cmd of lex(s, depth).cmds) one(cmd.argv, cmd.stdin, depth, shell, from)
   }
   lines(String(command ?? ''), 0)
   return out
