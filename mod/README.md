@@ -301,7 +301,8 @@ columns the strip names the layout and the exact command that switches it:
 and weekly reset; then the goal, live count, cost, PR and the flag's full words give way; then
 the gauges' reasons and resets, then the weekly and the 5-hour figure (the context last), then the
 gauges altogether. One band is short of room: while a phase waits for approval at 45 to 54
-columns, the hint and the approval keys leave room only for `/baton layout`. Below 45 columns the
+columns, the hint and the approval keys leave room only for a short form: `/baton layout`, or
+`layout: /baton layout` at 53 and 54 columns. Below 45 columns the
 strip may leave the layout out (`/baton layout` where it fits); `/baton layout` and every view you
 dive into, in either layout, say it (under the view's read line).
 When the layout does not match the renderer Claude Code reports (`isFullscreen`), one line under
