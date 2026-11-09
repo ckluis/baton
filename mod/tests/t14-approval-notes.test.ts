@@ -14,6 +14,11 @@
 // Every memory here is a fixture: the memo CLI is faked through process.run, so no test reads or writes a
 // real memory store (Q-85). Nothing is pushed: the Bash tool itself is faked below and runs nothing.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the tests here take up to 0.5 s alone, at risk
+// of the default under that load (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
 
@@ -92,7 +97,7 @@ async function approveRun($: any, w: ReturnType<typeof world>, command: string) 
 // requirement: R-C15-28, R-C15-53 (traceability.yaml)
 // spec L437-438: "An approval note records what the approved command actually did. Writing a file is not a
 // push: notes #33 and #37 recorded heredoc file writes as push approvals."
-test('approving a heredoc file write records an approval note that does not say push', async ($, on) => {
+test('approving a heredoc file write records an approval note that does not say push', LOADED, async ($, on) => {
   // fixture: a heredoc write whose body mentions git push (the shape of notes #33 and #37, spec L438),
   // so the unchanged gate asks it (Q-87) and the operator approves it
   const command = "cat > _notes/handoff.md <<'EOF'\nStep 3: git push origin baton/run\nEOF"
@@ -108,7 +113,7 @@ test('approving a heredoc file write records an approval note that does not say 
 // requirement: R-C15-149, R-C15-178 (traceability.yaml)
 // Q-81: "so `cat > f <<EOF … git push … EOF` reads `writes f`"; spec L533 same words;
 // D-T14-approval-notes: "the note at approval reads `operator approved for <who>: <effects>`"
-test('approving cat > f <<EOF … git push … EOF records an approval note reading writes f', async ($, on) => {
+test('approving cat > f <<EOF … git push … EOF records an approval note reading writes f', LOADED, async ($, on) => {
   // fixture: the exact command shape Q-81 names
   const command = 'cat > f <<EOF\nthen git push origin main\nEOF'
   const w = world(on, { answers: ['Approve'] })
@@ -122,7 +127,7 @@ test('approving cat > f <<EOF … git push … EOF records an approval note read
 // --- criterion 3 -----------------------------------------------------------------------------------------
 // requirement: R-C15-148 (traceability.yaml)
 // Q-81: "parsed with heredoc bodies and quoted strings treated as data"; spec L533 same words
-test('approving a command with git push inside a quoted string records an approval note that does not say push', async ($, on) => {
+test('approving a command with git push inside a quoted string records an approval note that does not say push', LOADED, async ($, on) => {
   // fixture: `git push` only inside a quoted argument, so the unchanged gate still asks it (Q-87)
   const command = 'git commit -m "tidy up before git push"'
   const w = world(on, { answers: ['Approve'] })
@@ -137,7 +142,7 @@ test('approving a command with git push inside a quoted string records an approv
 // requirement: R-C15-145, R-C15-150, R-C15-179 (traceability.yaml)
 // Q-81: "after the command, a second note records its exit code"; spec L534-535 "After the command, a second
 // note records its exit code"; D-T14-approval-notes "`approved command for <who> finished: exit <n>`"
-test('after an approved command finishes, a second note records its exit code', async ($, on) => {
+test('after an approved command finishes, a second note records its exit code', LOADED, async ($, on) => {
   // fixture: the faked Bash exits 1 (a rejected push)
   const w = world(on, { answers: ['Approve'], bash: { stderr: 'rejected', exitCode: 1 } })
   await approveRun($, w, 'git push origin v7')
@@ -149,7 +154,7 @@ test('after an approved command finishes, a second note records its exit code', 
 // requirement: R-C15-151 (traceability.yaml)
 // Q-81: "a second note records its exit code and what it changed that the mod can see (files written, refs
 // pushed)"; spec L535; D-T14-approval-notes "then `; wrote <file>` for each file written"
-test('after an approved heredoc write finishes, the second note names the file written', async ($, on) => {
+test('after an approved heredoc write finishes, the second note names the file written', LOADED, async ($, on) => {
   // fixture: a heredoc write of notes/plan.md whose body holds git push, so it is asked and approved
   const command = 'cat > notes/plan.md <<EOF\nlater: git push origin v7\nEOF'
   const w = world(on, { answers: ['Approve'] })
@@ -162,7 +167,7 @@ test('after an approved heredoc write finishes, the second note names the file w
 // requirement: R-C15-151 (traceability.yaml)
 // Q-81: "what it changed that the mod can see (files written, refs pushed)"; spec L535;
 // D-T14-approval-notes "`; pushed <ref>` for each ref pushed"
-test('after an approved git push finishes, the second note names the ref pushed', async ($, on) => {
+test('after an approved git push finishes, the second note names the ref pushed', LOADED, async ($, on) => {
   // fixture: a push of the ref v7 that exits 0
   const w = world(on, { answers: ['Approve'], bash: { stderr: 'To origin\n * [new branch] v7 -> v7', exitCode: 0 } })
   await approveRun($, w, 'git push origin v7')
@@ -175,7 +180,7 @@ test('after an approved git push finishes, the second note names the ref pushed'
 // spec L437 "An approval note records what the approved command actually did."; Q-81 "at approval the note
 // records what was approved"; D-T14-approval-notes "`pushes <remote> <ref>` for a `git push` outside a
 // heredoc body or quoted string"
-test('guard: approving git push records an approval note that says it is a push', async ($, on) => {
+test('guard: approving git push records an approval note that says it is a push', LOADED, async ($, on) => {
   const w = world(on, { answers: ['Approve'] })
   await approveRun($, w, 'git push origin v7')
   const at = w.before()
@@ -189,7 +194,7 @@ test('guard: approving git push records an approval note that says it is a push'
 // requirement: R-C15-152, R-C15-153, R-C15-180 (traceability.yaml)
 // Q-87: "Keep asking: the gate's matching is not changed (asking too often is the safe failure)";
 // spec L537-538 "a command whose heredoc body or quoted string holds `git push` is still asked as a push"
-test('guard: a Bash command whose heredoc body holds git push is still asked as a push', async ($, on) => {
+test('guard: a Bash command whose heredoc body holds git push is still asked as a push', LOADED, async ($, on) => {
   // fixture: git push appears only in the heredoc body
   const command = 'cat > f <<EOF\nthen git push origin main\nEOF'
   const w = world(on, { answers: ['Approve'] })

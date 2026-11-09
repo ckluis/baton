@@ -14,6 +14,11 @@
 // waits, `1: approve` and `2: send back…` are drawn and work as before (P7-CS-d1 item 4), within the strip's two lines
 // (CS1 red 2, Q-98 A). The drawing model is PW1's (mod/tests/pw1-a3/kit.ts), the world CS1's (mod/tests/cs1/kit.ts).
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 import { cellW, dump, elements, screen, type El } from './pw1-a3/kit'
 import { stripWorld, type Opts } from './cs1/kit'
 
@@ -55,7 +60,7 @@ const percents = (s: string) => [...s.matchAll(/(\d+(?:\.\d+)?)%/g)].map((m) => 
 const dollars = (s: string) => [...s.matchAll(/\$(\d+(?:\.\d+)?)/g)].map((m) => m[1]!)
 
 for (const width of WIDTHS) {
-  test('CS1 1: with a full reading, the band at ' + width + ' columns is two lines: the gauges, then the way to open each view, the goal, the live count and the cost', async ($, on) => {
+  test('CS1 1: with a full reading, the band at ' + width + ' columns is two lines: the gauges, then the way to open each view, the goal, the live count and the cost', LOADED, async ($, on) => {
     const w = await fed($, on, READ)
     const { els, lines } = await strip($, w, width)
     const say = dump(els)
@@ -83,7 +88,7 @@ for (const width of WIDTHS) {
     }
   })
 
-  test('CS1 1: with no reading at all, the band at ' + width + ' columns is two lines and says n/a with why, never a figure', async ($, on) => {
+  test('CS1 1: with no reading at all, the band at ' + width + ' columns is two lines and says n/a with why, never a figure', LOADED, async ($, on) => {
     const w = await fed($, on, {})
     const { els, lines } = await strip($, w, width)
     const say = dump(els)
@@ -99,27 +104,27 @@ for (const width of WIDTHS) {
   })
 }
 
-test('CS1 1: a reading with no window at all says the 5-hour and the weekly limit are n/a, not on a subscription', async ($, on) => {
+test('CS1 1: a reading with no window at all says the 5-hour and the weekly limit are n/a, not on a subscription', LOADED, async ($, on) => {
   const w = await fed($, on, { limits: [], ctx: 23 })
   const { els, lines } = await strip($, w, 120)
   expect([lines[0]!.includes('5h n/a (not on a subscription)'), lines[0]!.includes('week n/a (not on a subscription)'), /ctx .*23%\/35%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
-test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (not reported)', async ($, on) => {
+test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (not reported)', LOADED, async ($, on) => {
   const w = await fed($, on, { limits: [FIVE], ctx: 23 })
   const { els, lines } = await strip($, w, 120)
   expect([/5h [^·]*41%/.test(lines[0]!), lines[0]!.includes('week n/a (not reported)')], dump(els)).toEqual([true, true])
   expect(percents(lines[0]!).filter((p) => !FIGURES.has(p)), dump(els)).toEqual([])
 })
 
-test('CS1 1: with no context reading, the context gauge reads n/a', async ($, on) => {
+test('CS1 1: with no context reading, the context gauge reads n/a', LOADED, async ($, on) => {
   const w = await fed($, on, { limits: [FIVE, WEEK] })
   const { els, lines } = await strip($, w, 120)
   expect([/ctx n\/a/.test(lines[0]!), /5h [^·]*41%/.test(lines[0]!), /week [^·]*62%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
 for (const width of [40, 49, 60, 80, 120, 200]) {
-  test('CS1 1: while a phase waits for its check, the band at ' + width + ' columns keeps its strip and `1: approve` / `2: send back…`, and 1 approves', async ($, on) => {
+  test('CS1 1: while a phase waits for its check, the band at ' + width + ' columns keeps its strip and `1: approve` / `2: send back…`, and 1 approves', LOADED, async ($, on) => {
     const w = await fed($, on, READ, { approval: true })
     const { ui, els, lines } = await strip($, w, width)
     const say = dump(els)
@@ -140,7 +145,7 @@ for (const width of [40, 49, 60, 80, 120, 200]) {
     expect([after.lines.length, after.lines.some((l) => l.includes('1: approve'))], 'after 1' + dump(after.els)).toEqual([2, false])
   })
 
-  test('CS1 1: with a question and a blocked agent waiting, the band at ' + width + ' columns folds the ⚑ flag into its second line', async ($, on) => {
+  test('CS1 1: with a question and a blocked agent waiting, the band at ' + width + ' columns folds the ⚑ flag into its second line', LOADED, async ($, on) => {
     const w = await fed($, on, READ, { question: true, blocked: true })
     const { els, lines } = await strip($, w, width)
     const say = dump(els)

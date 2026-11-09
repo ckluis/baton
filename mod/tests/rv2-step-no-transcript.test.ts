@@ -10,6 +10,11 @@
 //
 // Written before the fix (node RV2, run build-20261019T125436Z). Every file here is a fixture of this test.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 declare function setTimeout(fn: (...args: any[]) => void, ms?: number): unknown // type-only (XTB1): lib es2023 declares no timers
 
@@ -143,7 +148,7 @@ const realWait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 // Review finding [med] (pr57-review-r1.md, register.js:3775 via :5129); T6 / R-C6 rows (model-request latency was
 // measured with no run active): during an active run, a prime request whose cache writes would make the mod read the
 // transcript must not wait on that read. Here the read never resolves; the hook must still return its result.
-test('rv2 T6 (R-C6, review [med]): during a run the model-request hook returns its result while the transcript read never resolves', async ($, on) => {
+test('rv2 T6 (R-C6, review [med]): during a run the model-request hook returns its result while the transcript read never resolves', LOADED, async ($, on) => {
   const w = world(on)
   w.files.set(TRANSCRIPT, '')
   await start($, w)
@@ -161,7 +166,7 @@ test('rv2 T6 (R-C6, review [med]): during a run the model-request hook returns i
 
 // R-C3-13 (spec L56; FX7's behaviour): the prime's 1-hour cache writes still reach spend.json at the 1-hour rate,
 // from a model request alone (no turn end), once the hook has returned and the crediting off its path has run.
-test("rv2 R-C3-13: after the model-request hook returns, spend.json still gets the prime's 1-hour cache credit from the transcript", async ($, on) => {
+test("rv2 R-C3-13: after the model-request hook returns, spend.json still gets the prime's 1-hour cache credit from the transcript", LOADED, async ($, on) => {
   const w = world(on)
   w.files.set(TRANSCRIPT, '')
   await start($, w)

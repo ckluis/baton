@@ -10,6 +10,11 @@
 // The memo CLI is stubbed at process.run (a plugin test has no processes), so "stored under a
 // tag" is the `--tag <tag>` the mod hands the CLI's `note` command.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone, and a test here timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md, proof.md), so every test in this file gets an explicit budget. No step or
+// assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
 
@@ -50,7 +55,7 @@ function world(on: any) {
 }
 
 // R-C4-01 — spec L59: "Add an optional `tag`,"
-test('T4: memory_note declares an optional string tag', async ($, on) => {
+test('T4: memory_note declares an optional string tag', LOADED, async ($, on) => {
   const w = world(on)
   await $.session.start({ cwd: '/work', surface: null } as any)
   const schema = w.schemas['memory_note']
@@ -63,7 +68,7 @@ test('T4: memory_note declares an optional string tag', async ($, on) => {
 })
 
 // R-C4-01 — spec L58-59: "The prime had to prefix "decision" by hand. Add an optional `tag`,"
-test('T4: a note written with a tag is stored under that tag', async ($, on) => {
+test('T4: a note written with a tag is stored under that tag', LOADED, async ($, on) => {
   const w = world(on)
   const r: any = await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'chose option 1 for Q-3', tag: 'decision' } as any)
   // origin: the note is written, as memory_note's existing result says (mod/tests/memory.test.ts "noted #0")
@@ -80,7 +85,7 @@ test('T4: a note written with a tag is stored under that tag', async ($, on) => 
 // R-C4-02 — spec L59: "sanitized as notes already are,"
 // The rule (spec-questions.md L31, H11 / § Q-3): `cleanTag` keeps `[A-Za-z0-9:_.-]` and cuts to 16 bytes.
 // It is applied before the tag is stored, since Q-3 refuses "a sanitized tag" that equals a reserved one.
-test('T4: a tag is sanitised as note tags already are: [A-Za-z0-9:_.-] kept, cut to 16 bytes', async ($, on) => {
+test('T4: a tag is sanitised as note tags already are: [A-Za-z0-9:_.-] kept, cut to 16 bytes', LOADED, async ($, on) => {
   const w = world(on)
   await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'one', tag: 'de cision!' } as any)
   await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'two', tag: 'design/decision: T4 tag' } as any)
@@ -98,7 +103,7 @@ test('T4: a tag is sanitised as note tags already are: [A-Za-z0-9:_.-] kept, cut
 // Roles: decisions.md § "Q-26 H11": "The prime (a call with no `agentId`) is `prime`. A subagent is
 // its spawn type minus `baton:`, with `sub-orchestrator` → `sub`, as `noteReturn` does. A subagent the
 // mod did not see spawned is `agent`."
-test("T4: a note without a tag is stored under the caller's role", async ($, on) => {
+test("T4: a note without a tag is stored under the caller's role", LOADED, async ($, on) => {
   const w = world(on)
   await $.agent.spawn({ prompt: 's1', description: 'P2', subagentType: 'baton:sub-orchestrator' } as any)
   await $.agent.spawn({ prompt: 'w1', description: 'T14', subagentType: 'baton:worker', parentAgentId: 's1' } as any)
@@ -131,7 +136,7 @@ const RESERVED = ['operator', 'prime-reply', 'ruling', 'ruling-hand', 'handoff',
 const RESERVED_L = ['L3', 'L12']
 
 // R-C4-01, R-C4-02 (with R-C7-10) — Q-3.md option 1: "returns an error naming the reserved set"
-test('T4: memory_note with a reserved tag returns an error naming the reserved set', async ($, on) => {
+test('T4: memory_note with a reserved tag returns an error naming the reserved set', LOADED, async ($, on) => {
   world(on)
   for (const tag of [...RESERVED, ...RESERVED_L]) {
     const r: any = await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'forged ' + tag, tag } as any)
@@ -149,7 +154,7 @@ test('T4: memory_note with a reserved tag returns an error naming the reserved s
 
 // R-C4-01, R-C4-02 (with R-C7-10) — Q-3.answer.md: "A: refuse reserved tags with an error."
 // Q-3.md option 1: "... returns an error naming the reserved set, and no note is written."
-test('T4: memory_note with a reserved tag writes no note', async ($, on) => {
+test('T4: memory_note with a reserved tag writes no note', LOADED, async ($, on) => {
   const w = world(on)
   for (const tag of [...RESERVED, ...RESERVED_L]) {
     await $.tool.call({ tool: 'mcp__baton__memory_note', text: 'forged ' + tag, tag } as any)

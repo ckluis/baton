@@ -17,6 +17,11 @@
 // records each prompt the mod submits ($.prompt.submit: "a turn of its own, once the session is idle", types
 // index.d.ts, the call the pane's send-back already makes to the prime).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -215,7 +220,7 @@ async function answerQ72(w: any, ui: any) {
 // ================================================================== R-C14-12: the prime is handed the answer itself
 
 // R-C14-12 (spec L207) and criterion 18 of FX5: answered from the pane, a question whose node has returned BLOCKED.
-test('R-C14-12: the note that tells the prime to re-dispatch a BLOCKED node carries the answer text, not only the question', async ($, on) => {
+test('R-C14-12: the note that tells the prime to re-dispatch a BLOCKED node carries the answer text, not only the question', LOADED, async ($, on) => {
   // inbox/Q-36.answer.md: "the mod writes the answer file and puts a note to the prime, which re-dispatches the asking
   // node at once". The prime cannot read _orch/inbox/Q-72.answer.md, so the note it re-dispatches T5 from must hold
   // the answer (TYPED), or T5 is re-dispatched without it (LV13 section 11, item 1).
@@ -231,7 +236,7 @@ test('R-C14-12: the note that tells the prime to re-dispatch a BLOCKED node carr
 // ================================================================== R-C14-23: the prime is woken with the answer
 
 // R-C14-23 (spec L215-216, the live check LV13 refuted) and criterion 19 of FX5: the pane answer wakes the prime.
-test('R-C14-23: a pane answer to a BLOCKED node\'s question wakes the prime with a prompt naming the node, the answer and its file', async ($, on) => {
+test('R-C14-23: a pane answer to a BLOCKED node\'s question wakes the prime with a prompt naming the node, the answer and its file', LOADED, async ($, on) => {
   // Q-36: the prime "re-dispatches the asking node at once"; LV13 section 11 item 2: "Nothing woke it: the note goes
   // only into run memory". The wake is a prompt submitted to the prime's session (as the pane's send-back does), after
   // the answer file is written, holding what the prime needs to re-dispatch T5: the node, the question id, the answer
@@ -248,7 +253,7 @@ test('R-C14-23: a pane answer to a BLOCKED node\'s question wakes the prime with
 })
 
 // R-C14-12 and R-C14-23: one answer wakes the prime once; pressing the answer key again does not wake it again.
-test('R-C14-12, R-C14-23: no prompt is submitted when the answer file already exists (the brief only says so)', async ($, on) => {
+test('R-C14-12, R-C14-23: no prompt is submitted when the answer file already exists (the brief only says so)', LOADED, async ($, on) => {
   // plan/decisions.md Q-41: "an existing answer file is never overwritten (the brief says it is already answered)".
   // An answer already on file was not given here, so the pane does not wake the prime for it a second time. This test
   // also needs the wake to exist: it asserts the first answer woke the prime exactly once and a second press did not.

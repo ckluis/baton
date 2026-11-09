@@ -20,6 +20,11 @@
 // (`_orch/plan/graph.yaml`) or none, node envelopes and verifier verdicts, and questions in `_orch/inbox`. Directory
 // entries carry the engine's kind `'dir'` (types index.d.ts:5066, E1 §m).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -266,7 +271,7 @@ async function tryOpen(ui: any, u: Unit | undefined) {
 
 // ================================================================== guards: the `?` row as at da5910c (OQ7)
 
-test('guard: c3 a ? row shows its id, its first line and its Blocked by reading, red for explicit and yellow for interpreted', async ($, on) => {
+test('guard: c3 a ? row shows its id, its first line and its Blocked by reading, red for explicit and yellow for interpreted', LOADED, async ($, on) => {
   // Requirement R-C14-25 "and its `?` row says which:" (L226), R-C14-29 "put to the operator: the row reads `waiting
   // for you`," (L229). Handoff c3: "a `?` row shows the question id, its first line and its `Blocked by:` reading,
   // coloured red for explicit and yellow for interpreted, as at da5910c". Both questions carry Q-42's asked record, so
@@ -283,7 +288,7 @@ test('guard: c3 a ? row shows its id, its first line and its Blocked by reading,
   expect({ a: colours(a, FIRST_A), b: colours(b, FIRST_B) }).toEqual({ a: ['yellow'], b: ['red'] }) // c3: interpreted is yellow, explicit is red (Q-49: kept)
 })
 
-test('guard: c37 a waiting-for-you ? row whose Blocked by line ends (explicit) is coloured red', async ($, on) => {
+test('guard: c37 a waiting-for-you ? row whose Blocked by line ends (explicit) is coloured red', LOADED, async ($, on) => {
   // Requirement R-C14-29 "put to the operator: the row reads `waiting for you`," (L229). Q-49
   // (plan/decisions/Q-49.md): "an asked row keeps today's red or yellow". The question has Q-42's asked record, so it is
   // put to the operator (R-C14-31). At da5910c the row is red already (work/guard-evidence.md, c37).
@@ -293,7 +298,7 @@ test('guard: c37 a waiting-for-you ? row whose Blocked by line ends (explicit) i
   expect(cells.length > 0 && cells.every((t) => t.props.color === 'red' && !t.props.dimColor)).toBe(true) // Q-49: red, and not dim (fixture BY_EXPL ends "(explicit)")
 })
 
-test('guard: c38 a waiting-for-you ? row whose Blocked by line ends (interpreted) is coloured yellow', async ($, on) => {
+test('guard: c38 a waiting-for-you ? row whose Blocked by line ends (interpreted) is coloured yellow', LOADED, async ($, on) => {
   // Requirement R-C14-29 (L229). Q-49 (plan/decisions/Q-49.md): "an asked row keeps today's red or yellow".
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }] })
   const ui: any = await w.pane($)
@@ -301,7 +306,7 @@ test('guard: c38 a waiting-for-you ? row whose Blocked by line ends (interpreted
   expect(cells.length > 0 && cells.every((t) => t.props.color === 'yellow' && !t.props.dimColor)).toBe(true) // Q-49: yellow, and not dim (fixture BY_INTERP ends "(interpreted)")
 })
 
-test('guard: c33 an open Q-T14.md, a non-numeric id, is drawn as a ? row', async ($, on) => {
+test('guard: c33 an open Q-T14.md, a non-numeric id, is drawn as a ? row', LOADED, async ($, on) => {
   // Requirement R-C14-24 "An open question (an `_orch/inbox/Q-<n>.md` with no `Q-<n>.answer.md`) is in one of two
   // states," (L225). Q-48 (inbox/Q-48.answer.md): "any Q-<id>.md, non-numeric ids too, is a question".
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-T14', text: QA, asked: true }] })
@@ -310,7 +315,7 @@ test('guard: c33 an open Q-T14.md, a non-numeric id, is drawn as a ? row', async
   expect(r ? /^\s*\?\s/.test(r.text) : 'no ? row names Q-T14').toBe(true) // Q-48: drawn as a `?` row (fixture Q-T14.md)
 })
 
-test('guard: c34 a batch answer file Q-T02.answer.md with no Q-T02.md draws no row', async ($, on) => {
+test('guard: c34 a batch answer file Q-T02.answer.md with no Q-T02.md draws no row', LOADED, async ($, on) => {
   // Requirement R-C14-24 (L225): a question is "an `_orch/inbox/Q-<n>.md`". Q-48 (inbox/Q-48.answer.md): "any
   // Q-<id>.md ... is a question"; an answer file with no question file is none.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-T01', text: QB, asked: true }], extra: { '_orch/inbox/Q-T02.answer.md': '# Q-T02 — answer\n\nA: all option A.\n' } })
@@ -321,7 +326,7 @@ test('guard: c34 a batch answer file Q-T02.answer.md with no Q-T02.md draws no r
   expect(units(tree).filter((u) => u.text.includes('Q-T02'))).toEqual([]) // Q-48: no row names Q-T02, nor Q-T02.answer (fixture Q-T02.answer.md alone)
 })
 
-test('guard: c24 a Q-<id>.asked.md file is never drawn as a question row of its own', async ($, on) => {
+test('guard: c24 a Q-<id>.asked.md file is never drawn as a question row of its own', LOADED, async ($, on) => {
   // Requirement R-C14-31 "a question is put to the operator once the run's record on disk under `_orch/` shows that it
   // was asked" (L231). Q-42 (inbox/Q-42.answer.md): the record is "Q-<id>.asked.md"; it is a record, not a question.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-75', text: QB }] })
@@ -334,7 +339,7 @@ test('guard: c24 a Q-<id>.asked.md file is never drawn as a question row of its 
 
 // ================================================================== asked: `waiting for you`
 
-test('missing #1 (c20): a question an asked record names reads `waiting for you` in its ? row', async ($, on) => {
+test('missing #1 (c20): a question an asked record names reads `waiting for you` in its ? row', LOADED, async ($, on) => {
   // Requirements R-C14-25 "and its `?` row says which:" (L226), R-C14-29 "put to the operator: the row reads `waiting
   // for you`," (L229), R-C14-31 (L231). Q-42 (inbox/Q-42.answer.md): "a write-once Q-<id>.asked.md with asked_at and
   // asked_via is the asked record".
@@ -344,7 +349,7 @@ test('missing #1 (c20): a question an asked record names reads `waiting for you`
   expect(r ? r.text.includes('waiting for you') : 'no ? row of Q-73').toBe(true) // L229: "the row reads `waiting for you`"
 })
 
-test('missing #2 (c23): the asked record the pane reads is _orch/inbox/Q-<id>.asked.md, and no other record', async ($, on) => {
+test('missing #2 (c23): the asked record the pane reads is _orch/inbox/Q-<id>.asked.md, and no other record', LOADED, async ($, on) => {
   // Requirements R-C14-31 (L231), R-C14-32 "Until that record names the question, it is queued." (L232), R-C14-33 "The
   // pane decides from that record alone." (L233). Q-42 (inbox/Q-42.answer.md): the asked record is "Q-<id>.asked.md".
   // L236 names other records Q-42 did not choose: "a gate's questions page such as `_orch/inbox/G1-questions.html`, the
@@ -362,7 +367,7 @@ test('missing #2 (c23): the asked record the pane reads is _orch/inbox/Q-<id>.as
 
 // ================================================================== queued: `queued for G<n>`
 
-test('missing #3 (c18): a question no asked record names reads `queued for G<n>`, the gate Q-43\'s rule finds (G3)', async ($, on) => {
+test('missing #3 (c18): a question no asked record names reads `queued for G<n>`, the gate Q-43\'s rule finds (G3)', LOADED, async ($, on) => {
   // Requirements R-C14-26 "The row reads `queued for G<n>`," (L227), R-C14-27 "naming the gate that will put it," (L227),
   // R-C14-32 (L232). Q-43 (inbox/Q-43.answer.md): "the next gate is the lowest phase with a node not DONE+CONFIRMED".
   // Fixture PLAN_G3: phases 1 and 2 DONE+CONFIRMED, N3 (phase 3) DONE but not CONFIRMED, so the gate is G3.
@@ -372,7 +377,7 @@ test('missing #3 (c18): a question no asked record names reads `queued for G<n>`
   expect(r ? (/queued for G\d+/.exec(r.text) ?? ['no queued for G<n>'])[0] : 'no ? row of Q-75').toBe('queued for G3') // Q-43: lowest phase with a node not DONE+CONFIRMED is 3
 })
 
-test('missing #4 (c28): phase 1 all DONE with CONFIRMED and phase 2 not: a queued row reads `queued for G2`', async ($, on) => {
+test('missing #4 (c28): phase 1 all DONE with CONFIRMED and phase 2 not: a queued row reads `queued for G2`', LOADED, async ($, on) => {
   // Requirements R-C14-26 (L227), R-C14-27 (L227). Q-43 (inbox/Q-43.answer.md): "the next gate is the lowest phase with
   // a node not DONE+CONFIRMED". Fixture PLAN_G2.
   const w = world(on, { plan: PLAN_G2, questions: [{ id: 'Q-75', text: QB }] })
@@ -381,7 +386,7 @@ test('missing #4 (c28): phase 1 all DONE with CONFIRMED and phase 2 not: a queue
   expect(r ? (/queued for G\d+/.exec(r.text) ?? ['no queued for G<n>'])[0] : 'no ? row of Q-75').toBe('queued for G2') // Q-43: phase 2 is the lowest not done
 })
 
-test('missing #5 (c29): a phase-1 node with no status.json: a queued row reads `queued for G1`', async ($, on) => {
+test('missing #5 (c29): a phase-1 node with no status.json: a queued row reads `queued for G1`', LOADED, async ($, on) => {
   // Requirements R-C14-26 (L227), R-C14-27 (L227). Q-43 (inbox/Q-43.answer.md); Q-43.md option 1: a node "whose
   // `_orch/nodes/<id>/status.json` is missing or not DONE with CONFIRMED". Fixture PLAN_G1: N1 (phase 1) has none.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-75', text: QB }] })
@@ -390,7 +395,7 @@ test('missing #5 (c29): a phase-1 node with no status.json: a queued row reads `
   expect(r ? (/queued for G\d+/.exec(r.text) ?? ['no queued for G<n>'])[0] : 'no ? row of Q-75').toBe('queued for G1') // Q-43: phase 1 is not done
 })
 
-test('missing #6 (c35): a queued ? row reads `? Q-<id> · queued for G<n> · <first line>`, the state right after the id', async ($, on) => {
+test('missing #6 (c35): a queued ? row reads `? Q-<id> · queued for G<n> · <first line>`, the state right after the id', LOADED, async ($, on) => {
   // Requirements R-C14-25 (L226), R-C14-26 (L227). Q-49 (plan/decisions/Q-49.md): "The state goes right after the id,
   // so a cut never hides it: `? Q-42 · queued for G1 · <first line> — blocked by …`". Fixture PLAN_G1 (Q-43: G1).
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-75', text: QB }] })
@@ -399,7 +404,7 @@ test('missing #6 (c35): a queued ? row reads `? Q-<id> · queued for G<n> · <fi
   expect(r ? /\? Q-75 · queued for G1 · May the export drop the legacy column\?/.test(r.text) : 'no ? row of Q-75').toBe(true) // Q-49's shape, with the fixture's id, gate and first line (FIRST_B)
 })
 
-test('missing #7 (c36): a queued ? row is drawn dim', async ($, on) => {
+test('missing #7 (c36): a queued ? row is drawn dim', LOADED, async ($, on) => {
   // Requirements R-C14-25 (L226), R-C14-26 (L227). Q-49 (plan/decisions/Q-49.md): "A queued row is dim".
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-75', text: QB }] })
   const ui: any = await w.pane($)
@@ -409,7 +414,7 @@ test('missing #7 (c36): a queued ? row is drawn dim', async ($, on) => {
 
 // ================================================================== no gate found (Q-44)
 
-test('missing #8 (c30): with no _orch/plan/graph.yaml, a queued row reads `queued` and names no gate', async ($, on) => {
+test('missing #8 (c30): with no _orch/plan/graph.yaml, a queued row reads `queued` and names no gate', LOADED, async ($, on) => {
   // Requirements R-C14-26 (L227), R-C14-27 (L227). Q-44 (inbox/Q-44.answer.md): "the row reads "queued", the band does
   // not count it, and the brief notes no gate found." Fixture: no plan.
   const w = world(on, { plan: null, questions: [{ id: 'Q-75', text: QB }] })
@@ -418,7 +423,7 @@ test('missing #8 (c30): with no _orch/plan/graph.yaml, a queued row reads `queue
   expect(r ? { queued: /\bqueued\b/.test(r.text), gate: /\bG\d+\b/.test(r.text), waiting: r.text.includes('waiting for you') } : 'no ? row of Q-75').toEqual({ queued: true, gate: false, waiting: false }) // Q-44: "queued", no G<n>
 })
 
-test('missing #9 (c31): with no _orch/plan/graph.yaml, the band\'s flag does not count the queued question', async ($, on) => {
+test('missing #9 (c31): with no _orch/plan/graph.yaml, the band\'s flag does not count the queued question', LOADED, async ($, on) => {
   // Requirement R-C14-28 "and the band's `⚑ waiting for you` does not count it." (L228). Q-44 (inbox/Q-44.answer.md):
   // "the band does not count it".
   const w = world(on, { plan: null, questions: [{ id: 'Q-75', text: QB }] })
@@ -427,7 +432,7 @@ test('missing #9 (c31): with no _orch/plan/graph.yaml, the band\'s flag does not
   expect(await flagCount(b)).toBe(0) // Q-44: the queued question is not counted
 })
 
-test('missing #10 (c32): with no _orch/plan/graph.yaml, the queued question\'s brief notes no gate found', async ($, on) => {
+test('missing #10 (c32): with no _orch/plan/graph.yaml, the queued question\'s brief notes no gate found', LOADED, async ($, on) => {
   // Requirement R-C14-27 (L227). Q-44 (inbox/Q-44.answer.md): "the brief notes no gate found"; the line, handoff c32:
   // `no gate found in _orch/plan/graph.yaml`.
   const w = world(on, { plan: null, questions: [{ id: 'Q-75', text: QB }] })
@@ -439,7 +444,7 @@ test('missing #10 (c32): with no _orch/plan/graph.yaml, the queued question\'s b
 
 // ================================================================== the band
 
-test('guard: c4 every open question asked: the band\'s ⚑ waiting for you flag counts them and points to Work (1)', async ($, on) => {
+test('guard: c4 every open question asked: the band\'s ⚑ waiting for you flag counts them and points to Work (1)', LOADED, async ($, on) => {
   // Requirement R-C14-30 "and the band's `⚑ waiting for you` counts it." (L229). Handoff c4: "the band's `⚑ waiting
   // for you` flag counts them and points to Work (1), as at da5910c". Both questions carry Q-42's asked record.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-74', text: QB, asked: true }] })
@@ -449,7 +454,7 @@ test('guard: c4 every open question asked: the band\'s ⚑ waiting for you flag 
   expect({ waiting: f.includes('⚑ waiting for you'), count: await flagCount(b), work: f.includes('Work (1)') }).toEqual({ waiting: true, count: 2, work: true }) // L229: counts both (fixture: two asked); c4: "points to Work (1)"
 })
 
-test('guard: c21 a question an asked record names is counted by the band\'s flag', async ($, on) => {
+test('guard: c21 a question an asked record names is counted by the band\'s flag', LOADED, async ($, on) => {
   // Requirement R-C14-30 "and the band's `⚑ waiting for you` counts it." (L229). Q-42 (inbox/Q-42.answer.md): the
   // asked record. The fixture of missing #1 (c20).
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }] })
@@ -458,7 +463,7 @@ test('guard: c21 a question an asked record names is counted by the band\'s flag
   expect(await flagCount(b)).toBe(1) // L229: the one asked question is counted
 })
 
-test('missing #11 (c19): a queued question is not counted by the band\'s flag', async ($, on) => {
+test('missing #11 (c19): a queued question is not counted by the band\'s flag', LOADED, async ($, on) => {
   // Requirement R-C14-28 "and the band's `⚑ waiting for you` does not count it." (L228). The fixture of missing #3
   // (c18): one question, no asked record.
   const w = world(on, { plan: PLAN_G3, questions: [{ id: 'Q-75', text: QB }] })
@@ -467,7 +472,7 @@ test('missing #11 (c19): a queued question is not counted by the band\'s flag', 
   expect(await flagCount(b)).toBe(0) // L228: not counted
 })
 
-test('missing #12 (c22): one queued and one asked question at once: the band\'s flag counts exactly one', async ($, on) => {
+test('missing #12 (c22): one queued and one asked question at once: the band\'s flag counts exactly one', LOADED, async ($, on) => {
   // Requirements R-C14-28 (L228), R-C14-30 (L229), R-C14-43 "and the band's flag counts only the asked one," (L242).
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-73', text: QA, asked: true }, { id: 'Q-75', text: QB }] })
   const ui: any = await w.pane($)
@@ -477,7 +482,7 @@ test('missing #12 (c22): one queued and one asked question at once: the band\'s 
   expect(await flagCount(b)).toBe(1) // L242: only the asked one (fixture Q-73)
 })
 
-test('missing #13 (c39): with only queued questions open and no phase to check, the band draws no ⚑ flag', async ($, on) => {
+test('missing #13 (c39): with only queued questions open and no phase to check, the band draws no ⚑ flag', LOADED, async ($, on) => {
   // Requirement R-C14-28 (L228). Q-50 (plan/decisions/Q-50.md): "With only queued questions, no flag is drawn, and
   // queued questions are seen in Work." No sub-orchestrator has reported, so no phase waits to be checked.
   const w = world(on, { plan: PLAN_G1, questions: [{ id: 'Q-75', text: QB }, { id: 'Q-76', text: QA }] })
@@ -486,7 +491,7 @@ test('missing #13 (c39): with only queued questions open and no phase to check, 
   expect(strings(await b.drawn()).includes('⚑')).toBe(false) // Q-50: no flag
 })
 
-test('guard: c40 with a queued question open, the band\'s text contains no `queued`', async ($, on) => {
+test('guard: c40 with a queued question open, the band\'s text contains no `queued`', LOADED, async ($, on) => {
   // Requirement R-C14-28 (L228). Q-50 (plan/decisions/Q-50.md): "the flag counts only questions put to the operator and
   // phases to check"; alternatives not taken: "A dim `· <k> queued` after the flag" and "A separate dim band line `<k>
   // queued for G<n>`". The fixture also holds an asked question, so the flag is drawn.

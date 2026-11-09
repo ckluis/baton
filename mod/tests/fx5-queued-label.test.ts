@@ -13,6 +13,11 @@
 //
 // The world is the one of mod/tests/t13-queued.test.ts (copied, not imported), reduced to this one fixture.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -194,7 +199,7 @@ async function flagCount(ui: any): Promise<number> {
 }
 
 // R-C14-41 (spec L241): in the one-queued-one-asked fixture, the queued `?` row reads `queued for G<n>`.
-test('R-C14-41: one queued and one asked question in one fixture: the queued row reads queued for G1, the asked one waiting for you, the band counts one', async ($, on) => {
+test('R-C14-41: one queued and one asked question in one fixture: the queued row reads queued for G1, the asked one waiting for you, the band counts one', LOADED, async ($, on) => {
   const w = world(on)
   const ui: any = await w.pane($)
   const tree = await ui.drawn()

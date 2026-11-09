@@ -16,6 +16,11 @@
 //
 // The drawing model and the world restate mod/tests/wt1-waiting.test.ts's (itself pw1-fit's), with an inbox added.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the tests here take up to 0.5 s alone, at risk
+// of the default under that load (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -389,7 +394,7 @@ const GONE = { qrow: false, surface: false, plain: false, agentFlag: false, band
 // ---- (a) the item waits: its one row shows the pane; the band counts it ------------------------------------------
 
 for (const cols of [60, 75]) {
-  test('WT1 2a: a BLOCKED naming a pane and an ASKED question shows its pane, title and plain line with its ?-row, and the band counts it once, at ' + cols + ' columns', async ($, on) => {
+  test('WT1 2a: a BLOCKED naming a pane and an ASKED question shows its pane, title and plain line with its ?-row, and the band counts it once, at ' + cols + ' columns', LOADED, async ($, on) => {
     const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90, 'Q-90.asked.md': askedBefore() } })
     const ui: any = await w.pane($, cols)
     const b: any = await w.band($, cols)
@@ -397,7 +402,7 @@ for (const cols of [60, 75]) {
     expect(pick(s), 'Work and band at ' + cols + show(s.lines) + show(s.band)).toEqual(WAITS)
   })
 
-  test('WT1 2a: the same with the question only QUEUED (no asked record): the band still flags the pane, at ' + cols + ' columns', async ($, on) => {
+  test('WT1 2a: the same with the question only QUEUED (no asked record): the band still flags the pane, at ' + cols + ' columns', LOADED, async ($, on) => {
     const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90 } })
     const ui: any = await w.pane($, cols)
     const b: any = await w.band($, cols)
@@ -408,7 +413,7 @@ for (const cols of [60, 75]) {
 
 // ---- (b) superseded: the whole item leaves, its ?-row included; the inbox is untouched ----------------------------
 
-test('WT1 2b: SendMessage to the agent removes the whole item, the asked question’s ?-row and the band’s count included; the inbox files stay as they were', async ($, on) => {
+test('WT1 2b: SendMessage to the agent removes the whole item, the asked question’s ?-row and the band’s count included; the inbox files stay as they were', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90, 'Q-90.asked.md': askedBefore() } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)
@@ -424,7 +429,7 @@ test('WT1 2b: SendMessage to the agent removes the whole item, the asked questio
   expect(w.inbox(), 'the inbox files').toBe(before)
 })
 
-test('WT1 2b: the agent resuming removes the item with a QUEUED question too', async ($, on) => {
+test('WT1 2b: the agent resuming removes the item with a QUEUED question too', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90 } })
   const ui: any = await w.pane($, 60)
   const b: any = await w.band($, 60)
@@ -437,7 +442,7 @@ test('WT1 2b: the agent resuming removes the item with a QUEUED question too', a
   expect(w.inbox(), 'the inbox files').toBe(before)
 })
 
-test('WT1 2b: a newer return (PARTIAL) removes the item and its asked question', async ($, on) => {
+test('WT1 2b: a newer return (PARTIAL) removes the item and its asked question', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90, 'Q-90.asked.md': askedBefore() } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)
@@ -448,7 +453,7 @@ test('WT1 2b: a newer return (PARTIAL) removes the item and its asked question',
   expect(pick(g), 'after a newer return' + show(g.lines) + show(g.band)).toEqual(GONE)
 })
 
-test('WT1 2b: a newer BLOCKED naming another pane and question replaces the older item: only the newer shows', async ($, on) => {
+test('WT1 2b: a newer BLOCKED naming another pane and question replaces the older item: only the newer shows', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90, 'Q-90.asked.md': askedBefore() } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)
@@ -464,7 +469,7 @@ test('WT1 2b: a newer BLOCKED naming another pane and question replaces the olde
 
 // ---- (b) the other side: put to the operator separately, after; and a question of no item -------------------------
 
-test('WT1 2b (guard): a question put to the operator AFTER its item was superseded stays, as a current question, without the old pane', async ($, on) => {
+test('WT1 2b (guard): a question put to the operator AFTER its item was superseded stays, as a current question, without the old pane', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90 } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)
@@ -484,7 +489,7 @@ test('WT1 2b (guard): a question put to the operator AFTER its item was supersed
   ).toEqual({ qrow: true, surface: false, agentFlag: false, band: true })
 })
 
-test('WT1 2b (guard): a question no blocked return names stays when another agent is superseded', async ($, on) => {
+test('WT1 2b (guard): a question no blocked return names stays when another agent is superseded', LOADED, async ($, on) => {
   const w = world(on, { returns: { [QLAND]: QLAND_ANSWER }, inbox: { 'Q-90.md': Q90, 'Q-77.md': Q77, 'Q-77.asked.md': askedBefore() } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)

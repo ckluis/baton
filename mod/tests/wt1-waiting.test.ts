@@ -19,6 +19,11 @@
 // The drawing model (a row's Texts laid out as the terminal does) restates mod/tests/pw1-fit.test.ts's, so this file
 // stands alone; widths are PW1's dock widths (_orch/phases/P7/brief.md: 49, 60, 75, 90; 120 wide).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -422,7 +427,7 @@ async function gone($: any, w: World, ui: any, b: any, why: string) {
 
 // ---- (a) the stale case: SendMessage supersedes it -----------------------------------------------------------------
 
-test('WT1 a: an agent returns BLOCKED naming a surface; the prime sends it new instructions with SendMessage; the item is gone from the band, Work and the brief', async ($, on) => {
+test('WT1 a: an agent returns BLOCKED naming a surface; the prime sends it new instructions with SendMessage; the item is gone from the band, Work and the brief', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)
@@ -433,7 +438,7 @@ test('WT1 a: an agent returns BLOCKED naming a surface; the prime sends it new i
   await gone($, w, ui, b, 'after SendMessage to its agent id')
 })
 
-test('WT1 a: SendMessage to the agent by its name supersedes it too', async ($, on) => {
+test('WT1 a: SendMessage to the agent by its name supersedes it too', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)
@@ -445,7 +450,7 @@ test('WT1 a: SendMessage to the agent by its name supersedes it too', async ($, 
 
 // ---- (b) resumed, reported again, replaced -------------------------------------------------------------------------
 
-test('WT1 b: the agent resumes (a tool call of its own after its return); the item is gone', async ($, on) => {
+test('WT1 b: the agent resumes (a tool call of its own after its return); the item is gone', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)
@@ -455,7 +460,7 @@ test('WT1 b: the agent resumes (a tool call of its own after its return); the it
   await gone($, w, ui, b, 'after the agent resumed')
 })
 
-test('WT1 b: the agent reports again (a newer return); the item is gone', async ($, on) => {
+test('WT1 b: the agent reports again (a newer return); the item is gone', LOADED, async ($, on) => {
   // PARTIAL, not DONE: a sub-orchestrator's DONE queues its phase for the operator's check, a new item of its own
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
@@ -466,7 +471,7 @@ test('WT1 b: the agent reports again (a newer return); the item is gone', async 
   await gone($, w, ui, b, 'after a newer DONE return')
 })
 
-test('WT1 b: a newer BLOCKED from the same agent replaces the older one: only the newer shows', async ($, on) => {
+test('WT1 b: a newer BLOCKED from the same agent replaces the older one: only the newer shows', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)
@@ -487,7 +492,7 @@ test('WT1 b: a newer BLOCKED from the same agent replaces the older one: only th
   expect({ old: has(br.lines, SURFACE) || has(br.lines, PLAIN), now: has(br.lines, SURFACE2) && has(br.lines, PLAIN2) }, 'its brief' + dump(br.els)).toEqual({ old: false, now: true })
 })
 
-test('WT1 b: a newer agent dispatched under the same name replaces the older item', async ($, on) => {
+test('WT1 b: a newer agent dispatched under the same name replaces the older item', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)
@@ -504,7 +509,7 @@ test('WT1 b: a newer agent dispatched under the same name replaces the older ite
 // ---- (c) guard: what waits now stays, with its pane and one plain line ---------------------------------------------
 
 for (const cols of WIDTHS) {
-  test('WT1 c (guard): a current BLOCKED with no later message, resume or replacement stays, with its surface, title and plain line, at ' + cols + ' columns', async ($, on) => {
+  test('WT1 c (guard): a current BLOCKED with no later message, resume or replacement stays, with its surface, title and plain line, at ' + cols + ' columns', LOADED, async ($, on) => {
     const w = world(on, { returns: { [LAND]: LAND_ANSWER } })
     const ui: any = await w.pane($, cols)
     const b: any = await w.band($, cols)
@@ -531,7 +536,7 @@ for (const cols of WIDTHS) {
   })
 }
 
-test('WT1 c (guard): a BLOCKED that names no surface stays with its plain line (its Blocked-by text) and no surface', async ($, on) => {
+test('WT1 c (guard): a BLOCKED that names no surface stays with its plain line (its Blocked-by text) and no surface', LOADED, async ($, on) => {
   const w = world(on, { returns: { [AUDIT]: AUDIT_ANSWER } })
   const ui: any = await w.pane($, 75)
   const b: any = await w.band($, 75)
@@ -542,7 +547,7 @@ test('WT1 c (guard): a BLOCKED that names no surface stays with its plain line (
   expect((await bandLines(b, 75)).some((l) => l.includes('⚑') && (l.includes(AUDIT) || /\b1 blocked\b/.test(l)))).toBe(true)
 })
 
-test('WT1 c (guard): two agents blocked at once both wait; superseding one leaves the other', async ($, on) => {
+test('WT1 c (guard): two agents blocked at once both wait; superseding one leaves the other', LOADED, async ($, on) => {
   const w = world(on, { returns: { [LAND]: LAND_ANSWER, [AUDIT]: AUDIT_ANSWER } })
   const ui: any = await w.pane($)
   const b: any = await w.band($)

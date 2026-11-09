@@ -20,6 +20,11 @@
 // (types: TraceOutcome "`caught`: it threw or its budget ran out, and its `.catch` handler's
 // result stands"). An observer plugin one tier above reads it from `next.trace`.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone, and tests in the last files left at the default
+// timed out under that load (_orch/nodes/XTFL1/work/repro.md, cause.md, proof.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // An active prime run (the "during a run" of Q-1 option 1).
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
@@ -122,7 +127,7 @@ function world(on: any, o: World = {}) {
 // Pins: spec L38 "**Fail closed** where a failure must not open a door"; _orch/inbox/Q-1.answer.md
 // "A: the phase gate, rulings, checkpoints and spawn fail closed." — Q-1 option 1: "checkpoints
 // (:2545: refuse the rm/reset when the snapshot failed)"; K2 row 6, fail-closed.
-test('fail-closed: during a run, an rm -r whose checkpoint snapshot failed is refused and never runs', async ($, on) => {
+test('fail-closed: during a run, an rm -r whose checkpoint snapshot failed is refused and never runs', LOADED, async ($, on) => {
   // the command gate asks first; the operator approves, so only the checkpoint stands in the way
   const w = world(on, { answers: ['Approve'], snapshotFails: true })
   const r: any = await $.tool.call({ tool: 'Bash', command: 'rm -rf build', agentId: 'w1' } as any)
@@ -139,7 +144,7 @@ test('fail-closed: during a run, an rm -r whose checkpoint snapshot failed is re
 // The failure: a DONE phase waits for the operator's check, and the standing ruling the gate shows
 // in its question is a malformed record (its text is not a string), so the gate cannot build the
 // question. The operator would approve if asked, so only a refusal for the failure passes.
-test("fail-closed: during a run, the phase gate failing refuses the prime's next dispatch", async ($, on) => {
+test("fail-closed: during a run, the phase gate failing refuses the prime's next dispatch", LOADED, async ($, on) => {
   const w = world(on, {
     answers: ['Approve'],
     rulings: [{ index: 0, ts: '2026-10-19T00:00:00Z', tag: 'ruling', text: BAD }],
@@ -159,7 +164,7 @@ test("fail-closed: during a run, the phase gate failing refuses the prime's next
 // (:2650)"; K2 row 13, fail-closed.
 // The failure: an enforced ruling matches the command, but the ruling's record is malformed (its
 // text is not a string), so the hook throws while writing the refusal.
-test('fail-closed: during a run, the enforced-rulings hook failing refuses the Bash call', async ($, on) => {
+test('fail-closed: during a run, the enforced-rulings hook failing refuses the Bash call', LOADED, async ($, on) => {
   world(on, {
     rulings: [
       { index: 0, ts: '2026-10-19T00:00:00Z', tag: 'ruling', text: BAD },
@@ -178,7 +183,7 @@ test('fail-closed: during a run, the enforced-rulings hook failing refuses the B
 // "spent-budget refusal", fail-closed.
 // The failure: a goal budget is set, and the run's saved spend is a malformed record (its fresh-token
 // count is not a number), so the budget check throws before it can say whether the budget is spent.
-test("fail-closed: during a run, agent.spawn's budget check failing refuses the review round", { options: { tokensPerGoal: 1000 } as any }, async ($, on) => {
+test("fail-closed: during a run, agent.spawn's budget check failing refuses the review round", { ...LOADED, options: { tokensPerGoal: 1000 } as any }, async ($, on) => {
   const w = world(on, { spend: JSON.stringify({ run_id: 't', total: { fresh: BAD } }) })
   let r: any
   let thrown: string | null = null
@@ -202,7 +207,7 @@ test("fail-closed: during a run, agent.spawn's budget check failing refuses the 
 // SessionStart hooks ...)"; K2 row 15, fail-open.
 // The failure: the run's manifest is a malformed record (its run_id is not a string), so the hook
 // that hands a new session the prime's wake throws while writing it.
-test('fail-open: during a run, the SessionStart wake hook failing lets the session start, answered by its own .catch', { plugins: [OBSERVER] }, async ($, on) => {
+test('fail-open: during a run, the SessionStart wake hook failing lets the session start, answered by its own .catch', { ...LOADED, plugins: [OBSERVER] }, async ($, on) => {
   const w = world(on, { manifest: JSON.stringify({ run_id: BAD, mode: 'BUILD', prime: true }) })
   const r: any = await $.classic.SessionStart({ source: 'startup' } as any)
   // spec L40: a failure must not block your work — the session starts (nothing stops it)
@@ -217,7 +222,7 @@ test('fail-open: during a run, the SessionStart wake hook failing lets the sessi
 // agent.spawn's binding and lessons)"; K2 agent.spawn branch row "lessons injection", fail-open.
 // The failure: the lessons memory holds a malformed record (a null note), so matching lessons to
 // the worker's prompt throws.
-test("fail-open: during a run, agent.spawn's lessons failing lets the worker spawn, answered by its own .catch", { plugins: [OBSERVER] }, async ($, on) => {
+test("fail-open: during a run, agent.spawn's lessons failing lets the worker spawn, answered by its own .catch", { ...LOADED, plugins: [OBSERVER] }, async ($, on) => {
   const w = world(on, { lessons: [null] })
   const r: any = await $.agent.spawn({ prompt: 'Add totals to src/cart.ts', description: 'T9 cart totals', subagentType: 'baton:worker' } as any)
   // spec L40: a failure must not block your work — the spawn is not refused

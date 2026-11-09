@@ -17,6 +17,11 @@
 // The world: the engine beneath the mod answers from memory (as mod/tests/interface.test.ts does), in the shapes the
 // engine's types declare. No expected value is copied from the implementation.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -247,7 +252,7 @@ const engineDrawn = (t: string) => t.includes(ENGINE)
 
 // ================================================================== S0489 · node directories are read (c16)
 
-test('S0489 (c16): with _orch/nodes/<id>/ listed as the declared kind \'dir\', observe reads the nodes and their rows are drawn', async ($, on) => {
+test('S0489 (c16): with _orch/nodes/<id>/ listed as the declared kind \'dir\', observe reads the nodes and their rows are drawn', LOADED, async ($, on) => {
   // R-C1-05 "result shape in `mod/hooks/register.js`" (L25), R-C1-06 "against the engine's current types." (L26),
   // R-C1-13 "Each mismatch gets a failing test first," (L32). mismatches.yaml S0489 (register.js:2185): declared
   // index.d.ts:5093 `kind: 'file' | 'dir' | 'other';`, "x.kind === 'directory' is never true, so the filter drops every
@@ -260,7 +265,7 @@ test('S0489 (c16): with _orch/nodes/<id>/ listed as the declared kind \'dir\', o
 
 // ================================================================== S0494 · phase directories are read
 
-test('S0494: a phase directory _orch/phases/P4 listed as the declared kind \'dir\' gets a phase row', async ($, on) => {
+test('S0494: a phase directory _orch/phases/P4 listed as the declared kind \'dir\' gets a phase row', LOADED, async ($, on) => {
   // R-C1-05 (L25), R-C1-06 (L26), R-C1-13 (L32). mismatches.yaml S0494 (register.js:2209): declared index.d.ts:5093
   // `kind: 'file' | 'dir' | 'other';`, "x.kind === 'directory' is never true, so the filter drops every directory".
   // Fixture: graph.yaml names phases 1-3 only; P4 exists only as a directory of _orch/phases.
@@ -279,7 +284,7 @@ const T5_WORK = { 'red.txt': RED, 'green.txt': GREEN, 'blue.txt': BLUE } // fixt
 // E1 (probes.md, "Side effect") found its fixture's T17-verdict.json in a vocabulary the mod does not read.
 const T5_VERDICT = { node: 'T5', attempt: 1, criteria: [{ n: 1, verdict: 'CONFIRMED', probe: 'ran the export' }, { n: 2, verdict: 'CONFIRMED', probe: 'read the last row' }], verdict: 'VERIFIED' }
 
-test('Q-17 (c17): Enter on a node row opens its view, with its done-criteria and its red/green/blue, and the pane is not blanked', async ($, on) => {
+test('Q-17 (c17): Enter on a node row opens its view, with its done-criteria and its red/green/blue, and the pane is not blanked', LOADED, async ($, on) => {
   // R-C1-14 "then the fix." (L32); inbox/Q-17.answer.md: "the same owner (C1) fixes the node-row Enter crash"; Q-17.md
   // option 1: "that cluster adds a red test (Enter on a node row opens its view with done-criteria and red/green/blue)
   // and fixes the undefined segment". E1 §k (Q-17.md): "Enter on a node row blanks the pane".
@@ -296,7 +301,7 @@ test('Q-17 (c17): Enter on a node row opens its view, with its done-criteria and
   }).toEqual({ row: true, blanked: false, criteria: true, rgb: true })
 })
 
-test('Q-17 (c18): Enter on a node row raises no \'ui.render hook skipped\' error', async ($, on) => {
+test('Q-17 (c18): Enter on a node row raises no \'ui.render hook skipped\' error', LOADED, async ($, on) => {
   // R-C1-14 (L32); inbox/Q-17.answer.md; Q-17.md: "Enter on a node row blanks the pane: `ui.render hook skipped: threw
   // TypeError: undefined is not an object (evaluating 'x.tone')`". A throw while drawn "draws the engine's"
   // (index.d.ts 'ui.render'), and the engine's drawing is the bottom hook's ENGINE text here.
@@ -319,7 +324,7 @@ test('Q-17 (c18): Enter on a node row raises no \'ui.render hook skipped\' error
 
 const LONG = Array.from({ length: 1200 }, (_, i) => 'line ' + (i + 1)).join('\n') // fixture: 1200 lines, over quietOutputLines (400, mod/README.md "Quiet output")
 
-test('X3: a long Bash result, as the declared record { stdout, stderr, interrupted }, is quieted and its whole output saved to a file', async ($, on) => {
+test('X3: a long Bash result, as the declared record { stdout, stderr, interrupted }, is quieted and its whole output saved to a file', LOADED, async ($, on) => {
   // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml X3 (register.js:2622): declared claude-code-tools/index.d.ts:4440
   // `Bash: {` (stdout, stderr, interrupted, …); "the guard half of S-row mismatch on(tool.call) return {result} at
   // register.js:2638: by the declaration the quiet-output path never runs". What the path does: mod/README.md "Quiet
@@ -333,7 +338,7 @@ test('X3: a long Bash result, as the declared record { stdout, stderr, interrupt
   expect(saved.length).toBe(1) // README "Quiet output": "the whole output is saved to ... `.baton/out/` outside a run"
 })
 
-test('S0598: the quiet-output hook returns the declared Bash result record, its stdout cut, not a string', async ($, on) => {
+test('S0598: the quiet-output hook returns the declared Bash result record, its stdout cut, not a string', LOADED, async ($, on) => {
   // R-C1-04 "option" (L25), R-C1-06 (L26). mismatches.yaml S0598 (register.js:2638): index.d.ts:13559
   // `result: ToolResultOf<Name>;`; "the handler returns { ...r, result: q } with q a string, but under the Bash matcher
   // result is ToolResultOf<'Bash'>, the BuiltinToolResults Bash record { stdout, stderr, interrupted, … }".
@@ -349,7 +354,7 @@ test('S0598: the quiet-output hook returns the declared Bash result record, its 
 
 // ================================================================== X1 · the Read result is the declared record
 
-test('X1: a Read of a whole source file over readHintLines, as the declared record, carries the pointer to code_fetch', async ($, on) => {
+test('X1: a Read of a whole source file over readHintLines, as the declared record, carries the pointer to code_fetch', LOADED, async ($, on) => {
   // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml X1 (register.js:2605): declared index.d.ts:13559 `result:
   // ToolResultOf<Name>;`, for Read claude-code-tools/index.d.ts:5032 `Read: {` (type: 'text', file: { filePath,
   // content, numLines, … }); "by the declaration r.result is never a string, so the big-read hint never fires".
@@ -368,7 +373,7 @@ test('X1: a Read of a whole source file over readHintLines, as the declared reco
 
 const Q9 = '# Q-9 · May the export drop the legacy column?\n\n**Question.** May it?\n' // fixture: an open question (README "Notifications": "a new question")
 
-test('X2: classic.Stop returns only the fields its declared result has (no terminalSequence)', async ($, on) => {
+test('X2: classic.Stop returns only the fields its declared result has (no terminalSequence)', LOADED, async ($, on) => {
   // R-C1-04 "option" (L25), R-C1-06 (L26). mismatches.yaml X2 (register.js:621-625): index.d.ts:1422 `export type
   // ClassicResultOf = {` — Pick<ClassicResult, 'block' | 'preventContinuation' | 'stopReason' | per-event fields>;
   // "terminalSequence appears nowhere in the generated types". Stop's per-event fields: index.d.ts ClassicResultFields
@@ -380,7 +385,7 @@ test('X2: classic.Stop returns only the fields its declared result has (no termi
   expect(extra).toEqual([]) // ClassicResultOf['classic.Stop'] keys (index.d.ts:1419-1421, ClassicResultFields.Stop)
 })
 
-test('X2: a notice waiting at Stop reaches the person as a native notification', async ($, on) => {
+test('X2: a notice waiting at Stop reaches the person as a native notification', LOADED, async ($, on) => {
   // R-C1-06 (L26). mismatches.yaml X2: "the engine may drop it, so the desktop notification would never be emitted".
   // What is emitted: mod/README.md "Notifications": "a new question ...: a toast at once and a desktop notification ...
   // at the next Stop or Notification, once each." The declared way to raise one: index.d.ts `notify: (text: string,
@@ -401,7 +406,7 @@ test('X2: a notice waiting at Stop reaches the person as a native notification',
 const HANDBACK = 'SubagentHandback' // source record: the engine running T11 offers a tool of this name, one parameter `message` (false-premise.md §S0543)
 const RETURN_LINE = 'T5 DONE · export written · none open' // fixture: a worker's one-line return, in the `<id> <VERDICT> · what changed · what is open` shape of T11's own dispatch
 
-test('guard: S0543 a SubagentHandback call from an agent the prime spawned is noted as its return; another tool is not', async ($, on) => {
+test('guard: S0543 a SubagentHandback call from an agent the prime spawned is noted as its return; another tool is not', LOADED, async ($, on) => {
   // R-C1-05 "result shape in `mod/hooks/register.js`" (L25), R-C1-06 "against the engine's current types." (L26).
   // mismatches.yaml S0543 (register.js:2449) "on(tool.call) e → .tool === 'SubagentHandback'": "either the generated
   // types omit a subagent-only tool or the code tests a name the engine never sends" — false-premise.md: the former.
@@ -419,7 +424,7 @@ test('guard: S0543 a SubagentHandback call from an agent the prime spawned is no
   expect({ beforeHandback, afterHandback }).toEqual({ beforeHandback: 0, afterHandback: 1 })
 })
 
-test('guard: S0545 the SubagentHandback call\'s `message` argument is the text the run note carries', async ($, on) => {
+test('guard: S0545 the SubagentHandback call\'s `message` argument is the text the run note carries', LOADED, async ($, on) => {
   // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml S0545 (register.js:2451) "on(tool.call) e → .message": "the
   // SubagentHandback tool and its message argument are absent from the generated types" — the engine's tool has
   // exactly that parameter (false-premise.md §S0543, S0545).
@@ -435,7 +440,7 @@ test('guard: S0545 the SubagentHandback call\'s `message` argument is the text t
   expect({ count: noted.length, carries: noted.some((n) => n.includes(RETURN_LINE)), second: noted.some((n) => n.includes(SECOND)) }).toEqual({ count: 1, carries: true, second: false })
 })
 
-test('guard: S0708 on the mobile surface the Pane draws its own Work and Memory views, and no hook is skipped', async ($, on) => {
+test('guard: S0708 on the mobile surface the Pane draws its own Work and Memory views, and no hook is skipped', LOADED, async ($, on) => {
   // R-C1-05 (L25), R-C1-06 (L26). mismatches.yaml S0708 (register.js:2929) "$.ui.resolve → .Input": "on a mobile
   // surface Input is undefined and the Pane render calls Input(…)". index.d.ts 'ui.resolve': a table "with a key left
   // out" leaves "a fragment there"; the probe (false-premise.md §S0708) drew the Memory tab on mobile with no throw.

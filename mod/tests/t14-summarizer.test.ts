@@ -9,6 +9,11 @@
 // process.run (a plugin test has no processes), and no test reads or writes a
 // real memory store (Q-85: the operator marks the old records himself).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone, and a test here timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md, proof.md), so every test in this file that starts the mod gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 // @ts-expect-error -- type-only (XTB1): lib/memcore.mjs is product code with no declaration file, and a .d.mts would have to go under mod/lib/
 import { decodeRecord, encodeRecord, fallbackMerge } from '../lib/memcore.mjs'
 
@@ -122,7 +127,7 @@ const askedForRange = (models: any[]) => models.filter((m) => asked(m).includes(
 
 // R-C15-23 (L431): "The summarizer does not store commentary about its own input."
 // Spec L431-433: 'A summary such as "The entries you pasted are truncated…" ... is rejected and redone.'
-test('a reply that comments on its own input ("The entries you pasted are truncated…") is not stored as a summary', async ($, on) => {
+test('a reply that comments on its own input ("The entries you pasted are truncated…") is not stored as a summary', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PASTED, GOOD])
   await noteTwoAndMerge($, clock)
@@ -134,7 +139,7 @@ test('a reply that comments on its own input ("The entries you pasted are trunca
 
 // R-C15-24 (L432): "and redone."
 // Spec L431-433: '... is rejected and redone.'
-test('after a rejected reply the summary of the same range is asked for again', async ($, on) => {
+test('after a rejected reply the summary of the same range is asked for again', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PASTED, GOOD])
   await noteTwoAndMerge($, clock)
@@ -144,7 +149,7 @@ test('after a rejected reply the summary of the same range is asked for again', 
 
 // R-C15-127, R-C15-128 (L518): "The fixed pattern list holds at least
 // `/\b(entries|input|text) (you|I) (pasted|provided|gave|received)\b/i`"
-test('a reply containing "the text you provided" is not stored as a summary', async ($, on) => {
+test('a reply containing "the text you provided" is not stored as a summary', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PROVIDED, GOOD])
   await noteTwoAndMerge($, clock)
@@ -155,7 +160,7 @@ test('a reply containing "the text you provided" is not stored as a summary', as
 })
 
 // R-C15-129 (L520): "`/\btruncat|cut off|incomplete\b/i` (said of the entries)"
-test('a reply saying the entries were "cut off" is not stored as a summary', async ($, on) => {
+test('a reply saying the entries were "cut off" is not stored as a summary', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_CUT, GOOD])
   await noteTwoAndMerge($, clock)
@@ -166,7 +171,7 @@ test('a reply saying the entries were "cut off" is not stored as a summary', asy
 })
 
 // R-C15-130 (L520): "and `/\bI (cannot|can't|am unable)\b/i`."
-test('a reply containing "I cannot" is not stored as a summary', async ($, on) => {
+test('a reply containing "I cannot" is not stored as a summary', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_CANNOT, GOOD])
   await noteTwoAndMerge($, clock)
@@ -177,7 +182,7 @@ test('a reply containing "I cannot" is not stored as a summary', async ($, on) =
 })
 
 // R-C15-131, R-C15-132 (L521): "A rejected reply is retried once" "with a stricter prompt."
-test('the retry after a rejected reply is asked with a prompt that differs from the first', async ($, on) => {
+test('the retry after a rejected reply is asked with a prompt that differs from the first', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PASTED, GOOD])
   await noteTwoAndMerge($, clock)
@@ -187,7 +192,7 @@ test('the retry after a rejected reply is asked with a prompt that differs from 
 })
 
 // R-C15-133 (L521): "A second rejection stores `fallbackMerge` of the inputs."
-test('when the retry is rejected too, the stored summary is fallbackMerge of the inputs', async ($, on) => {
+test('when the retry is rejected too, the stored summary is fallbackMerge of the inputs', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PASTED, BAD_CANNOT])
   await noteTwoAndMerge($, clock)
@@ -197,7 +202,7 @@ test('when the retry is rejected too, the stored summary is fallbackMerge of the
 })
 
 // R-C15-131 (L521): "A rejected reply is retried once"
-test('when the retry is rejected too, the summarizer is asked exactly twice for the range', async ($, on) => {
+test('when the retry is rejected too, the summarizer is asked exactly twice for the range', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on, [BAD_PASTED, BAD_CANNOT])
   await noteTwoAndMerge($, clock)
@@ -217,7 +222,7 @@ function noteOf(n: number, head: string, tail: string): string {
 // R-C15-139 (L526): "Any cut in the merge path itself is removed."
 // Q-79.answer.md: "any cut in the merge path itself is removed"; guard per OQ7.answer.md
 // (the merge prompt joins both children whole at da5910c: work/guard-evidence.md).
-test('guard: the summarizer input for an L1 summary over two notes of at most 280 bytes holds both notes whole', async ($, on) => {
+test('guard: the summarizer input for an L1 summary over two notes of at most 280 bytes holds both notes whole', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   // 280 = the note limit (Q-79.answer.md "The 280-byte note limit stays"; spec L524)
   const a = noteOf(280, 'GUARD-A-START ', ' GUARD-A-END')

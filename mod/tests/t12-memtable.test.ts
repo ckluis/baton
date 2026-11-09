@@ -22,6 +22,11 @@
 // stubbed at process.run (a plugin test has no processes) and answers in the shape bin/memo.mjs gives with --json
 // (`{ header, tiles: [{ level, index, lo, hi }], lines }`, lines as lib/memcore.mjs noteLine/blockLine write them).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const SID = '5b2d9e10-7c4a-4f1e-8a3b-2c1d0e9f8a7b' // fixture: this session's id
@@ -238,7 +243,7 @@ async function accent(ui: any, glyphs: string[]) {
 
 // ================================================================== guards (OQ7; work/guard-evidence.md)
 
-test('guard: GE1 the table keeps every field the explorer showed before: +, id, time, source, text', async ($, on) => {
+test('guard: GE1 the table keeps every field the explorer showed before: +, id, time, source, text', LOADED, async ($, on) => {
   // Requirement R-C12-02 (traceability.yaml): "id, time, source, text, and the rest it already shows." (spec L161)
   // Q-23's decided default (plan/decisions.md § Q-23, H27): "The columns are `+`/blank, id (`#n`, or `#lo-hi` for a
   // summary), time (HH:MM, with the date when it is not today), source (the tag), and text."
@@ -268,7 +273,7 @@ test('guard: GE1 the table keeps every field the explorer showed before: +, id, 
   expect(!!plusOf(n8), 'note #8 has no +').toBe(false) // Q-23: a note's first column is blank; register.js gives + only to level > 0 (E1 §k k-09 line 30: no +)
 })
 
-test('guard: GE2 a summary is drilled into from the keyboard by its + (focus and Enter)', async ($, on) => {
+test('guard: GE2 a summary is drilled into from the keyboard by its + (focus and Enter)', LOADED, async ($, on) => {
   // Requirement R-C12-03 (traceability.yaml): "A summary's children (its sub-memories) can be drilled into" (spec L163)
   // Requirement R-C12-05 (traceability.yaml): "Drilling works from the keyboard, as in T9." (spec L164)
   // OQ7 (inbox/OQ7.answer.md): "`+` drill-in … in Memory) gets guard tests". E1 §k: "| memory summary (`+`) | yes, ↓
@@ -286,7 +291,7 @@ test('guard: GE2 a summary is drilled into from the keyboard by its + (focus and
   expect(t.includes(textOf(9))).toBe(false) // the wake view's other notes are no longer listed (E1 k-10: only #128-#143 shown)
 })
 
-test('guard: GE3 the drilled view goes back to its parent by b, one level at a time, and b is shown as 1 is', async ($, on) => {
+test('guard: GE3 the drilled view goes back to its parent by b, one level at a time, and b is shown as 1 is', LOADED, async ($, on) => {
   // Requirement R-C12-04 (traceability.yaml): "and back out of." (spec L163)
   // Requirement R-C12-05 (traceability.yaml): "Drilling works from the keyboard, as in T9." (spec L164)
   // OQ7 (inbox/OQ7.answer.md): "`b` drill-out in Memory) gets guard tests". E1 §k: "In Memory, `b` leaves a drill: the
@@ -320,7 +325,7 @@ test('guard: GE3 the drilled view goes back to its parent by b, one level at a t
 
 // ================================================================== R-C12-01: column alignment
 
-test('table: the notes are a table whose id, time, source and text columns start at the same offset on every row', async ($, on) => {
+test('table: the notes are a table whose id, time, source and text columns start at the same offset on every row', LOADED, async ($, on) => {
   // Requirement R-C12-01 (traceability.yaml): "The memory explorer shows notes as a table with aligned columns:" (spec L161)
   // Requirement R-C12-06 (traceability.yaml): "Acceptance: a plugin test for column alignment" (spec L165)
   // Q-23's decided default (plan/decisions.md § Q-23, H27): "Widths come from the widest value shown."
@@ -341,7 +346,7 @@ test('table: the notes are a table whose id, time, source and text columns start
   }
 })
 
-test('table: in a drilled view the note rows are aligned too', async ($, on) => {
+test('table: in a drilled view the note rows are aligned too', LOADED, async ($, on) => {
   // Requirement R-C12-01 (traceability.yaml): "The memory explorer shows notes as a table with aligned columns:" (spec L161)
   // Requirement R-C12-06 (traceability.yaml): "Acceptance: a plugin test for column alignment" (spec L165)
   // E1 k-10-mem-drill-enter.txt (da5910c): the drilled view lists its notes as the same `#n ts [tag] text` lines.
@@ -357,7 +362,7 @@ test('table: in a drilled view the note rows are aligned too', async ($, on) => 
 
 // ================================================================== OQ6 part 1: the drill keys are shown (work/missing-drill.md)
 
-test('missing #1: the Memory view shows + the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #1: the Memory view shows + the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C12-05 (traceability.yaml): "Drilling works from the keyboard, as in T9." (spec L164)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 §k line 12: "12 [s4:+ #0-31 (32 notes) …] ← Memory: + drawn plain, not highlighted".
@@ -367,7 +372,7 @@ test('missing #1: the Memory view shows + the way 1, 2 and r are shown (the acce
   expect((await accent(ui, ['+'])).length > 0, 'item 1: + in the accent #99CCFF').toBe(true) // Q-32: + drawn in the accent #99CCFF, next to the summary it acts on
 })
 
-test('missing #2: the Memory view shows Enter, the key that drills, the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #2: the Memory view shows Enter, the key that drills, the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C12-05 (traceability.yaml): "Drilling works from the keyboard, as in T9." (spec L164)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 k-09-memory.txt (da5910c): no `Enter` is drawn in the Memory view; T112 probe-da5910c.md P-2.

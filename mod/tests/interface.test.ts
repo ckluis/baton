@@ -1,5 +1,10 @@
 // claude plugin test — the /baton pane, the gauge band, the spinner, the -p text.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const MANIFEST = { run_id: 'build-20261002T120000Z', mode: 'BUILD', target: './app', prime: true, phase: 'P2' }
 const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -80,7 +85,7 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
 } // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop', async ($, on) => {
+test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop', LOADED, async ($, on) => {
   const { opens } = world(on) // GV4 sweep (P3-d4): the panes the command opens
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text ?? '').toBe('')
@@ -103,7 +108,7 @@ test('guard: /baton opens the pane; Work and Memory draw on terminal and desktop
   }
 })
 
-test('with no _orch every tab draws, and nothing throws', async ($, on) => {
+test('with no _orch every tab draws, and nothing throws', LOADED, async ($, on) => {
   world(on, { orch: false })
   await $.command.run({ command: 'baton', args: '' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'Pane', requestId: 'baton', props: { title: 'baton', isFocused: true, bodyColumns: 80, placement: 'inline', scroll: { bodyRows: 10 } } as any })
@@ -114,7 +119,7 @@ test('with no _orch every tab draws, and nothing throws', async ($, on) => {
 })
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: claude -p (no surface): /baton prints every tab as text', async ($, on) => {
+test('guard: claude -p (no surface): /baton prints every tab as text', LOADED, async ($, on) => {
   world(on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text).toContain('baton run build-20261002T120000Z')
@@ -125,7 +130,7 @@ test('guard: claude -p (no surface): /baton prints every tab as text', async ($,
 })
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: the band shows the context against the rotation threshold during a run', async ($, on) => {
+test('guard: the band shows the context against the rotation threshold during a run', LOADED, async ($, on) => {
   world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   on('session.measure', (_$: any, e: any) => ({ changed: e.changed }))
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -142,7 +147,7 @@ test('guard: the band shows the context against the rotation threshold during a 
 })
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', async ($, on) => {
+test('guard: a pane too narrow to place by itself: the band says /baton opens it, and stops once it is placed', LOADED, async ($, on) => {
   const { clock, opens } = world(on, { placed: false })
   mock.store(on, { layout: 'panel' }) // amended by verifier (CS2, D-P7-7): the panel layout, where the pane still opens by itself; the strip, the default, never auto-opens (Q-CS2-1 A)
   on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
@@ -168,7 +173,7 @@ test('guard: a pane too narrow to place by itself: the band says /baton opens it
   expect(await band()).toBeUndefined()
 })
 
-test('no run: the band and the spinner are left alone', async ($, on) => {
+test('no run: the band and the spinner are left alone', LOADED, async ($, on) => {
   world(on, { orch: false })
   await $.tool.call({ tool: 'Read', file_path: 'x' } as any)
   const ui = await $.ui.mount({ plugin: 'baton', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: {} } as any })
@@ -176,7 +181,7 @@ test('no run: the band and the spinner are left alone', async ($, on) => {
 })
 
 // amended by verifier (XT11): renamed guard: — its world() fixture now lists directories as the declared kind 'dir' (S0489, S0494; R-C1-05, R-C1-06) and it passes at da5910c, so it is a preservation guard (/Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: the spinner carries the phase and the node the prime dispatched', async ($, on) => {
+test('guard: the spinner carries the phase and the node the prime dispatched', LOADED, async ($, on) => {
   world(on, { member: true }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   on('agent.spawn', () => ({ model: 'claude-opus-5-5', agentId: 's1' }))
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -188,7 +193,7 @@ test('guard: the spinner carries the phase and the node the prime dispatched', a
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: /baton start writes a prime manifest, refuses a second run, and /baton stop closes it', async ($, on) => {
+test('guard: /baton start writes a prime manifest, refuses a second run, and /baton stop closes it', LOADED, async ($, on) => {
   const written: Record<string, string> = {}
   on('fs.read', (_$: any, e: any) => {
     const k = Object.keys(written).find((p) => e.path.endsWith(p))

@@ -9,6 +9,11 @@
 // `git status --porcelain=v1 -z` answers, for the directory the call names.
 // Real-git fixtures for every form are in mod/test/ff1-staged.test.mjs; this file pins the wiring.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone, and tests in the last files left at the default
+// timed out under that load (_orch/nodes/XTFL1/work/repro.md, cause.md, proof.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // Answers tool.check above baton, so a call reaches tool.call (as a permission layer would).
 const PERMIT = {
@@ -71,7 +76,7 @@ const SECRET: [string, string][] = [['??', '.env'], ['??', 'notes.txt'], [' M', 
 // The same tree with no forbidden file.
 const HARMLESS: [string, string][] = [['??', 'notes.txt'], [' M', 'README.md']]
 
-test('FF1: git -C r add . with an untracked .env in r is refused; git was asked in /work/r; nothing runs', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1: git -C r add . with an untracked .env in r is refused; git was asked in /work/r; nothing runs', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work/r', entries: SECRET })
   const { r, thrown } = await call($, { tool: 'Bash', command: 'git -C r add .', agentId: 'w1' })
   expect(thrown).toBeNull()
@@ -82,7 +87,7 @@ test('FF1: git -C r add . with an untracked .env in r is refused; git was asked 
   expect(bash(w)).toEqual([])
 })
 
-test('FF1 guard: git -C r add . in a tree with no forbidden file runs', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1 guard: git -C r add . in a tree with no forbidden file runs', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work/r', entries: HARMLESS })
   const { r, thrown } = await call($, { tool: 'Bash', command: 'git -C r add .', agentId: 'w1' })
   expect(thrown).toBeNull()
@@ -91,13 +96,13 @@ test('FF1 guard: git -C r add . in a tree with no forbidden file runs', { plugin
 })
 
 for (const command of ['git add -A', 'git add --all', 'git add dir/', "git add '*.env'"]) {
-  test('FF1: ' + command + ' with an untracked .env in the working directory is refused', { plugins: [PERMIT] }, async ($, on) => {
+  test('FF1: ' + command + ' with an untracked .env in the working directory is refused', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
     const w = world(on, { repo: '/work', entries: SECRET })
     const { r } = await call($, { tool: 'Bash', command })
     expect(String(r && r.deny)).toContain('.env')
     expect(bash(w)).toEqual([])
   })
-  test('FF1 guard: ' + command + ' with no forbidden file runs', { plugins: [PERMIT] }, async ($, on) => {
+  test('FF1 guard: ' + command + ' with no forbidden file runs', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
     const w = world(on, { repo: '/work', entries: HARMLESS })
     const { r } = await call($, { tool: 'Bash', command })
     expect(r && r.deny).toBeUndefined()
@@ -105,21 +110,21 @@ for (const command of ['git add -A', 'git add --all', 'git add dir/', "git add '
   })
 }
 
-test('FF1: git commit -am x with a modified tracked .env is refused', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1: git commit -am x with a modified tracked .env is refused', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work', entries: [[' M', '.env'], [' M', 'README.md']] })
   const { r } = await call($, { tool: 'Bash', command: 'git commit -am x' })
   expect(String(r && r.deny)).toContain('.env')
   expect(bash(w)).toEqual([])
 })
 
-test('FF1 guard: git commit -am x leaves an untracked .env out, so it runs', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1 guard: git commit -am x leaves an untracked .env out, so it runs', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work', entries: SECRET })
   const { r } = await call($, { tool: 'Bash', command: 'git commit -am x' })
   expect(r && r.deny).toBeUndefined()
   expect(bash(w)).toEqual(['Bash: git commit -am x'])
 })
 
-test('FF1: when git cannot say what git add . stages, it is refused with a plain reason', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1: when git cannot say what git add . stages, it is refused with a plain reason', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work', entries: HARMLESS, fail: true })
   const { r, thrown } = await call($, { tool: 'Bash', command: 'git add .', agentId: 'w1' })
   expect(thrown).toBeNull()
@@ -127,7 +132,7 @@ test('FF1: when git cannot say what git add . stages, it is refused with a plain
   expect(bash(w)).toEqual([])
 })
 
-test('FF1 guard: a plain commit and git status never ask git and run', { plugins: [PERMIT] }, async ($, on) => {
+test('FF1 guard: a plain commit and git status never ask git and run', { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { repo: '/work', entries: SECRET, fail: true })
   for (const command of ['git commit -m x', 'git status']) {
     const { r } = await call($, { tool: 'Bash', command })

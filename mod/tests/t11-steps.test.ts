@@ -25,6 +25,11 @@
 // Labels use this run's ids (F17, XT17, LV7, G1, PLANV, V1.R-C7-01), which `workOf` does not match
 // (lib/ledger.mjs:135-140), per the T111 handoff and roadmap.md:69.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 // Criterion 25 (c): the matchers that refuted c25 in verdicts r1-r4 (_orch/verify/T111-verdict.r{1,2,3,4}.json), as
 // test-only fixtures beside this file; each must fail the two-list differential check below.
 import * as C25_R1 from './t11-steps-mutants/r1.mjs'
@@ -194,7 +199,7 @@ async function spawn($: any, id: string, label: string, type: string, parent?: s
 // R-C11-01 (L153 "Every level of agent row (prime, ...) shows its measured steps"). GUARD under
 // _orch/inbox/OQ7.answer.md ("the prime row's steps"): E1 §m probes.md:417 shows it at da5910c; a deviation from
 // spec L19-20 and L100, recorded in _orch/nodes/T111/work/guard-evidence.md.
-test('guard: the prime row shows its measured steps (the goal stepper)', async ($, on) => {
+test('guard: the prime row shows its measured steps (the goal stepper)', LOADED, async ($, on) => {
   world(on)
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any)
   const ui = await pane($)
@@ -205,7 +210,7 @@ test('guard: the prime row shows its measured steps (the goal stepper)', async (
 // ------------------------------------------------------------------ red pins
 
 // R-C11-01 (L153 "... sub-orchestrator ... shows its measured steps"); R-C11-02 (L155 "a plugin test per level").
-test('a sub-orchestrator row shows its measured steps', async ($, on) => {
+test('a sub-orchestrator row shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 's-g1', 'G1 gate', 'baton:sub-orchestrator')
   const ui = await pane($)
@@ -214,7 +219,7 @@ test('a sub-orchestrator row shows its measured steps', async ($, on) => {
 })
 
 // R-C11-01 (L153 "... worker ... shows its measured steps"); R-C11-02 (L155 "a plugin test per level").
-test('a worker row shows its measured steps', async ($, on) => {
+test('a worker row shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 's-p2', 'P2 phase', 'baton:sub-orchestrator')
   await spawn($, 'w-f17', 'F17 impl', 'baton:worker', 's-p2')
@@ -224,7 +229,7 @@ test('a worker row shows its measured steps', async ($, on) => {
 })
 
 // R-C11-01 (L153); T111 handoff c4: a worker label carrying an id outside `T\d+[a-z]?`/`P\d+` (lib/ledger.mjs:135-140).
-test('a worker row labelled with this run ids (XT17, LV7) shows its measured steps', async ($, on) => {
+test('a worker row labelled with this run ids (XT17, LV7) shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 'w-xt17', 'XT17 tests', 'baton:worker')
   await spawn($, 'w-lv7', 'LV7 live', 'baton:worker-cheap')
@@ -235,7 +240,7 @@ test('a worker row labelled with this run ids (XT17, LV7) shows its measured ste
 })
 
 // R-C11-01 (L153); T111 handoff c5: a sub-orchestrator label carrying such an id.
-test('a sub-orchestrator row labelled with this run id (LV7) shows its measured steps', async ($, on) => {
+test('a sub-orchestrator row labelled with this run id (LV7) shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 's-lv7', 'LV7 run', 'baton:sub-orchestrator')
   const ui = await pane($)
@@ -244,7 +249,7 @@ test('a sub-orchestrator row labelled with this run id (LV7) shows its measured 
 })
 
 // R-C11-01 (L153 "... verifier ... shows its measured steps"); T111 handoff c6: this run's verifier ids.
-test('a verifier row labelled with this run ids (PLANV, V1.R-C7-01) shows its measured steps', async ($, on) => {
+test('a verifier row labelled with this run ids (PLANV, V1.R-C7-01) shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 'v-planv', 'PLANV', 'baton:verifier')
   await spawn($, 'v-v1r', 'V1.R-C7-01', 'baton:verifier')
@@ -256,7 +261,7 @@ test('a verifier row labelled with this run ids (PLANV, V1.R-C7-01) shows its me
 
 // R-C11-01 (L153 "... verifier ..."); T111 handoff c10: a T-labelled verifier. Classed red, not guard:
 // E1 §m probes.md:424 "verifier | T17 verifier probe | **no**" at da5910c (work/guard-evidence.md).
-test('a verifier row with a T-style label (T17) shows its measured steps', async ($, on) => {
+test('a verifier row with a T-style label (T17) shows its measured steps', LOADED, async ($, on) => {
   world(on)
   await spawn($, 'v-t17', 'T17 check', 'baton:verifier')
   const ui = await pane($)
@@ -265,7 +270,7 @@ test('a verifier row with a T-style label (T17) shows its measured steps', async
 })
 
 // R-C11-01 (L153); Q-11 answer "A: model, steps, agent and state never drop."
-test('the steps column is never dropped, at any pane width rendered', async ($, on) => {
+test('the steps column is never dropped, at any pane width rendered', LOADED, async ($, on) => {
   world(on)
   await $.tool.call({ tool: 'Agent', prompt: 'p', description: 'd' } as any)
   // 146 body columns is the full 142-column table (table.mjs widths, spec-questions.md:335) plus the pane's 4.
@@ -435,7 +440,7 @@ function c25Decode(run: C25Run, text: string): string {
   return any ? (LIFECYCLE.test(text) ? 'lifecycle ' : 'stepper ') + any[0] : 'nothing'
 }
 
-test("two node lists: a row label's match follows each run's own node list (differential)", async ($, on) => {
+test("two node lists: a row label's match follows each run's own node list (differential)", LOADED, async ($, on) => {
   // (c) each refuting matcher of verdicts r1-r4, committed beside this test, fails the differential check: it picks
   // its token without reading the node list, so a swapping label is wrong in one of the two runs.
   for (const m of C25_MUTANTS) {
@@ -469,7 +474,7 @@ test("two node lists: a row label's match follows each run's own node list (diff
 })
 
 // R-C11-01 (L153 "... verifier ..."); Q-15 answer: "A verifier row shows the stepper of the node it verifies."
-test('a verifier row shows the stepper of the node it verifies', async ($, on) => {
+test('a verifier row shows the stepper of the node it verifies', LOADED, async ($, on) => {
   world(on)
   await spawn($, 'v-f17', 'verify F17', 'baton:verifier')
   await spawn($, 'v-xt17', 'verify XT17', 'baton:verifier')
@@ -481,7 +486,7 @@ test('a verifier row shows the stepper of the node it verifies', async ($, on) =
 
 // R-C11-01 (L153); Q-15 answer: "A row that matches nothing shows its own lifecycle stepper (spawned → working →
 // returned → verdict), so every row has steps."
-test('a row whose label matches no node or phase shows its own lifecycle stepper', async ($, on) => {
+test('a row whose label matches no node or phase shows its own lifecycle stepper', LOADED, async ($, on) => {
   world(on)
   await spawn($, 'h-live', 'scanx', 'general-purpose')
   await spawn($, 'h-done', 'docsx', 'general-purpose')

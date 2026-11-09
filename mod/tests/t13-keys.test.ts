@@ -19,6 +19,11 @@
 // each with the asked record Q-42 names (Q-<id>.asked.md). Node T5's envelope reads BLOCKED (a blocked row, Q-38).
 // Directory entries carry the engine's kind `'dir'` (types index.d.ts:5066, E1 §m).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -294,7 +299,7 @@ const T5_KEY = 'k' // key-scheme.md: the blocked row, after the `?` rows (Q-39)
 
 // ================================================================== the `?` row
 
-test('missing #1 (c15): focusing a ? row and pressing Enter opens its brief, which shows the question text of its Q-<n>.md', async ($, on) => {
+test('missing #1 (c15): focusing a ? row and pressing Enter opens its brief, which shows the question text of its Q-<n>.md', LOADED, async ($, on) => {
   // Requirements R-C14-01 "A `?` (question) row and a blocked row can be selected in the pane" (L199), R-C14-02 "by
   // focus-and-Enter," (L200), R-C14-04 "Opening a `?` row shows its brief: the question as written in its
   // `_orch/inbox/Q-<n>.md`." (L201). OQ6 (inbox/OQ6.answer.md): "BOTH": focus-and-Enter and a direct key.
@@ -308,7 +313,7 @@ test('missing #1 (c15): focusing a ? row and pressing Enter opens its brief, whi
   expect((await shownText(ui)).includes(Q71_BODY)).toBe(true) // L201: "the question as written in its _orch/inbox/Q-<n>.md" (fixture Q-71.md)
 })
 
-test('missing #2 (c16): a ? row opens its brief by its own direct key, the letter key-scheme.md gives it', async ($, on) => {
+test('missing #2 (c16): a ? row opens its brief by its own direct key, the letter key-scheme.md gives it', LOADED, async ($, on) => {
   // Requirement R-C14-03 "and by a direct key of its own, as in T9." (L200). OQ6 part 2 (inbox/OQ6.answer.md): "Also
   // give each row a direct hotkey of its own". Q-39 (inbox/Q-39.answer.md): "?/blocked rows take Q-12 letters after
   // agent and phase rows".
@@ -324,7 +329,7 @@ test('missing #2 (c16): a ? row opens its brief by its own direct key, the lette
 
 // ================================================================== the blocked row
 
-test('missing #3: a blocked row (a node row whose envelope reads BLOCKED) opens its brief by focus and Enter', async ($, on) => {
+test('missing #3: a blocked row (a node row whose envelope reads BLOCKED) opens its brief by focus and Enter', LOADED, async ($, on) => {
   // Requirements R-C14-01 "A `?` (question) row and a blocked row can be selected in the pane" (L199), R-C14-02 "by
   // focus-and-Enter," (L200), R-C14-19 "a plugin test per row kind (question, blocked)" (L213). Q-38
   // (inbox/Q-38.answer.md): "node rows whose envelope is BLOCKED/ESCALATE and agent rows that returned BLOCKED are
@@ -346,7 +351,7 @@ test('missing #3: a blocked row (a node row whose envelope reads BLOCKED) opens 
   expect({ summary: flat(t).includes(flat(T5_SUMMARY)), blockedBy: flat(t).includes(flat(T5_BLOCKED_BY)) }).toEqual({ summary: true, blockedBy: true }) // Q-38 option 1: the envelope summary (fixture T5_STATUS) and the Blocked by line (fixture Q-72.md, rule 10 step 1)
 })
 
-test('missing #4 (c17): the blocked row opens its brief by its own direct key, the letter key-scheme.md gives it', async ($, on) => {
+test('missing #4 (c17): the blocked row opens its brief by its own direct key, the letter key-scheme.md gives it', LOADED, async ($, on) => {
   // Requirement R-C14-03 "and by a direct key of its own, as in T9." (L200). Q-38 (inbox/Q-38.answer.md): a node row
   // whose envelope is BLOCKED is a blocked row. Q-39 (inbox/Q-39.answer.md): it takes a Q-12 letter after the `?` rows.
   const w = world(on)
@@ -360,7 +365,7 @@ test('missing #4 (c17): the blocked row opens its brief by its own direct key, t
 
 // ================================================================== shown the way 1, 2 and r are
 
-test('missing #5 (c18): the ? row\'s and the blocked row\'s keys are shown the way 1, 2 and r are shown', async ($, on) => {
+test('missing #5 (c18): the ? row\'s and the blocked row\'s keys are shown the way 1, 2 and r are shown', LOADED, async ($, on) => {
   // Requirement R-C14-09 "These keys are shown the way `1`, `2` and `r` are shown." (L205). OQ6 part 2
   // (inbox/OQ6.answer.md): "a direct hotkey of its own ..., shown the same way". E1 §k line 01: `1`, `2`, `r` are plain
   // hotkey Buttons drawn in the accent; types ButtonProps.plain: "the hotkey in the accent color, a colon, the label".
@@ -373,7 +378,7 @@ test('missing #5 (c18): the ? row\'s and the blocked row\'s keys are shown the w
   expect({ q: shape(q), blocked: shape(blk) }).toEqual({ q: { hotkey: true, plain: one.props.plain }, blocked: { hotkey: true, plain: one.props.plain } }) // drawn as `1` is (E1 §k line 01)
 })
 
-test('missing #6 (c18): the briefs\' keys, a on a question\'s brief and y on a blocked row\'s brief, are shown the way 1, 2 and r are', async ($, on) => {
+test('missing #6 (c18): the briefs\' keys, a on a question\'s brief and y on a blocked row\'s brief, are shown the way 1, 2 and r are', LOADED, async ($, on) => {
   // Requirement R-C14-09 "These keys are shown the way `1`, `2` and `r` are shown." (L205). Q-39 (inbox/Q-39.answer.md):
   // "in a brief, a = answer, y = approve once, w = approve for the run". Q-37 (inbox/Q-37.answer.md): "per kind, the
   // narrowest grant": T5's block is `interpreted` (fixture Q-72.md), so its brief has `y` and `w` only where kept.
@@ -394,7 +399,7 @@ test('missing #6 (c18): the briefs\' keys, a on a question\'s brief and y on a b
 
 // ================================================================== distinct keys, from the Q-12 pool (Q-39)
 
-test('missing #7 (c19): with agent and phase rows, two ? rows and a blocked row shown at once, no two shown rows share a direct key', async ($, on) => {
+test('missing #7 (c19): with agent and phase rows, two ? rows and a blocked row shown at once, no two shown rows share a direct key', LOADED, async ($, on) => {
   // Requirements R-C14-10 "None of them collides with a key the pane already binds" (L205), R-C14-11 "or with a key
   // Claude Code binds." (L206). OQ6 (inbox/OQ6.answer.md) part 2: "a direct hotkey of its own". The T10 amendment
   // (L257-258) removes the plan row, so the rows here are agent, phase, `?` and blocked rows.
@@ -409,7 +414,7 @@ test('missing #7 (c19): with agent and phase rows, two ? rows and a blocked row 
   expect(Object.values(mine).filter((k) => RESERVED.includes(String(k)))).toEqual([]) // none is a key the pane binds (reserved-keys.md §3); Claude Code binds no bare letter (reserved-keys.md §2)
 })
 
-test('missing #8 (c38): the first ? row\'s key is the first pool letter after the last agent or phase row\'s letter', async ($, on) => {
+test('missing #8 (c38): the first ? row\'s key is the first pool letter after the last agent or phase row\'s letter', LOADED, async ($, on) => {
   // Requirement R-C14-03 "and by a direct key of its own, as in T9." (L200). Q-39 (inbox/Q-39.answer.md): "?/blocked
   // rows take Q-12 letters after agent and phase rows". Q-12 (inbox/Q-12.answer.md): the pool, in order.
   const w = world(on)
@@ -420,7 +425,7 @@ test('missing #8 (c38): the first ? row\'s key is the first pool letter after th
   expect(letterOf(rowOf(tree, qRe('Q-71')))).toBe(POOL[last + 1]) // Q-39: the next pool letter after every agent and phase row's
 })
 
-test('missing #9 (c39): the blocked row\'s letter comes after the ? rows\' letters in the pool', async ($, on) => {
+test('missing #9 (c39): the blocked row\'s letter comes after the ? rows\' letters in the pool', LOADED, async ($, on) => {
   // Requirement R-C14-03 "and by a direct key of its own, as in T9." (L200). Q-39 (inbox/Q-39.answer.md) and Q-39.md
   // option 1: "in the order shown (questions, then blocked rows)".
   const w = world(on)
@@ -434,7 +439,7 @@ test('missing #9 (c39): the blocked row\'s letter comes after the ? rows\' lette
 
 // ================================================================== `a` acts on the brief, not on a row
 
-test('missing #10 (c40): while a question\'s brief is open, a answers and opens no agent row', async ($, on) => {
+test('missing #10 (c40): while a question\'s brief is open, a answers and opens no agent row', LOADED, async ($, on) => {
   // Requirements R-C14-10 "None of them collides with a key the pane already binds" (L205), R-C14-11 (L206). Q-39
   // (inbox/Q-39.answer.md): "in a brief, a = answer". T19 key-scheme.md §2 gives the prime row `a`; the engine: "two
   // clash, later wins" (types index.d.ts:1114-1121, E1 §k), so only one Button may carry `a` while a brief is open.

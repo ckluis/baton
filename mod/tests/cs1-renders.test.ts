@@ -4,6 +4,11 @@
 // hold the strip's two lines; with SHOW set the renders are printed, `@@RENDER <name>` then the lines, as saved under
 // _orch/nodes/CS1/work/renders/.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 import { cellW, elements, screen, type El } from './pw1-a3/kit'
 import { stripWorld, type Opts } from './cs1/kit'
 
@@ -25,7 +30,7 @@ const CASES: { name: string; read: boolean; o: Opts }[] = [
 ]
 
 for (const c of CASES) {
-  test('CS1 renders: the band ' + c.name + ' at 40, 60, 80, 120 and 200 columns', async ($, on) => {
+  test('CS1 renders: the band ' + c.name + ' at 40, 60, 80, 120 and 200 columns', LOADED, async ($, on) => {
     const w = stripWorld(on, { ...c.o, usage: c.read ? { rateLimits: [FIVE, WEEK, OPUS], cost: { usd: 9.94 } } : { rateLimits: [] } })
     await w.begin($)
     if (c.read) await $.session.measure({ context: { tokens: 230000, window: 1000000, percent: 23 }, rateLimits: [FIVE, WEEK, OPUS], changed: ['context', 'rateLimits'] } as any)

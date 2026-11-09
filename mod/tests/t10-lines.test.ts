@@ -4,6 +4,11 @@
 // Hazard H28: C8, C9, C10 and C11 all change agent rows, so these tests never compare a whole row
 // string; they look for one token, one line's place, or one line's own text.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // ---- fixture -------------------------------------------------------------------------------------
 // A plan of three phases (spec L309: "the phases P1..P5 in plan order"): P1 done with 2 nodes,
@@ -165,7 +170,7 @@ function phaseBlock(ls: Line[], n: number) {
 // Spec L330: "A dim legend line above the agent table names the levels (prime, phase, sub-orchestrator, agent)"
 // _orch/inbox/Q-55.answer.md: "A, adapted to the tree: the legend explains the levels (prime, phase, sub-orchestrator, agent)."
 // Q-55 option A: "A dim legend line directly above the agent table header".
-test('t10-lines: a dim legend line directly above the agent table header names prime, phase, sub-orchestrator and agent', async ($, on) => {
+test('t10-lines: a dim legend line directly above the agent table header names prime, phase, sub-orchestrator and agent', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const ls = lines(await ui.drawn())
@@ -181,7 +186,7 @@ test('t10-lines: a dim legend line directly above the agent table header names p
 // Spec L331: "and says a phase is a unit of the plan (Q-55)." Spec L142: "The pane says what a phase is: a unit of the plan."
 // The H25 wording (Q-33 decision) is superseded by Q-55 for where the line goes; Q-55 leaves the
 // exact wording to F110, so the criterion's fallback holds: text containing `unit of the plan`.
-test('t10-lines: the legend line says a phase is a unit of the plan', async ($, on) => {
+test('t10-lines: the legend line says a phase is a unit of the plan', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const ls = lines(await ui.drawn())
@@ -194,7 +199,7 @@ test('t10-lines: the legend line says a phase is a unit of the plan', async ($, 
 // R-C10-07 · R-C10-89 · R-C10-27
 // Spec L257: "The separate plan and phases section goes away, and the plan row goes with it."
 // Spec L361: "no separate plan or phases section is drawn."
-test('t10-lines: the pane draws no `plan` heading row, with p off or on', async ($, on) => {
+test('t10-lines: the pane draws no `plan` heading row, with p off or on', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   for (const state of ['p off', 'p on']) {
@@ -209,7 +214,7 @@ test('t10-lines: the pane draws no `plan` heading row, with p off or on', async 
 // R-C10-06 · R-C10-05 · R-C10-89
 // Spec L257: "Phases merge into the agent tree. The separate plan and phases section goes away"
 // Spec L309: "The pane draws one tree: the prime, then the phases P1..P5 in plan order as rows of their own"
-test('t10-lines: the pane draws no phase row outside the agent tree, with p off or on', async ($, on) => {
+test('t10-lines: the pane draws no phase row outside the agent tree, with p off or on', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   for (const state of ['p off', 'p on']) {
@@ -229,7 +234,7 @@ test('t10-lines: the pane draws no phase row outside the agent tree, with p off 
 // R-C10-60 · R-C10-15
 // Spec L338: "`p` shows or hides the node rows under every phase row at once (Q-59; L264 stands, read as every phase)."
 // _orch/inbox/Q-59.answer.md: "A, adapted to the tree: p expands every phase's node rows."
-test('t10-lines: with p on, every phase row that has nodes has its node rows drawn under it', async ($, on) => {
+test('t10-lines: with p on, every phase row that has nodes has its node rows drawn under it', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -247,7 +252,7 @@ test('t10-lines: with p on, every phase row that has nodes has its node rows dra
 // R-C10-61
 // Spec L339: "They are drawn directly under the phase row, before its sub-orchestrator rows,"
 // Q-59 option A: "drawn directly under the phase row, indented one level, before its child agent rows".
-test('t10-lines: with p on, a phase row\'s node rows are drawn before its sub-orchestrator rows', async ($, on) => {
+test('t10-lines: with p on, a phase row\'s node rows are drawn before its sub-orchestrator rows', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -269,7 +274,7 @@ test('t10-lines: with p on, a phase row\'s node rows are drawn before its sub-or
 // _orch/verify/T110L-verdict.r1.json c7); _orch/inbox/OQ7.answer.md: "Behaviour that already works at
 // da5910c ... gets guard tests, named `guard:…`, that pass now and at every later commit."
 // It asserts no tree placement (criterion 4's): it counts P2's node rows wherever they are drawn.
-test('guard: with p on, a phase of more than 12 nodes shows exactly 12 node rows', async ($, on) => {
+test('guard: with p on, a phase of more than 12 nodes shows exactly 12 node rows', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -283,7 +288,7 @@ test('guard: with p on, a phase of more than 12 nodes shows exactly 12 node rows
 // Spec L340: "followed by `… N more nodes`." Spec L336: "`… N more nodes` stays under its phase row."
 // GUARD (preservation, not red): already drawn at da5910c (verdict r1 probe c8); approval
 // _orch/inbox/OQ7.answer.md, as above. No tree placement: the row after P2's last node row, wherever drawn.
-test('guard: with p on, the 12 node rows are followed by `… N more nodes`, N the number not shown', async ($, on) => {
+test('guard: with p on, the 12 node rows are followed by `… N more nodes`, N the number not shown', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -300,7 +305,7 @@ test('guard: with p on, the 12 node rows are followed by `… N more nodes`, N t
 // R-C10-53 · R-C10-54 · R-C10-23
 // Spec L333-334: "The PR's merge-ready rows go under the PR row at the top of Work, after the `merge-ready` line, while `p` is on."
 // _orch/inbox/Q-56.answer.md: "A, adapted to the tree: the plan section's other lines move to what they are about."
-test('t10-lines: with p on, the PR\'s merge-ready rows are drawn under the PR row, after the merge-ready line', async ($, on) => {
+test('t10-lines: with p on, the PR\'s merge-ready rows are drawn under the PR row, after the merge-ready line', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -320,7 +325,7 @@ test('t10-lines: with p on, the PR\'s merge-ready rows are drawn under the PR ro
 
 // R-C10-55
 // Spec L334: "The queue line goes under the goal and PR rows." Q-56 option A: "The queue line goes under the goal and PR rows."
-test('t10-lines: the queue line `queue: #… — /baton next` is drawn under the goal and PR rows', async ($, on) => {
+test('t10-lines: the queue line `queue: #… — /baton next` is drawn under the goal and PR rows', LOADED, async ($, on) => {
   await world($, on)
   await $.command.run({ command: 'baton', args: 'watch' } as any) // fills the issue queue (#12)
   const ui = await mount($)
@@ -337,7 +342,7 @@ test('t10-lines: the queue line `queue: #… — /baton next` is drawn under the
 
 // R-C10-56 · R-C10-57
 // Spec L335: "The footer joins the hint line under the agent table, while `p` is on."
-test('t10-lines: with p on, the footer `states are computed from _orch/ and the PR` is in the hint line under the agent table', async ($, on) => {
+test('t10-lines: with p on, the footer `states are computed from _orch/ and the PR` is in the hint line under the agent table', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   await pressP(ui)
@@ -349,7 +354,7 @@ test('t10-lines: with p on, the footer `states are computed from _orch/ and the 
 
 // R-C10-58
 // Spec L336: "`no phases yet` is a dim row under the prime until the plan exists."
-test('t10-lines: with no _orch/plan/graph.yaml, a dim row `no phases yet` is drawn under the prime\'s row', async ($, on) => {
+test('t10-lines: with no _orch/plan/graph.yaml, a dim row `no phases yet` is drawn under the prime\'s row', LOADED, async ($, on) => {
   await world($, on, { plan: false, agents: false })
   const ui = await mount($)
   const ls = lines(await ui.drawn())
@@ -366,7 +371,7 @@ test('t10-lines: with no _orch/plan/graph.yaml, a dim row `no phases yet` is dra
 // R-C10-78 · R-C10-06
 // _orch/plan/decisions/Q-70.md: "The text form follows the drawn tree: no `plan:` block, phase rows in the tree"
 // Spec L350: "The pane's text form follows the drawn tree (Q-61, Q-62 and Q-70, adapted to the tree)."
-test('t10-lines: the pane\'s text form holds no `plan:` block', async ($, on) => {
+test('t10-lines: the pane\'s text form holds no `plan:` block', LOADED, async ($, on) => {
   await world($, on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   expect(r.text).toContain('## Work') // origin: tests/interface.test.ts, the text form prints the Work tab
@@ -376,7 +381,7 @@ test('t10-lines: the pane\'s text form holds no `plan:` block', async ($, on) =>
 // R-C10-78 · R-C10-30
 // _orch/plan/decisions/Q-70.md: "phase rows in the tree as Q-52, Q-53 and Q-61 draw them".
 // Spec L309-310: "the prime, then the phases P1..P5 in plan order as rows of their own, then under each phase row the sub-orchestrator(s)"
-test('t10-lines: the pane\'s text form lists each phase row one level under the prime', async ($, on) => {
+test('t10-lines: the pane\'s text form lists each phase row one level under the prime', LOADED, async ($, on) => {
   await world($, on, { surfaces: [] })
   const r: any = await $.command.run({ command: 'baton', args: '' } as any)
   const tl: string[] = r.text.split('\n')
@@ -410,7 +415,7 @@ test('t10-lines: the pane\'s text form lists each phase row one level under the 
 // Spec L265: "T11's steps on every row and T9's keys stay." Spec L264/L338: `p` still shows or hides the node rows.
 // _orch/plan/decisions/Q-32.md: keys are drawn "in the same accent style as `1`, `2` and `r`".
 // Handoff criterion 15: "the key `p` is shown the way `1`, `2` and `r` are shown, in a pane that draws no plan section."
-test('t10-lines: the key p is shown the way 1, 2 and r are, in a pane that draws no plan section', async ($, on) => {
+test('t10-lines: the key p is shown the way 1, 2 and r are, in a pane that draws no plan section', LOADED, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const d = await ui.drawn()

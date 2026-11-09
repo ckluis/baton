@@ -12,6 +12,11 @@
 // Tests named `guard: …` are preservation guards (_orch/inbox/OQ7.answer.md): the behaviour already
 // holds at da5910c; see _orch/nodes/T110/work/guard-evidence.md.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // ---- fixture -------------------------------------------------------------------------------------
 // A plan of three phases (spec L309: "the phases P1..P5 in plan order"): P1 done, P2 running and
@@ -299,7 +304,7 @@ async function pressP(ui: any) {
 // R-C10-29 · R-C10-30 · R-C10-80
 // Spec L309: "The pane draws one tree: the prime, then the phases P1..P5 in plan order as rows of their own,"
 // _orch/inbox/Q-52.answer.md: "phases are their own level under the prime, in plan order".
-test('t10-phases: the rows labelled P1, P2 and P3 are drawn one level under the prime\'s row', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the rows labelled P1, P2 and P3 are drawn one level under the prime\'s row', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -313,7 +318,7 @@ test('t10-phases: the rows labelled P1, P2 and P3 are drawn one level under the 
 
 // R-C10-30 · R-C10-80
 // Spec L309: "the phases P1..P5 in plan order as rows of their own"; Q-52: "in plan order".
-test('t10-phases: the phase rows under the prime are drawn in plan order, P1 before P2 before P3', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the phase rows under the prime are drawn in plan order, P1 before P2 before P3', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -331,7 +336,7 @@ test('t10-phases: the phase rows under the prime are drawn in plan order, P1 bef
 // Spec L319-320: "A sub-orchestrator is a child of phase P<n> when its role is sub-orchestrator and its
 // label or description has the token `P<n>`," _orch/inbox/Q-58.answer.md: "the Q-14 role+label rule
 // assigns a sub-orchestrator to its phase"; Q-14 option 1: "Owner from the label match (`P<n>` in the name or description)".
-test('t10-phases: a sub-orchestrator whose label names P2 is drawn one level under the row labelled P2', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: a sub-orchestrator whose label names P2 is drawn one level under the row labelled P2', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -344,7 +349,7 @@ test('t10-phases: a sub-orchestrator whose label names P2 is drawn one level und
 // R-C10-40 · R-C10-31
 // Spec L320: "or its spawn prompt names `_orch/phases/P<n>/` (Q-58, the Q-14 rule)."
 // Q-14 option 1: "or from the phase brief's path in the spawn prompt (`_orch/phases/P<n>/`)".
-test('t10-phases: a sub-orchestrator whose spawn prompt names _orch/phases/P2/ and whose label names no phase is drawn one level under P2', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: a sub-orchestrator whose spawn prompt names _orch/phases/P2/ and whose label names no phase is drawn one level under P2', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -359,7 +364,7 @@ test('t10-phases: a sub-orchestrator whose spawn prompt names _orch/phases/P2/ a
 // sub-orchestrators are matched (Q-58); spec L311: "then under each sub-orchestrator its workers and verifiers".
 // GUARD (preservation, not red): at da5910c a worker is already drawn under the agent that spawned it,
 // and no phase row has children (work/probe-da5910c.md P-1; _orch/inbox/OQ7.answer.md).
-test('guard: a worker whose label names P2, spawned by the P1 sub-orchestrator, is drawn under that sub-orchestrator, not under P2', { options: OPTIONS }, async ($, on) => {
+test('guard: a worker whose label names P2, spawned by the P1 sub-orchestrator, is drawn under that sub-orchestrator, not under P2', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -376,7 +381,7 @@ test('guard: a worker whose label names P2, spawned by the P1 sub-orchestrator, 
 // Spec L310-311: "then under each phase row the sub-orchestrator(s) that ran it, then under each
 // sub-orchestrator its workers and verifiers"; Q-52: "-> their workers and verifiers".
 // GUARD (preservation, not red): already holds at da5910c (work/probe-da5910c.md P-2; OQ7).
-test("guard: a sub-orchestrator's worker and verifier are drawn one level under its row", { options: OPTIONS }, async ($, on) => {
+test("guard: a sub-orchestrator's worker and verifier are drawn one level under its row", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -392,7 +397,7 @@ test("guard: a sub-orchestrator's worker and verifier are drawn one level under 
 // Q-52: "prime -> P1..P5 in plan order -> the sub-orchestrator(s) that ran each phase".
 // GUARD (preservation, not red): at da5910c the P2 row and the sub-orchestrator's row are already two
 // rows (work/probe-da5910c.md P-3; OQ7).
-test("guard: the row labelled P2 and the row of its sub-orchestrator are two distinct rows", { options: OPTIONS }, async ($, on) => {
+test("guard: the row labelled P2 and the row of its sub-orchestrator are two distinct rows", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -405,7 +410,7 @@ test("guard: the row labelled P2 and the row of its sub-orchestrator are two dis
 // R-C10-37 · R-C10-81
 // Spec L317-318: "A phase dispatched more than once has each of its sub-orchestrators as a child of its phase row."
 // _orch/inbox/Q-53.answer.md: "Re-dispatched sub-orchestrators nest as siblings under their phase row, newest last."
-test('t10-phases: with two sub-orchestrators matched to P2, both are drawn one level under the row labelled P2', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: with two sub-orchestrators matched to P2, both are drawn one level under the row labelled P2', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -418,7 +423,7 @@ test('t10-phases: with two sub-orchestrators matched to P2, both are drawn one l
 
 // R-C10-38 · R-C10-81
 // Spec L318: "They are siblings in spawn order, newest last (Q-53)."
-test('t10-phases: the two sub-orchestrator rows under P2 are drawn in spawn order, the newest last', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the two sub-orchestrator rows under P2 are drawn in spawn order, the newest last', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -438,7 +443,7 @@ test('t10-phases: the two sub-orchestrator rows under P2 are drawn in spawn orde
 // verified, approved). L261 stands, on the phase row."
 // GUARD (preservation, not red): at da5910c the P2 row already draws the phase's four-step stepper
 // (work/probe-da5910c.md P-4; OQ7).
-test("guard: a phase row shows the phase's stepper of four steps", { options: OPTIONS }, async ($, on) => {
+test("guard: a phase row shows the phase's stepper of four steps", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -451,7 +456,7 @@ test("guard: a phase row shows the phase's stepper of four steps", { options: OP
 // R-C10-36 · R-C10-82
 // Spec L316: "A phase that has not started is a phase row with no children."
 // GUARD (preservation, not red): at da5910c the plan draws a P3 row (work/probe-da5910c.md P-5; OQ7).
-test('guard: a phase that no agent matches is drawn as a row labelled with its id', { options: OPTIONS }, async ($, on) => {
+test('guard: a phase that no agent matches is drawn as a row labelled with its id', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -461,7 +466,7 @@ test('guard: a phase that no agent matches is drawn as a row labelled with its i
 // R-C10-36 · R-C10-82
 // Q-52.answer.md: "a pending phase is a phase row with no children"; spec L316.
 // GUARD (preservation, not red): at da5910c no row is drawn under P3 (work/probe-da5910c.md P-6; OQ7).
-test('guard: the pending phase row has no child rows', { options: OPTIONS }, async ($, on) => {
+test('guard: the pending phase row has no child rows', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -475,7 +480,7 @@ test('guard: the pending phase row has no child rows', { options: OPTIONS }, asy
 // R-C10-75
 // Spec L348-349: "A pending phase row is dim, marked `○`, with `pending` in its state cell"
 // _orch/plan/decisions/Q-62.md: "`pending` in the state cell".
-test('t10-phases: the pending phase row shows `pending` in its state cell', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the pending phase row shows `pending` in its state cell', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -488,7 +493,7 @@ test('t10-phases: the pending phase row shows `pending` in its state cell', { op
 
 // R-C10-73
 // Spec L348: "A pending phase row is dim," Q-62: "A dim row".
-test('t10-phases: the pending phase row is drawn dim', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the pending phase row is drawn dim', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -504,7 +509,7 @@ test('t10-phases: the pending phase row is drawn dim', { options: OPTIONS }, asy
 
 // R-C10-74
 // Spec L348: "marked `○`," Q-62: "A dim row with the mark `○`, the label `P<n>`".
-test('t10-phases: the pending phase row is marked ○ before its label', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: the pending phase row is marked ○ before its label', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -516,7 +521,7 @@ test('t10-phases: the pending phase row is marked ○ before its label', { optio
 // R-C10-77
 // Spec L349-350: "A phase row's model and context cells are empty."
 // D-T10-phase-row-cells: "Its model and context cells are empty ... its cells are empty rather than `—`".
-test("t10-phases: a phase row's model cell is empty", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: a phase row's model cell is empty", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -530,7 +535,7 @@ test("t10-phases: a phase row's model cell is empty", { options: OPTIONS }, asyn
 
 // R-C10-77
 // Spec L349-350: "A phase row's model and context cells are empty." D-T10-phase-row-cells.
-test("t10-phases: a phase row's context cell is empty", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: a phase row's context cell is empty", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -545,7 +550,7 @@ test("t10-phases: a phase row's context cell is empty", { options: OPTIONS }, as
 // R-C10-34 · R-C10-09
 // Spec L348: "A phase row's label reads `P<n>`." D-T10-phase-row-cells: "a phase row's label reads `P<n>`";
 // _orch/plan/decisions/Q-61.md (adapted to the tree): "A pending row reads `P<n>` alone."
-test("t10-phases: a phase row's label cell reads P<n>", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: a phase row's label cell reads P<n>", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -560,7 +565,7 @@ test("t10-phases: a phase row's label cell reads P<n>", { options: OPTIONS }, as
 // R-C10-72
 // Spec L348-349: "A sub-orchestrator's row keeps its own dispatch label, as every agent row does."
 // D-T10-phase-row-cells: "A sub-orchestrator's row under it keeps its own dispatch label and role".
-test("t10-phases: a sub-orchestrator's row under a phase row keeps its own dispatch label", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: a sub-orchestrator's row under a phase row keeps its own dispatch label", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -578,7 +583,7 @@ test("t10-phases: a sub-orchestrator's row under a phase row keeps its own dispa
 // Spec L322-325: "An agent tied to no phase (the bootstrap, a gate's or the final report's
 // sub-orchestrator, a helper) goes under a P0 row when the plan has one. Otherwise it goes directly
 // under the prime, after the phase rows." D-P1-tree-unphased: "otherwise directly under the prime, after the phase rows."
-test('t10-phases: with no P0, a sub-orchestrator tied to no phase is drawn one level under the prime, after the last phase row', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: with no P0, a sub-orchestrator tied to no phase is drawn one level under the prime, after the last phase row', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -591,7 +596,7 @@ test('t10-phases: with no P0, a sub-orchestrator tied to no phase is drawn one l
 
 // R-C10-42 · R-C10-43
 // Spec L323: "goes under a P0 row when the plan has one." D-P1-tree-unphased: "go under a P0 row when P0 exists".
-test('t10-phases: with a phase P0 in the plan, a sub-orchestrator tied to no phase is drawn one level under the row labelled P0', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: with a phase P0 in the plan, a sub-orchestrator tied to no phase is drawn one level under the row labelled P0', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on, { withP0: true })
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -606,7 +611,7 @@ test('t10-phases: with a phase P0 in the plan, a sub-orchestrator tied to no pha
 // R-C10-45 · R-C10-47 · R-C10-84
 // Spec L326-327: "Opening a phase row opens the phase view: its steps, its nodes with their states, and its spend (Q-54)."
 // _orch/inbox/Q-54.answer.md: "A, adapted to the tree: opening the phase row opens the phase view."
-test("t10-phases: Enter on the › of a phase row under the prime opens the phase view, listing that phase's nodes with their states", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: Enter on the › of a phase row under the prime opens the phase view, listing that phase's nodes with their states", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -622,7 +627,7 @@ test("t10-phases: Enter on the › of a phase row under the prime opens the phas
 
 // R-C10-46
 // Spec L326-327: "Opening a phase row opens the phase view: its steps,"
-test("t10-phases: the phase view opened from the phase row shows the phase's steps", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: the phase view opened from the phase row shows the phase's steps", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -637,7 +642,7 @@ test("t10-phases: the phase view opened from the phase row shows the phase's ste
 // R-C10-48
 // Spec L327: "and its spend (Q-54)." Spec L344-345: a phase row's roll-up "is filled";
 // D-T10-rollup-inclusive: "a phase row's roll-up is the total of every sub-orchestrator subtree under it".
-test("t10-phases: the phase view shows the phase's tokens, the total over its sub-orchestrators' subtrees", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: the phase view shows the phase's tokens, the total over its sub-orchestrators' subtrees", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -651,7 +656,7 @@ test("t10-phases: the phase view shows the phase's tokens, the total over its su
 
 // R-C10-48
 // Spec L327: "and its spend (Q-54)."
-test("t10-phases: the phase view shows the phase's cost, the total over its sub-orchestrators' subtrees", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: the phase view shows the phase's cost, the total over its sub-orchestrators' subtrees", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -665,7 +670,7 @@ test("t10-phases: the phase view shows the phase's cost, the total over its sub-
 // R-C10-49
 // Spec L327-328: "Opening a sub-orchestrator's row opens the agent view, as for any agent row."
 // _orch/inbox/Q-54.answer.md: "opening the phase row opens the phase view" (and not the sub-orchestrator's row).
-test("t10-phases: Enter on the › of a sub-orchestrator's row under a phase row opens the agent view", { options: OPTIONS }, async ($, on) => {
+test("t10-phases: Enter on the › of a sub-orchestrator's row under a phase row opens the agent view", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -684,7 +689,7 @@ test("t10-phases: Enter on the › of a sub-orchestrator's row under a phase row
 // spec L139-140: "Every navigable row (agent, plan, phase) can be opened from the keyboard, by its own
 // key or by a focus-and-Enter scheme." Enter under the focus raises the Button's press (Button docs).
 // GUARD (preservation, not red): at da5910c the P3 row's `›` already opens P3's view (work/probe-da5910c.md P-7; OQ7).
-test('guard: a pending phase row opens the phase view by focus and Enter', { options: OPTIONS }, async ($, on) => {
+test('guard: a pending phase row opens the phase view by focus and Enter', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -705,7 +710,7 @@ test('guard: a pending phase row opens the phase view by focus and Enter', { opt
 // _orch/inbox/Q-67.answer.md: "hotkey letters are fixed per row for as long as the row exists".
 // Q-60 (spec-questions.md): "every shown row of the tree, in tree order ..., pending rows included,
 // takes the next letter ... top to bottom". Node rows get none (p is off here).
-test('t10-phases: when the pane first draws, the pending phase row takes the Q-12 pool letter of its place in tree order', { options: OPTIONS }, async ($, on) => {
+test('t10-phases: when the pane first draws, the pending phase row takes the Q-12 pool letter of its place in tree order', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -728,7 +733,7 @@ test('t10-phases: when the pane first draws, the pending phase row takes the Q-1
 // hides the node rows under every phase row at once (Q-59 ...)."
 // GUARD (preservation, not red): `p` toggles the node rows at da5910c (register.js ~1233;
 // work/probe-da5910c.md P-8; _orch/inbox/OQ7.answer.md). No tree placement is asserted.
-test('guard: p shows the node rows of the phases, and p again hides them', { options: OPTIONS }, async ($, on) => {
+test('guard: p shows the node rows of the phases, and p again hides them', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const has = async (id: string) => lines(await ui.drawn()).some((l) => new RegExp('\\b' + id + '\\b').test(l))
@@ -744,7 +749,7 @@ test('guard: p shows the node rows of the phases, and p again hides them', { opt
 // Spec L326: "Opening a phase row opens the phase view". GUARD (preservation, not red): at da5910c
 // Enter on a phase row's `›` opens the phase view (register.js ~1241; work/probe-da5910c.md P-9; OQ7).
 // No tree placement is asserted: the P2 row wherever it is drawn.
-test("guard: Enter on a phase row's › opens the phase view", { options: OPTIONS }, async ($, on) => {
+test("guard: Enter on a phase row's › opens the phase view", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -758,7 +763,7 @@ test("guard: Enter on a phase row's › opens the phase view", { options: OPTION
 // Spec L327-328: "Opening a sub-orchestrator's row opens the agent view, as for any agent row."
 // GUARD (preservation, not red): at da5910c Enter on an agent row's `›` opens the agent view
 // (register.js ~1463; work/probe-da5910c.md P-10; OQ7).
-test("guard: Enter on an agent row's › opens the agent view", { options: OPTIONS }, async ($, on) => {
+test("guard: Enter on an agent row's › opens the agent view", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())

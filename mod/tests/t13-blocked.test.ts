@@ -20,6 +20,11 @@
 // The world: the engine beneath the mod answers from memory (as mod/tests/interface.test.ts and T113A's
 // mod/tests/t13-keys.test.ts do). Directory entries carry the engine's kind `'dir'` (types index.d.ts:5066, E1 §m).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -364,7 +369,7 @@ const messagesSince = (w: any, n: number) => w.toPrime.slice(n).map((x: any) => 
 
 // ================================================================== 1 · a blocked node row opens its brief (focus and Enter)
 
-test('missing #1 (c4): focusing a BLOCKED node row and pressing Enter opens its brief, which shows what the node is blocked on', async ($, on) => {
+test('missing #1 (c4): focusing a BLOCKED node row and pressing Enter opens its brief, which shows what the node is blocked on', LOADED, async ($, on) => {
   // R-C14-05 "Opening a blocked row shows its brief: what the node is blocked on" (L202); R-C14-02 "by focus-and-Enter,"
   // (L200); R-C14-19 "a plugin test per row kind (question, blocked) that opens its brief from the keyboard" (L213).
   // OQ6 (inbox/OQ6.answer.md): "BOTH" (focus-and-Enter and a direct key). Q-38 (inbox/Q-38.answer.md): "node rows whose
@@ -380,7 +385,7 @@ test('missing #1 (c4): focusing a BLOCKED node row and pressing Enter opens its 
 
 // ================================================================== 2 · the brief shows the Blocked by line from the envelope
 
-test('missing #2 (c5): a blocked row\'s brief shows the Blocked by line its status.json holds', async ($, on) => {
+test('missing #2 (c5): a blocked row\'s brief shows the Blocked by line its status.json holds', LOADED, async ($, on) => {
   // R-C14-06 "and its `Blocked by:` line." (L202). Q-38.md option 1: "the `Blocked by:` line, read from
   // `_orch/nodes/<id>/status.json`". Fixture T11 holds it in a string field of its envelope (as G1's status.a1.json does).
   const w = world(on, { nodes: { T11 } })
@@ -392,7 +397,7 @@ test('missing #2 (c5): a blocked row\'s brief shows the Blocked by line its stat
 
 // ================================================================== 3 · the brief shows the node id and its envelope summary
 
-test('missing #3 (c40): a node row\'s blocked brief shows the node id', async ($, on) => {
+test('missing #3 (c40): a node row\'s blocked brief shows the node id', LOADED, async ($, on) => {
   // R-C14-05 (L202). Q-38.md option 1: the brief shows "the node id, its envelope summary ...". No other text the view
   // could show names T5 on a line of its own: the fixture's summary does not, Q-72's one line naming T5 ('**Nodes it blocks:** T5.')
   // is excluded below, as is any line naming Q-72, and T5's handoff here is T5_HANDOFF, which does not either (attempt 2, verdict r2 c40: the default
@@ -406,7 +411,7 @@ test('missing #3 (c40): a node row\'s blocked brief shows the node id', async ($
   expect({ briefShown, id: lines.some((l) => idRe('T5').test(l) && !l.includes('Q-72') && !l.includes('Nodes it blocks')) }).toEqual({ briefShown: true, id: true }) // Q-38.md option 1: "the node id"
 })
 
-test('missing #3 (c41): a node row\'s blocked brief shows its envelope summary', async ($, on) => {
+test('missing #3 (c41): a node row\'s blocked brief shows its envelope summary', LOADED, async ($, on) => {
   // R-C14-05 "what the node is blocked on" (L202). Q-38.md option 1: "its envelope summary", read from status.json.
   // A second node in the fixture (T11) proves the brief is T5's own, not every envelope's.
   const w = world(on, { nodes: { T5, T11 }, inbox: { 'Q-72.md': Q72 } })
@@ -418,7 +423,7 @@ test('missing #3 (c41): a node row\'s blocked brief shows its envelope summary',
 
 // ================================================================== 4 · no Blocked by line in the envelope: the inbox Q-<n>.md that names the node
 
-test('missing #4 (c43): when status.json holds no Blocked by line, the brief shows the Blocked by line of the inbox Q-<n>.md that names the node', async ($, on) => {
+test('missing #4 (c43): when status.json holds no Blocked by line, the brief shows the Blocked by line of the inbox Q-<n>.md that names the node', LOADED, async ($, on) => {
   // R-C14-06 "and its `Blocked by:` line." (L202). Q-38.md option 1: "read from `_orch/nodes/<id>/status.json` ...,
   // falling back to the inbox `Q-<n>.md` that names the node." Fixture: T5's envelope has none; Q-72.md names T5
   // ("**Nodes it blocks:** T5."). Q-73.md names another node, and its line must not be shown.
@@ -435,7 +440,7 @@ test('missing #4 (c43): when status.json holds no Blocked by line, the brief sho
 
 // ================================================================== 5 · an ESCALATE node row is a blocked row
 
-test('missing #5 (c37): a node row whose status.json verdict is ESCALATE is a blocked row: focus and Enter open its brief', async ($, on) => {
+test('missing #5 (c37): a node row whose status.json verdict is ESCALATE is a blocked row: focus and Enter open its brief', LOADED, async ($, on) => {
   // R-C14-05 (L202), R-C14-02 (L200). Q-38 (inbox/Q-38.answer.md): "node rows whose envelope is BLOCKED/ESCALATE ... are
   // blocked rows".
   const w = world(on, { nodes: { T12 } })
@@ -446,7 +451,7 @@ test('missing #5 (c37): a node row whose status.json verdict is ESCALATE is a bl
 
 // ================================================================== 6 · a BLOCKED agent row has a direct key
 
-test('missing #6 (c39): an agent row whose returned verdict is BLOCKED shows a direct key', async ($, on) => {
+test('missing #6 (c39): an agent row whose returned verdict is BLOCKED shows a direct key', LOADED, async ($, on) => {
   // R-C14-03 "and by a direct key of its own, as in T9." (L200). Q-38 (inbox/Q-38.answer.md): "agent rows that returned
   // BLOCKED are blocked rows"; T113A key-scheme.md §1: "An agent row already holds its agent-row letter ...; it keeps
   // that one letter". OQ6 part 2: "a direct hotkey of its own ..., shown the same way".
@@ -461,7 +466,7 @@ test('missing #6 (c39): an agent row whose returned verdict is BLOCKED shows a d
 
 // ================================================================== 7 · a BLOCKED agent row: its agent view gains the brief at its top
 
-test('missing #7 (c42): a BLOCKED agent row\'s brief, at the top of its agent view, shows the agent\'s last line', async ($, on) => {
+test('missing #7 (c42): a BLOCKED agent row\'s brief, at the top of its agent view, shows the agent\'s last line', LOADED, async ($, on) => {
   // R-C14-05 "what the node is blocked on" (L202). Q-38.md option 1: "the agent's last line"; "On a BLOCKED agent row,
   // Enter still opens the agent view ..., and that view gains the brief at its top." The agent view's own first line
   // reads "in the tree" (E1 §k k-07-enter-F17.txt); the brief comes before it.
@@ -474,7 +479,7 @@ test('missing #7 (c42): a BLOCKED agent row\'s brief, at the top of its agent vi
   expect({ view: tree >= 0, lineInBrief: at >= 0 && at < tree }).toEqual({ view: true, lineInBrief: true }) // fixture EXPORT_LINE, above the view (Q-38.md option 1)
 })
 
-test('missing #7 (c44): Enter on a BLOCKED agent row opens the agent view with the brief, and its Blocked by line, at its top', async ($, on) => {
+test('missing #7 (c44): Enter on a BLOCKED agent row opens the agent view with the brief, and its Blocked by line, at its top', LOADED, async ($, on) => {
   // R-C14-06 "and its `Blocked by:` line." (L202), R-C14-02 (L200). Q-38.md option 1: the Blocked by line is "read from
   // ... the agent's final text"; "that view gains the brief at its top". Fixture: the audit agent's final text ends
   // with its Blocked by line.
@@ -489,7 +494,7 @@ test('missing #7 (c44): Enter on a BLOCKED agent row opens the agent view with t
 
 // ================================================================== 8 · approving from the brief: the grant per kind (Q-37)
 
-test('missing #8 (c6, c23): from the brief of a node blocked at a command gate, y approves that exact command once: a note for the prime to re-dispatch the node with it', async ($, on) => {
+test('missing #8 (c6, c23): from the brief of a node blocked at a command gate, y approves that exact command once: a note for the prime to re-dispatch the node with it', LOADED, async ($, on) => {
   // R-C14-08 "From a blocked row's brief, a key approves what the node is blocked on right there." (L204); R-C14-21 (L214).
   // Q-37 (inbox/Q-37.answer.md): "per kind, the narrowest grant"; Q-37.md option 1: "a command gate → approve that exact
   // command once (a note for the prime to re-dispatch the node with it)". Key `y`: T113A key-scheme.md §4.
@@ -504,7 +509,7 @@ test('missing #8 (c6, c23): from the brief of a node blocked at a command gate, 
   expect({ pressed, note: ok }).toEqual({ pressed: true, note: true }) // Q-37.md option 1: the note names the node, the exact command (fixture T6_CMD) and the re-dispatch
 })
 
-test('missing #8 (c24): from the brief of a node blocked at a command gate, y writes no approvals.always entry: the next command of that gate is still asked', async ($, on) => {
+test('missing #8 (c24): from the brief of a node blocked at a command gate, y writes no approvals.always entry: the next command of that gate is still asked', LOADED, async ($, on) => {
   // R-C14-17 (L211) via Q-37.md option 1: `y` approves "that exact command once"; the run-wide grant is the second key's.
   // Q-37: "it never widens". approvals.always is what lets a gate's later commands run unasked (mod/tests/approvals.test.ts:
   // "approve-for-run skips later asks of the same gate").
@@ -519,7 +524,7 @@ test('missing #8 (c24): from the brief of a node blocked at a command gate, y wr
   expect({ pressed, askedAgain }).toEqual({ pressed: true, askedAgain: true }) // Q-37: once, never for the run
 })
 
-test('missing #8 (c25): from the brief of a node blocked at a command gate, w adds that gate to approvals.always for the run, as /approve <gate> does', async ($, on) => {
+test('missing #8 (c25): from the brief of a node blocked at a command gate, w adds that gate to approvals.always for the run, as /approve <gate> does', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "with a second key for 'every <gate> for this run' (`approvals.always`, as
   // `/approve <gate>` does)". Key `w`: T113A key-scheme.md §4 ("drawn only where Q-37 keeps that grant (a command gate)").
   const w = world(on, { nodes: { T6 } })
@@ -532,7 +537,7 @@ test('missing #8 (c25): from the brief of a node blocked at a command gate, w ad
   expect({ pressed, asked: w.asks.length - before, ran: r && r.result }).toEqual({ pressed: true, asked: 0, ran: 'ran' }) // approved for the run: the gate's next command runs unasked
 })
 
-test('missing #8 (c6, c26): from the brief of a queued phase, the approve key has the same effect as band 1', async ($, on) => {
+test('missing #8 (c6, c26): from the brief of a queued phase, the approve key has the same effect as band 1', LOADED, async ($, on) => {
   // R-C14-08 (L204). Q-37.md option 1: "a queued phase → the same as band `1`". The effect of band `1` is measured in
   // this same world, never written down here: two phases wait (P2 first, so band `1` acts on P2, register.js's band
   // offers the first queued phase); P3 is approved from its brief, P2 by band `1`, and the two effects must match with
@@ -572,7 +577,7 @@ test('missing #8 (c6, c26): from the brief of a queued phase, the approve key ha
 
 // ================================================================== 9 · kinds with no approve key (Q-37)
 
-test('missing #9 (c27): the brief of a node blocked by pause shows no approve key', async ($, on) => {
+test('missing #9 (c27): the brief of a node blocked by pause shows no approve key', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "pause → no approve key". The run is paused (`/baton pause`) and T7's envelope
   // says it is held by the pause.
   const w = world(on, { nodes: { T7 } })
@@ -583,7 +588,7 @@ test('missing #9 (c27): the brief of a node blocked by pause shows no approve ke
   expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T7's brief is open (fixture T7_SUMMARY) and offers neither y nor w
 })
 
-test('missing #9 (c28): the brief of a node blocked by pause says /baton resume', async ($, on) => {
+test('missing #9 (c28): the brief of a node blocked by pause says /baton resume', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "pause → no approve key (the brief says `/baton resume`)". No fixture text holds
   // "/baton resume"; the band (another component) is not read here.
   const w = world(on, { nodes: { T7 } })
@@ -597,7 +602,7 @@ test('missing #9 (c28): the brief of a node blocked by pause says /baton resume'
 /** A line of the brief that says what must be fixed: it says "fix" and names `what` (Q-37.md option 1). */
 const saysFix = (lines: string[], what: RegExp) => lines.some((l) => /\bfix/i.test(l) && what.test(l))
 
-test('missing #9 (c30): the brief of a node whose Blocked by line ends (explicit) shows no approve key', async ($, on) => {
+test('missing #9 (c30): the brief of a node whose Blocked by line ends (explicit) shows no approve key', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "`explicit`, a forbidden file or an enforced ruling → no approve key". Rule 10
   // step 1: "`explicit` is a rule, a criterion or a hard failure, and a person has to fix the cause".
   const w = world(on, { nodes: { T11 } })
@@ -606,7 +611,7 @@ test('missing #9 (c30): the brief of a node whose Blocked by line ends (explicit
   expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T11's brief is open (fixture T11_SUMMARY) with neither y nor w (Q-37.md option 1: explicit → no approve key)
 })
 
-test('missing #9 (c31): the brief of a node whose Blocked by line ends (explicit) says what must be fixed', async ($, on) => {
+test('missing #9 (c31): the brief of a node whose Blocked by line ends (explicit) says what must be fixed', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "... → no approve key, and the brief says what must be fixed". What must be fixed
   // for an `explicit` line is the line it quotes (fixture: T11's handoff criterion 4). No fixture text says "fix".
   const w = world(on, { nodes: { T11 } })
@@ -615,7 +620,7 @@ test('missing #9 (c31): the brief of a node whose Blocked by line ends (explicit
   expect({ brief, says: saysFix(shownLines(await ui.drawn()), /_orch\/nodes\/T11\/handoff\.md|data\/report\.csv/) }).toEqual({ brief: true, says: true }) // a line says "fix" and names T11's quoted file or line (fixture T11_BLOCKED_BY; Q-37.md option 1)
 })
 
-test('missing #9 (c32): the brief of a node blocked by a forbidden file shows no approve key', async ($, on) => {
+test('missing #9 (c32): the brief of a node blocked by a forbidden file shows no approve key', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "a forbidden file ... → no approve key".
   const w = world(on, { nodes: { T8 } })
   const ui: any = await w.pane($)
@@ -623,7 +628,7 @@ test('missing #9 (c32): the brief of a node blocked by a forbidden file shows no
   expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T8's brief is open (fixture T8_SUMMARY) with neither y nor w (Q-37.md option 1: a forbidden file → no approve key)
 })
 
-test('missing #9 (c33): the brief of a node blocked by a forbidden file says what must be fixed', async ($, on) => {
+test('missing #9 (c33): the brief of a node blocked by a forbidden file says what must be fixed', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "the brief says what must be fixed": here the forbidden file (fixture T8_FILE).
   const w = world(on, { nodes: { T8 } })
   const ui: any = await w.pane($)
@@ -631,7 +636,7 @@ test('missing #9 (c33): the brief of a node blocked by a forbidden file says wha
   expect({ brief, says: saysFix(shownLines(await ui.drawn()), /config\/\.env\.production/) }).toEqual({ brief: true, says: true }) // a line says "fix" and names the forbidden file (fixture T8_FILE; Q-37.md option 1)
 })
 
-test('missing #9 (c34): the brief of a node blocked by an enforced ruling shows no approve key', async ($, on) => {
+test('missing #9 (c34): the brief of a node blocked by an enforced ruling shows no approve key', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "an enforced ruling → no approve key". The run holds ruling #0, enforced (fixture RULINGS).
   const w = world(on, { nodes: { T10 }, rulings: RULINGS })
   const ui: any = await w.pane($)
@@ -639,7 +644,7 @@ test('missing #9 (c34): the brief of a node blocked by an enforced ruling shows 
   expect({ brief, approveKeys: await approveKeys(ui) }).toEqual({ brief: true, approveKeys: [] }) // T10's brief is open (fixture T10_SUMMARY) with neither y nor w (Q-37.md option 1: an enforced ruling → no approve key)
 })
 
-test('missing #9 (c35): the brief of a node blocked by an enforced ruling says what must be fixed', async ($, on) => {
+test('missing #9 (c35): the brief of a node blocked by an enforced ruling says what must be fixed', LOADED, async ($, on) => {
   // R-C14-17 (L211). Q-37.md option 1: "the brief says what must be fixed": here the ruling (fixture ruling #0).
   const w = world(on, { nodes: { T10 }, rulings: RULINGS })
   const ui: any = await w.pane($)
@@ -649,7 +654,7 @@ test('missing #9 (c35): the brief of a node blocked by an enforced ruling says w
 
 // ================================================================== 8 (cont.) · interpreted: overrule
 
-test('missing #8 (c6, c29): from the brief of a node whose Blocked by line ends (interpreted), y puts a note for the prime to re-dispatch the node on the default its question states', async ($, on) => {
+test('missing #8 (c6, c29): from the brief of a node whose Blocked by line ends (interpreted), y puts a note for the prime to re-dispatch the node on the default its question states', LOADED, async ($, on) => {
   // R-C14-08 (L204). Q-37.md option 1: "`interpreted` → overrule: the node is re-dispatched to proceed on the default its
   // question states". Rule 10 step 1: `interpreted` is "the agent's own judgment, and a person may simply overrule it".
   // Fixture: T5's line (from Q-72.md) is interpreted; Q-72 "assumes: option 2" ("Keep it until v9.").
@@ -665,7 +670,7 @@ test('missing #8 (c6, c29): from the brief of a node whose Blocked by line ends 
 
 // ================================================================== 10 · the row stays until the verdict changes
 
-test('missing #10 (c36): after an approval from a blocked row\'s brief, the row stays drawn until the node\'s status.json verdict changes', async ($, on) => {
+test('missing #10 (c36): after an approval from a blocked row\'s brief, the row stays drawn until the node\'s status.json verdict changes', LOADED, async ($, on) => {
   // R-C14-08 (L204). Q-37.md option 1: "The row stays until the node's status changes." (Unlike a `?` row, which leaves
   // once answered, L209.) A blocked node row holds a direct key as a blocked row (T113A key-scheme.md §1); a node row
   // that is not blocked has none (T19 key-scheme.md, as T113A key-scheme.md §1 reads it).
@@ -687,7 +692,7 @@ test('missing #10 (c36): after an approval from a blocked row\'s brief, the row 
 
 // ================================================================== guards (inbox/OQ7.answer.md; work/guard-evidence.md)
 
-test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', async ($, on) => {
+test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', LOADED, async ($, on) => {
   // R-C14-08 "From a blocked row's brief, a key approves what the node is blocked on right there." (L204), whose queued
   // phase kind is band `1`'s twin (Q-37.md option 1). OQ7 (inbox/OQ7.answer.md): a preservation guard. The criterion: "a queued phase is approved by `1` on the band and by
   // Enter on its `approve` button, as at da5910c (register.js ~1436, 3006)". Q-37.md option 1 reads approving a queued
@@ -717,7 +722,7 @@ test('guard: c9 a queued phase is approved by 1 on the band, as at da5910c', asy
   void ui
 })
 
-test('guard: c9 a queued phase is approved by Enter on its approve button in Work, as at da5910c', async ($, on) => {
+test('guard: c9 a queued phase is approved by Enter on its approve button in Work, as at da5910c', LOADED, async ($, on) => {
   // R-C14-08 (L204), read through Q-37.md option 1 ("a queued phase → the same as band `1`"). OQ7 (inbox/OQ7.answer.md):
   // a preservation guard. E1 §k: "Enter on focus | ... :1436 approve". The approve Button sits in the `⚑ P3` row.
   const line = 'P3 DONE+CONFIRMED 4/4 · export written' // fixture
@@ -743,7 +748,7 @@ test('guard: c9 a queued phase is approved by Enter on its approve button in Wor
   expect(w.asks.filter((a) => /reports:/.test(a.q)).map((a) => /\bP5\b/.test(a.q)), 'premise: the phase gate asks about a phase that waits').toEqual([true])
 })
 
-test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as at da5910c', async ($, on) => {
+test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as at da5910c', LOADED, async ($, on) => {
   // R-C14-01 "A `?` (question) row and a blocked row can be selected in the pane" (L199), R-C14-02 "by focus-and-Enter,"
   // (L200). Q-38 (inbox/Q-38.answer.md) option 1: "Each gets a `›`". E1 §k: agent rows' `›` (register.js:1463) are reached by
   // ↑/↓; finished agents keep their row. A false premise for a red test (work/guard-evidence.md), so a guard (OQ7).
@@ -754,7 +759,7 @@ test('guard: c38 an agent row whose returned verdict is BLOCKED shows a ›, as 
   expect(/\bblocked\b/i.test(row ? row.text : ''), 'premise: the row is the BLOCKED agent\'s, reading its verdict').toBe(true) // GV4 sweep (P3-d4): any agent row has a ›, so without this the BLOCKED premise was never checked
 })
 
-test('guard: c45 Enter on a BLOCKED agent row opens the agent view, as at da5910c', async ($, on) => {
+test('guard: c45 Enter on a BLOCKED agent row opens the agent view, as at da5910c', LOADED, async ($, on) => {
   // R-C14-02 "by focus-and-Enter," (L200). OQ7 (inbox/OQ7.answer.md): "Enter-to-open on rows that already open". Q-38.md option 1: "On a BLOCKED agent row,
   // Enter still opens the agent view (the OQ7 guard on rows that already open holds)". E1 §k: Enter on an agent's `›`
   // opens "in the tree prime › F17 worker ...".

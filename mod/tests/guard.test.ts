@@ -2,6 +2,11 @@
 // A test's $.tool.call always runs in the main loop (agentId is dropped), so
 // these are prime calls; the subagent side is covered by test/guard.test.mjs.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
 const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -45,7 +50,7 @@ function world(on: any, manifest: string | null) {
 }
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: during a run the prime is denied every reading, running and editing tool, with the route', async ($, on) => {
+test('guard: during a run the prime is denied every reading, running and editing tool, with the route', LOADED, async ($, on) => {
   world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -57,7 +62,7 @@ test('guard: during a run the prime is denied every reading, running and editing
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', async ($, on) => {
+test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, ToolSearch and the memory tools', LOADED, async ($, on) => {
   world(on, MEMBER()) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory, so the guard is armed by membership, not the manifest alone (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -71,23 +76,23 @@ test('guard: during a run the prime keeps Agent, AskUserQuestion, SendMessage, T
   expect(read.deny, 'premise: the guard is armed in this session').toMatch(/dispatch a sub-orchestrator/)
 })
 
-test('with no run the guard is invisible', async ($, on) => {
+test('with no run the guard is invisible', LOADED, async ($, on) => {
   world(on, null)
   const r: any = await $.tool.call({ tool: 'Read', file_path: 'README.md' })
   expect(r.result).toBe('ran')
 })
 
-test('a manifest without "prime": true, or a closed run, does not arm the guard', async ($, on) => {
+test('a manifest without "prime": true, or a closed run, does not arm the guard', LOADED, async ($, on) => {
   world(on, JSON.stringify({ run_id: 'v5-run', mode: 'BUILD' }))
   expect(((await $.tool.call({ tool: 'Bash', command: 'ls' })) as any).result).toBe('ran')
 })
 
-test('a closed prime run does not arm the guard', async ($, on) => {
+test('a closed prime run does not arm the guard', LOADED, async ($, on) => {
   world(on, JSON.stringify({ run_id: 'x', prime: true, closed: true }))
   expect(((await $.tool.call({ tool: 'Bash', command: 'ls' })) as any).result).toBe('ran')
 })
 
-test('a malformed manifest does not arm the guard', async ($, on) => {
+test('a malformed manifest does not arm the guard', LOADED, async ($, on) => {
   world(on, '{ prime: true,')
   expect(((await $.tool.call({ tool: 'Read', file_path: 'x' })) as any).result).toBe('ran')
 })

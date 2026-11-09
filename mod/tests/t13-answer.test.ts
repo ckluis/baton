@@ -20,6 +20,11 @@
 // naming this session, a plan with nodes N1, T5, T7, N3, the prime and agent rows, and in the inbox the questions below.
 // Directory entries carry the engine's kind `'dir'` (types index.d.ts:5066, E1 §m).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -485,7 +490,7 @@ const lines = (s: string | undefined) => String(s ?? '').split('\n')
 
 // ================================================================== missing #1-#4: the question's brief
 
-test('missing #1 (c32): a question\'s brief shows every line of its Q-<n>.md, unreworded, wrapped to the pane\'s width', async ($, on) => {
+test('missing #1 (c32): a question\'s brief shows every line of its Q-<n>.md, unreworded, wrapped to the pane\'s width', LOADED, async ($, on) => {
   // Requirement R-C14-04: "Opening a `?` row shows its brief: the question as written in its `_orch/inbox/Q-<n>.md`."
   // (spec L201). plan/decisions/Q-40.md: "The whole file as written, markdown shown as plain text, wrapped to the pane's
   // width ... Nothing is summarised or reworded."
@@ -501,7 +506,7 @@ test('missing #1 (c32): a question\'s brief shows every line of its Q-<n>.md, un
   expect(cutsOf(tree, LONG, PANE_COLUMNS)).toEqual([])
 })
 
-test('missing #2 (c33): a question\'s brief shows the file\'s Blocked by: line first', async ($, on) => {
+test('missing #2 (c33): a question\'s brief shows the file\'s Blocked by: line first', LOADED, async ($, on) => {
   // Requirement R-C14-04 (spec L201). plan/decisions/Q-40.md: "with the `Blocked by:` line first ... and the rest
   // scrolling under it".
   const w = world(on)
@@ -514,7 +519,7 @@ test('missing #2 (c33): a question\'s brief shows the file\'s Blocked by: line f
   expect({ blockedByShown: by >= 0, first: by >= 0 && rest.every((i) => i < 0 || i > by) }).toEqual({ blockedByShown: true, first: true }) // Q-40: Blocked by first
 })
 
-test('missing #3 (c34): the brief\'s Blocked by: line is coloured as the ? row colours it', async ($, on) => {
+test('missing #3 (c34): the brief\'s Blocked by: line is coloured as the ? row colours it', LOADED, async ($, on) => {
   // Requirement R-C14-04 (spec L201). plan/decisions/Q-40.md: "the `Blocked by:` line first in the question's colour
   // (as the `?` row colours it, register.js:1190)". The expected colour is the one the `?` row of Q-71 is drawn in.
   const w = world(on)
@@ -525,7 +530,7 @@ test('missing #3 (c34): the brief\'s Blocked by: line is coloured as the ? row c
   expect(colorOf(await ui.drawn(), Q71_BLOCKED_BY)).toBe(row!.color) // Q-40: the brief's Blocked by line in the ? row's colour
 })
 
-test('missing #4 (c35): b in a question\'s brief goes back to the list', async ($, on) => {
+test('missing #4 (c35): b in a question\'s brief goes back to the list', LOADED, async ($, on) => {
   // Requirement R-C14-04 (spec L201). plan/decisions/Q-40.md: "`b` goes back". T113A key-scheme.md §4: "`b` goes back
   // (Q-40)".
   const w = world(on)
@@ -541,7 +546,7 @@ test('missing #4 (c35): b in a question\'s brief goes back to the list', async (
 
 // ================================================================== missing #5: the answer key opens $.ui.ask (Q-35)
 
-test('missing #5 (c23): from a question\'s brief, the answer key opens $.ui.ask with the question\'s first line as its question', async ($, on) => {
+test('missing #5 (c23): from a question\'s brief, the answer key opens $.ui.ask with the question\'s first line as its question', LOADED, async ($, on) => {
   // Requirement R-C14-07: "From a question's brief, a key answers the question right there." (spec L203); R-C14-15
   // (L210). inbox/Q-35.answer.md: "A: both, through $.ui.ask: the parsed options as labels plus Other for free text";
   // Q-35.md option 1: "one answer key in the brief opens `$.ui.ask` with the question's first line". T113A
@@ -553,7 +558,7 @@ test('missing #5 (c23): from a question\'s brief, the answer key opens $.ui.ask 
   expect(qs.length === 1 && qs[0]!.includes(Q71_FIRST) ? 'asked with Q-71\'s first line' : JSON.stringify(qs)).toBe('asked with Q-71\'s first line') // Q-35 option 1; fixture Q71_FIRST
 })
 
-test('missing #5 (c24): the labels $.ui.ask receives are the question\'s numbered options, from its **Options** list or its first numbered list, at most 4', async ($, on) => {
+test('missing #5 (c24): the labels $.ui.ask receives are the question\'s numbered options, from its **Options** list or its first numbered list, at most 4', LOADED, async ($, on) => {
   // Requirements R-C14-07 (L203), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md, binding): "its numbered
   // options as labels (at most 4, parsed from the `**Options**` list or the first numbered list ...), and "Other" takes
   // free text".
@@ -567,7 +572,7 @@ test('missing #5 (c24): the labels $.ui.ask receives are the question\'s numbere
   }
 })
 
-test('missing #5 (c24, c25): from the **Options** list, not an earlier numbered list, at most 4 labels, the recommended option first', async ($, on) => {
+test('missing #5 (c24, c25): from the **Options** list, not an earlier numbered list, at most 4 labels, the recommended option first', LOADED, async ($, on) => {
   // Requirements R-C14-07 (L203), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md): "at most 4, parsed from
   // the `**Options**` list or the first numbered list; the recommended one first".
   const w = world(on)
@@ -583,7 +588,7 @@ test('missing #5 (c24, c25): from the **Options** list, not an earlier numbered 
   }).toEqual({ asked: true, atMost4: true, fromOptions: true, notEarlierList: true })
 })
 
-test('missing #5 (c25): the recommended option is the first label $.ui.ask receives', async ($, on) => {
+test('missing #5 (c25): the recommended option is the first label $.ui.ask receives', LOADED, async ($, on) => {
   // Requirements R-C14-07 (L203), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md): "the recommended one first".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -592,7 +597,7 @@ test('missing #5 (c25): the recommended option is the first label $.ui.ask recei
   expect(first.includes(Q74_RECOMMENDED) ? 'the recommended option' : first).toBe('the recommended option') // fixture: Q-74.md option 2 is (recommended)
 })
 
-test('missing #5 (c26): for a question with fewer than 2 parsed options, $.ui.ask offers Accept the default and Other', async ($, on) => {
+test('missing #5 (c26): for a question with fewer than 2 parsed options, $.ui.ask offers Accept the default and Other', LOADED, async ($, on) => {
   // Requirements R-C14-07 (L203), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md): "A question with fewer than
   // 2 parsed options offers "Accept the default" and "Other"."
   const w = world(on)
@@ -604,7 +609,7 @@ test('missing #5 (c26): for a question with fewer than 2 parsed options, $.ui.as
 
 // ================================================================== missing #6: the answer file (Q-35, Q-41)
 
-test('missing #6 (c4): answering from the brief with the answer key writes _orch/inbox/Q-<n>.answer.md holding that answer', async ($, on) => {
+test('missing #6 (c4): answering from the brief with the answer key writes _orch/inbox/Q-<n>.answer.md holding that answer', LOADED, async ($, on) => {
   // Requirements R-C14-13 "The answer is also written to `_orch/inbox/Q-<n>.answer.md`," (spec L208), R-C14-20 "one that
   // answers a question from its brief" (L214). Q-35 (inbox/Q-35.answer.md): entered through $.ui.ask. T113A
   // key-scheme.md §4: `a` answers. Q-71 holds the asked record Q-42 names.
@@ -616,7 +621,7 @@ test('missing #6 (c4): answering from the brief with the answer key writes _orch
   expect(f !== undefined && f.includes(a) ? 'Q-71.answer.md holds the answer' : 'no answer file with "' + a + '"').toBe('Q-71.answer.md holds the answer') // L208; the answer is the label the dialog returned
 })
 
-test('missing #6 (c27): when a label is chosen, the answer file records that label verbatim', async ($, on) => {
+test('missing #6 (c27): when a label is chosen, the answer file records that label verbatim', LOADED, async ($, on) => {
   // Requirements R-C14-13 (L208), R-C14-15 (L210). Q-35.md option 1 (inbox/Q-35.answer.md): "The answer file records
   // the label or the text verbatim." plan/decisions/Q-41.md: "`**Answer:** <label or text, verbatim>`".
   const w = world(on, { answer: (labels) => labels[1] ?? labels[0]! }) // fixture: the operator picks the second label
@@ -626,7 +631,7 @@ test('missing #6 (c27): when a label is chosen, the answer file records that lab
   expect(lines(answerFile(w, 'Q-71')).includes('**Answer:** ' + label)).toBe(true) // Q-41: `**Answer:** <label>`, verbatim
 })
 
-test('missing #6 (c28): when text is typed under Other, the answer file records that text verbatim', async ($, on) => {
+test('missing #6 (c28): when text is typed under Other, the answer file records that text verbatim', LOADED, async ($, on) => {
   // Requirements R-C14-13 (L208), R-C14-15 (L210). Q-35 (inbox/Q-35.answer.md): "plus Other for free text"; Q-35.md
   // option 1: "The answer file records the label or the text verbatim."
   const TYPED = 'ISO 8601 in files, the reader\'s locale on screen' // fixture: text typed under Other (no label)
@@ -636,7 +641,7 @@ test('missing #6 (c28): when text is typed under Other, the answer file records 
   expect(lines(answerFile(w, 'Q-71')).includes('**Answer:** ' + TYPED)).toBe(true) // Q-41: `**Answer:** <text, verbatim>`
 })
 
-test('missing #6 (c36): a pane-written answer file\'s first line is # Q-<n> answer (binding, operator, <date>)', async ($, on) => {
+test('missing #6 (c36): a pane-written answer file\'s first line is # Q-<n> answer (binding, operator, <date>)', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "A heading `# Q-<n> answer (binding, operator, <date>)`". The
   // date as the inbox's operator answers write it (inbox/OQ7.answer.md: "# OQ7 answer (binding, operator, 2026-10-19)").
   const w = world(on)
@@ -645,7 +650,7 @@ test('missing #6 (c36): a pane-written answer file\'s first line is # Q-<n> answ
   expect(lines(answerFile(w, 'Q-71'))[0]).toMatch(/^# Q-71 answer \(binding, operator, \d{4}-\d{2}-\d{2}\)$/) // Q-41 heading
 })
 
-test('missing #6 (c37): a pane-written answer file holds the line answered_by: operator', async ($, on) => {
+test('missing #6 (c37): a pane-written answer file holds the line answered_by: operator', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "a provenance block in rule 10's shape (`answered_by: operator`".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -653,7 +658,7 @@ test('missing #6 (c37): a pane-written answer file holds the line answered_by: o
   expect(lines(answerFile(w, 'Q-71')).includes('answered_by: operator')).toBe(true) // Q-41, verbatim
 })
 
-test('missing #6 (c38): a pane-written answer file holds the line answered_via: pane', async ($, on) => {
+test('missing #6 (c38): a pane-written answer file holds the line answered_via: pane', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "`answered_via: pane`".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -661,7 +666,7 @@ test('missing #6 (c38): a pane-written answer file holds the line answered_via: 
   expect(lines(answerFile(w, 'Q-71')).includes('answered_via: pane')).toBe(true) // Q-41, verbatim
 })
 
-test('missing #6 (c39): a pane-written answer file holds an answered_at: line', async ($, on) => {
+test('missing #6 (c39): a pane-written answer file holds an answered_at: line', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "`answered_at:` measured at write".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -669,7 +674,7 @@ test('missing #6 (c39): a pane-written answer file holds an answered_at: line', 
   expect(lines(answerFile(w, 'Q-71')).some((l) => /^answered_at: \S+/.test(l))).toBe(true) // Q-41: an answered_at line with a value
 })
 
-test('missing #6 (c40): a pane-written answer file holds a session: line naming the pane\'s session id', async ($, on) => {
+test('missing #6 (c40): a pane-written answer file holds a session: line naming the pane\'s session id', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "`session:` the pane's session id". fixture SID: the session
   // the pane runs in (session.id).
   const w = world(on)
@@ -678,7 +683,7 @@ test('missing #6 (c40): a pane-written answer file holds a session: line naming 
   expect(lines(answerFile(w, 'Q-71')).includes('session: ' + SID)).toBe(true) // Q-41; fixture SID
 })
 
-test('missing #6 (c41): a pane-written answer file holds **Answer:** <label or text, verbatim>', async ($, on) => {
+test('missing #6 (c41): a pane-written answer file holds **Answer:** <label or text, verbatim>', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "then `**Answer:** <label or text, verbatim>`".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -689,7 +694,7 @@ test('missing #6 (c41): a pane-written answer file holds **Answer:** <label or t
 
 // ================================================================== missing #7 and a guard: an answer file already there
 
-test('missing #7 (c43): when Q-<n>.answer.md already exists, the brief says it is already answered', async ($, on) => {
+test('missing #7 (c43): when Q-<n>.answer.md already exists, the brief says it is already answered', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "an existing answer file is never overwritten (the brief says
   // it is already answered)". The fixture: Q-71's brief is open when an answer file arrives by hand (rule 10: "by
   // hand-edited file"), then the answer key is pressed.
@@ -702,7 +707,7 @@ test('missing #7 (c43): when Q-<n>.answer.md already exists, the brief says it i
   expect(/already answered/i.test(await shownText(ui))).toBe(true) // Q-41: "the brief says it is already answered"
 })
 
-test('guard: c42 when Q-<n>.answer.md already exists, the answer key leaves it byte-identical', async ($, on) => {
+test('guard: c42 when Q-<n>.answer.md already exists, the answer key leaves it byte-identical', LOADED, async ($, on) => {
   // Requirement R-C14-13 (L208). plan/decisions/Q-41.md: "Written once with `$.fs.write`; an existing answer file is
   // never overwritten". GUARD (work/guard-evidence.md, approval inbox/OQ7.answer.md): no path writes an inbox answer
   // file at da5910c, so this holds there; it must keep holding once the answer key exists. The fixture: Q-71's brief
@@ -724,7 +729,7 @@ test('guard: c42 when Q-<n>.answer.md already exists, the answer key leaves it b
 
 // ================================================================== missing #8: the ? row leaves the pane
 
-test('missing #8 (c5): after an answer is given from its brief, that question\'s ? row is no longer drawn', async ($, on) => {
+test('missing #8 (c5): after an answer is given from its brief, that question\'s ? row is no longer drawn', LOADED, async ($, on) => {
   // Requirement R-C14-14: "and the question's `?` row then leaves the pane." (spec L209). Q-71 holds the asked record
   // (Q-42). The answer is given from the brief by `a` (T113A key-scheme.md §4) through $.ui.ask (Q-35).
   const w = world(on)
@@ -740,7 +745,7 @@ test('missing #8 (c5): after an answer is given from its brief, that question\'s
 
 const noteRe = (id: string, node: string) => new RegExp('^answered ' + id + ' from the pane: (.+)\\. Re-dispatch ' + node + ' with it$')
 
-test('missing #9 (c6): an answer given from the brief is delivered to the asking node by a note for the prime to re-dispatch it', async ($, on) => {
+test('missing #9 (c6): an answer given from the brief is delivered to the asking node by a note for the prime to re-dispatch it', LOADED, async ($, on) => {
   // Requirements R-C14-12 "An answer reaches the asking node, the same way an AskUserQuestion answer would." (spec
   // L207), R-C14-16 "how it reaches a node that has already returned BLOCKED;" (L211). inbox/Q-36.answer.md: "A: the
   // mod writes the answer file and puts a note to the prime, which re-dispatches the asking node at once." (T113A
@@ -752,7 +757,7 @@ test('missing #9 (c6): an answer given from the brief is delivered to the asking
   expect(toPrime.length >= 1 ? 'the prime is told to re-dispatch T5' : JSON.stringify(w.notes())).toBe('the prime is told to re-dispatch T5') // delivery itself: the note that re-dispatches T5 with the answer
 })
 
-test('missing #9 (c29): after the answer file is written, the mod notes for the prime, tag operator: answered Q-<n> from the pane: <first line>. Re-dispatch <node> with it', async ($, on) => {
+test('missing #9 (c29): after the answer file is written, the mod notes for the prime, tag operator: answered Q-<n> from the pane: <first line>. Re-dispatch <node> with it', LOADED, async ($, on) => {
   // Requirements R-C14-12 (L207), R-C14-16 (L211). Q-36.md option 1 (inbox/Q-36.answer.md, binding): "puts a note for
   // the prime (`noteQuietly`, tag `operator`: "answered Q-<n> from the pane: <first line>. Re-dispatch <node> with
   // it")". <node>: the node Q-72.md names (fixture Q72_NODE). <first line>: the question's first line (fixture
@@ -766,7 +771,7 @@ test('missing #9 (c29): after the answer file is written, the mod notes for the 
   expect([Q72_FIRST, '# ' + Q72_FIRST, label].includes(first!) ? 'the note names the first line' : first).toBe('the note names the first line') // Q-36 option 1, its words
 })
 
-test('missing #9 (c30): the note for the prime is put after the answer file is written, never before', async ($, on) => {
+test('missing #9 (c30): the note for the prime is put after the answer file is written, never before', LOADED, async ($, on) => {
   // Requirements R-C14-12 (L207), R-C14-16 (L211). Q-36.md option 1 (inbox/Q-36.answer.md): "the mod writes
   // `Q-<n>.answer.md`, then puts a note for the prime".
   const w = world(on)
@@ -778,7 +783,7 @@ test('missing #9 (c30): the note for the prime is put after the answer file is w
   expect(order).toEqual(['answer file', 'note']) // Q-36 option 1: the file, then the note
 })
 
-test('missing #10 (c31): when the asking agent is still live, the answer is also sent to it as a message', async ($, on) => {
+test('missing #10 (c31): when the asking agent is still live, the answer is also sent to it as a message', LOADED, async ($, on) => {
   // Requirements R-C14-12 (L207), R-C14-16 (L211). Q-36.md option 1 (inbox/Q-36.answer.md): "If the asker is still live,
   // the answer is also sent to it as a message (the pane's ✉)". Fixture: Q-74.md names T7; the agent `T7 worker` (id
   // a-T7-worker, as the fixture's agent.spawn names it) is running.
@@ -792,7 +797,7 @@ test('missing #10 (c31): when the asking agent is still live, the answer is also
 
 // ================================================================== missing #11: answering a queued question (Q-45)
 
-test('missing #11 (c44): the answer key works on a queued question\'s brief: it writes Q-<id>.answer.md', async ($, on) => {
+test('missing #11 (c44): the answer key works on a queued question\'s brief: it writes Q-<id>.answer.md', LOADED, async ($, on) => {
   // Requirements R-C14-38 "whether a queued question can be answered from its brief before it is put;" (spec L239-240),
   // R-C14-07 (L203). inbox/Q-45.answer.md: "A: answering a queued question first writes the asked record (asked_via:
   // pane)." Q-73 is queued: no Q-73.asked.md (Q-42).
@@ -804,7 +809,7 @@ test('missing #11 (c44): the answer key works on a queued question\'s brief: it 
   expect(f !== undefined && f.includes(a) && Q73_OPTIONS.some((p) => a.includes(p)) ? 'Q-73.answer.md written' : 'no answer file').toBe('Q-73.answer.md written') // Q-45 option 1; fixture Q-73.md's options
 })
 
-test('missing #11 (c45): answering a queued question writes Q-<id>.asked.md holding asked_via: pane', async ($, on) => {
+test('missing #11 (c45): answering a queued question writes Q-<id>.asked.md holding asked_via: pane', LOADED, async ($, on) => {
   // Requirement R-C14-38 (L239-240). inbox/Q-45.answer.md: "first writes the asked record (asked_via: pane)".
   const w = world(on)
   const ui: any = await w.pane($)
@@ -812,7 +817,7 @@ test('missing #11 (c45): answering a queued question writes Q-<id>.asked.md hold
   expect(lines(w.files.get('_orch/inbox/Q-73.asked.md')).includes('asked_via: pane')).toBe(true) // Q-45, verbatim
 })
 
-test('missing #11 (c46): the Q-<id>.asked.md written when a queued question is answered holds an asked_at: line', async ($, on) => {
+test('missing #11 (c46): the Q-<id>.asked.md written when a queued question is answered holds an asked_at: line', LOADED, async ($, on) => {
   // Requirement R-C14-38 (L239-240). inbox/Q-42.answer.md: "a write-once Q-<id>.asked.md with asked_at and asked_via is
   // the asked record"; inbox/Q-45.answer.md: answering a queued question writes it.
   const w = world(on)
@@ -821,7 +826,7 @@ test('missing #11 (c46): the Q-<id>.asked.md written when a queued question is a
   expect(lines(w.files.get('_orch/inbox/Q-73.asked.md')).some((l) => /^asked_at: \S+/.test(l))).toBe(true) // Q-42: asked_at
 })
 
-test('missing #11 (c47): answering a queued question writes Q-<id>.asked.md before Q-<id>.answer.md', async ($, on) => {
+test('missing #11 (c47): answering a queued question writes Q-<id>.asked.md before Q-<id>.answer.md', LOADED, async ($, on) => {
   // Requirement R-C14-38 (L239-240). inbox/Q-45.answer.md: "first writes the asked record"; Q-45.md option 1: "Before
   // the answer file it writes the Q-42 record (`asked_via: pane`)".
   const w = world(on)
@@ -831,7 +836,7 @@ test('missing #11 (c47): answering a queued question writes Q-<id>.asked.md befo
   expect(order).toEqual(['_orch/inbox/Q-73.asked.md', '_orch/inbox/Q-73.answer.md']) // Q-45: asked record first
 })
 
-test('missing #11 (c48): after a queued question is answered, its row is no longer drawn', async ($, on) => {
+test('missing #11 (c48): after a queued question is answered, its row is no longer drawn', LOADED, async ($, on) => {
   // Requirements R-C14-38 (L239-240), R-C14-14 (L209). Q-45.md option 1 (inbox/Q-45.answer.md): "The row then leaves
   // the pane (L209)."
   const w = world(on)
@@ -845,7 +850,7 @@ test('missing #11 (c48): after a queued question is answered, its row is no long
 
 // ================================================================== missing #12: an unauthorized answer (Q-48)
 
-test('missing #12 (c49): a question whose answer file carries unauthorized: true stays drawn, in the state it had', async ($, on) => {
+test('missing #12 (c49): a question whose answer file carries unauthorized: true stays drawn, in the state it had', LOADED, async ($, on) => {
   // Requirement R-C14-24 "An open question (an `_orch/inbox/Q-<n>.md` with no `Q-<n>.answer.md`) is in one of two
   // states," (spec L225), R-C14-14 (L209). inbox/Q-48.answer.md: "an answer file marked unauthorized does not close
   // it"; Q-48.md option 1: "the row stays in its state". Q-76 has the asked record, so its state is the asked one:
@@ -856,7 +861,7 @@ test('missing #12 (c49): a question whose answer file carries unauthorized: true
   expect({ drawn: rows.length > 0, state: rows.some((r) => r.text.includes('waiting for you')) }).toEqual({ drawn: true, state: true }) // Q-48; L229
 })
 
-test('missing #12 (c50): that question\'s brief shows the unauthorized answer', async ($, on) => {
+test('missing #12 (c50): that question\'s brief shows the unauthorized answer', LOADED, async ($, on) => {
   // Requirement R-C14-24 (L225), R-C14-04 (L201). Q-48.md option 1 (inbox/Q-48.answer.md, binding): "its brief shows
   // the unauthorized answer". Fixture Q76_UNAUTH_TEXT is the answer Q-76.answer.md holds.
   const w = world(on)
@@ -867,7 +872,7 @@ test('missing #12 (c50): that question\'s brief shows the unauthorized answer', 
 
 // ================================================================== the guard of criterion 9
 
-test('guard: c9 a question whose _orch/inbox/Q-<n>.answer.md exists is not drawn, as at da5910c', async ($, on) => {
+test('guard: c9 a question whose _orch/inbox/Q-<n>.answer.md exists is not drawn, as at da5910c', LOADED, async ($, on) => {
   // Requirements R-C14-14 (L209), R-C14-24: "An open question (an `_orch/inbox/Q-<n>.md` with no `Q-<n>.answer.md`)"
   // (spec L225). GUARD (work/guard-evidence.md, approval inbox/OQ7.answer.md): this works at da5910c (register.js
   // ~2253-2256, per the handoff). Fixture: Q-70 has Q-70.answer.md (an authorized one); Q-72 has none.

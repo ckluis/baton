@@ -29,6 +29,11 @@
 //     last `›` back to `1: Work`); the engine then keeps the focused element in view ("a held element kept in view");
 //   - Enter presses the focused element; a letter presses the drawn Button carrying it as `hotkey` (ButtonProps.hotkey).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -355,7 +360,7 @@ const treeOrder = (n: number) => ['prime', ...Array.from({ length: n }, (_, i) =
 // ================================================================== the list's window (Q-68)
 
 // amended by verifier (XT115): Q-F115-1 A, D-P2-24 — while the list scrolls the pane keeps one empty bottom row (End/Home told from PageDown/PageUp), so c3 expects `rows - 1` lines while scrolling and exactly `rows` when the list fits the pane; renamed from `… fills its height exactly, at two heights`
-test('t15-scroll: with more agents than fit, the drawn pane fills its height less one empty row, at two heights, and exactly when the list fits', async ($, on) => {
+test('t15-scroll: with more agents than fit, the drawn pane fills its height less one empty row, at two heights, and exactly when the list fits', LOADED, async ($, on) => {
   // Requirement R-C16-01 (traceability.yaml): "The agent list uses the pane's full height." (spec L284)
   // R-C16-25: "The list takes the rows that are left." (spec L368). Q-68 (inbox/Q-68.answer.md): "the agent list is its
   // own scrolling window; the lines above and below it stay drawn". Done-criterion 3.
@@ -387,7 +392,7 @@ test('t15-scroll: with more agents than fit, the drawn pane fills its height les
   await w.eng.ui.unmount()
 })
 
-test('t15-scroll: scrolling the list from its top to its bottom draws every agent row', async ($, on) => {
+test('t15-scroll: scrolling the list from its top to its bottom draws every agent row', LOADED, async ($, on) => {
   // Requirement R-C16-03 (traceability.yaml): "Every agent stays listed." (spec L286); R-C16-16 (L295): "a fixture with
   // more agents than fit lists every agent"; R-C16-02 (L285): "When the agents do not fit, the list scrolls."
   // Q-63 (inbox/Q-63.answer.md): "the engine's PageUp/PageDown scroll by a page". Done-criterion 4.
@@ -396,15 +401,24 @@ test('t15-scroll: scrolling the list from its top to its bottom draws every agen
   await agents($, w, 40) // fixture: prime + 40 finished agents, in a 20-line pane
   await w.pane($, 20)
   const seen = new Set<string>()
+  let prev: string | null = null
   for (let i = 0; i < 25; i++) {
-    for (const r of agentRows((await view(w)).shown)) seen.add(r.label)
+    const { shown } = await view(w)
+    // amended by verifier (XTFL1): the 41 rows reach the list's bottom after a few pages; the 20-odd PageDowns after it
+    // each drew the same window again (40% of the test's time, _orch/nodes/XTFL1/work/cause.md). Stop once a PageDown
+    // leaves the drawing as it was, the bottom test of the next test; every row drawn on the way down is still collected
+    // and all 41 are still checked below.
+    const sig = shown.map((l) => l.text).join('\n')
+    if (sig === prev) break // fixture: the drawing no longer changes, so the list is at its bottom
+    prev = sig
+    for (const r of agentRows(shown)) seen.add(r.label)
     await pageDown($, w)
   }
   const missing = treeOrder(40).filter((x) => !seen.has(x))
   expect(missing).toEqual([]) // spec L286: every agent stays listed, so each row is drawn at some scroll position
 })
 
-test('t15-scroll: scrolling the list from its top to its bottom draws no finished agent row on two pages', async ($, on) => {
+test('t15-scroll: scrolling the list from its top to its bottom draws no finished agent row on two pages', LOADED, async ($, on) => {
   // Requirement R-C16-03 (traceability.yaml): "Every agent stays listed." (spec L286); R-C16-02 (L285): "When the agents
   // do not fit, the list scrolls."; spec L369: "The engine's PageUp and PageDown scroll it by one window". Q-63
   // (inbox/Q-63.answer.md): "the engine's PageUp/PageDown scroll by a page". Done-criterion 5 (an ordinary red test:
@@ -436,7 +450,7 @@ const labelCell = (l: Line | undefined, label: string) => l?.texts.find((t: any)
 /** The mark cell of a row: the Text that carries its ✓ or ✗. */
 const markCell = (l: Line | undefined, mark: string) => l?.texts.find((t: any) => textOf(t).includes(mark))
 
-test('t15-scroll: a finished agent row draws its text dim', async ($, on) => {
+test('t15-scroll: a finished agent row draws its text dim', LOADED, async ($, on) => {
   // Requirement R-C16-04 (traceability.yaml): "Finished agents are dimmed." (spec L286); R-C16-48 (L391): "A finished
   // row's text is dimmed,"; R-C16-17, R-C16-58. Q-69 (inbox/Q-69.answer.md): "a finished row's text dims". Criterion 6.
   const w = world(on)
@@ -449,7 +463,7 @@ test('t15-scroll: a finished agent row draws its text dim', async ($, on) => {
   expect(cell.props.dimColor).toBe(true) // Q-69: the finished row's text is drawn dim
 })
 
-test('guard: T15-G2 a finished agent row that returned DONE draws its ✓ green, not dim', async ($, on) => {
+test('guard: T15-G2 a finished agent row that returned DONE draws its ✓ green, not dim', LOADED, async ($, on) => {
   // Requirement R-C16-49 (traceability.yaml): "and its ✓ or ✗ mark keeps its green or red (Q-69)." (spec L391); R-C16-58.
   // Q-69 (inbox/Q-69.answer.md): "its ✓/✗ mark keeps its colour". OQ7: a guard (done-criterion 7, false premise at
   // da5910c: the ✓ is green there and nothing is dimmed); work/guard-evidence.md.
@@ -463,7 +477,7 @@ test('guard: T15-G2 a finished agent row that returned DONE draws its ✓ green,
   expect(cell.props.dimColor === true).toBe(false) // Q-69: the mark is not dimmed with the row's text
 })
 
-test('guard: T15-G3 a finished agent row that FAILED draws its ✗ red, not dim', async ($, on) => {
+test('guard: T15-G3 a finished agent row that FAILED draws its ✗ red, not dim', LOADED, async ($, on) => {
   // Requirement R-C16-49 (traceability.yaml): "and its ✓ or ✗ mark keeps its green or red (Q-69)." (spec L391).
   // Q-69 (inbox/Q-69.answer.md): "its ✓/✗ mark keeps its colour". OQ7: a guard (done-criterion 8, false premise at
   // da5910c: the ✗ is red there and nothing is dimmed); work/guard-evidence.md.
@@ -477,7 +491,7 @@ test('guard: T15-G3 a finished agent row that FAILED draws its ✗ red, not dim'
   expect(cell.props.dimColor === true).toBe(false) // Q-69: the mark is not dimmed with the row's text
 })
 
-test('guard: T15-G4 an agent row that returned BLOCKED and still waits for the operator is not drawn dim', async ($, on) => {
+test('guard: T15-G4 an agent row that returned BLOCKED and still waits for the operator is not drawn dim', LOADED, async ($, on) => {
   // Requirement R-C16-50 (traceability.yaml): "A blocked row that still waits for the operator is not dimmed." (spec
   // L391); R-C16-59. Q-69 (inbox/Q-69.answer.md): "blocked rows are not dimmed". Q-38 (inbox/Q-38.answer.md): "agent rows
   // that returned BLOCKED are blocked rows". OQ7: a guard (done-criterion 9, false premise at da5910c: nothing is dimmed).
@@ -492,7 +506,7 @@ test('guard: T15-G4 an agent row that returned BLOCKED and still waits for the o
 
 // ================================================================== the fold line goes (R-C16-06)
 
-test('t15-scroll: with more finished agents than fit, no line reads `earlier finished agent`', async ($, on) => {
+test('t15-scroll: with more finished agents than fit, no line reads `earlier finished agent`', LOADED, async ($, on) => {
   // Requirement R-C16-06 (traceability.yaml): "The "… N earlier finished agents" line goes away." (spec L288); R-C16-19
   // (L296): "one that no "earlier finished agents" line is drawn". Done-criterion 10.
   const w = world(on)
@@ -505,7 +519,7 @@ test('t15-scroll: with more finished agents than fit, no line reads `earlier fin
 
 // ================================================================== the lines around the list stay drawn (Q-68)
 
-test('t15-scroll: with more agents than fit, the hint line and the message field under the list are drawn in the pane', async ($, on) => {
+test('t15-scroll: with more agents than fit, the hint line and the message field under the list are drawn in the pane', LOADED, async ($, on) => {
   // Requirement R-C16-24 (traceability.yaml): "and below it (questions, blocked rows, rulings, the message field and the
   // hint line) stay drawn whole." (spec L366-367); R-C16-22, R-C16-52. Q-68 (inbox/Q-68.answer.md): "the lines above and
   // below it stay drawn". Done-criterion 11.
@@ -523,7 +537,7 @@ test('t15-scroll: with more agents than fit, the hint line and the message field
   expect(after.some((l) => l.node && l.node.type === 'Input'), 'no message field in the pane:' + dump(after)).toBe(true) // Q-68: the message field stays drawn
 })
 
-test('t15-scroll: with more agents than fit and an open question, its `?` row is drawn in the pane', async ($, on) => {
+test('t15-scroll: with more agents than fit and an open question, its `?` row is drawn in the pane', LOADED, async ($, on) => {
   // Requirement R-C16-24 (traceability.yaml): "and below it (questions, ...) stay drawn whole." (spec L366-367);
   // R-C16-52. Q-68 (inbox/Q-68.answer.md): "the lines above and below it stay drawn". Done-criterion 12.
   const w = world(on, { questions: ['Q-7'] }) // fixture: Q-7 is open (no answer file)
@@ -534,7 +548,7 @@ test('t15-scroll: with more agents than fit and an open question, its `?` row is
   expect(shown.some((l) => /\?/.test(l.text) && /\bQ-7\b/.test(l.text)), 'no ? Q-7 row in the pane:' + dump(shown)).toBe(true) // Q-68: the question's ? row stays drawn
 })
 
-test('guard: T15-G5 with more agents than fit, the goal row above the list is drawn in the pane', async ($, on) => {
+test('guard: T15-G5 with more agents than fit, the goal row above the list is drawn in the pane', LOADED, async ($, on) => {
   // Requirement R-C16-23 (traceability.yaml): "The lines above it (goal, PR and merge rows)" (spec L366); R-C16-52.
   // Q-68 (inbox/Q-68.answer.md): "the lines above and below it stay drawn". OQ7: a guard (done-criterion 47).
   const w = world(on)
@@ -546,7 +560,7 @@ test('guard: T15-G5 with more agents than fit, the goal row above the list is dr
   expect(shown.some((l) => /^\s*goal\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the goal row stays drawn
 })
 
-test('guard: T15-G6 with more agents than fit and an open PR, the PR row above the list is drawn in the pane', async ($, on) => {
+test('guard: T15-G6 with more agents than fit and an open PR, the PR row above the list is drawn in the pane', LOADED, async ($, on) => {
   // Requirement R-C16-23 (traceability.yaml): "The lines above it (goal, PR and merge rows)" (spec L366); R-C16-52.
   // Q-68 (inbox/Q-68.answer.md): "the lines above and below it stay drawn". OQ7: a guard (done-criterion 48).
   const w = world(on, { pr: true }) // fixture: PR #47 is open
@@ -558,7 +572,7 @@ test('guard: T15-G6 with more agents than fit and an open PR, the PR row above t
   expect(shown.some((l) => /^\s*PR\b/.test(l.text)), dump(shown)).toBe(true) // Q-68: the PR row stays drawn
 })
 
-test('guard: T15-G7 with more agents than fit and merge-ready rows, the merge line above the list is drawn in the pane', async ($, on) => {
+test('guard: T15-G7 with more agents than fit and merge-ready rows, the merge line above the list is drawn in the pane', LOADED, async ($, on) => {
   // Requirement R-C16-23 (traceability.yaml): "The lines above it (goal, PR and merge rows)" (spec L366); R-C16-52.
   // Q-68 (inbox/Q-68.answer.md): "the lines above and below it stay drawn". OQ7: a guard (done-criterion 49).
   const w = world(on, { pr: true }) // fixture: PR #47 with a failing check, so its merge-ready rows are computed
@@ -572,7 +586,7 @@ test('guard: T15-G7 with more agents than fit and merge-ready rows, the merge li
 
 // ================================================================== running agents stay in view (Q-64)
 
-test('t15-scroll: with finished agents taller than the pane and one running, the running row is drawn when the list is first shown', async ($, on) => {
+test('t15-scroll: with finished agents taller than the pane and one running, the running row is drawn when the list is first shown', LOADED, async ($, on) => {
   // Requirement R-C16-05 (traceability.yaml): "Running agents stay in view." (spec L287); R-C16-18 (L296): "one that a
   // running agent stays in view". Q-64 (inbox/Q-64.answer.md). Done-criterion 13.
   const w = world(on)
@@ -583,7 +597,7 @@ test('t15-scroll: with finished agents taller than the pane and one running, the
   expect(indexOf(shown, 'wk41'), 'running wk41 not in the pane:' + dump(shown)).toBeGreaterThanOrEqual(0) // L287: running agents stay in view
 })
 
-test('guard: T15-G8 a running agent row is drawn', async ($, on) => {
+test('guard: T15-G8 a running agent row is drawn', LOADED, async ($, on) => {
   // Requirement R-C16-05 (traceability.yaml): "Running agents stay in view." (spec L287). OQ7: a guard (done-criterion 45:
   // live rows are never folded at da5910c, mod/lib/agents.mjs ~98).
   const w = world(on)
@@ -595,7 +609,7 @@ test('guard: T15-G8 a running agent row is drawn', async ($, on) => {
   expect(l!.text.includes('●') && !l!.text.includes('✓') && !l!.text.includes('✗'), 'wk02 is not drawn as a running row: ' + (l ? l.text : '')).toBe(true) // fixture: P3-d4, the row is drawn running (its ●), not as a returned one
 })
 
-test('guard: T15-G9 a finished agent row shows its ✓ or ✗ mark and its verdict', async ($, on) => {
+test('guard: T15-G9 a finished agent row shows its ✓ or ✗ mark and its verdict', LOADED, async ($, on) => {
   // Requirement R-C16-03 (traceability.yaml): "Every agent stays listed." (spec L286); R-C16-49 (L391): "its ✓ or ✗
   // mark". OQ7: a guard (done-criterion 46: mod/lib/agents.mjs ~107-113 at da5910c).
   const w = world(on)
@@ -623,7 +637,7 @@ const tall = ($: any, w: World) => agents($, w, MANYN, [], {}, MID)
 /** The window's rows: the finished agent rows drawn (every worker is finished, so none is in a pinned strip). */
 const windowRows = (ls: Line[]) => agentRows(ls).filter((r) => r.label !== 'prime')
 
-test('t15-scroll: with the focus on the last agent row shown and more rows below, ↓ scrolls the list', async ($, on) => {
+test('t15-scroll: with the focus on the last agent row shown and more rows below, ↓ scrolls the list', LOADED, async ($, on) => {
   // Requirement R-C16-08 (traceability.yaml): "moving the focus past the last or first row shown scrolls the list,"
   // (spec L289); R-C16-29 (L371): "so that the newly focused row is in view"; R-C16-07, R-C16-20. D-T15-scroll-step: the
   // step size is not pinned. Done-criterion 14.
@@ -641,7 +655,7 @@ test('t15-scroll: with the focus on the last agent row shown and more rows below
   expect(fresh.length, 'no row came into view after ↓ from ' + last.label + ':' + dump(after)).toBeGreaterThan(0) // L289: ↓ past the last row scrolls the list
 })
 
-test('t15-scroll: after that ↓, the focus is on the agent row that came into view', async ($, on) => {
+test('t15-scroll: after that ↓, the focus is on the agent row that came into view', LOADED, async ($, on) => {
   // Requirement R-C16-29 (traceability.yaml): "so that the newly focused row is in view (L289-290 stand)." (spec L371);
   // R-C16-08. Done-criterion 15.
   const w = world(on)
@@ -660,7 +674,7 @@ test('t15-scroll: after that ↓, the focus is on the agent row that came into v
   expect(now).toBe(order[order.indexOf(last.label) + 1]) // L371: the row after the last one shown, in tree order
 })
 
-test('t15-scroll: with the focus on the first agent row shown and rows above it, ↑ scrolls the list back', async ($, on) => {
+test('t15-scroll: with the focus on the first agent row shown and rows above it, ↑ scrolls the list back', LOADED, async ($, on) => {
   // Requirement R-C16-08 (traceability.yaml): "moving the focus past the last or first row shown scrolls the list,"
   // (spec L289); R-C16-29 (L371). D-T15-scroll-step: the step size is not pinned. Done-criterion 16.
   const w = world(on)
@@ -680,7 +694,7 @@ test('t15-scroll: with the focus on the first agent row shown and rows above it,
   expect(back.length, 'no row above ' + first!.label + ' came into view after ↑:' + dump(after)).toBeGreaterThan(0) // L289: ↑ past the first row scrolls back
 })
 
-test('t15-scroll: an agent row scrolled into view by ↓ opens by focus and Enter', async ($, on) => {
+test('t15-scroll: an agent row scrolled into view by ↓ opens by focus and Enter', LOADED, async ($, on) => {
   // Requirement R-C16-09 (traceability.yaml): "and a row scrolled into view opens like any other." (spec L290). OQ7
   // (inbox/OQ7.answer.md): Enter-to-open on rows that open. Done-criterion 17.
   const w = world(on)
@@ -707,7 +721,7 @@ const LOW = 14 // fixture: a 14-line pane, so the 22 rows scroll
 // every row of the fixture is drawn somewhere at da5910c too, and wk01 … wk05 are finished rows at the list's top.
 const LRUN = Array.from({ length: 10 }, (_, i) => i + 6)
 
-test('t15-scroll: with at most 22 lettered rows, every agent row drawn after the list scrolls has a direct key from the pool', async ($, on) => {
+test('t15-scroll: with at most 22 lettered rows, every agent row drawn after the list scrolls has a direct key from the pool', LOADED, async ($, on) => {
   // Requirement R-C16-15 (traceability.yaml): "how the T9 direct keys are given to rows as the list scrolls." (spec L293);
   // R-C16-40 (L383): "A row's direct key stays with that row for as long as the row exists,". Q-12
   // (inbox/Q-12.answer.md), Q-67 (inbox/Q-67.answer.md): "rows out of view keep their letters". Done-criterion 18.
@@ -721,7 +735,7 @@ test('t15-scroll: with at most 22 lettered rows, every agent row drawn after the
   expect(rows.filter((r) => !POOL.includes(letterOf(r.l) ?? '')).map((r) => r.label)).toEqual([]) // Q-12/Q-67: each holds a pool letter
 })
 
-test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a direct key', async ($, on) => {
+test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a direct key', LOADED, async ($, on) => {
   // Requirement R-C16-15 (traceability.yaml): "how the T9 direct keys are given to rows as the list scrolls." (spec L293).
   // Q-12 (inbox/Q-12.answer.md) via key-scheme.md section 2: "Rules 1-4 hold at most one row per letter". OQ7: a guard
   // (done-criterion 19, false premise at da5910c: no row has a key there); work/guard-evidence.md.
@@ -739,7 +753,7 @@ test('guard: T15-G10 after the list scrolls, no two agent rows drawn share a dir
   }
 })
 
-test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window, a row is added above it, and it is scrolled back in at another place', async ($, on) => {
+test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the window, a row is added above it, and it is scrolled back in at another place', LOADED, async ($, on) => {
   // Requirement R-C16-40 (traceability.yaml): "A row's direct key stays with that row for as long as the row exists,"
   // (spec L383); R-C16-57 (L400): "a row keeps its key while scrolled out;". Q-67 (inbox/Q-67.answer.md): "hotkey letters
   // are fixed per row for as long as the row exists". OQ7: a guard (done-criterion 20, false premise at da5910c).
@@ -771,7 +785,7 @@ test('guard: T15-G11 a row keeps its direct key when it is scrolled out of the w
   expect(letterOf(lineOf(back, 'wk03'))).toBe(before) // Q-67: the same key as before it was scrolled out
 })
 
-test('t15-scroll: pressing the direct key of a row scrolled out of the window opens that row', async ($, on) => {
+test('t15-scroll: pressing the direct key of a row scrolled out of the window opens that row', LOADED, async ($, on) => {
   // Requirement R-C16-41 (traceability.yaml): "Pressing the key of a row scrolled out of view opens that row." (spec
   // L384). Q-67 (inbox/Q-67.answer.md): "rows out of view keep their letters". Done-criterion 21.
   const w = world(on)
@@ -789,7 +803,7 @@ test('t15-scroll: pressing the direct key of a row scrolled out of the window op
   expect(await shownText(w.eng.ui)).toContain('wk03') // the view is wk03's
 })
 
-test('t15-scroll: a row added after the pane first drew takes the lowest pool letter no other row holds', async ($, on) => {
+test('t15-scroll: a row added after the pane first drew takes the lowest pool letter no other row holds', LOADED, async ($, on) => {
   // Requirement R-C16-46 (traceability.yaml): "A row added later takes the lowest free letter of the 22-letter pool."
   // (spec L389). D-T15-letters-pool (display detail decided by the planner under the standing ruling): "A row added
   // later takes the lowest letter no other row holds." Done-criterion 22.
@@ -811,7 +825,7 @@ async function full($: any, w: World) {
   await w.redraw()
 }
 
-test('guard: T15-G12 with all 22 letters held, a row added later has no direct key', async ($, on) => {
+test('guard: T15-G12 with all 22 letters held, a row added later has no direct key', LOADED, async ($, on) => {
   // Requirement R-C16-47 (traceability.yaml): "Once every letter is taken, a row has no direct key and opens by focus
   // and Enter (Q-12)." (spec L390). Q-12 (inbox/Q-12.answer.md) via its question: "Rows past the 22nd have no direct key".
   // D-T15-letters-pool. OQ7: a guard (done-criterion 23, false premise at da5910c: no row has a key).
@@ -825,7 +839,7 @@ test('guard: T15-G12 with all 22 letters held, a row added later has no direct k
   expect(letterOf(l)).toBe(undefined) // L390: it has no direct key
 })
 
-test('guard: T15-G13 with all 22 letters held, the row added later opens by focus and Enter', async ($, on) => {
+test('guard: T15-G13 with all 22 letters held, the row added later opens by focus and Enter', LOADED, async ($, on) => {
   // Requirement R-C16-47 (traceability.yaml): "... a row has no direct key and opens by focus and Enter (Q-12)." (spec
   // L390). Q-12 (inbox/Q-12.answer.md). OQ7: "Enter-to-open on rows that already open" (done-criterion 24).
   const w = world(on)
@@ -843,7 +857,7 @@ test('guard: T15-G13 with all 22 letters held, the row added later opens by focu
   expect(await shownText(w.eng.ui)).toContain('run23') // its own view
 })
 
-test('guard: T15-G14 after a pane reload, every row that still exists has the direct key it had before', async ($, on) => {
+test('guard: T15-G14 after a pane reload, every row that still exists has the direct key it had before', LOADED, async ($, on) => {
   // Requirement R-C16-61 (traceability.yaml): "A row's letter survives every pane reload" (spec L567); R-C16-66 (L569):
   // "A row that still exists gets its letter back."; R-C16-68 (L571). Q-82 (inbox/Q-82.answer.md): "Letters survive
   // every reload". OQ7: a guard (done-criterion 25, false premise at da5910c: no row has a key). The fixture is one in
@@ -869,7 +883,7 @@ test('guard: T15-G14 after a pane reload, every row that still exists has the di
   carried = { files: new Map(w.files), store: new Map(w.store), letters: was }
 })
 
-test('guard: T15-G15 after the mod restarts and reads the run state back, a phase row that still exists has its direct key', async ($, on) => {
+test('guard: T15-G15 after the mod restarts and reads the run state back, a phase row that still exists has its direct key', LOADED, async ($, on) => {
   // Requirement R-C16-62 (traceability.yaml): "and restart (Q-82)." (spec L567); R-C16-63 (L567): "The row-to-letter map
   // is stored with the run's state,"; R-C16-65 (L568): "and read back on any reload or restart." Q-82
   // (inbox/Q-82.answer.md): "read back on any reload or restart. A row that still exists gets its letter back". OQ7: a
@@ -887,7 +901,7 @@ test('guard: T15-G15 after the mod restarts and reads the run state back, a phas
   expect(Object.fromEntries(rows.map((r) => [r, letterOf(lineOf(after, r))]))).toEqual(Object.fromEntries(rows.map((r) => [r, carried!.letters[r]]))) // Q-82: the same letters
 })
 
-test('t15-scroll: after a pane reload, a row that did not exist before takes the lowest free pool letter', async ($, on) => {
+test('t15-scroll: after a pane reload, a row that did not exist before takes the lowest free pool letter', LOADED, async ($, on) => {
   // Requirement R-C16-67 (traceability.yaml): "A new row takes the lowest free letter." (spec L569); R-C16-61. Q-82
   // (inbox/Q-82.answer.md): "new rows take the lowest free letter". Done-criterion 27.
   const w = world(on)
@@ -904,7 +918,7 @@ test('t15-scroll: after a pane reload, a row that did not exist before takes the
 
 // ================================================================== PageUp, PageDown, Home, End (Q-63)
 
-test('t15-scroll: PageDown scrolls the list down by the window height in rows', async ($, on) => {
+test('t15-scroll: PageDown scrolls the list down by the window height in rows', LOADED, async ($, on) => {
   // Requirement R-C16-27 (traceability.yaml): "The engine's PageUp and PageDown scroll it by one window," (spec L369);
   // R-C16-53. Q-63 (inbox/Q-63.answer.md): "the engine's PageUp/PageDown scroll by a page". Done-criterion 28.
   const w = world(on)
@@ -919,7 +933,7 @@ test('t15-scroll: PageDown scrolls the list down by the window height in rows', 
   expect(order.indexOf(top) - order.indexOf(before[0]!.label), 'new top ' + top).toBe(before.length) // spec L369: by one window
 })
 
-test('t15-scroll: PageUp scrolls the list up by the window height in rows', async ($, on) => {
+test('t15-scroll: PageUp scrolls the list up by the window height in rows', LOADED, async ($, on) => {
   // Requirement R-C16-27 (traceability.yaml): "The engine's PageUp and PageDown scroll it by one window," (spec L369);
   // R-C16-53. Q-63 (inbox/Q-63.answer.md). Done-criterion 29.
   const w = world(on)
@@ -935,7 +949,7 @@ test('t15-scroll: PageUp scrolls the list up by the window height in rows', asyn
   expect(order.indexOf(mid[0]!.label) - order.indexOf(top), 'new top ' + top + ', old top ' + mid[0]!.label).toBe(mid.length) // spec L369: by one window
 })
 
-test('t15-scroll: Home moves the focus to the list first row', async ($, on) => {
+test('t15-scroll: Home moves the focus to the list first row', LOADED, async ($, on) => {
   // Requirement R-C16-28 (traceability.yaml): "and Home and End move to its first and last row." (spec L369-370);
   // R-C16-53. Q-63 (inbox/Q-63.answer.md): "Home/End go to the first/last row". Done-criterion 30.
   const w = world(on)
@@ -948,7 +962,7 @@ test('t15-scroll: Home moves the focus to the list first row', async ($, on) => 
   expect(await focusedRow(w)).toBe('prime') // L387: the list's first row is the prime's
 })
 
-test('t15-scroll: End moves the focus to the list last row', async ($, on) => {
+test('t15-scroll: End moves the focus to the list last row', LOADED, async ($, on) => {
   // Requirement R-C16-28 (traceability.yaml): "and Home and End move to its first and last row." (spec L369-370);
   // R-C16-53. Q-63 (inbox/Q-63.answer.md). Done-criterion 31.
   const w = world(on)
@@ -964,7 +978,7 @@ test('t15-scroll: End moves the focus to the list last row', async ($, on) => {
 
 const SHORT = 16 // fixture: a 16-line pane
 
-test('t15-scroll: a running agent row scrolled above the window is drawn in a pinned strip at the top of the list', async ($, on) => {
+test('t15-scroll: a running agent row scrolled above the window is drawn in a pinned strip at the top of the list', LOADED, async ($, on) => {
   // Requirement R-C16-30 (traceability.yaml): "A running agent's row scrolled out of the window is drawn in a pinned
   // strip" (spec L374); R-C16-31 (L375): "above for rows above"; R-C16-12, R-C16-54. Q-64 (inbox/Q-64.answer.md).
   // Done-criterion 32.
@@ -982,7 +996,7 @@ test('t15-scroll: a running agent row scrolled above the window is drawn in a pi
   expect(at).toBeLessThan(win[0]!.i) // Q-64: in a strip at the top, above the window's rows
 })
 
-test('t15-scroll: a running agent row scrolled below the window is drawn in a pinned strip at the bottom of the list', async ($, on) => {
+test('t15-scroll: a running agent row scrolled below the window is drawn in a pinned strip at the bottom of the list', LOADED, async ($, on) => {
   // Requirement R-C16-30 (traceability.yaml): "... is drawn in a pinned strip" (spec L374); R-C16-31 (L375): "below for
   // rows below."; R-C16-11, R-C16-54. Q-64 (inbox/Q-64.answer.md). Done-criterion 33.
   const w = world(on)
@@ -998,7 +1012,7 @@ test('t15-scroll: a running agent row scrolled below the window is drawn in a pi
   expect(at).toBeGreaterThan(win.at(-1)!.i) // Q-64: in a strip at the bottom, below the window's rows
 })
 
-test('t15-scroll: a pinned strip of two running rows draws them in tree order', async ($, on) => {
+test('t15-scroll: a pinned strip of two running rows draws them in tree order', LOADED, async ($, on) => {
   // Requirement R-C16-32 (traceability.yaml): "The strip keeps tree order," (spec L375). Q-64 (inbox/Q-64.answer.md):
   // "drawn in a pinned strip at that edge of the list". Done-criterion 34.
   const w = world(on)
@@ -1015,7 +1029,7 @@ test('t15-scroll: a pinned strip of two running rows draws them in tree order', 
   expect(one).toBeLessThan(two) // L375: tree order, wk01 before wk02
 })
 
-test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct key as in the list', async ($, on) => {
+test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct key as in the list', LOADED, async ($, on) => {
   // Requirement R-C16-33 (traceability.yaml): "and each row in it keeps its key and `›`." (spec L375-376). Q-64
   // (inbox/Q-64.answer.md); Q-67 (inbox/Q-67.answer.md): "rows out of view keep their letters". OQ7: a guard
   // (done-criterion 35, false premise at da5910c: no pinned strip and no keys there).
@@ -1036,7 +1050,7 @@ test('guard: T15-G16 a running row drawn in a pinned strip shows the same direct
   }
 })
 
-test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', async ($, on) => {
+test('guard: T15-G17 a running row drawn in a pinned strip draws its ›', LOADED, async ($, on) => {
   // Requirement R-C16-33 (traceability.yaml): "and each row in it keeps its key and `›`." (spec L375-376); plan verdict
   // r15 P3-3. Q-64 (inbox/Q-64.answer.md). OQ7: a guard (done-criterion 36, false premise at da5910c: no pinned strip).
   const w = world(on)
@@ -1066,7 +1080,7 @@ function stripRowsWithoutChevron(shown: Line[]): string[] {
     .map((x) => x.m![1] + ':' + x.l.text)
 }
 
-test('t15-scroll: when the running rows do not all fit in the strip, its last line reads +<k> running', async ($, on) => {
+test('t15-scroll: when the running rows do not all fit in the strip, its last line reads +<k> running', LOADED, async ($, on) => {
   // Requirement R-C16-34 (traceability.yaml): "When the running rows do not all fit, the strip shows as many as fit and
   // then `+<k> running` (Q-64)." (spec L376). Q-64 (inbox/Q-64.answer.md). Done-criterion 37.
   const w = world(on)
@@ -1085,7 +1099,7 @@ test('t15-scroll: when the running rows do not all fit in the strip, its last li
 
 // ================================================================== the scroll position holds (Q-65)
 
-test('t15-scroll: when an agent row is added above the window top row, that row stays the window top row', async ($, on) => {
+test('t15-scroll: when an agent row is added above the window top row, that row stays the window top row', LOADED, async ($, on) => {
   // Requirement R-C16-35 (traceability.yaml): "When rows are added, the row at the top of the window stays at the top
   // (Q-65)." (spec L378); R-C16-13, R-C16-55. Q-65 (inbox/Q-65.answer.md): "the scroll position is anchored to the row
   // at the top of the window". Done-criterion 38.
@@ -1103,7 +1117,7 @@ test('t15-scroll: when an agent row is added above the window top row, that row 
 
 // ================================================================== more lines (Q-66)
 
-test('t15-scroll: with rows hidden below the window, a dim ↓ <k> more line is drawn at the list bottom', async ($, on) => {
+test('t15-scroll: with rows hidden below the window, a dim ↓ <k> more line is drawn at the list bottom', LOADED, async ($, on) => {
   // Requirement R-C16-37 (traceability.yaml): "and `↓ <k> more` at the bottom show that k rows lie beyond that edge."
   // (spec L380); R-C16-14, R-C16-56. Q-66 (inbox/Q-66.answer.md). D-T15-more-count (display detail decided by the
   // planner under the standing ruling): "k ... is the number of rows beyond that edge that are not drawn. Rows drawn in a
@@ -1124,7 +1138,7 @@ test('t15-scroll: with rows hidden below the window, a dim ↓ <k> more line is 
   expect(Number(DOWN_MORE.exec(more!.text)![1])).toBe(below) // D-T15-more-count: the rows below not drawn
 })
 
-test('t15-scroll: with rows hidden above the window, a dim ↑ <k> more line is drawn at the list top', async ($, on) => {
+test('t15-scroll: with rows hidden above the window, a dim ↑ <k> more line is drawn at the list top', LOADED, async ($, on) => {
   // Requirement R-C16-36 (traceability.yaml): "A dim `↑ <k> more` line at the top of the list" (spec L380); R-C16-14,
   // R-C16-56. Q-66 (inbox/Q-66.answer.md). D-T15-more-count: rows drawn in a pinned strip are not counted. Criterion 40.
   const w = world(on)
@@ -1144,7 +1158,7 @@ test('t15-scroll: with rows hidden above the window, a dim ↑ <k> more line is 
   expect(Number(UP_MORE.exec(more!.text)![1])).toBe(above) // D-T15-more-count: the rows above not drawn
 })
 
-test('guard: T15-G18 with no row hidden below the window, no ↓ more line is drawn', async ($, on) => {
+test('guard: T15-G18 with no row hidden below the window, no ↓ more line is drawn', LOADED, async ($, on) => {
   // Requirement R-C16-38 (traceability.yaml): "Each is drawn only when rows are hidden there." (spec L381). Q-66
   // (inbox/Q-66.answer.md). OQ7: a guard (done-criterion 41, false premise at da5910c: no more line is drawn at all).
   const w = world(on)
@@ -1157,7 +1171,7 @@ test('guard: T15-G18 with no row hidden below the window, no ↓ more line is dr
   expect(shown.filter((l) => DOWN_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none below, no ↓ line
 })
 
-test('guard: T15-G19 with no row hidden above the window, no ↑ more line is drawn', async ($, on) => {
+test('guard: T15-G19 with no row hidden above the window, no ↑ more line is drawn', LOADED, async ($, on) => {
   // Requirement R-C16-38 (traceability.yaml): "Each is drawn only when rows are hidden there." (spec L381); plan verdict
   // r15 P3-3. Q-66 (inbox/Q-66.answer.md). OQ7: a guard (done-criterion 50: no more line is drawn at all at da5910c).
   const w = world(on)
@@ -1169,7 +1183,7 @@ test('guard: T15-G19 with no row hidden above the window, no ↑ more line is dr
   expect(shown.filter((l) => UP_MORE.test(l.text)).map((l) => l.text)).toEqual([]) // L381: none above, no ↑ line
 })
 
-test('guard: T15-G20 with rows hidden above and a running row pinned above, the strip is drawn between the ↑ more line and the list rows', async ($, on) => {
+test('guard: T15-G20 with rows hidden above and a running row pinned above, the strip is drawn between the ↑ more line and the list rows', LOADED, async ($, on) => {
   // Requirement R-C16-39 (traceability.yaml): "A pinned strip sits between it and the list (Q-66)." (spec L381-382).
   // Q-66 (inbox/Q-66.answer.md). OQ7: a guard (done-criterion 42, false premise at da5910c: neither the ↑ line nor a
   // strip is drawn there).

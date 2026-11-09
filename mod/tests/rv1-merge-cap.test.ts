@@ -12,6 +12,10 @@
 //
 // The memo CLI is stubbed at process.run; no real memory store is read or written (Q-85).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the test here took 3.9 s under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so it gets an explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
 
@@ -65,7 +69,7 @@ function world(on: any) {
 
 // R-C15-25 (L434): "Whatever truncates the summarizer's input is fixed."
 // Q-79: each entry is capped at 280 bytes by design; the model must merge it, not comment on it.
-test('rv1 R-C15-25: the merge request the mod sends tells the model, in its system prompt, that the 280-byte cap is by design and the entries are not to be commented on', async ($, on) => {
+test('rv1 R-C15-25: the merge request the mod sends tells the model, in its system prompt, that the 280-byte cap is by design and the entries are not to be commented on', LOADED, async ($, on) => {
   const clock = mock.clock(on)
   const w = world(on)
   await $.tool.call({ tool: 'mcp__baton__memory_note', text: ALPHA } as any)

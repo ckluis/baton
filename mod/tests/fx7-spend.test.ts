@@ -13,6 +13,11 @@
 //   `cache_creation.ephemeral_1h_input_tokens` beside `cache_creation_input_tokens`.
 // The cost figure is read as each model's `usd` under spend.json's `total.byModel` (decision P4-FX7-d1).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture
 const RUN_ID = 'build-20261102T120000Z' // fixture
@@ -128,7 +133,7 @@ const usdOf = (s: any, model: string) => s?.total?.byModel?.[model]?.usd
 const nano = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 1e9) : null)
 
 // R-C3-13 (spec L56): three models served the run, each through a request the mod meters; spend.json shows each one's cost.
-test('fx7-spend R-C3-13: spend.json has a cost figure for each of opus, sonnet and haiku after each served a request', async ($, on) => {
+test('fx7-spend R-C3-13: spend.json has a cost figure for each of opus, sonnet and haiku after each served a request', LOADED, async ($, on) => {
   const w = world(on)
   await start($, w)
   await step($, w, 'p1', usage(OPUS, 1000, 2000))
@@ -150,7 +155,7 @@ test('fx7-spend R-C3-13: spend.json has a cost figure for each of opus, sonnet a
 // model that served, and the part of it no turn.step metered. (First written to expect the figure under haiku's own
 // entry; changed after the live run showed the engine's own requests also run on opus, so that guess would be wrong:
 // /Users/clank/Desktop/projects/baton/_orch/nodes/FX7/work/result.md, R-C3-13 "Not fixable".)
-test('fx7-spend R-C3-13: a request the engine made on its own (no turn.step) is costed in spend.json as the engine total minus what was metered', async ($, on) => {
+test('fx7-spend R-C3-13: a request the engine made on its own (no turn.step) is costed in spend.json as the engine total minus what was metered', LOADED, async ($, on) => {
   const opus = 1000 * P[OPUS].input + 2000 * P[OPUS].output
   const title = 1300 * P[HAIKU].input + 18 * P[HAIKU].output // LV6's title request: 1.3k input, 18 output
   let engine = 0
@@ -167,7 +172,7 @@ test('fx7-spend R-C3-13: a request the engine made on its own (no turn.step) is 
 })
 
 // R-C3-13 (LV6 §1 finding 3, the CHANGELOG at 41670d5): a 1-hour cache write is 2x input, not the 5-minute 1.25x.
-test('fx7-spend R-C3-13: spend.json prices a 1-hour cache write at the 1-hour rate, not the 5-minute one', async ($, on) => {
+test('fx7-spend R-C3-13: spend.json prices a 1-hour cache write at the 1-hour rate, not the 5-minute one', LOADED, async ($, on) => {
   const w = world(on)
   await start($, w)
   await step($, w, 'p1', usage(OPUS, 0, 0, { cache_creation_input_tokens: 1_000_000, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 1_000_000 } }))
@@ -177,7 +182,7 @@ test('fx7-spend R-C3-13: spend.json prices a 1-hour cache write at the 1-hour ra
 })
 
 // R-C3-13: one request with writes of both durations prices each part at its own rate.
-test('fx7-spend R-C3-13: a request with 5-minute and 1-hour cache writes prices each part at its own rate', async ($, on) => {
+test('fx7-spend R-C3-13: a request with 5-minute and 1-hour cache writes prices each part at its own rate', LOADED, async ($, on) => {
   const w = world(on)
   await start($, w)
   await step($, w, 'c1', usage(SONNET, 0, 0, { cache_creation_input_tokens: 1_000_000, cache_creation: { ephemeral_5m_input_tokens: 600_000, ephemeral_1h_input_tokens: 400_000 } }))

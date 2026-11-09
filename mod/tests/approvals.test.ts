@@ -1,5 +1,10 @@
 // claude plugin test — the command gate, the phase gate, enforced rulings, the agent tree.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the tests here take up to 0.6 s alone, at risk
+// of the default under that load (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
 const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -64,7 +69,7 @@ async function tree($: any) {
 }
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: a worker two levels down asks before git push; Approve runs it and notes the approval', async ($, on) => {
+test('guard: a worker two levels down asks before git push; Approve runs it and notes the approval', LOADED, async ($, on) => {
   const w = world(on, { member: true, answers: ['Approve'] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, L97, Q-7, Q-80; R-C7-01, R-C7-02, R-C7-04, R-C7-10)
@@ -79,7 +84,7 @@ test('guard: a worker two levels down asks before git push; Approve runs it and 
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: a typed answer refuses with that reason; approve-for-run skips later asks of the same gate', async ($, on) => {
+test('guard: a typed answer refuses with that reason; approve-for-run skips later asks of the same gate', LOADED, async ($, on) => {
   const w = world(on, { member: true, answers: ['use a branch, not main', (o: string[]) => o[1]] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -96,7 +101,7 @@ test('guard: a typed answer refuses with that reason; approve-for-run skips late
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: nobody to ask (claude -p): a gated command is refused, an ordinary one is not', async ($, on) => {
+test('guard: nobody to ask (claude -p): a gated command is refused, an ordinary one is not', LOADED, async ($, on) => {
   world(on, { member: true, surfaces: [] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -106,7 +111,7 @@ test('guard: nobody to ask (claude -p): a gated command is refused, an ordinary 
 })
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: a sub-orchestrator reporting DONE holds the next dispatch until the operator answers', async ($, on) => {
+test('guard: a sub-orchestrator reporting DONE holds the next dispatch until the operator answers', LOADED, async ($, on) => {
   const w = world(on, { member: true, answers: ['the criteria are vacuous'] }) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -120,7 +125,7 @@ test('guard: a sub-orchestrator reporting DONE holds the next dispatch until the
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
 // amended by verifier (XT16): still a guard: with the XT16 amendment applied it passes at da5910c (work/red.txt da5910c: run, work/guards.txt), so it is a preservation guard, exempt from red (C6, spec L80, R-C6-05; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: an enforced ruling refuses a matching command at tool.check; others keep their decision', async ($, on) => {
+test('guard: an enforced ruling refuses a matching command at tool.check; others keep their decision', LOADED, async ($, on) => {
   const rulings = [ // amended by verifier (XT16): the rulings store is a live list the test appends to, so a later write reaches the next recall (C6 may memo rulings longer, spec L80, R-C6-05; D-T6-loadRulings-fix)
     { index: 0, ts: '2026-10-04T00:00:00Z', tag: 'ruling', text: 'never push to main' },
     { index: 1, ts: '2026-10-04T00:00:00Z', tag: 'enforce', text: 'enforce #0 /git push.*\\bmain\\b/' },

@@ -22,6 +22,11 @@
 // phase, a brief per phase, and agents spawned by the prime with descriptions that name no phase (so
 // they are unphased rows, directly under the prime after the phase rows: D-P1-tree-unphased).
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the tests here take up to 1.4 s alone, at risk
+// of the default under that load (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture: the run's directory
 const RUN_ID = 'build-20261019T125436Z' // fixture run id
@@ -214,7 +219,7 @@ const phaseRe = (n: number) => new RegExp('(^|[^A-Za-z0-9])P' + n + '([^0-9]|$)'
 
 // ================================================================== guards (OQ7)
 
-test('guard: G1 an agent row that opens by focus and Enter on its › still opens that way', async ($, on) => {
+test('guard: G1 an agent row that opens by focus and Enter on its › still opens that way', LOADED, async ($, on) => {
   // Requirement R-C9-02 (traceability.yaml): "or by a focus-and-Enter scheme." (spec L131)
   // OQ7 (inbox/OQ7.answer.md): "Enter-to-open on rows that already open ... gets guard tests, named guard:…".
   // E1 §k: "agent: prime, sub-orch, worker, verifier, nested | yes | yes, F17 worker view" (register.js ~1462-1463).
@@ -229,7 +234,7 @@ test('guard: G1 an agent row that opens by focus and Enter on its › still open
   expect(t.includes('alpha worker') || t.includes('gamma worker')).toBe(false) // it is that row's view, not another agent's
 })
 
-test('guard: G2 a phase row, found by its P<n> label, still opens a view by focus and Enter', async ($, on) => {
+test('guard: G2 a phase row, found by its P<n> label, still opens a view by focus and Enter', LOADED, async ($, on) => {
   // Requirement R-C9-02 (traceability.yaml): "or by a focus-and-Enter scheme." (spec L131)
   // OQ7 (inbox/OQ7.answer.md): "Enter-to-open on rows that already open". E1 §k: "phase (P1, P2) | yes | yes:
   // "P1 · verified · steps … the brief · its envelope"" (register.js ~1241, k-04-enter-P1.txt).
@@ -244,7 +249,7 @@ test('guard: G2 a phase row, found by its P<n> label, still opens a view by focu
   expect(phaseRe(2).test(await shownText(ui))).toBe(true) // the view opened from the P2 row is about P2
 })
 
-test('guard: G3 1, 2 and r keep the actions they have at da5910c', async ($, on) => {
+test('guard: G3 1, 2 and r keep the actions they have at da5910c', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ7 (inbox/OQ7.answer.md): behaviour that already works gets guard tests. E1 §k reserved table:
   // "`1` | :111 (TABS) via :2935 | Work tab", "`2` | :112 via :2935 | Memory tab", "`r` | :2946 | refresh pane".
@@ -274,7 +279,7 @@ test('guard: G3 1, 2 and r keep the actions they have at da5910c', async ($, on)
   expect(await shownRead(), 'r did not re-read the pane').not.toBe(before) // E1 §k: `r` refreshes the pane
 })
 
-test('guard: G4 b is shown on an opened view as 1, 2 and r are, and leaves it', async ($, on) => {
+test('guard: G4 b is shown on an opened view as 1, 2 and r are, and leaves it', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ7 (inbox/OQ7.answer.md): "`b` drill-out" works today. E1 §k: "03 [s3:│b][s4:: ‹ back  ]... ← in a detail view b
   // and r are highlighted"; "`b` leaves a phase view (k-05-after-b.txt) and an agent view (k-08-agent-after-b.txt)".
@@ -296,7 +301,7 @@ async function accentGlyphs(ui: any, glyph: string) {
   return (await ui.findAll({ type: 'Text' })).filter((t: any) => String(t.text).trim() === glyph && t.props.color === ACCENT && !t.props.dimColor)
 }
 
-test('missing #1: the Work tab shows ↑/↓ the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #1: the Work tab shows ↑/↓ the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 §k line 19: "↑/↓, Enter, b only in dim (#999999) hint text". Q-32's default: the accent `#99CCFF`, in the hint line.
@@ -306,7 +311,7 @@ test('missing #1: the Work tab shows ↑/↓ the way 1, 2 and r are shown (the a
   expect(both > 0, 'item 1: ↑/↓ in the accent #99CCFF').toBe(true) // Q-32: ↑/↓ drawn in the accent #99CCFF, not dim
 })
 
-test('missing #2: the Work tab shows Enter the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #2: the Work tab shows Enter the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 §k line 19: "↑/↓, Enter, b only in dim (#999999) hint text". Q-32's default: the accent `#99CCFF`.
@@ -315,7 +320,7 @@ test('missing #2: the Work tab shows Enter the way 1, 2 and r are shown (the acc
   expect((await accentGlyphs(ui, 'Enter')).length > 0, 'item 2: Enter in the accent #99CCFF').toBe(true) // Q-32: Enter drawn in the accent #99CCFF, not dim
 })
 
-test('missing #3: the Work tab hint shows b the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #3: the Work tab hint shows b the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 §k line 19: the Work hint "b goes back" is "only in dim (#999999) hint text"; on an opened view b is already
@@ -325,7 +330,7 @@ test('missing #3: the Work tab hint shows b the way 1, 2 and r are shown (the ac
   expect((await accentGlyphs(ui, 'b')).length > 0, 'item 3: b in the accent #99CCFF').toBe(true) // OQ6 part 1 with Q-32's accent #99CCFF: b in the accent, not dim
 })
 
-test('missing #4: the Memory tab shows + the way 1, 2 and r are shown (the accent)', async ($, on) => {
+test('missing #4: the Memory tab shows + the way 1, 2 and r are shown (the accent)', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ6 part 1 (inbox/OQ6.answer.md): "show the keys (↑/↓, Enter, `b`, `+`) the way `1`, `2` and `r` are shown".
   // E1 §k line 12: "Memory: + drawn plain, not highlighted". Q-32's default: "next to the › and + they act on", in the accent.
@@ -345,7 +350,7 @@ const PRIME_KEY = 'a' // key-scheme.md: the prime is first in tree order, so the
 const PHASE_KEYS: Record<number, string> = { 1: 'c', 2: 'd', 3: 'e' } // key-scheme.md: P1-P3 follow the prime (Q-60, L387)
 const AGENT_KEYS: Record<string, string> = { 'alpha worker': 'f', 'beta worker': 'g', 'gamma worker': 'h' } // key-scheme.md: the agent rows follow the phase rows (L387, D-P1-tree-unphased)
 
-test('direct keys: the prime row and each of three agent rows open by the letter key-scheme.md gives them', async ($, on) => {
+test('direct keys: the prime row and each of three agent rows open by the letter key-scheme.md gives them', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "Every navigable row (agent, plan, phase) can be opened from the keyboard, by its own key" (spec L131)
   // OQ6 part 2 (inbox/OQ6.answer.md): "Also give each row a direct hotkey of its own (agent, plan and phase rows), shown the same way."
   // Q-12 (inbox/Q-12.answer.md): "A: positional letters, top-down." Spec L387: "Letters are first given top to bottom in tree order".
@@ -365,7 +370,7 @@ test('direct keys: the prime row and each of three agent rows open by the letter
   }
 })
 
-test('direct keys: each of the phase rows P1-P3, found by its label, opens a view by the letter key-scheme.md gives it', async ($, on) => {
+test('direct keys: each of the phase rows P1-P3, found by its label, opens a view by the letter key-scheme.md gives it', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "Every navigable row (agent, plan, phase) can be opened from the keyboard, by its own key" (spec L131)
   // OQ6 part 2 (inbox/OQ6.answer.md): "Also give each row a direct hotkey of its own (agent, plan and phase rows), shown the same way."
   // Spec L387: "the prime, the phase rows (pending ones included), then sub-orchestrator and agent rows". Which view
@@ -394,7 +399,7 @@ test('direct keys: each of the phase rows P1-P3, found by its label, opens a vie
 // (G5-G9) and reported as false-premise in T19's envelope. The parts that do fail at da5910c by their own assertion
 // (a later row's lowest free letter; the first 22 rows' letters) are ordinary red tests after them.
 
-test('guard: G5 with the prime, three phase rows and three agent rows shown, no two rows share a direct key', async ($, on) => {
+test('guard: G5 with the prime, three phase rows and three agent rows shown, no two rows share a direct key', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "can be opened from the keyboard, by its own key" (spec L131)
   // OQ6 part 2 (inbox/OQ6.answer.md): "give each row a direct hotkey of its own". Engine (types ButtonProps.hotkey,
   // E1 §k): "two clash, later wins", so a shared key would open only one row. Done-criterion 18.
@@ -410,7 +415,7 @@ test('guard: G5 with the prime, three phase rows and three agent rows shown, no 
   expect(all.length).toBe(new Set(all).size) // and no row key is also another Button's key in the pane ("two clash, later wins")
 })
 
-test('guard: G6 every direct row key is shown the way 1, 2 and r are shown', async ($, on) => {
+test('guard: G6 every direct row key is shown the way 1, 2 and r are shown', LOADED, async ($, on) => {
   // Requirement R-C9-03 (traceability.yaml): "Those keys are shown the same way the existing `1`, `2` and `r` are shown." (spec L133)
   // OQ6 part 2 (inbox/OQ6.answer.md): "a direct hotkey of its own ..., shown the same way". E1 §k: 1, 2 and r are
   // plain Buttons whose `hotkey` the engine draws in the accent (style #99CCFF); types ButtonProps.plain: "the hotkey in
@@ -427,7 +432,7 @@ test('guard: G6 every direct row key is shown the way 1, 2 and r are shown', asy
   expect(rows.filter((b: any) => b.props.plain !== one.props.plain || !!b.props.dimColor !== !!one.props.dimColor).map((b: any) => b.props.hotkey)).toEqual([])
 })
 
-test('guard: G7 a row keeps its letter when a row above it is added', async ($, on) => {
+test('guard: G7 a row keeps its letter when a row above it is added', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "can be opened from the keyboard, by its own key" (spec L131)
   // Q-67 (inbox/Q-67.answer.md): "hotkey letters are fixed per row for as long as the row exists". Q-12
   // (inbox/Q-12.answer.md): positional letters, top-down. Spec L263/L387: phase rows (pending ones included) come
@@ -446,7 +451,7 @@ test('guard: G7 a row keeps its letter when a row above it is added', async ($, 
   expect(AGENTS.map((a) => letterOf(rowOf(tree, new RegExp(a))))).toEqual(before) // Q-67: each agent row keeps the letter it had
 })
 
-test('direct keys: a row added after the pane first drew takes the lowest free letter', async ($, on) => {
+test('direct keys: a row added after the pane first drew takes the lowest free letter', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "can be opened from the keyboard, by its own key" (spec L131)
   // D-T15-letters-pool (display detail decided by the planner under the standing ruling): "A row added later takes the
   // lowest letter no other row holds." Spec L389: "A row added later takes the lowest free letter of the 22-letter pool."
@@ -464,7 +469,7 @@ test('direct keys: a row added after the pane first drew takes the lowest free l
 const MANY = Array.from({ length: 19 }, (_, i) => 'w' + String(i + 1).padStart(2, '0') + ' worker') // fixture
 const ORDER = [/prime/, phaseRe(1), phaseRe(2), phaseRe(3), ...MANY.map((a) => new RegExp(a))] // tree order (L387, D-P1-tree-unphased)
 
-test('direct keys: in a pane showing 23 lettered rows when it first draws, the first 22 in tree order hold the pool letters in order', async ($, on) => {
+test('direct keys: in a pane showing 23 lettered rows when it first draws, the first 22 in tree order hold the pool letters in order', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "can be opened from the keyboard, by its own key" (spec L131)
   // Q-12 (inbox/Q-12.answer.md): "A: positional letters, top-down", from `a c d e f g h i j k l m n o q s t u v w y z`.
   // Spec L387: "Letters are first given top to bottom in tree order". D-T15-letters-pool: when the pane first draws.
@@ -474,7 +479,7 @@ test('direct keys: in a pane showing 23 lettered rows when it first draws, the f
   expect(ORDER.slice(0, 22).map((re) => letterOf(rowOf(tree, re)))).toEqual(POOL) // key-scheme.md rule 1: rows 1-22 hold the pool, in order
 })
 
-test('guard: G8 in a pane showing 23 lettered rows when it first draws, the 23rd in tree order has no direct key', async ($, on) => {
+test('guard: G8 in a pane showing 23 lettered rows when it first draws, the 23rd in tree order has no direct key', LOADED, async ($, on) => {
   // Requirement R-C9-01 (traceability.yaml): "can be opened from the keyboard, by its own key" (spec L131)
   // Q-12 (inbox/Q-12.answer.md) via its question: "rows past the 22nd have no direct key and open by focus and Enter";
   // spec L389-390: "Once every letter is taken, a row has no direct key and opens by focus and Enter (Q-12)."
@@ -487,7 +492,7 @@ test('guard: G8 in a pane showing 23 lettered rows when it first draws, the 23rd
   expect(letterOf(rowOf(tree, ORDER[22]!))).toBe(undefined) // the 23rd has no direct key (Q-12, L389)
 })
 
-test('guard: G9 in that pane, the 23rd lettered row opens by focus and Enter', async ($, on) => {
+test('guard: G9 in that pane, the 23rd lettered row opens by focus and Enter', LOADED, async ($, on) => {
   // Requirement R-C9-02 (traceability.yaml): "or by a focus-and-Enter scheme." (spec L131)
   // Q-12 (inbox/Q-12.answer.md) via its question: "rows past the 22nd have no direct key and open by focus and Enter";
   // spec L389-390: "Once every letter is taken, a row has no direct key and opens by focus and Enter (Q-12)."

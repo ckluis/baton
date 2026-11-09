@@ -9,6 +9,11 @@
 // Hazard H28: C8, C9, C10 and C11 all change agent rows, so these tests never compare a whole row
 // string; they read one cell of one row, or the header's labels.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // ---- fixture -------------------------------------------------------------------------------------
 // A plan of three phases (spec L309: "the phases P1..P5 in plan order"): P1 done, P2 running and
@@ -249,7 +254,7 @@ const CENT = 0.0051 // a cost is drawn to the cent (or coarser above $10): half 
 // Spec L341: "Every row shows two column groups: `this agent` (the row's own tokens and cost)"
 // _orch/inbox/Q-57.answer.md: "every row shows two column groups, this agent's own tokens/cost | the roll-up of its subtree"
 // D-T10-group-cells: "under the header labels `this agent` and `roll-up`".
-test('t10-rollup: the agent table header labels a column group `this agent`', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: the agent table header labels a column group `this agent`', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -260,7 +265,7 @@ test('t10-rollup: the agent table header labels a column group `this agent`', { 
 // R-C10-64 · R-C10-66
 // Spec L341-342: "and `roll-up` (the tokens and cost of the row's subtree, the row itself included)"
 // _orch/inbox/Q-57.answer.md: operator, "the whole tree should be (this agent | roll-up)".
-test('t10-rollup: the agent table header labels a second column group `roll-up`, after `this agent`', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: the agent table header labels a second column group `roll-up`, after `this agent`', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -273,7 +278,7 @@ test('t10-rollup: the agent table header labels a second column group `roll-up`,
 // R-C10-65 · R-C10-85
 // Spec L341: "`this agent` (the row's own tokens and cost)"
 // D-T10-group-cells: "each group has two cells, tokens (the sum of the token kinds) and cost".
-test("t10-rollup: an agent row's `this agent` tokens cell shows its own tokens, the sum of its token kinds", { options: OPTIONS }, async ($, on) => {
+test("t10-rollup: an agent row's `this agent` tokens cell shows its own tokens, the sum of its token kinds", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -288,7 +293,7 @@ test("t10-rollup: an agent row's `this agent` tokens cell shows its own tokens, 
 // R-C10-65 · R-C10-85 · guard under _orch/inbox/OQ7.answer.md (passes at da5910c)
 // Spec L341: "`this agent` (the row's own tokens and cost)"
 // _orch/inbox/Q-57.answer.md: "this agent's own tokens/cost".
-test("guard: an agent row's `this agent` cost cell shows its own cost", { options: OPTIONS }, async ($, on) => {
+test("guard: an agent row's `this agent` cost cell shows its own cost", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -305,7 +310,7 @@ test("guard: an agent row's `this agent` cost cell shows its own cost", { option
 // R-C10-66 · R-C10-64
 // Spec L341-342: "`roll-up` (the tokens and cost of the row's subtree, the row itself included)"
 // D-T10-rollup-inclusive: "a row's roll-up is the total over its whole subtree, the row itself included".
-test("t10-rollup: a sub-orchestrator's `roll-up` tokens cell sums its own tokens and every descendant's", { options: OPTIONS }, async ($, on) => {
+test("t10-rollup: a sub-orchestrator's `roll-up` tokens cell sums its own tokens and every descendant's", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -318,7 +323,7 @@ test("t10-rollup: a sub-orchestrator's `roll-up` tokens cell sums its own tokens
 // R-C10-66 · R-C10-64
 // Spec L341-342: "the tokens and cost of the row's subtree, the row itself included"
 // _orch/inbox/Q-57.answer.md: "the roll-up of its subtree".
-test("t10-rollup: a sub-orchestrator's `roll-up` cost cell sums its own cost and every descendant's", { options: OPTIONS }, async ($, on) => {
+test("t10-rollup: a sub-orchestrator's `roll-up` cost cell sums its own cost and every descendant's", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -331,7 +336,7 @@ test("t10-rollup: a sub-orchestrator's `roll-up` cost cell sums its own cost and
 // R-C10-67 · R-C10-86
 // Spec L344: "A row with no children leaves its roll-up group empty."
 // _orch/inbox/Q-57.answer.md: operator, "agents without a rollup have an empty column".
-test('t10-rollup: an agent row with no child rows draws nothing in either `roll-up` cell', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: an agent row with no child rows draws nothing in either `roll-up` cell', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -349,7 +354,7 @@ test('t10-rollup: an agent row with no child rows draws nothing in either `roll-
 // R-C10-68 · R-C10-87
 // Spec L344: "A phase row is not an agent, so its this-agent group is empty"
 // _orch/inbox/Q-57.answer.md: "A phase row is not an agent: its this-agent group is empty".
-test('t10-rollup: a phase row draws nothing in either `this agent` cell', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: a phase row draws nothing in either `this agent` cell', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -366,7 +371,7 @@ test('t10-rollup: a phase row draws nothing in either `this agent` cell', { opti
 // Spec L345: "and its roll-up group is filled." Spec L317-318: "A phase dispatched more than once has
 // each of its sub-orchestrators as a child of its phase row." Q-53: "Re-dispatched sub-orchestrators
 // nest as siblings under their phase row, newest last."
-test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` tokens cell the sum over both subtrees", { options: OPTIONS }, async ($, on) => {
+test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` tokens cell the sum over both subtrees", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -378,7 +383,7 @@ test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` 
 
 // R-C10-69 · R-C10-66
 // Spec L345: "and its roll-up group is filled." Q-57: "its this-agent group is empty and its roll-up is filled".
-test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` cost cell the sum over both subtrees", { options: OPTIONS }, async ($, on) => {
+test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` cost cell the sum over both subtrees", { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -391,7 +396,7 @@ test("t10-rollup: a phase row with two sub-orchestrators shows in its `roll-up` 
 // R-C10-70
 // Spec L345-346: "A pending phase row has no children, so both of its groups are empty."
 // Spec L316: "A phase that has not started is a phase row with no children."
-test('t10-rollup: a pending phase row draws nothing in either `roll-up` cell', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: a pending phase row draws nothing in either `roll-up` cell', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($)
   const t = table(await ui.drawn())
@@ -407,7 +412,7 @@ test('t10-rollup: a pending phase row draws nothing in either `roll-up` cell', {
 // R-C10-71 · R-C10-88
 // Spec L347: "Neither column group is ever dropped at a narrow width (Q-57, read with Q-11)."
 // _orch/inbox/Q-57.answer.md: "Per Q-11 these columns never drop."
-test('t10-rollup: at the narrowest pane width every row still draws its `this agent` group', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: at the narrowest pane width every row still draws its `this agent` group', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($, NARROW)
   const t = table(await ui.drawn())
@@ -420,7 +425,7 @@ test('t10-rollup: at the narrowest pane width every row still draws its `this ag
 
 // R-C10-71 · R-C10-88
 // Spec L347: "Neither column group is ever dropped at a narrow width (Q-57, read with Q-11)."
-test('t10-rollup: at the narrowest pane width every row still draws its `roll-up` group', { options: OPTIONS }, async ($, on) => {
+test('t10-rollup: at the narrowest pane width every row still draws its `roll-up` group', { ...LOADED, options: OPTIONS }, async ($, on) => {
   await world($, on)
   const ui = await mount($, NARROW)
   const t = table(await ui.drawn())

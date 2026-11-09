@@ -19,6 +19,11 @@
 // gate reads the command is set by the world: the pause hook reads it only while paused, the
 // command gate only during a run, the forbidden-file hook run or no run.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone, and tests in the last files left at the default
+// timed out under that load (_orch/nodes/XTFL1/work/repro.md, cause.md, proof.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 // An active prime run ("during a run").
 const ACTIVE = JSON.stringify({ run_id: 't', mode: 'BUILD', prime: true })
@@ -84,7 +89,7 @@ async function call($: any, input: any) {
 // Pins: spec L38 "**Fail closed** where a failure must not open a door: the prime guard, the command
 // gate, ..." During a run, not paused: the command gate (not baton's first tool.call registration)
 // throws inside its own body, reading a worker's command it cannot tell is gated or not.
-test("fx1 R-C2-03: during a run the command gate throwing on a worker's command refuses it; nothing runs", { plugins: [PERMIT] }, async ($, on) => {
+test("fx1 R-C2-03: during a run the command gate throwing on a worker's command refuses it; nothing runs", { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on)
   const { r, thrown } = await call($, { tool: 'Bash', command: BAD, agentId: 'w1' })
   expect(thrown).toBeNull()
@@ -98,7 +103,7 @@ test("fx1 R-C2-03: during a run the command gate throwing on a worker's command 
 // Pins: spec L39 "... forbidden files and pause." No run (the forbidden-file check holds run or no
 // run): the forbidden-file hook (not baton's first tool.call registration) throws inside its own
 // body, reading a worker's command it cannot tell adds a secret file or not.
-test("fx1 R-C2-04: the forbidden-file hook throwing on a worker's command refuses it; nothing runs", { plugins: [PERMIT] }, async ($, on) => {
+test("fx1 R-C2-04: the forbidden-file hook throwing on a worker's command refuses it; nothing runs", { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on, { noRun: true })
   const { r, thrown } = await call($, { tool: 'Bash', command: BAD, agentId: 'w1' })
   expect(thrown).toBeNull()
@@ -111,7 +116,7 @@ test("fx1 R-C2-04: the forbidden-file hook throwing on a worker's command refuse
 // Pins: spec L39 "... and pause." The run is paused (/baton pause): the pause hook (not baton's first
 // tool.call registration) throws inside its own body, reading a worker's command it cannot tell is
 // gated or not. A door that cannot tell is shut.
-test("fx1 R-C2-05: while paused the pause hook throwing on a worker's command refuses it; nothing runs", { plugins: [PERMIT] }, async ($, on) => {
+test("fx1 R-C2-05: while paused the pause hook throwing on a worker's command refuses it; nothing runs", { ...LOADED, plugins: [PERMIT] }, async ($, on) => {
   const w = world(on)
   await $.command.run({ command: 'baton', args: 'pause' } as any)
   const { r, thrown } = await call($, { tool: 'Bash', command: BAD, agentId: 'w1' })
@@ -126,7 +131,7 @@ test("fx1 R-C2-05: while paused the pause hook throwing on a worker's command re
 // Requirement: R-C2-10.
 // Pins: spec L38 "**Fail closed** ...: the prime guard, ..." The prime guard throws inside its own
 // body (it cannot read the dispatch's description) on the prime's very first call of a run.
-test("fx1 R-C2-10: the prime guard throwing on the prime's first call during a run refuses it", async ($, on) => {
+test("fx1 R-C2-10: the prime guard throwing on the prime's first call during a run refuses it", LOADED, async ($, on) => {
   const w = world(on)
   const { r, thrown } = await call($, { tool: 'Agent', prompt: 'p', description: BAD })
   expect(thrown).toBeNull()
@@ -141,7 +146,7 @@ test("fx1 R-C2-10: the prime guard throwing on the prime's first call during a r
 // spec L43 "every gating hook has a `.catch` matching its decision". The code-index tool throws
 // inside its own body (it cannot read the query): it is not denied, and it answers that it failed,
 // so the worker carries on without it.
-test("fx1 R-C2-10: the code index throwing on a worker's search is not refused; it answers that it failed", async ($, on) => {
+test("fx1 R-C2-10: the code index throwing on a worker's search is not refused; it answers that it failed", LOADED, async ($, on) => {
   const w = world(on)
   const { r, thrown } = await call($, { tool: 'mcp__baton__code_search', query: BAD, agentId: 'w1' })
   // spec L40: a failure must not block your work — not denied by baton

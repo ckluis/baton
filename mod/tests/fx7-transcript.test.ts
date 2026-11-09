@@ -14,6 +14,11 @@
 //   transcript "may still be read, read-only, to price the prime's 1-hour cache writes."
 // - Prices (pricing page, read 2026-11-02): Opus 5.5 $4 input; 5-minute write 1.25x = $5, 1-hour write 2x = $8 per MTok.
 import { expect, mock, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) the tests here ran 6-10x slower than alone and timed out under that load
+// (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an explicit budget. No step or assertion
+// is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const RUN = '/proj/run' // fixture
 const RUN_ID = 'build-20261102T130000Z' // fixture
@@ -155,7 +160,7 @@ const nano = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math
 // cache and 400k to a 5-minute one. turn.step tells the mod only "1,000,000 cache writes"; the transcript tells
 // which were 1-hour. Its rows from before this process (a resumed session) are not this process's to price, a
 // response stored as two rows is one response, and the transcript is only read.
-test("fx7-transcript R-C3-13: the prime's 1-hour cache writes are priced at 2x from the session's own transcript, which is never written", async ($, on) => {
+test("fx7-transcript R-C3-13: the prime's 1-hour cache writes are priced at 2x from the session's own transcript, which is never written", LOADED, async ($, on) => {
   const w = world(on)
   const before = Date.now() - 3_600_000 // a row from an earlier process of this session (resume)
   const lines = [row('msg_earlier', before, 900_000, 0), JSON.stringify({ type: 'user', isSidechain: false, timestamp: new Date(before + 1000).toISOString(), message: { role: 'user', content: 'go' } })]
@@ -180,7 +185,7 @@ test("fx7-transcript R-C3-13: the prime's 1-hour cache writes are priced at 2x f
 // response reached the transcript after the turn's end had written spend.json, so its 398 1-hour writes stayed at the
 // 5-minute rate and spend.json's opus figure fell $0.0012 short of /cost's. A row that arrives after the reading is
 // priced at a reading a moment later, with nothing else happening.
-test("fx7-transcript R-C3-13: a prime response that reaches the transcript after the turn's end is still priced at the 1-hour rate", async ($, on) => {
+test("fx7-transcript R-C3-13: a prime response that reaches the transcript after the turn's end is still priced at the 1-hour rate", LOADED, async ($, on) => {
   const w = world(on)
   w.files.set(TRANSCRIPT, '')
   await start($, w)
@@ -195,7 +200,7 @@ test("fx7-transcript R-C3-13: a prime response that reaches the transcript after
 // Operator answer Q-FX7-1 = B (R-C3-13): the mod never opens ~/.claude.json. Every read, stat, list, exists and
 // process argv over a session's start, three models' requests, a turn's end and two minutes of timers is recorded;
 // none names that file.
-test('fx7-transcript R-C3-13 (Q-FX7-1 B): no code path of the mod opens ~/.claude.json while it meters and writes spend', async ($, on) => {
+test('fx7-transcript R-C3-13 (Q-FX7-1 B): no code path of the mod opens ~/.claude.json while it meters and writes spend', LOADED, async ($, on) => {
   const w = world(on)
   w.files.set(TRANSCRIPT, row('msg_p0', Date.now(), 1000, 0) + '\n')
   await start($, w)

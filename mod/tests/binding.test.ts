@@ -1,5 +1,10 @@
 // claude plugin test — agent.spawn binds each role's model during a run.
 import { expect, test } from 'claude-code/testing'
+// amended by verifier (XTFL1): the kit's default budget of 5000 ms per test is wall time. With four suites run at once
+// (each runs all its files at once) a test runs 6-10x slower than alone; the tests here take up to 0.5 s alone, at risk
+// of the default under that load (_orch/nodes/XTFL1/work/repro.md, cause.md), so every test in this file gets an
+// explicit budget. No step or assertion is changed by it.
+const LOADED = { timeoutMs: 60000 }
 
 const SID = 'e2f1a3b4-5c6d-4e7f-8a9b-0c1d2e3f4a5b' // amended by verifier (XT17): fixture: this session's id, which the manifest records as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
@@ -38,7 +43,7 @@ async function begin($: any) { // amended by verifier (XT17): the session starts
 } // amended by verifier (XT17): end of begin() (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
 
 // amended by verifier (XT17): renamed guard: — it passes at da5910c with the XT17 amendment applied (work/red.txt da5910c: run, 46/46 pass), so it is a preservation guard, exempt from red (C7, spec L91-97; /Users/clank/Desktop/projects/baton/_orch/inbox/OQ7.answer.md)
-test('guard: during a run: roles run on Opus 5.5, -cheap on Sonnet 5.5, whatever was asked', async ($, on) => {
+test('guard: during a run: roles run on Opus 5.5, -cheap on Sonnet 5.5, whatever was asked', LOADED, async ($, on) => {
   const spawned = world(on, true, true) // amended by verifier (XT17): the manifest names this session as prime_session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   member(on) // amended by verifier (XT17): the run's own session (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
   await begin($) // amended by verifier (XT17): started in the run directory before its first call (spec L91-94, Q-7; R-C7-01, R-C7-02, R-C7-04)
@@ -49,7 +54,7 @@ test('guard: during a run: roles run on Opus 5.5, -cheap on Sonnet 5.5, whatever
   expect(spawned.map((s) => s.model)).toEqual(['claude-opus-5-5', 'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-sonnet-5-5'])
 })
 
-test('outside a run the spawn is untouched', async ($, on) => {
+test('outside a run the spawn is untouched', LOADED, async ($, on) => {
   const spawned = world(on, false)
   await $.agent.spawn({ prompt: 'p', subagentType: 'Explore', model: 'haiku' } as any)
   expect(spawned[0].model).toBe('haiku')
