@@ -18,7 +18,7 @@ import { cellW, dump, elements, screen, type El } from './pw1-a3/kit'
 import { stripWorld, type Opts } from './cs1/kit'
 
 const WIDTHS = [40, 60, 80, 120, 200]
-const FIVE = { kind: 'five_hour', percentUsed: 41, resetsAt: '2026-11-06T14:20:00Z' } // fixture: today, 14:20Z
+const FIVE = { kind: 'five_hour', percentUsed: 41, resetsAt: '2026-11-06T14:20:00Z' } // fixture: Friday 14:20Z
 const WEEK = { kind: 'seven_day', percentUsed: 62, resetsAt: '2026-11-12T09:00:00Z' } // fixture: Thursday 09:00Z
 const OPUS = { kind: 'seven_day_opus', percentUsed: 22, resetsAt: '2026-11-12T09:00:00Z' } // fixture: a per-model window
 const READ = { limits: [FIVE, WEEK, OPUS], ctx: 23, usd: 9.94 } // every figure the band may show, below
@@ -41,7 +41,7 @@ async function fed($: any, on: any, f: Feed, o: Opts = {}) {
 /** The band at `width`: its elements and its lines, the engine's own (empty) drawing left out. */
 async function strip($: any, w: any, width: number) {
   const ui = await w.band($, width)
-  const els = elements(await ui.drawn(), width).filter((e: El) => keyOf(e.node) !== 'engine')
+  const els = elements(await ui.drawn(), width).filter((e: El) => keyOf(e.node) !== 'engine' && !(e.node?.type === 'Text' && e.text === ''))
   return { ui, els, lines: screen(els) }
 }
 /** What is wrong with a drawn band: a line over the width, a Text the terminal has to cut. */
@@ -63,11 +63,13 @@ for (const width of WIDTHS) {
     expect(overs(els, width), say).toEqual([])
     const [g, s] = lines as [string, string]
     // line 1: the context against rotate-at, the 5-hour and the weekly window, each with the input's figure
-    expect(g, say).toMatch(/^ctx .*23%\/35%/)
+    // (in the band's order, each window and then the context: the hooks smoke fixes it, mod/test/fixtures/hooks-smoke.mjs)
+    expect(g, say).toMatch(/ctx [^·]*23%\/35%/)
     expect(g, say).toMatch(/5h [^·]*41%/)
     expect(g, say).toMatch(/(week|wk) [^·]*62%/)
     if (width >= 80) expect(g, say).toContain('14:20Z') // the 5-hour reset
-    if (width >= 120) expect([g.includes('resets 14:20Z'), g.includes('Thu 09:00Z')], say).toEqual([true, true])
+    // (resetLabel reads the wall clock: `14:20Z` on the day, `Fri 14:20Z` after it)
+    if (width >= 120) expect([/resets (Fri )?14:20Z/.test(g), g.includes('resets Thu 09:00Z')], say).toEqual([true, true])
     if (width >= 200) expect(g, say).toMatch(/Opus[^·]*22%/) // the per-model window, where it fits
     // no figure the input did not hold
     expect(percents(g).filter((p) => !FIGURES.has(p)), say).toEqual([])
@@ -100,7 +102,7 @@ for (const width of WIDTHS) {
 test('CS1 1: a reading with no window at all says the 5-hour and the weekly limit are n/a, not on a subscription', async ($, on) => {
   const w = await fed($, on, { limits: [], ctx: 23 })
   const { els, lines } = await strip($, w, 120)
-  expect([lines[0]!.includes('5h n/a (not on a subscription)'), lines[0]!.includes('week n/a (not on a subscription)'), /^ctx .*23%\/35%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
+  expect([lines[0]!.includes('5h n/a (not on a subscription)'), lines[0]!.includes('week n/a (not on a subscription)'), /ctx [^·]*23%\/35%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
 test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (not reported)', async ($, on) => {
@@ -113,7 +115,7 @@ test('CS1 1: with only the 5-hour window reported, the weekly limit reads n/a (n
 test('CS1 1: with no context reading, the context gauge reads n/a', async ($, on) => {
   const w = await fed($, on, { limits: [FIVE, WEEK] })
   const { els, lines } = await strip($, w, 120)
-  expect([/^ctx n\/a/.test(lines[0]!), /5h [^·]*41%/.test(lines[0]!), /week [^·]*62%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
+  expect([/ctx n\/a/.test(lines[0]!), /5h [^·]*41%/.test(lines[0]!), /(week|wk) [^·]*62%/.test(lines[0]!)], dump(els)).toEqual([true, true, true])
 })
 
 for (const width of [40, 49, 60, 80, 120, 200]) {
@@ -122,7 +124,7 @@ for (const width of [40, 49, 60, 80, 120, 200]) {
     const { ui, els, lines } = await strip($, w, width)
     const say = dump(els)
     expect(overs(els, width), say).toEqual([])
-    expect(lines[0], say).toMatch(/^ctx /)
+    expect(lines[0], say).toMatch(/ctx /)
     expect(lines[1]!.startsWith(width >= 80 ? HINT_LONG : HINT_SHORT), say).toBe(true)
     expect(lines.slice(2).some((l) => l.includes('1: approve') && l.includes('2: send back…')), say).toBe(true)
     expect(lines.length, 'the strip and the keys row' + say).toBe(3)

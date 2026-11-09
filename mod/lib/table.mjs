@@ -94,9 +94,16 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
     for (const c of cols) if (['cost', 'tokens', 'rollCost', 'rollTokens', 'steps', 'state'].includes(c.id)) c.w = c.dw = Math.min(c.w, Math.max(c.title.length, need[c.id] ?? 0))
   }
   const floor = { agent: Math.max(CUT_MIN.agent, need.agentMin ?? 0), state: CUT_MIN.state }
-  if (total() <= width) return cols
-  const agent = cols.find((c) => c.id === 'agent')
   const state = cols.find((c) => c.id === 'state')
+  // The state is the row's last cell: the cells its line has over are its own, up to its widest value (CS1: the
+  // prime's `reviewing (blocked)` is not cut at 18 where the pane has room).
+  const grow = (line) => {
+    const room = width - line
+    if (room > 0 && (need.state ?? 0) > state.w) state.w = state.dw = Math.min(need.state, state.w + room)
+    return cols
+  }
+  if (total() <= width) return grow(total())
+  const agent = cols.find((c) => c.id === 'agent')
   // PW1 attempt 2: the label is cut no shorter than `read` (its indent and mark and LABEL_READ more cells, need.agentRead;
   // never past its whole width, never under its floor) and state not at all while a layout of more lines has the room,
   // so a row is told by its label and state at every docked width. Only the one-line row gives the label more than
@@ -125,11 +132,11 @@ export function fitDrawn(width, modelW = MODEL_MIN, agentW = 0, need = {}) {
     state.w = state.dw
     cols.breakAt = id
     cols.breaks = new Map([[id, lead2]])
-    return cols
+    return grow(lead2 + span(cols.slice(at)))
   }
   agent.dw = keep.agent
   state.dw = keep.state
-  if (stackRows(cols, width, stateW, floor.agent, read, span)) return cols
+  if (stackRows(cols, width, Math.max(stateW, need.state ?? 0), floor.agent, read, span)) return cols
   // Narrower than every layout (under 40 columns): one line, the label cut to its floor, then state (Q-11); what is
   // still too wide draws past the pane's edge, as D-F110 has it.
   for (const c of [agent, state]) {

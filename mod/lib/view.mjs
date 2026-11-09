@@ -204,6 +204,129 @@ export function bandSegs({ limits = [], cost = null, ctx = null, threshold = nul
   return out
 }
 
+// ------------------------------------------------------------------ the two-line strip (CS1)
+
+/** The plain way to open each view, on the strip's second line (P7-CS-d1 item 2): its long form, and its short one. */
+export const STRIP_HINT = { long: 'open: ctrl+x tab, then w work · m memory', short: 'ctrl+x tab: w work · m memory' }
+
+const SEP = ' · '
+const widthOf = (segs) => segs.reduce((n, x) => n + cellWidth(x.text), 0)
+
+/**
+ * The strip's first line (CS1, P7-CS-d1 item 7): the 5-hour and the weekly window, any other window the API reports,
+ * and the prime's context against its threshold, in the band's order (the hooks smoke fixes it), then when each window
+ * resets; in the richest form that fits `width`: `5h resets 14:20Z` with every window, then without the other windows,
+ * then `5h →14:20Z`, then without bars, then without resets. A figure not there reads `n/a` and why: `no reading yet`
+ * before any response, `not on a subscription` when one came with no window at all (`measured`), `not reported` when
+ * the others came without it; never a number the input did not hold. Narrow, the reasons of neighbouring gauges are
+ * said once, then not at all.
+ * Segments: [{ text, color }], a color left undefined drawn dim.
+ */
+export function stripGauges({ limits = [], ctx = null, threshold = null, rotations = null, measured = false, width = 200, now = Date.now() }) {
+  const list = (Array.isArray(limits) ? limits : []).filter((l) => l && Number.isFinite(Number(l.percentUsed)))
+  const byKind = new Map(list.map((l) => [String(l.kind), l]))
+  const why = list.length ? 'not reported' : measured ? 'not on a subscription' : 'no reading yet'
+  const order = (k) => (k === 'spend_limit' ? 9 : 5)
+  // the band's order (bandSegs): each plan window, then the context; the reset times after them
+  const gauges = [
+    ...['five_hour', 'seven_day'].map((k) => (byKind.has(k) ? { kind: k, pct: Math.round(Number(byKind.get(k).percentUsed)), resetsAt: byKind.get(k).resetsAt } : { kind: k, na: why })),
+    ...list.filter((l) => l.kind !== 'five_hour' && l.kind !== 'seven_day').sort((a, b) => order(a.kind) - order(b.kind)).map((l) => ({ kind: String(l.kind), pct: Math.round(Number(l.percentUsed)), resetsAt: l.resetsAt, other: true })),
+    typeof ctx === 'number' ? { kind: 'ctx', pct: ctx } : { kind: 'ctx', na: 'no reading yet' },
+  ]
+  const FORMS = [
+    { bar: 5, reset: ' resets ', other: true, why: 'each' },
+    { bar: 5, reset: ' resets ', other: false, why: 'each' },
+    { bar: 5, reset: ' →', other: true, why: 'each' },
+    { bar: 5, reset: ' →', other: false, why: 'once' },
+    { bar: 0, reset: ' →', other: false, why: 'once' },
+    { bar: 0, reset: null, other: false, why: 'once' },
+    { bar: 0, reset: null, other: false, why: 'none' },
+  ]
+  // `week` where a missing window is said with its reason, `wk` beside a bar or a figure
+  const label = (g, f, na) => (g.kind === 'ctx' ? 'ctx' : g.kind === 'seven_day' ? (na && f.why === 'each' ? 'week' : 'wk') : shortLimit(g.kind))
+  const draw = (f) => {
+    const shown = gauges.filter((g) => f.other || !g.other)
+    const out = []
+    const sep = () => out.length && out.push({ text: SEP })
+    shown.forEach((g, i) => {
+      sep()
+      if (g.na) {
+        const next = shown[i + 1]
+        const say = f.why === 'each' || (f.why === 'once' && !(next && next.na === g.na))
+        out.push({ text: label(g, f, true) + ' n/a' + (say ? ' (' + g.na + ')' : '') })
+        return
+      }
+      if (g.kind === 'ctx') {
+        const t = threshold != null ? '/' + threshold + '%' : ''
+        out.push({ text: 'ctx ' + (f.bar ? miniBar(g.pct, f.bar, threshold) : '') + g.pct + '%' + t, color: threshold != null ? gaugeColor(g.pct, threshold) : undefined })
+        if (rotations && f.bar) out.push({ text: ' ↻' + rotations })
+        return
+      }
+      out.push({ text: label(g, f) + ' ' + (f.bar ? miniBar(g.pct, f.bar) : '') + g.pct + '%', color: usageColor(g.pct) })
+    })
+    // when each window resets, where known: `5h resets 14:20Z`, narrower `5h →14:20Z`
+    for (const g of shown) {
+      const r = f.reset && !g.na && g.kind !== 'ctx' ? resetLabel(g.resetsAt, now) : ''
+      if (!r) continue
+      sep()
+      out.push({ text: label(g, f) + f.reset + r })
+    }
+    return out
+  }
+  for (const f of FORMS) {
+    const segs = draw(f)
+    if (widthOf(segs) <= width) return segs
+  }
+  return cutSegs(draw(FORMS.at(-1)), width)
+}
+
+/** Segments cut to `width` cells: those past it dropped, the last one kept ending in `…`. */
+export function cutSegs(segs, width) {
+  const out = []
+  let used = 0
+  for (const x of segs) {
+    if (used >= width) break
+    const t = cutCells(x.text, width - used)
+    out.push({ ...x, text: t })
+    used += cellWidth(t)
+  }
+  return out
+}
+
+/**
+ * A strip line laid out from its items (CS1): each item `{ key, forms: [{ text, pri }], color, cut }`, its forms
+ * richest first, drawn in the items' order with ` · ` between them, and taken by priority (a lower `pri` first): an
+ * item gets the richest form whose line still fits `width`. A form of `pri` 0 is always taken (cut when even it does
+ * not fit); an item with `cut` whose last form does not fit takes it cut into what is left, at that form's priority,
+ * when that is 4 cells or more.
+ * Segments: [{ key, text, color }], the separators without a key.
+ */
+export function fitStrip(items, width) {
+  const pick = new Map()
+  const text = (i, j) => items[i].forms[j].text
+  const line = (m) => items.map((it, i) => (m.has(i) ? { key: it.key, text: m.get(i).text ?? text(i, m.get(i).j), color: it.color } : null)).filter(Boolean)
+  const span = (m) => {
+    const ls = line(m)
+    return widthOf(ls) + cellWidth(SEP) * Math.max(0, ls.length - 1)
+  }
+  const room = () => width - span(pick) - (pick.size ? cellWidth(SEP) : 0)
+  const steps = items.flatMap((it, i) => it.forms.map((f, j) => ({ i, j, pri: f.pri ?? 9 }))).sort((a, b) => a.pri - b.pri || a.i - b.i || a.j - b.j)
+  for (const s of steps) {
+    if (pick.has(s.i) && pick.get(s.i).j <= s.j) continue
+    const m = new Map(pick).set(s.i, { j: s.j })
+    if (span(m) <= width) pick.set(s.i, { j: s.j })
+    else if (pick.has(s.i)) continue
+    else if (s.pri === 0) pick.set(s.i, { j: s.j, text: cutCells(text(s.i, s.j), Math.max(1, room())) })
+    else if (items[s.i].cut && s.j === items[s.i].forms.length - 1 && room() >= 4) pick.set(s.i, { j: s.j, text: cutCells(text(s.i, s.j), room()) })
+  }
+  const out = []
+  for (const x of line(pick)) {
+    if (out.length) out.push({ text: SEP })
+    out.push(x)
+  }
+  return out
+}
+
 // ------------------------------------------------------------------ updates
 
 /** Compare dotted versions (7.10.0 > 7.9.2; a -suffix sorts before the plain release). */

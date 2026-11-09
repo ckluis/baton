@@ -28,7 +28,7 @@ import { agentDetail, blockedBrief, blockedByLine, detailText, nodeDetail, nodes
 import { checksLine, goalState, graphPhases, latestReview, LADDERS, mergeReady, nextGate, nodeState, parseCommands, phaseState, prState, questionColor, questionState, stepper, stepperText, timeline, transitions, unauthorizedAnswer } from '../lib/track.mjs'
 import { alwaysLabel, answerRecord, APPROVE, askedRecord, blockGrant, claimsDone, GATES, commandQuestion, gateFor, phaseQuestion, readCommandAnswer, readPhaseAnswer, REFUSE, SEND_BACK } from '../lib/approve.mjs'
 import { bindModel, CHEAP, FRONTIER, MECH } from '../lib/binding.mjs'
-import { assignLetters, bandSegs, cellWidth, compareVersions, cutCells, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, usageSegs } from '../lib/view.mjs'
+import { assignLetters, cellWidth, compareVersions, cutCells, fitStrip, installedCopy, KEY_ACCENT, listEnd, listReveal, listWindow, memTableCells, memTableHeader, ROW_LETTERS, rowKeyIds, STRIP_HINT, stripGauges, usageSegs } from '../lib/view.mjs'
 import { byId, gaugeColor, gaugeLine, ledgerLine, parseLedger, spinnerSuffix, summarizeNodes } from '../lib/view.mjs'
 
 // ------------------------------------------------------------------ state
@@ -2107,6 +2107,8 @@ function workspaceBody($, ui) {
  * it and the hint's line fit (`keys`, placeList).
  */
 const DROP_RANK = { findings: 1, detail: 2, legend: 3, rulings: 4, spacer: 5, questions: 6, merge: 7, queue: 8, links: 9, pr: 10, goal: 11, waiting: 12, read: 13, groups: 14, head: 15, approvals: 16, folded: 17, hint: 18, keys: 19 }
+// What gives way to agent rows in a list that scrolls, at any height (CS1, placeList), lowest rank first.
+const ROWS_FIRST = [DROP_RANK.findings, DROP_RANK.detail, DROP_RANK.legend, DROP_RANK.spacer, DROP_RANK.queue, DROP_RANK.links]
 const OPT = Symbol('an entry that may give way in a short pane')
 // `alt`: what the entry gives way to (the folded questions line, the hint's one-line form: an entry or a list), else nothing
 const opt = (rank, el, alt = null) => ({ [OPT]: { el, rank, alt } })
@@ -2911,16 +2913,21 @@ function placeList(body, rows, { Text, Box, cols = Infinity, keys = [] }) {
       giveWay(r)
     }
   }
+  // A list that still scrolls takes the lines of what only adds detail (CS1, the PW1 attempt-3 verdict: "a 24-row pane
+  // shows only the prime's row although agents fit"): the reviewer's findings, the merge-ready detail and diagnosis, the
+  // legend, the spacer, the queue line and the goal's links give way, lowest rank first, until the list fits or none is
+  // left. The lines Q-68 keeps (the goal, PR and merge rows, approvals, waiting rows, the header, the hint, the
+  // questions, the rulings and the message field) stay as PW1 placed them.
+  for (const r of ROWS_FIRST) {
+    if (whole <= rows - others) break
+    if (has(r)) giveWay(r)
+  }
   const fits = whole <= rows - others
   // a more line is one line even when its keys leave its text little room: the text is cut, never wrapped (P4-FX3-d3)
-  // Its hidden rows' letters stay bound on it; where text and letters are wider than the pane, the letters are held
-  // in a box no cells wide (PW1), so the line's own text is drawn whole.
+  // Its hidden rows' letters stay bound on it, held in boxes no cells wide (PW1; CS1: always, so the line reads
+  // `↓ 17 more`, not `↓ 17 morec: d:`), so the line's own text is drawn whole.
   const hold = (bs) => bs.map((b) => Box({ width: 0, flexShrink: 0, overflow: 'hidden', children: [b] }))
-  const dim = (text, key, keys = []) => {
-    const t = '  ' + text
-    const wide = cellWidth(t) + keys.reduce((n, b) => n + buttonWidth(b), 0) > cols
-    return Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells(t, cols)] }), ...(wide ? hold(keys) : keys)] })
-  }
+  const dim = (text, key, keys = []) => Box({ key, flexDirection: 'row', children: [Text({ wrap: 'truncate-end', dimColor: true, children: [cutCells('  ' + text, cols)] }), ...hold(keys)] })
   // The keys a list line's elements are drawn under (its › and ✉), at a window slot or a strip place.
   const keysAt = (x, at) => { const k = lineKeys(x || { kind: 'agent' }, at); return [k.open, k.msg] }
   const pinOf = (x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME
@@ -5226,27 +5233,31 @@ export function register(on, options) {
     return next({ ...e, element: L.focus })
   }).catch(failOpen)
 
-  // The band above the prompt: the prime's context gauge and rotation count.
+  // The band above the prompt: a strip of two lines (CS1, operator decision 2026-11-09; P7-CS-d1 items 2, 4, 7).
+  // Line 1, the gauges: the prime's context against rotate-at, the 5-hour and the weekly window with their resets, any
+  // other window the API reports (lib/view.mjs stripGauges; `n/a` and why for a figure not there, never a made-up one).
+  // Line 2: the plain way to open each view (never dropped), then the goal, the live count, the waiting-on-you flag
+  // (WT1's items), the cost and the PR, cut to the width by priority (fitStrip). Under the strip, and only while they
+  // are there: the approval keys (1 and 2, unchanged), the update notice, the pause and a doctor warning.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const { Box, Text } = $.ui.resolve(e)
     const theirs = await next(e)
-    // One line in every session: each plan window, the context against its threshold, the cost;
-    // in a run, rotations, the goal and the PR. A second line only when something waits for you.
     const inRun = run.active || run.startedHere
     const v = inRun ? track.view : null
-    const goal = v ? { text: (v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : ''), color: v.goal.flag ? 'red' : undefined } : null
-    const pr = v && v.pr ? { text: 'PR #' + v.pr.number + ' ' + v.pr.checks.replace('checks ', '') + (v.pr.ready && v.pr.ready.ok ? ' ready to merge' : ''), color: v.pr.ready && v.pr.ready.ok ? 'green' : v.pr.flag ? 'red' : undefined } : null
-    const segs = bandSegs({
+    const bw = e.props.bodyColumns ?? 200
+    const fitText = (t) => cutCells(t, Math.max(1, bw))
+    const segText = (x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })
+    const ctx = typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null
+    const gauges = stripGauges({
       limits: usage.limits,
-      cost: usage.cost,
-      ctx: typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null,
+      ctx,
       threshold: inRun ? config.rotateAtPercent : null,
       rotations: inRun ? rotation.count : null,
-      goal,
-      pr,
+      // a response has reported (the context, or a cost): no window by now means none comes (off a subscription)
+      measured: ctx != null || !!(usage.cost && usage.cost.usd > 0),
+      width: bw,
     })
-    // Not the run's own session, or no longer (T7): the band says why it is not armed.
-    if (membership.why) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: membership.why, color: 'yellow' })
+    const lineBox = Box({ key: 'band', flexDirection: 'row', children: gauges.map(segText) })
     if (pane.waiting) {
       // A wider terminal places the waiting pane by itself; check the engine's record before saying so.
       try {
@@ -5256,20 +5267,7 @@ export function register(on, options) {
           pane.open = !!up
         }
       } catch {}
-      if (pane.waiting) segs.push(...(segs.length ? [{ text: ' · ', color: undefined }] : []), { text: '/baton opens the pane', color: undefined })
     }
-    // Every line of the band fitted to its width by the mod (PW1): the segments past it cut, the last one with `…`.
-    const bw = e.props.bodyColumns ?? 200
-    const fitText = (t) => cutCells(t, Math.max(1, bw))
-    let used = 0
-    const shown = []
-    for (const x of segs) {
-      if (used >= bw) break
-      const t = cutCells(x.text, bw - used)
-      shown.push({ ...x, text: t })
-      used += cellWidth(t)
-    }
-    const lineBox = Box({ key: 'band', flexDirection: 'row', children: shown.map((x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })) })
     const waiting = []
     if (approvals.queue.length) waiting.push(approvals.queue.length + ' phase' + (approvals.queue.length === 1 ? '' : 's') + ' to check (' + approvals.queue.map((q) => q.label).join(', ') + ')')
     // Only questions put to the operator count (spec T13 addendum, Q-50); queued ones are seen in Work. Not one a
@@ -5281,12 +5279,35 @@ export function register(on, options) {
     const blockedNow = ws.flagged.map((n) => ({ label: n.label, surface: waitItem(n).surface }))
     const panes = blockedNow.map((x) => x.surface).filter(Boolean)
     if (blockedNow.length) waiting.push(blockedNow.length + ' blocked (' + blockedNow.map((x) => x.label + (x.surface ? ' · ' + x.surface : '')).join(', ') + ')')
-    // narrower than the band: the names go first (a blocked agent's pane stays while it fits), then it is cut (PW1)
+    // narrower than the band: the names go first (a blocked agent's pane stays while it fits), then the words around
+    // them, then it is cut (PW1, CS1)
     const waitText = (ws) => '⚑ waiting for you: ' + ws.join(' · ') + ' — Work (1)'
     const short = waiting.map((x) => x.replace(/ \(.*\)$/, ''))
     const mid = short.map((x) => (panes.length && /^\d+ blocked$/.test(x) ? x + ' (' + panes.join(', ') + ')' : x))
-    const flagText = [waiting, mid, short].map(waitText).find((t) => cellWidth(t) <= bw) ?? waitText(short)
-    const flag = waiting.length ? [Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText(flagText)] })] : []
+    // richest first: the full words with the names, with the panes, the few words with the panes, then without them
+    const few = (x) => ({ text: '⚑ ' + x.join(' · '), pri: 3 })
+    const full = (x) => ({ text: waitText(x), pri: 4.5 })
+    const flagForms = [full(waiting), full(mid), few(mid), full(short), few(short)]
+    const live = inRun ? [...tree.nodes.values()].filter((n) => n.id !== PRIME && n.endedAt == null).length : 0
+    const goal = v ? { text: (v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : ''), color: v.goal.flag ? 'red' : undefined } : null
+    const pr = v && v.pr ? { text: 'PR #' + v.pr.number + ' ' + v.pr.checks.replace('checks ', '') + (v.pr.ready && v.pr.ready.ok ? ' ready to merge' : ''), color: v.pr.ready && v.pr.ready.ok ? 'green' : v.pr.flag ? 'red' : undefined } : null
+    // Line 2's items in their order; `pri` says what is kept first: the short hint always, then a pane that waits to be
+    // placed, why this session is not armed (T7), the flag in its few words, the long hint, the flag in its full words,
+    // the goal, the live count, the cost, the PR.
+    const items = [
+      // the long hint from 80 columns; narrower it is shortened, never dropped (P7-CS-d1 item 2)
+      { key: 'hint', forms: [...(bw >= 80 ? [{ text: STRIP_HINT.long, pri: 4 }] : []), { text: STRIP_HINT.short, pri: 0 }] },
+      ...(pane.waiting ? [{ key: 'opens', forms: [{ text: '/baton opens the pane', pri: 1 }] }] : []),
+      // Not the run's own session, or no longer (T7): the band says why it is not armed.
+      ...(membership.why ? [{ key: 'why', forms: [{ text: membership.why, pri: 2 }], color: 'yellow', cut: true }] : []),
+      ...(goal ? [{ key: 'goal', forms: [{ text: goal.text, pri: 5 }], color: goal.color }] : []),
+      // the PR beside the goal, as the band has had it (`#12 ready · PR #47 2/2 ready to merge`), kept last
+      ...(pr ? [{ key: 'pr', forms: [{ text: pr.text, pri: 8 }], color: pr.color }] : []),
+      ...(live ? [{ key: 'live', forms: [{ text: live + ' live', pri: 6 }] }] : []),
+      ...(waiting.length ? [{ key: 'flag', forms: flagForms, color: 'yellow', cut: true }] : []),
+      ...(usage.cost && typeof usage.cost.usd === 'number' ? [{ key: 'cost', forms: [{ text: '$' + usage.cost.usd.toFixed(2), pri: 7 }] }] : []),
+    ]
+    const flag = [Box({ key: 'strip', flexDirection: 'row', children: fitStrip(items, bw).map(segText) })]
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
     if (approvals.queue.length) {
       const { Button } = $.ui.resolve(e)
@@ -5329,7 +5350,7 @@ export function register(on, options) {
         }),
       )
     } else if (update.state === 'installed' && update.message) flag.push(Text({ color: 'green', wrap: 'truncate-end', children: [fitText(update.message)] }))
-    if (pause.on) flag.unshift(Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText('⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume')] }))
+    if (pause.on) flag.splice(1, 0, Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText('⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume')] }))
     const dw = doctorWarning()
     if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [fitText(dw)] }))
     return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
