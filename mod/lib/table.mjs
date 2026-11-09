@@ -300,6 +300,9 @@ export function agentTable(rows, width = 140, opts = {}) {
       if (breaks(c)) segs.push(...breakSegs(c))
       const parts = cells[c.id]
       const visible = parts.map((p) => p.text).join('')
+      // `r.spare`: cells the row has past the table (no ` ✉` on it, register.js treeTable); its state, last, takes them
+      const more = c.id === 'state' && lastOf(i) && r.spare > 0 && [...visible].length > (c.dw ?? c.w) ? r.spare : 0
+      if (more) c = { ...c, w: c.w + more, ...(c.dw != null ? { dw: c.dw + more } : {}) }
       const padded = pad(visible, c.w, c.right)
       if (parts.length === 1 && narrowed(c)) return segs.push(...drawnCell(padded, parts[0].tone, c, lastOf(i)))
       if (parts.length === 1) segs.push({ text: padded, tone: parts[0].tone })

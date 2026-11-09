@@ -242,10 +242,11 @@ export function stripGauges({ limits = [], ctx = null, threshold = null, rotatio
     { bar: 0, reset: null, other: false, why: 'once' },
     { bar: 0, reset: null, other: false, why: 'none' },
   ]
-  // `week` where a missing window is said with its reason, `wk` beside a bar or a figure
-  const label = (g, f, na) => (g.kind === 'ctx' ? 'ctx' : g.kind === 'seven_day' ? (na && f.why === 'each' ? 'week' : 'wk') : shortLimit(g.kind))
+  // `week` where the line says a missing figure's reason in full words, `wk` where every figure is there (or said short)
+  const said = (f) => f.why === 'each' && gauges.some((g) => g.na && (f.other || !g.other))
+  const label = (g, f) => (g.kind === 'ctx' ? 'ctx' : g.kind === 'seven_day' ? (said(f) ? 'week' : 'wk') : shortLimit(g.kind))
   const draw = (f) => {
-    const shown = gauges.filter((g) => f.other || !g.other)
+    const shown = (f.only ?? gauges).filter((g) => f.other || !g.other)
     const out = []
     const sep = () => out.length && out.push({ text: SEP })
     shown.forEach((g, i) => {
@@ -253,7 +254,7 @@ export function stripGauges({ limits = [], ctx = null, threshold = null, rotatio
       if (g.na) {
         const next = shown[i + 1]
         const say = f.why === 'each' || (f.why === 'once' && !(next && next.na === g.na))
-        out.push({ text: label(g, f, true) + ' n/a' + (say ? ' (' + g.na + ')' : '') })
+        out.push({ text: label(g, f) + ' n/a' + (say ? ' (' + g.na + ')' : '') })
         return
       }
       if (g.kind === 'ctx') {
@@ -277,7 +278,14 @@ export function stripGauges({ limits = [], ctx = null, threshold = null, rotatio
     const segs = draw(f)
     if (widthOf(segs) <= width) return segs
   }
-  return cutSegs(draw(FORMS.at(-1)), width)
+  // Narrower still (beside the approval keys, CS1): the windows go, the weekly first, so the context stays
+  const last = FORMS.at(-1)
+  for (const drop of [['seven_day'], ['seven_day', 'five_hour']]) {
+    const keep = gauges.filter((g) => !drop.includes(g.kind))
+    const segs = draw({ ...last, only: keep })
+    if (widthOf(segs) <= width) return segs
+  }
+  return cutSegs(draw({ ...last, only: gauges.filter((g) => g.kind === 'ctx') }), width)
 }
 
 /** Segments cut to `width` cells: those past it dropped, the last one kept ending in `…`. */

@@ -2902,17 +2902,58 @@ function placeList(body, rows, { Text, Box, cols = Infinity, keys = [] }) {
     body = body.flatMap((x) => (x && x[OPT] && x[OPT].rank === rank ? (x[OPT].alt ? [].concat(x[OPT].alt) : []) : [x]))
     ;({ others, gaps, area } = measure())
   }
-  let { others, gaps, area } = measure()
   // Too short for a window (not one row and its two more lines) while the list does not fit: the entries that may
   // give way do, lowest rank first (DROP_RANK, PW1), until the window has its room or none is left; the keys row is
-  // not among them (below).
-  if (whole > rows - others && area < need) {
-    const ranks = [...new Set(Object.values(DROP_RANK))].filter((r) => r !== DROP_RANK.keys).sort((a, b) => a - b)
+  // not among them (below). `pre[k]`: the body with the first k ranks given way.
+  const RANKS = [...new Set(Object.values(DROP_RANK))].filter((r) => r !== DROP_RANK.keys).sort((a, b) => a - b)
+  const without = (b, rank) => b.flatMap((x) => (x && x[OPT] && x[OPT].rank === rank ? (x[OPT].alt ? [].concat(x[OPT].alt) : []) : [x]))
+  const pre = [body]
+  for (const r of RANKS) pre.push(without(pre.at(-1), r))
+  const measureIn = (b, r) => {
+    const others = b.length - 1 + (b.some((x) => x && x[OPT] && x[OPT].rank === DROP_RANK.head) ? head : 0)
+    const gaps = b.filter((x) => x && x[GAP]).length
+    return { others, gaps, area: r - SPARE_ROWS - others + gaps }
+  }
+  // PW1's own choice at r rows: how many ranks give way
+  const kOf = (r) => {
+    const m = measureIn(body, r)
+    if (!(whole > r - m.others && m.area < need)) return 0
+    const k = pre.findIndex((b) => measureIn(b, r).area >= need)
+    return k < 0 ? RANKS.length : k
+  }
+  // Rows never drop as the pane gets taller (CS1 red 2, the attempt-1 verdict: 120x24 drew 3 agent rows where 120x23
+  // drew 7). A rank gives way whole, so the last one to go can free more lines than the window needed, and those went
+  // to agent rows that the next height up, keeping that rank, could not draw. So what gave way comes back where the
+  // window can spare it, most important first, and the rulings line by line (each is a line of its own), until the
+  // window has just its room: a pane too short for its lines draws its one row, and only a taller one more.
+  const k = kOf(rows)
+  // (a rank present where its turn came: the folded questions line is there only once the questions gave way)
+  const present = RANKS.slice(0, k).filter((r, i) => pre[i].some((x) => x && x[OPT] && x[OPT].rank === r))
+  const apply = (ranks, keep = 0) => {
+    let b = body
     for (const r of ranks) {
-      if (area >= need) break
-      giveWay(r)
+      let seen = 0
+      // the rulings kept line by line: their first `keep` lines, the blank line above them only with a ruling under it
+      const kept = (i) => r === DROP_RANK.rulings && (keep === 1 ? i === 1 : i < keep)
+      b = b.flatMap((x) => (x && x[OPT] && x[OPT].rank === r ? (kept(seen++) ? [x] : x[OPT].alt ? [].concat(x[OPT].alt) : []) : [x]))
+    }
+    return b
+  }
+  let gone = present
+  let keepRulings = 0
+  if (k > 0) {
+    for (const r of [...present].reverse()) {
+      if (ROWS_FIRST.includes(r)) continue
+      const trial = gone.filter((x) => x !== r)
+      if (measureIn(apply(trial), rows).area >= need) gone = trial
+    }
+    if (gone.includes(DROP_RANK.rulings)) {
+      const n = body.filter((x) => x && x[OPT] && x[OPT].rank === DROP_RANK.rulings).length
+      while (keepRulings < n && measureIn(apply(gone, keepRulings + 1), rows).area >= need) keepRulings++
     }
   }
+  body = apply(gone, keepRulings)
+  let { others, gaps, area } = measure()
   // A list that still scrolls takes the lines of what only adds detail (CS1, the PW1 attempt-3 verdict: "a 24-row pane
   // shows only the prime's row although agents fit"): the reviewer's findings, the merge-ready detail and diagnosis, the
   // legend, the spacer, the queue line and the goal's links give way, lowest rank first, until the list fits or none is
@@ -3165,7 +3206,10 @@ function treeItemRow(x) {
 /** The tree's table rows (every item but a note) as one table, and each item's line of it. */
 function treeTable(items, widthOf, opts = {}) {
   const drawn = items.filter((x) => x.kind !== 'note')
-  const data = drawn.map(treeItemRow)
+  // a row without the ` ✉` the table's width keeps two cells for (tableWidth): its last cell, the state, may take them
+  // (CS1: the prime's `reviewing (blocked)` is not cut where its line has the cells)
+  const spare = opts.fit && drawn.some(hasMail) ? 2 : 0
+  const data = drawn.map((x) => (spare && !hasMail(x) ? { ...treeItemRow(x), spare } : treeItemRow(x)))
   const t = agentTable(data, widthOf(data), opts)
   return { t, lineOf: new Map(drawn.map((x, i) => [x, t.lines[i]])) }
 }
@@ -3176,9 +3220,11 @@ function treeTable(items, widthOf, opts = {}) {
  * by the terminal, every cell cut to `…` (FX3, P4-FX3-d1), so the table is fitted to this width.
  */
 function tableWidth(items, cols) {
-  const mail = items.some((x) => x.kind === 'agent' && x.r.live && x.r.id && x.r.id !== PRIME)
-  return Math.max(1, (cols || 120) - 4 - (mail ? 2 : 0))
+  return Math.max(1, (cols || 120) - 4 - (items.some(hasMail) ? 2 : 0))
 }
+
+/** Does this list item's row draw a ` ✉` after its table (a running agent's, not the prime's, itemLine)? */
+const hasMail = (x) => x.kind === 'agent' && !!x.r.live && !!x.r.id && x.r.id !== PRIME
 
 /** The tree as text (the -p form, Q-70): the legend, the group line, the column names, the rows. */
 function treeText() {
@@ -5237,8 +5283,9 @@ export function register(on, options) {
   // Line 1, the gauges: the prime's context against rotate-at, the 5-hour and the weekly window with their resets, any
   // other window the API reports (lib/view.mjs stripGauges; `n/a` and why for a figure not there, never a made-up one).
   // Line 2: the plain way to open each view (never dropped), then the goal, the live count, the waiting-on-you flag
-  // (WT1's items), the cost and the PR, cut to the width by priority (fitStrip). Under the strip, and only while they
-  // are there: the approval keys (1 and 2, unchanged), the update notice, the pause and a doctor warning.
+  // (WT1's items), the cost and the PR, cut to the width by priority (fitStrip). While a phase waits, its keys (1 and
+  // 2, unchanged) stand within the two lines. Under the strip, and only while they are there: the update notice, the
+  // pause and a doctor warning.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const { Box, Text } = $.ui.resolve(e)
     const theirs = await next(e)
@@ -5248,16 +5295,16 @@ export function register(on, options) {
     const fitText = (t) => cutCells(t, Math.max(1, bw))
     const segText = (x) => Text({ wrap: 'truncate-end', ...(x.color ? { color: x.color } : { dimColor: true }), children: [x.text] })
     const ctx = typeof rotation.lastPercent === 'number' ? rotation.lastPercent : null
-    const gauges = stripGauges({
-      limits: usage.limits,
-      ctx,
-      threshold: inRun ? config.rotateAtPercent : null,
-      rotations: inRun ? rotation.count : null,
-      // a response has reported (the context, or a cost): no window by now means none comes (off a subscription)
-      measured: ctx != null || !!(usage.cost && usage.cost.usd > 0),
-      width: bw,
-    })
-    const lineBox = Box({ key: 'band', flexDirection: 'row', children: gauges.map(segText) })
+    const gauges = (width) =>
+      stripGauges({
+        limits: usage.limits,
+        ctx,
+        threshold: inRun ? config.rotateAtPercent : null,
+        rotations: inRun ? rotation.count : null,
+        // a response has reported (the context, or a cost): no window by now means none comes (off a subscription)
+        measured: ctx != null || !!(usage.cost && usage.cost.usd > 0),
+        width,
+      })
     if (pane.waiting) {
       // A wider terminal places the waiting pane by itself; check the engine's record before saying so.
       try {
@@ -5287,16 +5334,32 @@ export function register(on, options) {
     // richest first: the full words with the names, with the panes, the few words with the panes, then without them
     const few = (x) => ({ text: '⚑ ' + x.join(' · '), pri: 3 })
     const full = (x) => ({ text: waitText(x), pri: 4.5 })
-    const flagForms = [full(waiting), full(mid), few(mid), full(short), few(short)]
+    // the full words without `— Work (1)`, where the approval keys beside it leave no room for that (CS1)
+    const named = (x) => ({ text: '⚑ waiting for you: ' + x.join(' · '), pri: 4.5 })
+    const flagForms = [full(waiting), named(waiting), full(mid), few(mid), full(short), few(short)]
     const live = inRun ? [...tree.nodes.values()].filter((n) => n.id !== PRIME && n.endedAt == null).length : 0
     const goal = v ? { text: (v.goal.issue ? '#' + v.goal.issue.number + ' ' : 'goal ') + v.goal.state + (v.goal.flag ? ' (' + v.goal.flag + ')' : ''), color: v.goal.flag ? 'red' : undefined } : null
     const pr = v && v.pr ? { text: 'PR #' + v.pr.number + ' ' + v.pr.checks.replace('checks ', '') + (v.pr.ready && v.pr.ready.ok ? ' ready to merge' : ''), color: v.pr.ready && v.pr.ready.ok ? 'green' : v.pr.flag ? 'red' : undefined } : null
-    // Line 2's items in their order; `pri` says what is kept first: the short hint always, then a pane that waits to be
-    // placed, why this session is not armed (T7), the flag in its few words, the long hint, the flag in its full words,
-    // the goal, the live count, the cost, the PR.
+    // Line 2's items in their order; `pri` says what is kept first: the short hint always, then the approval keys bare,
+    // a pane that waits to be placed, why this session is not armed (T7), the long hint, the flag in its few words, the
+    // keys with the phase's name, the flag in its full words, the goal, the live count, the cost, the PR.
+    // While a phase waits: its keys, unchanged on 1 and 2 (P7-CS-d1 item 4), within the strip's two lines (CS1, Q-98 A):
+    // on line 2 after the hint, with the phase's name where it fits, else bare; where line 2 has not the cells for
+    // them bare, on line 1 before the gauges.
+    const q0 = approvals.queue[0]
+    const keyText = (label) => '1: approve' + (label ? ' ' + label : '') + '  2: send back…'
+    const keyForms = q0
+      ? [
+          { text: keyText(q0.label), pri: 4.2, label: q0.label },
+          ...(cellWidth(q0.label) > 16 ? [{ text: keyText(cutCells(q0.label, 16)), pri: 4.3, label: cutCells(q0.label, 16) }] : []),
+          { text: keyText(''), pri: 0.5, label: '' },
+        ]
+      : []
     const items = [
       // the long hint from 80 columns; narrower it is shortened, never dropped (P7-CS-d1 item 2)
-      { key: 'hint', forms: [...(bw >= 80 ? [{ text: STRIP_HINT.long, pri: 4 }] : []), { text: STRIP_HINT.short, pri: 0 }] },
+      // (from 80 columns before the flag: the flag gives up its words first, the hint never its long form there)
+      { key: 'hint', forms: [...(bw >= 80 ? [{ text: STRIP_HINT.long, pri: 2.5 }] : []), { text: STRIP_HINT.short, pri: 0 }] },
+      ...(q0 ? [{ key: 'keys', forms: keyForms }] : []),
       ...(pane.waiting ? [{ key: 'opens', forms: [{ text: '/baton opens the pane', pri: 1 }] }] : []),
       // Not the run's own session, or no longer (T7): the band says why it is not armed.
       ...(membership.why ? [{ key: 'why', forms: [{ text: membership.why, pri: 2 }], color: 'yellow', cut: true }] : []),
@@ -5307,35 +5370,42 @@ export function register(on, options) {
       ...(waiting.length ? [{ key: 'flag', forms: flagForms, color: 'yellow', cut: true }] : []),
       ...(usage.cost && typeof usage.cost.usd === 'number' ? [{ key: 'cost', forms: [{ text: '$' + usage.cost.usd.toFixed(2), pri: 7 }] }] : []),
     ]
-    const flag = [Box({ key: 'strip', flexDirection: 'row', children: fitStrip(items, bw).map(segText) })]
     // One key: with a phase waiting, typing 1 into an empty prompt approves it; 2 opens the pane to send it back.
-    if (approvals.queue.length) {
+    const keysBox = (label) => {
       const { Button } = $.ui.resolve(e)
-      const q0 = approvals.queue[0]
-      flag.push(
-        Box({
-          key: 'keys',
-          flexDirection: 'row',
-          columnGap: 2,
-          children: [
-            // the phase's name cut to what `1: approve ` and `2: send back…` leave (PW1)
-            Button({ key: 'band-approve', label: 'approve ' + cutCells(q0.label, Math.max(4, bw - 26)), hotkey: '1', plain: true, onPress: () => resolveQueued($, 0, 'approve') }),
-            Button({
-              key: 'band-sendback',
-              label: 'send back…',
-              hotkey: '2',
-              plain: true,
-              onPress: async () => {
-                pane.tab = 'work'
-                await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true, columns: PANE_COLUMNS })
-                pane.open = true
-                $.ui.invalidate('ui.render')
-              },
-            }),
-          ],
-        }),
-      )
+      return Box({
+        key: 'keys',
+        flexDirection: 'row',
+        columnGap: 2,
+        flexShrink: 0,
+        children: [
+          Button({ key: 'band-approve', label: 'approve' + (label ? ' ' + label : ''), hotkey: '1', plain: true, onPress: () => resolveQueued($, 0, 'approve') }),
+          Button({
+            key: 'band-sendback',
+            label: 'send back…',
+            hotkey: '2',
+            plain: true,
+            onPress: async () => {
+              pane.tab = 'work'
+              await $.ui.open({ id: PANE, title: 'baton', focus: true, closeOnEscape: true, columns: PANE_COLUMNS })
+              pane.open = true
+              $.ui.invalidate('ui.render')
+            },
+          }),
+        ],
+      })
     }
+    const stripSegs = fitStrip(items, bw)
+    const keysOn2 = stripSegs.some((x) => x.key === 'keys')
+    const segEl = (x) => (x.key === 'keys' ? keysBox((keyForms.find((f) => f.text === x.text) || { label: '' }).label) : segText(x))
+    const flag = [Box({ key: 'strip', flexDirection: 'row', children: stripSegs.map(segEl) })]
+    // line 1: the gauges, after the keys where line 2 had not the cells for them
+    const keysW = q0 && !keysOn2 ? cellWidth(keyText('')) + cellWidth(' · ') : 0
+    const lineBox = Box({
+      key: 'band',
+      flexDirection: 'row',
+      children: [...(keysW ? [keysBox(''), segText({ text: ' · ' })] : []), ...gauges(Math.max(1, bw - keysW)).map(segText)],
+    })
     if (update.state === 'available' || update.state === 'updating') {
       const { Button } = $.ui.resolve(e)
       flag.push(
@@ -5353,7 +5423,10 @@ export function register(on, options) {
     if (pause.on) flag.splice(1, 0, Text({ wrap: 'truncate-end', color: 'yellow', children: [fitText('⏸ baton paused since ' + pause.since + ' — ' + pause.held + ' held · /baton resume')] }))
     const dw = doctorWarning()
     if (dw) flag.push(Text({ wrap: 'truncate-end', color: 'red', children: [fitText(dw)] }))
-    return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(theirs ? [theirs] : [])] })
+    // the engine's own drawing, unless it draws nothing (an empty Text would be a third line under the strip, CS1)
+    const textIn = (x) => (typeof x === 'string' || typeof x === 'number' ? String(x) : Array.isArray(x) ? x.map(textIn).join('') : x && typeof x === 'object' ? textIn(x.children ?? (x.props && x.props.children)) : '')
+    const blank = !theirs || (theirs.type === 'Text' && textIn(theirs) === '')
+    return Box({ flexDirection: 'column', children: [lineBox, ...flag, ...(blank ? [] : [theirs])] })
   })
 
   // The spinner: which phase and node the prime is waiting on.
