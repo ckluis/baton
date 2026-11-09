@@ -544,6 +544,8 @@ function judge(argv, stdin = [], depth = 0) {
     return null
   }
   if (p === 'git') return git(a, depth, line)
+  // git runs its subcommands as programs in its exec path (libexec/git-core): git-push is git push.
+  if (p.startsWith('git-') && GIT_JUDGED.has(p.slice(4))) return git([p.slice(4), ...a], depth, line)
   if (p === 'gh') return gh(a)
   if (p === 'rm') {
     const f = flags(a)
@@ -736,7 +738,8 @@ function gh(a) {
     if (VALUE.includes(w)) k++
     else if (!w.startsWith('-')) {
       pos.push(w)
-      if (w === 'api') return api(a.slice(k + 1))
+      // cobra hands the api command every flag on the line, those before `api` too (`gh -XPOST api ...`).
+      if (w === 'api') return api([...a.slice(0, k), ...a.slice(k + 1)])
     }
   }
   const [top, sub] = pos
@@ -746,7 +749,16 @@ function gh(a) {
   return null
 }
 
-/** gh api: a method other than GET or HEAD writes; with no method, fields or an input file make gh send POST. */
+/** gh api's short flags that take a value (-X/--method, -f/--raw-field, -F/--field, -H, -q, -t, -p). */
+const API_VALUED = 'XfFHqtp'
+
+/**
+ * gh api: a method other than GET or HEAD writes; with no method, fields or an input file make gh
+ * send POST. Short flags are read as gh's pflag reads them: in a cluster each letter is a flag
+ * until one that takes a value, which takes the rest of the cluster (a leading `=` dropped:
+ * `-X=POST`) or, when it ends the cluster, the next word (`-iXPOST`, `-iX POST`); `-i=...` gives -i
+ * the rest. `-R` (not a gh api flag) is read as taking the next word, as before.
+ */
 function api(a) {
   const VALUE = ['-H', '--header', '-q', '--jq', '-t', '--template', '--cache', '-p', '--preview', '--hostname', '-R', '--repo']
   let method = null
@@ -756,13 +768,25 @@ function api(a) {
   for (let k = 0; k < a.length; k++) {
     const w = a[k] ?? ''
     const eq = w.indexOf('=')
-    if (w === '-X' || w === '--method') method = a[++k] ?? ''
+    if (w === '--method') method = a[++k] ?? ''
     else if (w.startsWith('--method=')) method = w.slice(9)
-    else if (w.startsWith('-X')) method = w.slice(2)
-    else if (w === '-f' || w === '-F' || w === '--field' || w === '--raw-field') fields.push(a[++k] ?? '')
+    else if (w === '--field' || w === '--raw-field') fields.push(a[++k] ?? '')
     else if (w.startsWith('--field=') || w.startsWith('--raw-field=')) fields.push(w.slice(eq + 1))
-    else if (/^-[fF]./.test(w)) fields.push(w.slice(2))
-    else if (w === '--input') {
+    else if (/^-[A-Za-z]/.test(w) && w !== '-R') {
+      for (let j = 1; j < w.length; j++) {
+        const ch = w[j] ?? ''
+        if (!API_VALUED.includes(ch)) {
+          if (w[j + 1] === '=') break
+          continue
+        }
+        let v = w.slice(j + 1)
+        if (v.length > 1 && v.startsWith('=')) v = v.slice(1)
+        if (!v) v = a[++k] ?? ''
+        if (ch === 'X') method = v
+        else if (ch === 'f' || ch === 'F') fields.push(v)
+        break
+      }
+    } else if (w === '--input') {
       input = true
       k++
     } else if (w.startsWith('--input=')) input = true
