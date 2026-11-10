@@ -34,8 +34,8 @@ pass.
   budget; it is now within budget (see the spend and idle CPU fix below). The rulings memo moved off
   the tool-call path and refreshes less often on the pane. These numbers were measured at
   `f3b6c85` (latency) and after the P4 idle fix (idle CPU), each with no run active; they do not
-  cover the run path or the P7 changes. A re-measure at the release tip, during a run, is pending
-  (M6C).
+  cover the run path or the P7 changes. T6 at the release tip is being re-measured under load,
+  during a run (M6C); until then the figures are M6B's, measured at `f3b6c85` with no run active.
 - **T7 · Run membership follows the session**, recorded at `session.start` and keyed to the session
   id, never re-read from the current directory. A session that `cd`s into a run is not armed and
   writes no run notes; a second interactive session is asked before it takes over; a restart picks
@@ -67,8 +67,11 @@ pass.
   dimmed), running agents pinned in view, `↑ <k> more` / `↓ <k> more` for the hidden rows, and no
   "earlier finished agents" fold line.
 - **Tests checked.** A guard audit of 128 `guard:` tests made each one fail on at least one mutant
-  of the code it guards, or removed it (2 removed); ten of them were tightened after the last confirm round and
-  were not confirmed again, and are named as weak checks in the pull request.
+  of the code it guards, or removed it (2 removed). The pull request names ten weak checks. Nine
+  (D-P3-14) were found weak in a confirm round and tightened: four found in the first round were
+  confirmed again by the second, and five found in the second, the last round allowed, were
+  tightened after it and not confirmed again. The tenth, t9-keys G3 (D-P3-19), fails under its
+  mutant, but the `r` key's 5 s re-read runs on real time and the test harness cannot pin it.
 
 Fixed after the first live checks. Each fix started from a test that failed, and what was first
 seen failing live was checked again live, in Claude Code 2.1.316, after the fix:
@@ -172,9 +175,13 @@ record:
   sent new instructions`; a wait that is still current stays. With an open question the item sits
   under the `?` row and goes with it.
 - **Tests that timed out under load (XTFL1).** Under four suites run at once, 40 tests ran past the
-  5 s default. The t15 paging loop now stops at the bottom, and every test file that starts the
-  mod (35 files) has a 60 s budget per test; 5 rounds of 4 concurrent suites then ran 20 of 20
-  green. This is a larger time budget, not a faster test.
+  5 s default, all in test files that had no budget of their own. The t15 paging loop now stops at
+  the bottom, and those 35 files give every test that starts the mod a 60 s budget. The other 28
+  test files keep the budgets they already set: 20 s in five (fx2-startup-order, t14-marks,
+  t14-membership, t7-membership, t8-model-pane), 30 s in seven (fx3-drawn-width, fx4-keys-scroll,
+  t14-explorer, t14-project-mark, t14-project-view, t8e-effort, tc1-tool-table), and 60 s to
+  900 s in sixteen. 5 rounds of 4 concurrent suites then ran 20 of 20 green. This is a larger time
+  budget, not a faster test.
 - **The strip, and a layout to choose (CS1, CS2, LM1).** The band above the prompt is a strip of
   two lines, with a third only while a notice shows (baton paused, an update available, a doctor
   warning) that goes when the notice clears; tests pin this for the pause and doctor notices, not
@@ -214,7 +221,8 @@ Known gaps, not fixed in this release:
   still show it.
 - The update notice's third strip line is not pinned by a test (the harness cannot raise it; it
   clears only on a plugin reload).
-- The tests that timed out under load have a 60 s budget per test instead of being made faster.
+- The tests that timed out under load (in the 35 test files that had no budget of their own) have
+  a 60 s budget per test instead of being made faster.
 - `_orch/spend.json` has no cost line of its own for the session-title request Claude Code makes on
   Haiku by itself (about $0.0002 a session). The only record of that cost by model is in
   `~/.claude.json`, which baton does not read. The cost is inside Claude Code's session total and

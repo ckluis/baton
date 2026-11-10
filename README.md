@@ -63,8 +63,9 @@ tested through the plugin harness, the final suites on 2.1.321. In full:
 - **Models and spend.** Haiku 5.5 is the mechanical model and condenses PR comments; merges and
   ruling extraction stay on Sonnet 5.5 after a blind A/B. `_orch/spend.json` writes a dollar
   figure beside each model's tokens, and keeps Claude Code's own session total beside them. Idle
-  CPU is within its budget, as measured with no run active before the last round of changes; a
-  re-measure at the release tip, during a run, is pending.
+  CPU is within its budget, as measured with no run active before the last round of changes. The
+  overhead at the release tip is being re-measured under load, during a run (M6C); until then the
+  figures are M6B's, measured at `f3b6c85` with no run active (idle CPU after the P4 idle fix).
 - **Run membership follows the session**, not the current directory: a session that `cd`s into a
   run is not armed, a second interactive session is asked before it takes over, and a restart
   picks the run up.
@@ -105,7 +106,7 @@ Known gaps, not fixed: the two command-check gaps above; in a very short pane (u
 at 49 columns) the key hint is kept and no agent row is drawn; while a phase waits for approval on
 a strip 45 to 54 columns wide the layout hint is a short form (`/baton layout`); at 40 to 44 columns the strip
 leaves out the layout hint; the update notice's strip line is not pinned by a test; the tests that
-timed out under load got a 60 s budget, not a speedup; the
+timed out under load got a 60 s budget (the 35 test files that had no budget of their own), not a speedup; the
 spend file has no line of its own for Claude Code's Haiku session-title request; a ruling can
 still be marked by linking its files into the memory by hand; an answer dialog left open over 10
 seconds leaves the brief un-redrawn; after a pane dialog closes, keys go to the prompt. Details in
@@ -136,8 +137,12 @@ on what moved, and deletes what didn't.
 - **Rulings stick.** What you say during a run is noted; standing rules in it are lifted into the
   project memory and lead every wake, newest first. `/baton enforce` turns one into a refusal.
 - **See and approve.** `/baton` opens Run, Agents (the live tree), Memory (a browser), Rulings and
-  Ledger. Irreversible commands from any agent at any depth wait for you; a finished phase waits for
-  your approval before the prime dispatches the next.
+  Ledger. A push, a PR create, merge or close, a publish, a GitHub API write, a hard reset or a
+  recursive delete waits for you, from any agent at any depth, when the command gate reads it
+  spelled out on the command line; it does not see a script's contents, aliases, a command built
+  from a variable or text piped into a shell, and it misreads gh's value-taking flags placed before
+  the subcommand (both above). A finished phase waits for your approval before the prime
+  dispatches the next.
 - **Red, green, blue** (rule 9.4). Every behavior change lands its failing tests first, then the
   smallest change that passes them unedited, then a refactor with no test touched. The verifier
   re-runs red against the unchanged code.
