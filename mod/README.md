@@ -287,8 +287,8 @@ The **run memory** lives in `<cwd>/_orch/memory`. The **project memory** lives i
   newest rulings. **Memory** (2) is everything the run remembers: your rulings first (add, retract
   with **x**, enforcement shown), then the memory explorer. Switching tabs refreshes. There is no
   separate plan section any more: the phases are rows of the agent tree.
-- **The band is one line:** `5h ▕██░░░▏42% · wk ▕█░░░░▏18% · Fable ▕░░░░░▏3% · ctx ▕█░┊░░▏24%/35% ·
-  ↻3 · $17.41 · #12 building · PR #47 5/6`. A second line appears only when something waits for you.
+- **The band is the strip:** two lines, three only while a notice shows (paused, an update available,
+  a doctor warning); "Layouts" below says what it holds and how to dive in.
 - **Rotation.** `session.measure` reports `context.percent` at or above `rotateAtPercent`. The mod
   writes a handoff note (one line from `$.model.fork`), then calls `$.session.compact` off the
   clock. Every compaction during a run is counted as a rotation. The prime is told to call
