@@ -34,8 +34,11 @@ pass.
   budget; it is now within budget (see the spend and idle CPU fix below). The rulings memo moved off
   the tool-call path and refreshes less often on the pane. These numbers were measured at
   `f3b6c85` (latency) and after the P4 idle fix (idle CPU), each with no run active; they do not
-  cover the run path or the P7 changes. T6 at the release tip is being re-measured under load,
-  during a run (M6C); until then the figures are M6B's, measured at `f3b6c85` with no run active.
+  cover the run path or the P7 changes. The figures are M6B's: measured at f3b6c85, no run active;
+  re-measure under an active run moved to v7.7. A review finding stays open until then: the
+  numbers do not describe the run path being shipped. Later changes read the prime's whole
+  transcript (up to 4 MiB) during a run to price its cache writes; that read now runs on a timer the
+  model-request hook does not wait on, and latency was not measured again after that move.
 - **T7 · Run membership follows the session**, recorded at `session.start` and keyed to the session
   id, never re-read from the current directory. A session that `cd`s into a run is not armed and
   writes no run notes; a second interactive session is asked before it takes over; a restart picks
@@ -205,6 +208,9 @@ record:
 
 Known gaps, not fixed in this release:
 
+- The T6 overhead figures are M6B's, measured at f3b6c85 with no run active; they do not describe
+  the run path at the release tip (the transcript read during a run, T6 above). The
+  re-measure under an active run moved to v7.7 (item 3).
 - The command gate misreads gh's value-taking flags placed before the subcommand (`gh -H a:b -X
   POST api …`), so that GitHub API write is not asked about (GT1, above). First on the v7.7 list.
 - The forbidden-file check lets through staging built from further indirection, and does not cover
@@ -244,8 +250,9 @@ Planned for v7.7, in this order:
 2. The forbidden-file check refuses staging lines whose command word or shell variables are built
    indirectly, and covers `git stash -u`, `git update-index`, `git apply --cached` and git config
    aliases.
-3. A real speedup of the tests that start the mod, in place of the 60 s per-test budget.
-4. Then: approvals (a command to take back a run-wide approval; the gate's false alarm on command
+3. Re-measure T6 latency at the tip during an active run, on a quiet machine.
+4. A real speedup of the tests that start the mod, in place of the 60 s per-test budget.
+5. Then: approvals (a command to take back a run-wide approval; the gate's false alarm on command
    words in file text; an approval coming back run-scoped when once was meant), a new session
    never taking over a run without asking, a cheaper verifier tier for criteria a command alone
    can settle, and hardening against `NODE_OPTIONS`.

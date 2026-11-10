@@ -64,8 +64,11 @@ tested through the plugin harness, the final suites on 2.1.321. In full:
   ruling extraction stay on Sonnet 5.5 after a blind A/B. `_orch/spend.json` writes a dollar
   figure beside each model's tokens, and keeps Claude Code's own session total beside them. Idle
   CPU is within its budget, as measured with no run active before the last round of changes. The
-  overhead at the release tip is being re-measured under load, during a run (M6C); until then the
-  figures are M6B's, measured at `f3b6c85` with no run active (idle CPU after the P4 idle fix).
+  overhead figures (T6) are M6B's: measured at f3b6c85, no run active; re-measure under an active
+  run moved to v7.7 (idle CPU was measured after the P4 idle fix, also with no run active). They do
+  not describe the run path at the release tip, which later changes touched (the prime's transcript
+  is now read for pricing on a timer the model-request hook does not wait on); a review finding to
+  that effect stays open until the re-measure.
 - **Run membership follows the session**, not the current directory: a session that `cd`s into a
   run is not armed, a second interactive session is asked before it takes over, and a restart
   picks the run up.
@@ -102,7 +105,8 @@ tested through the plugin harness, the final suites on 2.1.321. In full:
   `memory_mark`, `project_mark` and `c` / `v` / `u` in the pane mark a note ✅ or ❌ with a reason;
   a ❌ note leaves wake, recall and the summaries, and nothing is deleted. `memory_note` takes a tag.
 
-Known gaps, not fixed: the two command-check gaps above; in a very short pane (under about 7 rows
+Known gaps, not fixed: the two command-check gaps above; the T6 overhead figures were measured at
+f3b6c85 with no run active, not on the run path of the release tip (re-measure moved to v7.7); in a very short pane (under about 7 rows
 at 49 columns) the key hint is kept and no agent row is drawn; while a phase waits for approval on
 a strip 45 to 54 columns wide the layout hint is a short form (`/baton layout`); at 40 to 44 columns the strip
 leaves out the layout hint; the update notice's strip line is not pinned by a test; the tests that
@@ -115,8 +119,9 @@ opened in its folder takes it over as a restart would: close or finish a 7.5.1 r
 
 Planned for v7.7, in order: (1) the command gate reads gh's value-taking flags placed before the
 subcommand; (2) the forbidden-file check refuses indirectly built staging lines and covers
-`git stash -u`, `update-index`, `apply --cached` and git config aliases; (3) a real speedup of the
-tests that start the mod; then the approvals unit, a new session never taking over without asking,
+`git stash -u`, `update-index`, `apply --cached` and git config aliases; (3) re-measure T6
+latency at the tip during an active run, on a quiet machine; (4) a real speedup of the tests that
+start the mod, in place of the 60 s per-test budget; then the approvals unit, a new session never taking over without asking,
 a cheaper verifier tier, and `NODE_OPTIONS` hardening.
 
 ## v7.0 — since v6.0
