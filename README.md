@@ -105,8 +105,8 @@ tested through the plugin harness, the final suites on 2.1.321. In full:
   `memory_mark`, `project_mark` and `c` / `v` / `u` in the pane mark a note ✅ or ❌ with a reason;
   a ❌ note leaves wake, recall and the summaries, and nothing is deleted. `memory_note` takes a tag.
 
-Known gaps, not fixed: the two command-check gaps above; the T6 overhead figures were measured at
-f3b6c85 with no run active, not on the run path of the release tip (re-measure moved to v7.7); in a very short pane (under about 7 rows
+Known gaps, not fixed: the two command-check gaps above; the T6 overhead figures are M6B's, measured at
+f3b6c85 with no run active, not on the run path of the release tip (re-measure under an active run moved to v7.7); in a very short pane (under about 7 rows
 at 49 columns) the key hint is kept and no agent row is drawn; while a phase waits for approval on
 a strip 45 to 54 columns wide the layout hint is a short form (`/baton layout`); at 40 to 44 columns the strip
 leaves out the layout hint; the update notice's strip line is not pinned by a test; the tests that
