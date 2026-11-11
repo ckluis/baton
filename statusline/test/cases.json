@@ -103,6 +103,74 @@
    "expect": "5h 7% resets 14:30 EST · fable 31% · wk 52% resets Mon 07:00 EST · ctx 5%"
   },
   {
+   "name": "109 columns: the full 105-character line just fits (Claude Code shows COLUMNS - 4)",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 109,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "108 columns: one short, so the bars go",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 108,
+   "color": false,
+   "expect": "5h 7% resets 14:30 EST · fable 31% · wk 52% resets Mon 07:00 EST · ctx 5%"
+  },
+  {
    "name": "45 columns: then the reset times",
    "input": {
     "context_window": {
@@ -239,7 +307,7 @@
    "expect": "5h 7% · ctx 5%"
   },
   {
-   "name": "11 columns: cut at the edge",
+   "name": "14 columns: cut at the edge",
    "input": {
     "context_window": {
      "used_percentage": 5,
@@ -268,7 +336,7 @@
    "now": 1794413220,
    "tz": "America/New_York",
    "tzwin": "Eastern Standard Time",
-   "cols": 11,
+   "cols": 14,
    "color": false,
    "expect": "5h 7% · c…"
   },
@@ -318,13 +386,13 @@
    "expect": "5h n/a · ctx n/a"
   },
   {
-   "name": "all n/a at 49 columns",
+   "name": "all n/a at 52 columns",
    "input": {},
    "cache": null,
    "now": 1794413220,
    "tz": "America/New_York",
    "tzwin": "Eastern Standard Time",
-   "cols": 49,
+   "cols": 52,
    "color": false,
    "expect": "5h n/a (no data yet) · ctx n/a (no messages yet)"
   },

@@ -1,6 +1,6 @@
 # baton
 
-**v8.0.0** · One line above the prompt: how much of your Claude plan is left.
+**v8.0.1** · One line above the prompt: how much of your Claude plan is left.
 
 ```
 5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%
@@ -40,7 +40,7 @@ commands, the command gate) is gone. The story of why is on
   | `n/a (no plan limits)` | API key, Bedrock or Vertex: plan limits do not apply |
   | `n/a (stale)` | The last Fable answer is over 30 minutes old, or its window has reset |
 
-- **Narrow windows:** the line always fits, from 40 to 200 columns and beyond. When it does
+- **Narrow windows:** the line always fits, from 40 to 200 columns and beyond (Claude Code shows the window width minus 4). When it does
   not fit, it drops, in this order: the bars, then the reset times, then `fable`, then `wk`, then
   the `n/a` reasons. `5h` and `ctx` always stay.
 

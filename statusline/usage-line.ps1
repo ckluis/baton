@@ -1,4 +1,4 @@
-# baton 8.0.0: one usage line for Claude Code's status line (Windows).
+# baton 8.0.1: one usage line for Claude Code's status line (Windows).
 #
 #   5h [bar] 7% resets 14:30 EST . fable [bar] 0% . wk [bar] 52% resets Mon 07:00 EST . ctx [bar] 5%
 #
@@ -30,7 +30,7 @@ param([switch]$FetchFable, [switch]$Version, [string]$CachePath = '')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
-$BATON_VERSION = '8.0.0'
+$BATON_VERSION = '8.0.1'
 $FETCH_EVERY = 300    # ask for Fable again after 5 minutes
 $STALE_AFTER = 1800   # a Fable answer older than 30 minutes shows n/a (stale)
 $LOCK_SECONDS = 120   # a fetch lock older than this is from a fetch that died
@@ -403,12 +403,13 @@ try {
 
   Start-Refresh $path $now $cache
 
-  # The columns the line may use: Claude Code passes the terminal width as COLUMNS; the last
-  # column stays free, because writing into it makes some terminals wrap.
+  # The columns the line may use. Claude Code passes the terminal width as COLUMNS but shows at
+  # most COLUMNS - 4 characters of a status line (measured on 2.1.322 at 60 and 120 columns);
+  # anything longer it cuts with an ellipsis, which would cut ctx off the end.
   $cols = $env:BATON_USAGE_COLUMNS
   if (-not $cols) { $cols = $env:COLUMNS }
-  $width = 79
-  if ($cols -match '^\d+$' -and [int]$cols -gt 1) { $width = [int]$cols - 1 }
+  $width = 76
+  if ($cols -match '^\d+$' -and [int]$cols -gt 5) { $width = [int]$cols - 4 }
   $color = -not $env:NO_COLOR
 
   [Console]::Out.Write((Get-Fit $parts $width $color) + "`n")
