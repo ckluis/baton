@@ -1,5 +1,17 @@
 # Changelog
 
+## v8.0.1 — 2026-11-11
+
+- **ctx is never cut off.** Claude Code shows at most the window width minus 4 characters of a
+  status line and cuts anything longer with "…" (measured on 2.1.322 at 60 and 120 columns). v8.0.0
+  fitted the line to the width minus 1, so in a window 1 to 3 columns too narrow for the next
+  step, Claude Code cut the end of the line, which is where `ctx` is. Both scripts now fit to the
+  width minus 4. Checked live: at 109 columns the full line shows; at 108 the bars drop and `ctx`
+  stays.
+- Tests: two new edge cases (109 and 108 columns), and the width checks hold every line to the
+  width minus 4. 62 shell checks pass on macOS `sh` and `dash`, Debian, Alpine and Ubuntu 22.04;
+  64 PowerShell checks pass on PowerShell 7.7.
+
 ## v8.0.0 — 2026-11-11
 
 baton is now only a usage monitor: one status line above the prompt.

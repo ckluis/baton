@@ -1,5 +1,5 @@
 #!/bin/sh
-# baton 8.0.0: one usage line for Claude Code's status line (macOS, Linux, WSL).
+# baton 8.0.1: one usage line for Claude Code's status line (macOS, Linux, WSL).
 #
 #   5h ▕█░░░░▏ 7% resets 14:30 EST · fable ▕░░░░░▏ 0% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%
 #
@@ -22,7 +22,7 @@
 # BATON_USAGE_COLUMNS (width), BATON_USAGE_NOW (epoch seconds), BATON_USAGE_NO_FETCH=1,
 # BATON_CLAUDE (the claude command), NO_COLOR.
 
-VERSION=8.0.0
+VERSION=8.0.1
 FETCH_EVERY=300 # ask for Fable again after 5 minutes
 STALE_AFTER=1800 # a Fable answer older than 30 minutes shows n/a (stale)
 LOCK_MINUTES=2 # a fetch lock older than this is from a fetch that died
@@ -204,10 +204,11 @@ main() {
 
   maybe_refresh "$cache" "$now" "$cache_at"
 
-  # The columns the line may use: Claude Code passes the terminal width as COLUMNS; the last
-  # column stays free, because writing into it makes some terminals wrap.
+  # The columns the line may use. Claude Code passes the terminal width as COLUMNS but shows at
+  # most COLUMNS - 4 characters of a status line (measured on 2.1.322 at 60 and 120 columns);
+  # anything longer it cuts with "…", which would cut ctx off the end.
   cols=${BATON_USAGE_COLUMNS:-${COLUMNS:-}}
-  if is_int "$cols" && [ "$cols" -gt 1 ]; then width=$((cols - 1)); else width=79; fi
+  if is_int "$cols" && [ "$cols" -gt 5 ]; then width=$((cols - 4)); else width=76; fi
   if [ -n "${NO_COLOR:-}" ]; then color=false; else color=true; fi
 
   jq -rn --arg in "$input" --arg cache "$cache_txt" --arg t5 "$t5" --arg tw "$tw" \

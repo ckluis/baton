@@ -73,7 +73,7 @@ function Draw($c, $cols, [bool]$color) {
 }
 
 $v = Invoke-Line '' @{} @('-Version')
-if ($v -eq '8.0.0') { Ok 'version is 8.0.0' } else { Bad 'version is 8.0.0' $v }
+if ($v -eq '8.0.1') { Ok 'version is 8.0.1' } else { Bad 'version is 8.0.1' $v }
 
 # ------------------------------------------------------------------ the shared cases
 foreach ($c in $cases.cases) {
@@ -104,14 +104,14 @@ foreach ($cols in $w.widths) {
       $got = Draw $c $cols $color
       $plain = $got -replace "$ESC\[[0-9;]*m", ''
       $n++
-      if ($plain.Length -gt ($cols - 1) -or -not $plain.StartsWith('5h ') -or $plain -notmatch (' ' + [char]0x00B7 + ' ctx ')) {
+      if ($plain.Length -gt ($cols - 4) -or -not $plain.StartsWith('5h ') -or $plain -notmatch (' ' + [char]0x00B7 + ' ctx ')) {
         $widthFail = $true
         Bad ("$($r.name) at $cols columns, color $color") ("$($plain.Length) columns: $got")
       }
     }
   }
 }
-if (-not $widthFail) { Ok "widths 40, 45, 80, 120, 200: $n lines, none past the edge, 5h and ctx in each" }
+if (-not $widthFail) { Ok "widths 40, 45, 80, 120, 200: $n lines, all within the COLUMNS - 4 Claude Code shows, 5h and ctx in each" }
 
 # ------------------------------------------------------------------ the Fable fetch
 # The fake claude is a shell script, so these run where sh is (Linux, macOS, Git Bash).

@@ -27,7 +27,7 @@ draw() {
 }
 
 # NO_COLOR="" must mean color on; the script checks for a non-empty value.
-[ "$(sh "$script" --version)" = 8.0.0 ] && ok "version is 8.0.0" || bad "version is 8.0.0"
+[ "$(sh "$script" --version)" = 8.0.1 ] && ok "version is 8.0.1" || bad "version is 8.0.1"
 
 # ------------------------------------------------------------------ the shared cases
 n=$(jq '.cases | length' "$cases")
@@ -64,12 +64,12 @@ while read -r b_name b_in b_cache b_now b_tz b_cols b_color; do
   width_n=$((width_n + 1))
   p=$(plain "$got")
   case $p in "5h "*" · ctx "*) shape=ok ;; *) shape=bad ;; esac
-  if [ "$w" -gt $((cols - 1)) ] || [ "$shape" != ok ]; then
+  if [ "$w" -gt $((cols - 4)) ] || [ "$shape" != ok ]; then
     width_fail=1
     bad "$(d "$b_name") at $cols columns, color $(d "$b_color")" "$w columns: $got"
   fi
 done <"$tmp/widths"
-[ "$width_fail" = 0 ] && ok "widths 40, 45, 80, 120, 200: $width_n lines, none past the edge, 5h and ctx in each"
+[ "$width_fail" = 0 ] && ok "widths 40, 45, 80, 120, 200: $width_n lines, all within the COLUMNS - 4 Claude Code shows, 5h and ctx in each"
 
 # ------------------------------------------------------------------ the Fable fetch
 fetch() { # $1 mode, $2 claude command
