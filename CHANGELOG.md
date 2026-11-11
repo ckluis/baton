@@ -23,23 +23,26 @@ every other run command; the command gate; the forbidden-file check; and their t
 `baton-v6.html`) and `docs/` stay as the record.
 
 **Added.**
-- `statusline/usage-line.mjs`: one Node file, no packages. 5h, wk and ctx come from the JSON
-  Claude Code sends every status line. Fable is not in that JSON (checked on 2.1.322). The line
-  gets it from Claude Code's experimental SDK usage request, in the background at most every 5
-  minutes, with no model call.
-- Times in the system's own time zone with its short name (`EST`, `CET`), read at every draw; no
-  more UTC `Z` times.
+- `statusline/usage-line.sh` (macOS, Linux, WSL: needs only `sh`, `date` and `jq`) and
+  `statusline/usage-line.ps1` (Windows: needs only the built-in PowerShell). No Node, no
+  packages. 5h, wk and ctx come from the JSON Claude Code sends every status line. Fable is not
+  in that JSON (checked on 2.1.322). The line gets it from Claude Code's experimental SDK usage
+  request, in the background at most every 5 minutes, with no model call.
+- Times in the system's own time zone with its short name (`EST`, `CET`, `JST`), read at every
+  draw; no more UTC `Z` times.
 - `n/a (reason)` for any number not known; never a made-up number.
 - Fits 40 to 200 columns: drops bars, then reset times, then Fable, then weekly, then the `n/a`
   reasons; 5h and ctx always stay.
 - `ctx` is one percent. The old `/35%` was the memory hand-off point and went with the memory.
-- 28 tests (`npm test`).
+- One shared set of test cases for both scripts (`statusline/test/`): 60 checks for the shell
+  script, passing on macOS `sh` and `dash`, Debian, Alpine (busybox) and Ubuntu 22.04 (jq 1.6);
+  62 for the PowerShell script, passing on PowerShell 7.7.
 
 **Looked into, left out.** "Resets available", the number of unused 5-hour limit resets on an
 account, reaches neither a status line nor a mod. Claude Code reads it from a private usage
 address with the user's login, so v8 does not show it.
 
-**Upgrade.** `claude plugin uninstall baton@baton`, then add the `statusLine` lines in the README.
+**Upgrade.** `claude plugin uninstall baton@baton`, then follow the README's install steps for your system.
 
 ## v7.5.1 — 2026-10-19
 

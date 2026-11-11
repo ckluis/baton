@@ -61,7 +61,7 @@ h2{color:var(--ink);font-size:clamp(24px,3.4vw,34px);letter-spacing:-.01em;margi
 .sub{max-width:700px;margin-bottom:28px}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:18px 18px 16px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:18px 18px 16px;min-width:0}
 .card h3{font-family:var(--mono);color:var(--yellow);font-size:15px;margin-bottom:6px}
 .card p{font-size:14.5px}
 .card .src{font-size:13px;color:var(--muted);margin-top:8px}
@@ -141,20 +141,31 @@ footer{border-top:1px solid var(--hair);padding:30px 0 50px;font-size:14px;color
 
 <section id="install"><div class="wrap">
   <h2>Install</h2>
-  <p class="sub">One Node file, no packages, no plugin. Needs Node 18+ and Claude Code 2.1.80+.</p>
-  <ol class="steps">
-    <li>Get the file.
-<pre class="code">curl -fsSL -o ~/.claude/baton-usage-line.mjs \
-  https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.mjs</pre></li>
-    <li>Add this to <code>~/.claude/settings.json</code>.
+  <p class="sub">One small script, no plugin, nothing to build. Needs Claude Code 2.1.80 or later.</p>
+  <div class="grid">
+    <div class="card"><h3>macOS · Linux · WSL</h3>
+      <p>Needs <code>sh</code>, <code>date</code> and <code>jq</code>. macOS 15+ has them all; on Linux, <code>apt install jq</code>.</p>
+<pre class="code">curl -fsSL -o ~/.claude/baton-usage-line.sh \
+  https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.sh</pre>
+      <p class="src">Then in <code>~/.claude/settings.json</code>:</p>
 <pre class="code">"statusLine": {
   "type": "command",
-  "command": "node ~/.claude/baton-usage-line.mjs",
+  "command": "sh ~/.claude/baton-usage-line.sh",
   "refreshInterval": 60
-}</pre></li>
-    <li>Start a new Claude Code session. Coming from baton v7? First run
-    <code>claude plugin uninstall baton@baton</code>.</li>
-  </ol>
+}</pre></div>
+    <div class="card"><h3>Windows</h3>
+      <p>Needs nothing extra: the PowerShell every Windows has.</p>
+<pre class="code">Invoke-WebRequest -UseBasicParsing `
+  -OutFile "$HOME\.claude\baton-usage-line.ps1" `
+  https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.ps1</pre>
+      <p class="src">Then in <code>settings.json</code> (forward slashes):</p>
+<pre class="code">"statusLine": {
+  "type": "command",
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/YOU/.claude/baton-usage-line.ps1",
+  "refreshInterval": 60
+}</pre></div>
+  </div>
+  <p class="caption" style="margin-top:14px">Start a new session and the line is there. Coming from baton v7? First run <code>claude plugin uninstall baton@baton</code>.</p>
 </div></section>
 
 <section id="history"><div class="wrap">
@@ -265,8 +276,8 @@ footer{border-top:1px solid var(--hair);padding:30px 0 50px;font-size:14px;color
         <h3>Just a usage line</h3>
         <p class="why"><span class="lbl">Why</span>The part still worth having was the usage numbers. Claude Code's
         status line now gets the 5-hour, weekly and context numbers directly, and its usage request has Fable.</p>
-        <p class="end"><b>Kept:</b> one file, one line. Use Claude Code the way Anthropic built it.</p>
-        <p class="links"><a href="https://github.com/ckluis/baton/blob/main/CHANGELOG.md">Changelog</a> <a href="https://github.com/ckluis/baton/blob/main/statusline/usage-line.mjs">The code</a></p>
+        <p class="end"><b>Kept:</b> one small script, one line. Use Claude Code the way Anthropic built it.</p>
+        <p class="links"><a href="https://github.com/ckluis/baton/blob/main/CHANGELOG.md">Changelog</a> <a href="https://github.com/ckluis/baton/tree/main/statusline">The code</a></p>
       </div>
     </article>
 

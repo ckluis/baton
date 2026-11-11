@@ -6,7 +6,8 @@
 5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%
 ```
 
-baton is now a Claude Code **status line**: one Node file, no packages, no plugin, no mod.
+baton is now a Claude Code **status line**: one small script, no plugin, no mod, nothing to
+build. `usage-line.sh` for macOS, Linux and WSL; `usage-line.ps1` for Windows.
 Everything else baton used to be (the prime and its agents, the memory, the views, the run
 commands, the command gate) is gone. The story of why is on
 [the page](https://ckluis.github.io/baton/) and in the [changelog](CHANGELOG.md).
@@ -22,8 +23,10 @@ commands, the command gate) is gone. The story of why is on
 
 - **Colors:** green, then yellow from 60%, red from 85%. Set `NO_COLOR=1` for none.
 - **Times** are in your computer's own time zone, read each time the line is drawn, with the
-  zone's short name (`EST`, `CET`, `BST`, `AEDT`; a zone with no common short name shows its
-  offset, `GMT+9`). Daylight-saving changes show up on their own.
+  zone's short name (`EST`, `CET`, `BST`, `AEDT`, `JST`). A zone with no common short name shows
+  its offset (`GMT-3`, `GMT+5:45`). Daylight-saving changes show up on their own. On macOS and
+  Linux the names come from the system (`date`); on Windows, which names zones in words, from a
+  table of the common zones in `usage-line.ps1`.
 - **Unknown numbers** show `n/a` and a short reason, never a guess:
 
   | Shows | Means |
@@ -47,34 +50,61 @@ The status line JSON has no Fable window. Claude Code knows it (the `/usage` scr
 and hands it out through its SDK usage request. Its SDK calls that request
 `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET`, so it may change. To get it, the
 line starts `claude -p --safe-mode --no-session-persistence` in the background at most every 5
-minutes, sends that one request, saves the answer to `~/.cache/baton-usage/fable.json`, and
-stops. It calls no model and spends no tokens. If the request ever stops working, `fable` shows
-`n/a (no data)` and the rest of the line carries on.
+minutes, sends that one request, saves the answer, and stops. It calls no model and spends no
+tokens. If the request ever stops working, `fable` shows `n/a (no data)` and the rest of the line
+carries on. The answer is saved to `~/.cache/baton-usage/fable.json` (Windows:
+`%LOCALAPPDATA%\baton-usage\fable.json`).
 
 ## Install
 
-You need Node 18 or later and Claude Code 2.1.80 or later (rate limits reached the status line
-in 2.1.80).
+You need Claude Code 2.1.80 or later (rate limits reached the status line in 2.1.80).
 
-1. **From a clone** (`git clone https://github.com/ckluis/baton`), or **just the file**:
+### macOS, Linux, WSL
+
+Needs `sh`, `date` and `jq`. macOS 15 and later already have `jq` (`/usr/bin/jq`). On Linux:
+`sudo apt install jq` (or `dnf install jq`, `apk add jq`); on older macOS, `brew install jq`.
+
+1. Get the file:
 
    ```bash
-   curl -fsSL -o ~/.claude/baton-usage-line.mjs https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.mjs
+   curl -fsSL -o ~/.claude/baton-usage-line.sh https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.sh
    ```
 
-2. Add this to `~/.claude/settings.json` (use the path where the file is):
+2. Add this to `~/.claude/settings.json`:
 
    ```json
    "statusLine": {
      "type": "command",
-     "command": "node ~/.claude/baton-usage-line.mjs",
+     "command": "sh ~/.claude/baton-usage-line.sh",
      "refreshInterval": 60
    }
    ```
 
-   `refreshInterval` redraws the line once a minute, so it stays current while you are idle.
+### Windows
 
-3. Start a new Claude Code session. The line shows above the prompt.
+Needs nothing extra: it runs on the PowerShell every Windows has (5.1, or PowerShell 7).
+
+1. Get the file (in PowerShell):
+
+   ```powershell
+   Invoke-WebRequest -UseBasicParsing -OutFile "$HOME\.claude\baton-usage-line.ps1" https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.ps1
+   ```
+
+2. Add this to `%USERPROFILE%\.claude\settings.json`, with your user name in the path. Use
+   forward slashes: Claude Code runs the command through Git Bash, which eats backslashes.
+
+   ```json
+   "statusLine": {
+     "type": "command",
+     "command": "powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/YOU/.claude/baton-usage-line.ps1",
+     "refreshInterval": 60
+   }
+   ```
+
+### Then
+
+Start a new Claude Code session. The line shows above the prompt. `refreshInterval` redraws it
+once a minute, so it stays current while you are idle.
 
 ### Coming from baton v7
 
@@ -90,11 +120,13 @@ A finished run's `_orch/` and `.baton/` folders are yours to keep or delete; v8 
 ## Test
 
 ```bash
-npm test          # or: node --test statusline/usage-line.test.mjs
+sh statusline/test/run.sh                  # macOS, Linux, WSL (needs jq)
+pwsh -NoProfile -File statusline/test/run.ps1   # PowerShell 7 anywhere, or Windows PowerShell
 ```
 
-The tests cover every part, every `n/a` reason, six time zones plus both daylight-saving
-changes, widths 40, 45, 80, 120 and 200, and the Fable request against a fake `claude`.
+Both scripts run the same cases from `statusline/test/cases.json`, so they draw the same lines:
+every part, every `n/a` reason, nine time zones and both daylight-saving changes, widths 40, 45,
+80, 120 and 200 with and without color, and the Fable request against a fake `claude`.
 
 ## License
 
