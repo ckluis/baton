@@ -1,0 +1,1414 @@
+{
+ "cases": [
+  {
+   "name": "every field at 200 columns",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "120 columns: still everything",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 120,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "80 columns: bars go first",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 80,
+   "color": false,
+   "expect": "5h 7% resets 14:30 EST · fable 31% · wk 52% resets Mon 07:00 EST · ctx 5%"
+  },
+  {
+   "name": "45 columns: then the reset times",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 45,
+   "color": false,
+   "expect": "5h 7% · fable 31% · wk 52% · ctx 5%"
+  },
+  {
+   "name": "40 columns",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 40,
+   "color": false,
+   "expect": "5h 7% · fable 31% · wk 52% · ctx 5%"
+  },
+  {
+   "name": "31 columns: then Fable",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 31,
+   "color": false,
+   "expect": "5h 7% · wk 52% · ctx 5%"
+  },
+  {
+   "name": "21 columns: then weekly",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 21,
+   "color": false,
+   "expect": "5h 7% · ctx 5%"
+  },
+  {
+   "name": "11 columns: cut at the edge",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 11,
+   "color": false,
+   "expect": "5h 7% · c…"
+  },
+  {
+   "name": "no COLUMNS: 80 is assumed",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": null,
+   "color": false,
+   "expect": "5h 7% resets 14:30 EST · fable 31% · wk 52% resets Mon 07:00 EST · ctx 5%"
+  },
+  {
+   "name": "all n/a at 40 columns: reasons go last",
+   "input": {},
+   "cache": null,
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 40,
+   "color": false,
+   "expect": "5h n/a · ctx n/a"
+  },
+  {
+   "name": "all n/a at 49 columns",
+   "input": {},
+   "cache": null,
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 49,
+   "color": false,
+   "expect": "5h n/a (no data yet) · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "percents round to whole numbers",
+   "input": {
+    "context_window": {
+     "used_percentage": 12.6
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 33.4,
+      "resets_at": 1794425400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕██░░░▏ 33% resets 14:30 EST · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕█░░░░▏ 13%"
+  },
+  {
+   "name": "bars: 0, half, full, and past 100",
+   "input": {
+    "context_window": {
+     "used_percentage": 50
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 0,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 100,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 140,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 0% resets 14:30 EST · fable ▕█████▏ 140% · wk ▕█████▏ 100% resets Mon 07:00 EST · ctx ▕███░░▏ 50%"
+  },
+  {
+   "name": "colors: green, yellow from 60, red from 85",
+   "input": {
+    "context_window": {
+     "used_percentage": 5
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 61,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 90,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": true,
+   "expect": "5h \u001b[33m▕███░░▏ 61%\u001b[0m resets 14:30 EST · fable \u001b[32m▕██░░░▏ 31%\u001b[0m · wk \u001b[31m▕█████▏ 90%\u001b[0m resets Mon 07:00 EST · ctx \u001b[32m▕░░░░░▏ 5%\u001b[0m"
+  },
+  {
+   "name": "colors: n/a is dim",
+   "input": {},
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": true,
+   "expect": "5h \u001b[2mn/a (no data yet)\u001b[0m · fable \u001b[32m▕██░░░▏ 31%\u001b[0m · wk \u001b[2mn/a (no data yet)\u001b[0m · ctx \u001b[2mn/a (no messages yet)\u001b[0m"
+  },
+  {
+   "name": "colors take no width: 80 columns drops the same parts",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 80,
+   "color": true,
+   "expect": "5h \u001b[32m7%\u001b[0m resets 14:30 EST · fable \u001b[32m31%\u001b[0m · wk \u001b[32m52%\u001b[0m resets Mon 07:00 EST · ctx \u001b[32m5%\u001b[0m"
+  },
+  {
+   "name": "before the first reply: {}",
+   "input": {},
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (no data yet) · fable ▕██░░░▏ 31% · wk n/a (no data yet) · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "empty stdin",
+   "input": "",
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (no data yet) · fable ▕██░░░▏ 31% · wk n/a (no data yet) · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "stdin that is not JSON",
+   "input": "not json",
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (no data yet) · fable ▕██░░░▏ 31% · wk n/a (no data yet) · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "JSON null",
+   "input": "null",
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (no data yet) · fable ▕██░░░▏ 31% · wk n/a (no data yet) · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "context not measured yet",
+   "input": {
+    "context_window": {
+     "used_percentage": null
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx n/a (no messages yet)"
+  },
+  {
+   "name": "a window Claude Code does not report",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "a window with a bad number",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": "x",
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (bad data) · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "a reset already past: the time goes, the percent stays",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794427140,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794427200,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: no answer saved yet",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": null,
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (checking) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: the check failed",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413220,
+    "ok": false,
+    "error": "timed out"
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (no data) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: no plan limits",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413220,
+    "ok": true,
+    "plan": false,
+    "fable": null
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (no plan limits) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: no Fable limit",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413220,
+    "ok": true,
+    "plan": true,
+    "fable": null
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (no Fable limit) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: answer over 30 minutes old",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794411419,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (stale) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: its window has reset since",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794413210
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (stale) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "fable: answer without a number",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": null,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (no data) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "saved answer that is not JSON",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": "{broken",
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 14:30 EST · fable n/a (checking) · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "Berlin",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "Europe/Berlin",
+   "tzwin": "W. Europe Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 20:30 CET · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 13:00 CET · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "Tokyo",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "Asia/Tokyo",
+   "tzwin": "Tokyo Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 04:30 JST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 21:00 JST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "Los Angeles",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/Los_Angeles",
+   "tzwin": "Pacific Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 11:30 PST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 04:00 PST · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "UTC",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "UTC",
+   "tzwin": "UTC",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 19:30 UTC · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 12:00 UTC · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "Sao Paulo: no short name, so the offset",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/Sao_Paulo",
+   "tzwin": "E. South America Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 16:30 GMT-3 · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 09:00 GMT-3 · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "Kathmandu: a quarter-hour offset",
+   "input": {
+    "context_window": {
+     "used_percentage": 5,
+     "context_window_size": 1000000
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 7,
+      "resets_at": 1794425400
+     },
+     "seven_day": {
+      "used_percentage": 52,
+      "resets_at": 1794830400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "Asia/Kathmandu",
+   "tzwin": "Nepal Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕░░░░░▏ 7% resets 01:15 GMT+5:45 · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 17:45 GMT+5:45 · ctx ▕░░░░░▏ 5%"
+  },
+  {
+   "name": "London in summer: BST",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 10,
+      "resets_at": 1782907200
+     }
+    }
+   },
+   "cache": {
+    "at": 1782899940,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": null
+    }
+   },
+   "now": 1782900000,
+   "tz": "Europe/London",
+   "tzwin": "GMT Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕█░░░░▏ 10% resets 13:00 BST · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "Sydney in summer: AEDT",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 10,
+      "resets_at": 1767268800
+     }
+    }
+   },
+   "cache": {
+    "at": 1767261540,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": null
+    }
+   },
+   "now": 1767261600,
+   "tz": "Australia/Sydney",
+   "tzwin": "AUS Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕█░░░░▏ 10% resets 23:00 AEDT · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "daylight saving ends: the first 01:30 is EDT",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 10,
+      "resets_at": 1793511000
+     }
+    }
+   },
+   "cache": {
+    "at": 1793505540,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": null
+    }
+   },
+   "now": 1793505600,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕█░░░░▏ 10% resets 01:30 EDT · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "daylight saving ends: the second 01:30 is EST",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 10,
+      "resets_at": 1793514600
+     }
+    }
+   },
+   "cache": {
+    "at": 1793505540,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": null
+    }
+   },
+   "now": 1793505600,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕█░░░░▏ 10% resets 01:30 EST · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "daylight saving starts: 01:00 EST now, the reset at 04:00 EDT",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "five_hour": {
+      "used_percentage": 10,
+      "resets_at": 1772956800
+     }
+    }
+   },
+   "cache": {
+    "at": 1772949540,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": null
+    }
+   },
+   "now": 1772949600,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h ▕█░░░░▏ 10% resets 04:00 EDT · fable ▕██░░░▏ 31% · wk n/a (not reported) · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "weekly reset: Sunday in New York",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "seven_day": {
+      "used_percentage": 40,
+      "resets_at": 1794785400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "America/New_York",
+   "tzwin": "Eastern Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (not reported) · fable ▕██░░░▏ 31% · wk ▕██░░░▏ 40% resets Sun 18:30 EST · ctx ▕░░░░░▏ 1%"
+  },
+  {
+   "name": "weekly reset: the same moment is Monday in Tokyo",
+   "input": {
+    "context_window": {
+     "used_percentage": 1
+    },
+    "rate_limits": {
+     "seven_day": {
+      "used_percentage": 40,
+      "resets_at": 1794785400
+     }
+    }
+   },
+   "cache": {
+    "at": 1794413160,
+    "ok": true,
+    "plan": true,
+    "fable": {
+     "pct": 31,
+     "resetsAt": 1794830400
+    }
+   },
+   "now": 1794413220,
+   "tz": "Asia/Tokyo",
+   "tzwin": "Tokyo Standard Time",
+   "cols": 200,
+   "color": false,
+   "expect": "5h n/a (not reported) · fable ▕██░░░▏ 31% · wk ▕██░░░▏ 40% resets Mon 08:30 JST · ctx ▕░░░░░▏ 1%"
+  }
+ ],
+ "width_checks": {
+  "widths": [
+   40,
+   45,
+   80,
+   120,
+   200
+  ],
+  "readings": [
+   {
+    "name": "all known",
+    "input": {
+     "context_window": {
+      "used_percentage": 5,
+      "context_window_size": 1000000
+     },
+     "rate_limits": {
+      "five_hour": {
+       "used_percentage": 7,
+       "resets_at": 1794425400
+      },
+      "seven_day": {
+       "used_percentage": 52,
+       "resets_at": 1794830400
+      }
+     }
+    },
+    "cache": {
+     "at": 1794413160,
+     "ok": true,
+     "plan": true,
+     "fable": {
+      "pct": 31,
+      "resetsAt": 1794830400
+     }
+    }
+   },
+   {
+    "name": "all n/a",
+    "input": {},
+    "cache": null
+   },
+   {
+    "name": "high numbers",
+    "input": {
+     "context_window": {
+      "used_percentage": 100
+     },
+     "rate_limits": {
+      "five_hour": {
+       "used_percentage": 100,
+       "resets_at": 1794425400
+      },
+      "seven_day": {
+       "used_percentage": 100,
+       "resets_at": 1794830400
+      }
+     }
+    },
+    "cache": {
+     "at": 1794413160,
+     "ok": true,
+     "plan": true,
+     "fable": {
+      "pct": 100,
+      "resetsAt": 1794830400
+     }
+    }
+   }
+  ],
+  "now": 1794413220,
+  "tz": "America/New_York",
+  "tzwin": "Eastern Standard Time"
+ }
+}
