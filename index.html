@@ -3,26 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>baton v7 — one thread that never fills up</title>
+<title>baton 8: just a usage line</title>
 <link rel="canonical" href="https://ckluis.github.io/baton/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ckluis / baton">
 <meta property="og:url" content="https://ckluis.github.io/baton/">
-<meta property="og:title" content="baton v7 — one thread that never fills up">
-<meta property="og:description" content="A Claude Code mod: a prime orchestrator that only dispatches, sub-orchestrators that do or delegate the work, a memory instead of a growing context, and approvals from anywhere in the tree.">
-<meta property="og:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="baton v7.5 — one thread that never fills up.">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@ckluis">
-<meta name="twitter:creator" content="@ckluis">
-<meta name="twitter:title" content="baton v7 — one thread that never fills up">
-<meta name="twitter:description" content="A prime that only dispatches, a memory instead of a growing context, approvals from anywhere in the tree. A Claude Code mod over the baton framework.">
-<meta name="twitter:image" content="https://ckluis.github.io/baton/previews/social-baton.png">
-<meta name="description" content="baton v7 is a Claude Code mod: a prime orchestrator that only dispatches goals to sub-orchestrators, keeps a memory instead of a growing context, and lets you see the agent tree, browse its memory, set rulings and approve from anywhere.">
+<meta property="og:title" content="baton 8: just a usage line">
+<meta property="og:description" content="baton started as a multi-agent orchestrator for Claude Code. Three months and seven versions later, it is one status line: 5-hour, Fable, weekly and context usage.">
+<meta name="description" content="baton 8.0.0 is a Claude Code status line that shows your 5-hour, Fable, weekly and context usage. This page is also the story of baton v1 to v7 and why each was given up.">
 <meta name="theme-color" content="#0a0a0a">
-<script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -31,1440 +20,276 @@
   --canvas:#0a0a0a; --soft:#121212; --card:#161616; --raised:#202020;
   --hair:#2a2a2a; --hair-2:#3a3a3a;
   --ink:#ffffff; --body:#cccccc; --muted:#8a8a8a; --muted-2:#5a5a5a;
-  --yellow:#faff69; --yellow-dim:#3a3a1f; --on-yellow:#0a0a0a;
-  --cyan:#5eead4; --cyan-dim:#123c37;
-  --red:#f87171; --green:#4ade80; --blue:#60a5fa; --magenta:#e879f9;
+  --yellow:#faff69; --on-yellow:#0a0a0a;
+  --cyan:#5eead4; --red:#f87171; --green:#4ade80; --amber:#fbbf24;
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,monospace;
-  --maxw:1180px;
+  --maxw:1080px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;
-  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--canvas);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:var(--cyan);text-decoration:none}
 a:hover{text-decoration:underline}
 code{font-family:var(--mono);font-size:.88em;color:var(--ink);background:var(--raised);padding:1px 6px;border-radius:5px}
 ::selection{background:var(--yellow);color:var(--on-yellow)}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(16px,5vw,44px)}
-body::before{content:"";position:fixed;inset:0;z-index:50;pointer-events:none;opacity:.22;mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
 
-/* nav */
-nav{position:sticky;top:0;z-index:40;background:rgba(10,10,10,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)}
-nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
-.brand{font-family:var(--mono);font-weight:600;color:var(--ink);letter-spacing:.02em}
+nav{position:sticky;top:0;z-index:10;background:rgba(10,10,10,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--hair)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:16px}
+.brand{font-family:var(--mono);font-weight:600;color:var(--ink)}
 .brand i{font-style:normal;color:var(--yellow)}
-.navlinks{display:flex;gap:22px;font-size:14px}
+.navlinks{display:flex;gap:20px;font-size:14px}
 .navlinks a{color:var(--muted)}
 .navlinks a:hover{color:var(--ink);text-decoration:none}
-@media(max-width:900px){.navlinks a.opt{display:none}}
-@media(max-width:600px){.navlinks{display:none}}
 
-/* type */
-.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
-h1{font-size:clamp(40px,7vw,84px);line-height:1.02;letter-spacing:-.035em;color:var(--ink);font-weight:700;margin:18px 0 22px}
-h1 em{font-style:normal;color:var(--yellow)}
-h2{font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-.025em;color:var(--ink);font-weight:700;margin:10px 0 16px}
-h3{font-size:18px;color:var(--ink);font-weight:600;margin-bottom:8px}
-.lede{font-size:clamp(17px,1.6vw,20px);max-width:62ch;color:var(--body)}
-.muted{color:var(--muted)}
-section{padding:96px 0;border-bottom:1px solid var(--hair)}
-.secnum{font-family:var(--mono);font-size:12px;color:var(--muted-2);letter-spacing:.1em}
+header{padding:clamp(56px,10vw,110px) 0 40px}
+.eyebrow{font-family:var(--mono);font-size:13px;color:var(--yellow);letter-spacing:.06em;text-transform:uppercase}
+h1{color:var(--ink);font-size:clamp(34px,6vw,64px);line-height:1.05;letter-spacing:-.02em;margin:14px 0 18px;font-weight:700}
+.lede{font-size:clamp(17px,2vw,20px);max-width:680px}
 
-/* hero */
-.hero{padding:88px 0 72px;position:relative;overflow:hidden}
-.hero::after{content:"";position:absolute;right:-12%;top:-30%;width:62vw;height:62vw;max-width:820px;max-height:820px;pointer-events:none;
-  background:radial-gradient(circle,rgba(94,234,212,.13),transparent 62%)}
-.status{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);
-  border:1px solid var(--hair);border-radius:999px;padding:6px 12px;background:var(--soft)}
-.status b{color:var(--yellow);font-weight:600}
-.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--hair-2);color:var(--ink);background:var(--raised)}
-.btn.y{background:var(--yellow);color:var(--on-yellow);border-color:var(--yellow)}
-.btn:hover{text-decoration:none;transform:translateY(-1px)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:14px;overflow:hidden;margin-top:56px}
-.stat{background:var(--soft);padding:22px 20px}
-.stat .n{font-family:var(--mono);font-size:clamp(24px,3vw,34px);color:var(--ink);font-weight:600;letter-spacing:-.02em}
-.stat .l{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.45}
-@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.term{margin:36px 0 10px;background:var(--soft);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.term .bar{display:flex;gap:7px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.term .bar span{width:11px;height:11px;border-radius:50%;background:var(--hair-2)}
+.term pre{font-family:var(--mono);font-size:clamp(11px,1.45vw,14px);line-height:1.7;padding:18px 18px 20px;overflow-x:auto;color:var(--body)}
+.g{color:var(--green)} .y{color:var(--amber)} .r{color:var(--red)} .d{color:var(--muted)} .w{color:var(--ink)}
+.prompt{color:var(--muted-2)}
+.caption{font-size:14px;color:var(--muted)}
 
-/* terminal */
-.term{background:#0d0d0d;border:1px solid var(--hair-2);border-radius:12px;overflow:hidden;font-family:var(--mono);font-size:13px;line-height:1.65}
-.term .bar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--hair);background:var(--soft);color:var(--muted);font-size:12px}
-.term .bar i{width:10px;height:10px;border-radius:50%;background:var(--hair-2);display:inline-block}
-.term pre{padding:14px 16px;overflow-x:auto;color:var(--body);white-space:pre}
-.c-y{color:var(--yellow)} .c-c{color:var(--cyan)} .c-g{color:var(--green)} .c-r{color:var(--red)} .c-m{color:var(--magenta)} .c-d{color:var(--muted)} .c-i{color:var(--ink)} .c-b{color:var(--blue)}
+section{padding:56px 0;border-top:1px solid var(--hair)}
+h2{color:var(--ink);font-size:clamp(24px,3.4vw,34px);letter-spacing:-.01em;margin-bottom:14px;line-height:1.2}
+.sub{max-width:700px;margin-bottom:28px}
 
-/* grid + cards */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.grid2>*,.grid3>*,.vers>*{min-width:0}
-@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:22px}
-.card p{font-size:15px}
-.card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:block}
-.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-.pill{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--hair-2);color:var(--muted)}
-ul.ticks{list-style:none;margin-top:10px}
-ul.ticks li{padding-left:22px;position:relative;margin:7px 0;font-size:15px}
-ul.ticks li::before{content:"→";position:absolute;left:0;color:var(--cyan);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:18px 18px 16px}
+.card h3{font-family:var(--mono);color:var(--yellow);font-size:15px;margin-bottom:6px}
+.card p{font-size:14.5px}
+.card .src{font-size:13px;color:var(--muted);margin-top:8px}
 
-/* the shape */
-.tree{display:grid;gap:14px;margin-top:34px}
-.lvl{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;position:relative}
-.node{background:var(--card);border:1px solid var(--hair-2);border-radius:12px;padding:14px 16px;min-width:190px;max-width:290px;flex:1}
-.node b{display:block;font-family:var(--mono);font-size:13px;color:var(--ink)}
-.node span{font-size:13px;color:var(--muted);line-height:1.45;display:block;margin-top:4px}
-.node.prime{border-color:var(--yellow);background:linear-gradient(180deg,rgba(250,255,105,.08),var(--card));max-width:440px}
-.node.prime b{color:var(--yellow)}
-.node.sub{border-color:rgba(94,234,212,.5)}
-.node.sub b{color:var(--cyan)}
-.down{text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
-.down b{color:var(--yellow);font-weight:500}
+ol.steps{list-style:none;counter-reset:s;display:grid;gap:14px;max-width:760px}
+ol.steps li{counter-increment:s;position:relative;padding-left:44px}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--yellow);color:var(--on-yellow);font:600 14px/28px var(--mono);text-align:center}
+pre.code{font-family:var(--mono);font-size:13px;background:var(--soft);border:1px solid var(--hair);border-radius:10px;padding:14px 16px;margin-top:8px;overflow-x:auto;color:var(--ink);white-space:pre}
 
-/* tracker */
-.trk{display:grid;gap:22px;margin-top:30px}
-.trow{display:grid;grid-template-columns:110px 1fr;gap:18px;align-items:center}
-.trow .who{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.4}
-.trow .who b{display:block;color:var(--ink);font-weight:500;font-size:13px}
-.steps{display:flex;align-items:flex-start;min-width:0}
-.st{display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 0 auto;width:86px;text-align:center}
-.st i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:14px;font-weight:600;
-  background:var(--raised);color:var(--muted-2);border:2px solid var(--hair-2)}
-.st span{font-size:12px;color:var(--muted-2);line-height:1.25}
-.st em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.st.done i{background:var(--green);border-color:var(--green);color:#0a0a0a}
-.st.done span{color:var(--green)}
-.st.now i{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 0 5px rgba(94,234,212,.12)}
-.st.now span{color:var(--cyan)}
-.st.bad i{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
-.st.bad span{color:var(--red)}
-.rail{flex:1 1 auto;min-width:14px;height:2px;background:var(--hair-2);margin-top:17px}
-.rail.done{background:var(--green)}
-@media(max-width:760px){.trow{grid-template-columns:1fr}.st{width:62px}.st span{font-size:11px}.steps{overflow-x:auto;padding-bottom:4px}}
-
-/* inside the mod */
-.purp{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 8px}
-.purp button{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--hair-2);background:var(--soft);color:var(--body);cursor:pointer}
-.purp button[aria-pressed="true"]{background:var(--raised);color:var(--ink);border-color:var(--muted)}
-.purp button i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--k)}
-.k-guard{--k:var(--red)} .k-mem{--k:var(--magenta)} .k-measure{--k:var(--green)} .k-gh{--k:var(--blue)} .k-ui{--k:var(--cyan)} .k-run{--k:var(--yellow)}
-.life{margin-top:18px;border-left:2px solid var(--hair-2);padding-left:22px;display:grid;gap:26px}
-.moment{position:relative}
-.moment::before{content:"";position:absolute;left:-29px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--canvas);border:2px solid var(--muted)}
-.moment h3{font-size:15px;color:var(--ink);margin-bottom:10px}
-.moment h3 span{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:8px;font-weight:400}
-.hooks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.hook{background:var(--card);border:1px solid var(--hair);border-left:3px solid var(--k);border-radius:10px;padding:13px 15px;transition:opacity .2s ease}
-.hook code.ev{background:none;padding:0;color:var(--k);font-size:12.5px}
-.hook p{font-size:14px;margin-top:6px;line-height:1.5}
-.hook.dim{opacity:.18}
-.walk{display:grid;gap:10px;margin-top:22px;counter-reset:w}
-.walk li{list-style:none;counter-increment:w;display:grid;grid-template-columns:28px 1fr auto;gap:14px;align-items:baseline;background:var(--soft);border:1px solid var(--hair);border-radius:10px;padding:12px 14px;font-size:14.5px}
-.walk li::before{content:counter(w);font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:right}
-.walk li code.ev{font-size:11.5px;color:var(--muted);background:none;padding:0;white-space:nowrap}
-@media(max-width:760px){.walk li{grid-template-columns:22px 1fr}.walk li code.ev{grid-column:2;white-space:normal}}
-.ref{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
-@media(max-width:900px){.ref{grid-template-columns:1fr}}
-.ref .card{padding:18px 18px 8px;overflow-x:auto}
-.ref table{margin-top:8px;font-size:13.5px}
-.ref td,.ref th{padding:8px 8px}
-.ref td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
-
-/* section 4: a whole Claude Code window */
-.cc{background:#0c0c0c;border:1px solid var(--hair-2);border-radius:14px;overflow:hidden;font-family:var(--mono);font-size:12.5px;line-height:1.6;margin-top:30px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
-.cc .title{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--soft);border-bottom:1px solid var(--hair);color:var(--muted);font-size:12px}
-.cc .title i{width:11px;height:11px;border-radius:50%;background:#3a3a3a;display:inline-block}
-.cc .title i:nth-child(1){background:#ff5f57}.cc .title i:nth-child(2){background:#febc2e}.cc .title i:nth-child(3){background:#28c840}
-.cc pre{margin:0;padding:12px 16px;white-space:pre;overflow-x:auto;color:var(--body)}
-.cc .tx{border-bottom:1px solid var(--hair)}
-.cc .pane{border-bottom:1px solid var(--hair);background:#0e0f10}
-.cc .tabs{display:flex;gap:18px;padding:9px 16px 0;color:var(--muted);font-size:12px}
-.cc .tabs b{color:var(--ink);font-weight:500;border-bottom:2px solid var(--cyan);padding-bottom:6px}
-.cc .tabs span{padding-bottom:6px}
-.cc .tabs .x{margin-left:auto;color:var(--muted-2)}
-.cc .band{padding:8px 16px 2px}
-.cc .band pre{padding:0}
-.cc .input{margin:6px 12px 4px;border:1px solid var(--hair-2);border-radius:8px;padding:9px 12px;color:var(--ink);display:flex;gap:8px;align-items:center}
-.cc .input .p{color:var(--muted)}
-.cc .caret{display:inline-block;width:8px;height:16px;background:var(--ink);vertical-align:-3px;animation:blink 1.1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-.cc .hint{padding:0 16px 10px;color:var(--muted-2);font-size:11.5px;display:flex;justify-content:space-between}
-.cc .who{color:var(--muted-2);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:10px 16px 0}
-@media (prefers-reduced-motion: reduce){.cc .caret{animation:none}}
-
-/* the window's pane: radio tabs, no JavaScript needed */
-.cc .pane input{position:absolute;opacity:0;pointer-events:none}
-.cc .tabs label{cursor:pointer;padding-bottom:6px;border-bottom:2px solid transparent;color:var(--muted)}
-.cc .tabs label:hover{color:var(--ink)}
-.cc .panel{display:none}
-#cc-w:checked ~ .tabs label[for="cc-w"],#cc-p:checked ~ .tabs label[for="cc-p"],#cc-m:checked ~ .tabs label[for="cc-m"],#cc-r:checked ~ .tabs label[for="cc-r"]{color:var(--ink);border-bottom-color:var(--cyan)}
-#cc-w:checked ~ .panels .p-w,#cc-p:checked ~ .panels .p-p,#cc-m:checked ~ .panels .p-m,#cc-r:checked ~ .panels .p-r{display:block}
-.cc .pane input:focus-visible ~ .tabs label{outline:none}
-.cc .c-b{color:var(--blue)}
-.cc .panel pre{min-height:300px}
-
-/* the window's Work panel, live: rows open their views */
-.cc .demo{outline:none}
-.cc .demo:focus-visible{box-shadow:inset 0 0 0 1px var(--cyan-dim)}
-.cc .row{cursor:pointer;border-radius:3px}
-.cc .row:hover{background:rgba(255,255,255,.04)}
-.cc .row.sel{background:rgba(94,234,212,.13);box-shadow:inset 2px 0 0 var(--cyan)}
-.cc .row.sel > .c-d:first-child{color:var(--cyan)}
-.cc .demo .node{display:none}
-.cc .demo.plan-open .node{display:inline}
-.cc .back{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.cc .dview{min-height:300px}
-.cc .keys{color:var(--muted-2);font-size:11.5px}
-.cc .keys b{color:var(--muted);font-weight:500;border:1px solid var(--hair-2);border-radius:4px;padding:0 4px;margin:0 1px}
-
-/* rgb */
-.rgb .card{border-top-width:3px}
-.rgb .r{border-top-color:var(--red)} .rgb .g{border-top-color:var(--green)} .rgb .bl{border-top-color:var(--blue)}
-.rgb h3 span{font-family:var(--mono);font-size:12px;margin-left:8px;color:var(--muted)}
-
-/* evidence table */
-table{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:22px}
-th,td{text-align:left;padding:12px 12px;border-bottom:1px solid var(--hair);vertical-align:top}
-th{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
-td b{color:var(--ink)}
-.tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:14px;padding:0 6px;background:var(--soft)}
-.verdict{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
-.v-tie{background:var(--raised);color:var(--body)} .v-cut{background:rgba(248,113,113,.14);color:var(--red)} .v-cost{background:var(--yellow-dim);color:var(--yellow)}
-.callout{border-left:3px solid var(--yellow);padding:14px 18px;background:var(--soft);border-radius:0 12px 12px 0;margin-top:26px;font-size:15.5px}
-
-/* versions */
-.vers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
-@media(max-width:900px){.vers{grid-template-columns:1fr}}
-.ver{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
-.ver .vh{display:flex;justify-content:space-between;align-items:baseline}
-.ver .vh b{font-family:var(--mono);font-size:20px;color:var(--ink)}
-.ver .vh span{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-.ver h3{font-size:15px;margin:0;color:var(--cyan)}
-.ver p{font-size:14px}
-.ver .proc{font-size:13px;color:var(--muted);border-top:1px dashed var(--hair-2);padding-top:8px;margin-top:auto}
-.ver a.go{font-family:var(--mono);font-size:12.5px}
+.timeline{display:grid;gap:14px}
+.ver{display:grid;grid-template-columns:150px 1fr;gap:20px;background:var(--card);border:1px solid var(--hair);border-radius:12px;padding:20px}
+.ver .tag{font-family:var(--mono)}
+.ver .tag b{display:block;color:var(--ink);font-size:20px}
+.ver .tag small{color:var(--muted);font-size:12.5px}
+.ver h3{color:var(--ink);font-size:17px;margin-bottom:6px}
+.ver p{font-size:15px;margin-bottom:8px}
+.ver p:last-child{margin-bottom:0}
+.ver .why{color:var(--body)}
+.ver .end{color:var(--muted)}
+.ver .end b{color:var(--red);font-weight:600}
 .ver.now{border-color:var(--yellow)}
-.ver.now .vh b{color:var(--yellow)}
+.ver.now .end b{color:var(--green)}
+.ver .links{font-size:14px}
+.ver .links a{margin-right:14px;white-space:nowrap}
+.lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);margin-right:6px}
 
-/* paste */
-.codebar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--hair);background:var(--soft);font-family:var(--mono);font-size:12px;color:var(--muted)}
-.codebar b{color:var(--ink);font-weight:500}
-.codebox{background:#0d0d0d;border:1px solid var(--hair-2);border-radius:12px;overflow:hidden}
-.codebox pre{padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;color:var(--body);white-space:pre}
-#rsrc{max-height:60vh;overflow:auto;font-size:12.5px}
-.copy{font-family:var(--mono);font-size:12px;background:var(--raised);color:var(--ink);border:1px solid var(--hair-2);border-radius:7px;padding:5px 10px;cursor:pointer}
-.copy.ok{background:var(--cyan-dim);color:var(--cyan)}
-details{margin-top:18px;border:1px solid var(--hair);border-radius:12px;background:var(--soft)}
-details summary{cursor:pointer;padding:14px 16px;font-size:14.5px;color:var(--ink)}
-details[open] summary{border-bottom:1px solid var(--hair)}
-details .inner{padding:14px}
+.lesson{max-width:760px}
+.lesson p{margin-bottom:14px}
+.lesson ul{margin:0 0 14px 20px}
+.lesson li{margin-bottom:6px}
 
-footer{padding:56px 0 72px;font-size:14px;color:var(--muted)}
-footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer{border-top:1px solid var(--hair);padding:30px 0 50px;font-size:14px;color:var(--muted)}
 
-.reveal{opacity:1}
-.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
-.js .reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion: reduce){.js .reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}.btn:hover{transform:none}}
+@media (max-width:640px){
+  .navlinks{gap:14px;font-size:13px}
+  .ver{grid-template-columns:1fr;gap:8px}
+  .ver .tag b{display:inline;margin-right:10px}
+}
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="wrap">
-    <a class="brand" href="#top">baton<i>.</i>v7</a>
-    <div class="navlinks">
-      <a href="#shape">The shape</a>
-      <a href="#inside">Inside the mod</a>
-      <a href="#memory">Memory</a>
-      <a href="#see" class="opt">What you see</a>
-      <a href="#track">Track</a>
-      <a href="#approve" class="opt">Approvals</a>
-      <a href="#rgb" class="opt">Red · green · blue</a>
-      <a href="#evidence">Evidence</a>
-      <a href="#versions">Versions</a>
-      <a href="https://github.com/ckluis/baton">GitHub</a>
-    </div>
+<nav><div class="wrap">
+  <span class="brand">baton<i>.</i></span>
+  <div class="navlinks">
+    <a href="#install">Install</a>
+    <a href="#history">History</a>
+    <a href="https://github.com/ckluis/baton">GitHub</a>
   </div>
-</nav>
+</div></nav>
 
-<header class="hero" id="top">
-  <div class="wrap">
-    <span class="status"><b>v7.5</b> a Claude Code mod · Claude Code 2.1.287 · Opus 5.5 + Sonnet 5.5</span>
-    <h1>One thread that<br><em>never fills up.</em></h1>
-    <p class="lede">The prime only dispatches. It never reads a file, runs a command or holds a work product: a mod
-      refuses it. It hands goals to sub-orchestrators, which dispatch agents or do the work themselves and hand
-      back one line. That line goes into a memory the prime can zoom into, so the thread lasts as long as the work does.</p>
-    <div class="ctas">
-      <a class="btn y" href="#install">Install the mod</a>
-      <a class="btn" href="#evidence">What we measured</a>
-      <a class="btn" href="#versions">v1 → v6</a>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="n">0</div><div class="l">files the prime reads during a run. The guard refuses everything but dispatch, ask and memory.</div></div>
-      <div class="stat"><div class="n">≤280 B</div><div class="l">what crosses back to the prime from a phase: one line, noted verbatim in its memory.</div></div>
-      <div class="stat"><div class="n">−28%</div><div class="l">spend of a v7 prime against one carrying 831K tokens: $14.78 vs $20.40, same score (E1b, one seed).</div></div>
-      <div class="stat"><div class="n">30</div><div class="l">rules, one file each. New: red, green, blue for every behavior change.</div></div>
-    </div>
+<header><div class="wrap">
+  <p class="eyebrow">baton 8.0.0 · 2026-11-11</p>
+  <h1>Just a usage line.</h1>
+  <p class="lede">baton started as a team of agents for Claude Code. Seven versions and three months
+  later, the part worth keeping fits on one line: how much of your plan is left, right above the prompt.</p>
+
+  <div class="term" role="img" aria-label="The baton usage line in a terminal: 5h 7% resets 14:30 EST, fable 31%, wk 52% resets Mon 07:00 EST, ctx 5%">
+    <div class="bar"><span></span><span></span><span></span></div>
+<pre><span class="prompt">&gt;</span> <span class="d">▌</span>
+<span class="w">5h</span> <span class="g">▕░░░░░▏ 7%</span> resets 14:30 EST <span class="d">·</span> <span class="w">fable</span> <span class="g">▕██░░░▏ 31%</span> <span class="d">·</span> <span class="w">wk</span> <span class="g">▕███░░▏ 52%</span> resets Mon 07:00 EST <span class="d">·</span> <span class="w">ctx</span> <span class="g">▕░░░░░▏ 5%</span></pre>
   </div>
-</header>
+  <p class="caption">Green, then yellow from 60%, red from 85%. Times are in your own time zone.
+  On a narrow window the line drops bars first, then reset times, then Fable, then weekly.</p>
+</div></header>
 
-<section id="shape">
-  <div class="wrap">
-    <div class="secnum">01</div>
-    <h2>The prime conducts. It never plays.</h2>
-    <p class="lede">baton always said the conductor never plays a note. v7 makes it mechanical: during a run the main
-      session's tool calls go through a guard, and anything but dispatching, asking you, or using its memory is refused
-      with the route. Context the prime never takes in can't fill it up.</p>
-
-    <div class="tree reveal">
-      <div class="lvl"><div class="node prime"><b>prime · the main session</b><span>Holds the run's goal, your rulings and its memory. Tools: <code>Agent</code>, <code>AskUserQuestion</code>, <code>SendMessage</code>, <code>mcp__baton__*</code>. Nothing else.</span></div></div>
-      <div class="down">dispatches a goal ↓ &nbsp;·&nbsp; gets back <b>one line ≤ 280 bytes</b> ↑</div>
-      <div class="lvl">
-        <div class="node sub"><b>sub-orchestrator · bootstrap</b><span>directive, planner, plan verifier (fresh)</span></div>
-        <div class="node sub"><b>sub-orchestrator · phase P3</b><span>phase brief, dispatch each node, verify, phase gate</span></div>
-        <div class="node sub"><b>sub-orchestrator · final</b><span>synthesizer, then the one-page brief</span></div>
-      </div>
-      <div class="down">dispatches nodes ↓ &nbsp;·&nbsp; reads envelopes ↑, never work products</div>
-      <div class="lvl">
-        <div class="node"><b>baton:worker</b><span>frontier · Opus 5.5 · anything with judgment, red → green → blue</span></div>
-        <div class="node"><b>baton:worker-cheap</b><span>Sonnet 5.5 · what a command can settle</span></div>
-        <div class="node"><b>baton:verifier</b><span>always fresh, always frontier · per-criterion verdict, computed</span></div>
-      </div>
-    </div>
-
-    <div class="grid3" style="margin-top:40px">
-      <div class="card reveal"><span class="tag">the guard</span><h3>Fails closed</h3><p>The mod tells the prime from a subagent by the
-        <code>agentId</code> on each tool call. If the guard throws, the call is refused. A sub-orchestrator's calls pass
-        untouched: its context is there to be spent.</p></div>
-      <div class="card reveal"><span class="tag">the binding</span><h3>Two models, enforced</h3><p>Every spawn during a run is bound at
-        <code>agent.spawn</code>: Opus 5.5 for every role, Sonnet 5.5 for a type or name ending <code>-cheap</code>,
-        whatever the caller asked for. Merges of the memory run on Sonnet.</p></div>
-      <div class="card reveal"><span class="tag">the record</span><h3>Unchanged on disk</h3><p>Envelopes, per-criterion verdicts,
-        refutation triage, the ledger, gates and <code>TEAM: github</code> all work as in v6. Sub-orchestrators keep
-        that record; the prime keeps one line per phase.</p></div>
-    </div>
+<section><div class="wrap">
+  <h2>What it shows</h2>
+  <p class="sub">Four numbers. When one isn't known yet, it says <code>n/a</code> and why, never a guess.</p>
+  <div class="grid">
+    <div class="card"><h3>5h</h3><p>Your 5-hour limit, and the time it resets.</p><p class="src">From the status line JSON: <code>rate_limits.five_hour</code></p></div>
+    <div class="card"><h3>fable</h3><p>Your separate weekly Fable limit.</p><p class="src">From Claude Code's usage request, checked in the background every 5 minutes. No tokens.</p></div>
+    <div class="card"><h3>wk</h3><p>Your weekly limit, and the day and time it resets.</p><p class="src">From the status line JSON: <code>rate_limits.seven_day</code></p></div>
+    <div class="card"><h3>ctx</h3><p>How full this chat's context is.</p><p class="src">From the status line JSON: <code>context_window.used_percentage</code></p></div>
   </div>
-</section>
+</div></section>
 
-<section id="inside">
-  <div class="wrap">
-    <div class="secnum">02</div>
-    <h2>Inside the mod.</h2>
-    <p class="lede">A mod is a JavaScript module Claude Code runs inside its own loop. It sees every prompt, model request, tool call,
-      spawn and redraw, and can answer, change or refuse each one. baton’s registers <b>27 hooks</b>, <b>16 commands</b>, <b>11 tools</b>
-      and <b>16 settings</b>. None of it depends on an agent remembering to do something: each piece runs where its event happens.</p>
-    <div class="purp" role="group" aria-label="Filter the hooks by purpose">
-      <button type="button" class="k-guard" data-f="guard" aria-pressed="false"><i></i>guard</button>
-      <button type="button" class="k-mem" data-f="mem" aria-pressed="false"><i></i>memory</button>
-      <button type="button" class="k-measure" data-f="measure" aria-pressed="false"><i></i>measure</button>
-      <button type="button" class="k-gh" data-f="gh" aria-pressed="false"><i></i>GitHub</button>
-      <button type="button" class="k-ui" data-f="ui" aria-pressed="false"><i></i>interface</button>
-      <button type="button" class="k-run" data-f="run" aria-pressed="false"><i></i>run</button>
-    </div>
-    <div class="life">
-<div class="moment reveal"><h3>When the session starts<span>once</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">session.start</code><p>Reads the engine version. The guard tells the prime from a subagent by <code>agentId</code>, verified on 2.1.287; on any other version it says so and fails closed.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Runs the doctor in the background (node, git, <code>gh</code> and its login, ripgrep, the memory) and checks for a newer baton: a failed check, or an update with <code>9</code> to install it, shows in the band.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">SessionStart · startup, resume</code><p>A new session in a directory with an active run is told it is that run’s prime: wake from the memory first, then dispatch.</p></div><div class="hook k-run" data-k="run"><code class="ev">session.start</code><p>Registers <code>/baton</code>, and in a run directory the seven memory tools. Starts a 150&nbsp;ms ticker for owed rotations and the kickoff, and the PR poller.</p></div></div></div>
-<div class="moment reveal"><h3>When you send a prompt<span>every prompt</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>Your words become a run note. In the background, Sonnet reads them for a standing rule; one it finds becomes a ruling in the project memory.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">prompt.submit</code><p>After a rotation, the prompt carries the instruction to call <code>memory_wake</code> first.</p></div></div></div>
-<div class="moment reveal"><h3>Every model request<span>every step, every agent</span></h3><div class="hooks"><div class="hook k-measure" data-k="measure"><code class="ev">turn.step</code><p>Reads the request’s usage and the agent that made it: fresh tokens and cache reads, by role, phase and node, into <code>_orch/spend.json</code>. The response streams on untouched.</p></div></div></div>
-<div class="moment reveal"><h3>Every tool call<span>before it runs</span></h3><div class="hooks"><div class="hook k-guard" data-k="guard"><code class="ev">tool.call</code><p><b>The prime guard.</b> A call with no <code>agentId</code> is the prime’s: only <code>Agent</code>, <code>AskUserQuestion</code>, <code>SendMessage</code>, <code>ToolSearch</code>, the prime skill and <code>mcp__baton__*</code> pass. Anything else is refused with the route. If the guard throws, the call is refused.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">tool.call · mcp__baton__*</code><p>Serves <code>memory_wake</code>, <code>_note</code>, <code>_zoom</code>, <code>_recall</code> and the three <code>project_*</code> tools from the log and tree on disk. Wake leads with your rulings.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>Forbidden files.</b> A <code>git add</code> naming <code>.env</code>, a key or credentials is refused from any agent, run or no run.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>The command gate.</b> Push, PR create/merge/close, publish, <code>reset --hard</code> and <code>rm -r</code> from any depth wait on a dialog naming the chain. With nobody at the terminal, it is asked on the PR instead.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Bash</code><p><b>Checkpoints.</b> Before <code>reset --hard</code>, <code>clean -f</code> or <code>rm -r</code> runs, the whole tree is snapshotted to a hidden ref; <code>/baton restore</code> puts it back.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.call · Agent</code><p><b>The phase gate.</b> After a sub-orchestrator reports DONE, the prime’s next dispatch waits until you approve the phase or send it back with a reason.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">tool.check · Bash</code><p><b>Enforced rulings.</b> After the permission rules decide, a command matching an enforced ruling’s pattern is refused, quoting the ruling.</p></div></div></div>
-<div class="moment reveal"><h3>Every spawn<span>before a subagent starts</span></h3><div class="hooks"><div class="hook k-run" data-k="run"><code class="ev">agent.spawn</code><p><b>The binding.</b> Opus 5.5 for every role, Sonnet 5.5 for a type or name ending <code>-cheap</code>, whatever the caller asked for. The spawn joins the agent tree under its parent.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">agent.spawn</code><p><b>The budget.</b> Another review or fix round is refused once the goal has spent <code>tokensPerGoal</code>, with a note at 80%.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">agent.spawn</code><p><b>Lessons that stick.</b> A worker or sub-orchestrator spawned on code an earlier refutation touched gets those lessons in its prompt.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">agent.spawn · tool.call</code><p><b>Pause.</b> While <code>/baton pause</code> holds, every new spawn and every gated command waits.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">agent.spawn</code><p><b>A clean base first.</b> A PR reviewer on a PR that conflicts with its base is refused: merge the base in, then review.</p></div></div></div>
-<div class="moment reveal"><h3>Every finished turn<span>prime or subagent</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">turn.complete</code><p>A subagent the prime dispatched: its one-line return becomes a run note, tagged with its role. The prime’s own reply: its first line becomes one too.</p></div><div class="hook k-guard" data-k="guard"><code class="ev">turn.complete</code><p>A sub-orchestrator whose return leads with DONE joins the phase-gate queue, and the band flags it.</p></div><div class="hook k-measure" data-k="measure"><code class="ev">turn.complete</code><p>Writes the spend down and re-reads the record: every computed state that moved becomes a row in <code>_orch/track/</code>.</p></div></div></div>
-<div class="moment reveal"><h3>As the context grows<span>after each turn</span></h3><div class="hooks"><div class="hook k-mem" data-k="mem"><code class="ev">session.measure</code><p>The context gauge. At <code>rotateAtPercent</code> (35%): a one-line handoff from a fork of the prime, then a compaction off the clock.</p></div><div class="hook k-mem" data-k="mem"><code class="ev">session.compact · SessionStart</code><p>Every compaction in a run counts as a rotation and arms the wake, delivered by whichever comes first: SessionStart, the next prompt, or the next allowed tool result.</p></div></div></div>
-<div class="moment reveal"><h3>Every two minutes<span>on the clock, during a run</span></h3><div class="hooks"><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → gh pr view</code><p>The PR as data, no model: state, checks, mergeability, files, closing issues, comments. Merge-ready is computed row by row; the reviewer’s verdict is parsed from its comment.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → comments</code><p>From allowed answerers, <code>/approve P3</code>, <code>/send-back P3 …</code> and <code>/approve push</code> act as the gate. Other remarks become one line each, condensed by Haiku 4.5.</p></div><div class="hook k-gh" data-k="gh"><code class="ev">$.clock → the issue</code><p>The goal’s state as a <code>baton:&lt;state&gt;</code> label, and optionally a Projects board column. One spend comment on the PR, edited in place.</p></div></div></div>
-<div class="moment reveal"><h3>Whenever Claude Code draws<span>the interface</span></h3><div class="hooks"><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Pane</code><p>Opens by itself, with two tabs: Work (the goal, the PR and its review findings linked to their lines, the agent table with a trend column, the plan one line per phase with <code>p</code> for every node, what waits for you) and Memory (your rulings, then the memory browser). Every agent, phase, node and ruling row opens with <code>↑</code>/<code>↓</code> and <code>Enter</code> (<code>b</code> goes back); buttons approve phases and retract rulings; fields search the memory, add a ruling, or message a running agent.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · AbovePrompt</code><p>One line: plan usage, the context against its threshold, the cost, the goal and the PR. With a phase waiting, <code>1</code> typed into an empty prompt approves it.</p></div><div class="hook k-ui" data-k="ui"><code class="ev">ui.render · Spinner</code><p>The spinner names the phase and what the prime is waiting on.</p></div><div class="hook k-run" data-k="run"><code class="ev">command.run · /baton</code><p>start · stop · pause · resume · rotate · status · doctor · watch · next · rule · rulings · retract · enforce · checkpoints · restore. Text where nothing draws, so all of it works under <code>claude -p</code>.</p></div></div></div>
-    </div>
+<section id="install"><div class="wrap">
+  <h2>Install</h2>
+  <p class="sub">One Node file, no packages, no plugin. Needs Node 18+ and Claude Code 2.1.80+.</p>
+  <ol class="steps">
+    <li>Get the file.
+<pre class="code">curl -fsSL -o ~/.claude/baton-usage-line.mjs \
+  https://raw.githubusercontent.com/ckluis/baton/main/statusline/usage-line.mjs</pre></li>
+    <li>Add this to <code>~/.claude/settings.json</code>.
+<pre class="code">"statusLine": {
+  "type": "command",
+  "command": "node ~/.claude/baton-usage-line.mjs",
+  "refreshInterval": 60
+}</pre></li>
+    <li>Start a new Claude Code session. Coming from baton v7? First run
+    <code>claude plugin uninstall baton@baton</code>.</li>
+  </ol>
+</div></section>
 
-    <h3 style="margin-top:64px;font-size:22px">One goal, end to end</h3>
-    <p class="muted" style="font-size:15px;margin-top:6px">What fires, in order, when you hand it an issue.</p>
-    <ol class="walk"><li><span><code>/baton start #12</code> reads the issue with <code>gh</code>, writes the manifest (<code>"prime": true</code>, the run branch), notes the start, and starts the prime’s first turn with the issue verbatim and your rulings.</span><code class="ev">command.run</code></li><li><span>The prime tries to <code>Read</code> the codebase. Refused: <i>dispatch a sub-orchestrator</i>. It dispatches one for the bootstrap.</span><code class="ev">tool.call</code></li><li><span>The spawn is bound to Opus 5.5 and joins the tree. Every request it makes is metered from here on.</span><code class="ev">agent.spawn · turn.step</code></li><li><span>The bootstrap writes the directive and the plan, has it checked by a fresh spawn, and opens the branch and a draft PR that closes #12. It returns one line, which becomes a run note.</span><code class="ev">turn.complete</code></li><li><span>Phases run: workers go red, green, blue; verifiers re-run red against the unchanged code. Each move lands as a tracker row, and the issue’s label goes <code>baton:building</code>.</span><code class="ev">turn.complete · $.clock</code></li><li><span>A worker three levels down runs <code>git push</code>. You get a dialog: <i>prime › P3 › T7 wants to git push</i>. You approve it for the run.</span><code class="ev">tool.call</code></li><li><span>P3 returns DONE. The band flags it, and the prime’s next dispatch waits for your check. You send it back: <i>the empty case is untested</i>.</span><code class="ev">turn.complete · tool.call</code></li><li><span>At 35% context the prime rotates: a handoff line, a compaction, and its next act is <code>memory_wake</code>. Your rulings come first in what it sees.</span><code class="ev">session.measure · session.compact</code></li><li><span>After the last phase, the prime dispatches the PR reviewer. Its comment says <code>CHANGES</code>, 1 high. The poller notes it, and a steward runs a fix round.</span><code class="ev">agent.spawn · $.clock</code></li><li><span>Round 2: <code>READY</code>. Every merge row holds. The PR is marked ready, the label goes <code>baton:ready</code>, and the band says it is waiting for you.</span><code class="ev">$.clock</code></li><li><span>You merge on GitHub. The poller sees it and the goal goes <code>merged</code>. <code>/baton next</code> archives the run and starts the next issue in the queue.</span><code class="ev">$.clock · command.run</code></li></ol>
+<section id="history"><div class="wrap">
+  <h2>How baton got here</h2>
+  <p class="sub">Every version tried to fix a real problem. Most of the fixes were later measured,
+  found unnecessary, or built into Claude Code itself. Here is each one: what it was for, and why it went.</p>
 
-    <div class="ref">
-      <div class="card reveal"><span class="tag">/baton …</span><table><thead><tr><th>command</th><th>does</th></tr></thead><tbody><tr><td>start &lt;MODE&gt; &lt;TARGET|#n&gt;</td><td>arm the guard, write the manifest, start the prime</td></tr><tr><td>stop</td><td>close the run; the guard comes off; <code>_orch/</code> stays</td></tr><tr><td>pause · resume</td><td>hold every new spawn and gated command, then let it go on</td></tr><tr><td>doctor</td><td>check node, git, gh and its login, ripgrep, the version, the memory</td></tr><tr><td>checkpoints · restore &lt;id&gt;</td><td>the snapshots taken before reset/clean/rm, and putting files back</td></tr><tr><td>rotate</td><td>handoff, compaction and wake, now</td></tr><tr><td>status</td><td>run, context, rotations, guard, approvals, the tracker</td></tr><tr><td>show &lt;P3|T12|agent&gt;</td><td>the view Enter opens, as text</td></tr><tr><td>watch [label]</td><td>the issue queue</td></tr><tr><td>next [#n]</td><td>archive a finished run and start the next goal</td></tr><tr><td>rule &lt;text&gt;</td><td>a standing ruling, by hand</td></tr><tr><td>rulings</td><td>list them, newest first</td></tr><tr><td>retract &lt;#&gt;</td><td>withdraw one; the log keeps it</td></tr><tr><td>enforce &lt;#&gt; &lt;regex&gt;</td><td>make one refuse matching commands</td></tr></tbody></table></div>
-      <div class="card reveal"><span class="tag">tools its agents get · mcp__baton__*</span><table><thead><tr><th>tool</th><th>does</th></tr></thead><tbody><tr><td>memory_wake</td><td>the run in a fixed budget of lines, rulings first</td></tr><tr><td>memory_note</td><td>one line, at most 280 bytes</td></tr><tr><td>memory_zoom</td><td>open a block back up to its notes</td></tr><tr><td>memory_recall</td><td>regex over notes and summaries</td></tr><tr><td>project_wake</td><td>the memory that spans runs</td></tr><tr><td>project_note</td><td>what the next run should know</td></tr><tr><td>project_recall</td><td>search it; <code>namespace</code> selects one inside it</td></tr></tbody></table></div>
-      <div class="card reveal"><span class="tag">settings · userConfig</span><table><thead><tr><th>setting</th><th>default</th></tr></thead><tbody><tr><td>rotateAtPercent</td><td>35</td></tr><tr><td>wakeBudgetLines</td><td>96</td></tr><tr><td>memoryDir</td><td>.baton/memory</td></tr><tr><td>approvals</td><td>on</td></tr><tr><td>phaseGate</td><td>on</td></tr><tr><td>prPollSeconds</td><td>120</td></tr><tr><td>tokensPerGoal</td><td>0 (off)</td></tr><tr><td>labels</td><td>on</td></tr><tr><td>boardProject</td><td>0 (off)</td></tr><tr><td>boardOwner</td><td>you</td></tr><tr><td>forbiddenFiles</td><td>added to the defaults</td></tr></tbody></table><p class="muted" style="font-size:13px;margin:8px 0 10px"><code>BATON_APPROVALS=0</code> turns both gates off for unattended runs; <code>BATON_AUTOROTATE=0</code> leaves rotation to <code>/baton rotate</code>.</p></div>
-      <div class="card reveal"><span class="tag">what it writes</span><table><thead><tr><th>path</th><th>holds</th></tr></thead><tbody><tr><td>_orch/manifest.json</td><td>the run: <code>"prime": true</code>, mode, goal, branch</td></tr><tr><td>_orch/memory/</td><td>the run memory: the log and the merge tree</td></tr><tr><td>.baton/memory/</td><td>the project memory; <code>ns/rulings</code> inside it</td></tr><tr><td>_orch/track/</td><td>one row per state change, measured</td></tr><tr><td>_orch/spend.json</td><td>tokens by role, phase and node</td></tr><tr><td>_orch/github/pr.json</td><td>the goal’s PR, written by the bootstrap</td></tr><tr><td>.baton/runs/&lt;id&gt;/</td><td>finished runs, archived by <code>/baton next</code></td></tr></tbody></table></div>
-    </div>
-    <p class="muted" style="margin-top:20px;font-size:14px">Tested: 61 node tests, including two end-to-end fixtures that run the real hooks module and
-      memory store under a fake mods runtime and a scripted <code>gh</code>. Not yet tested: the live terminal UI and real GitHub. Mods are early access in Claude Code.
-      <a href="https://github.com/ckluis/baton/blob/main/mod/README.md">The mod’s README →</a></p>
-  </div>
-</section>
+  <div class="timeline">
 
-<section id="memory">
-  <div class="wrap">
-    <div class="secnum">03</div>
-    <h2>A memory instead of a growing context.</h2>
-    <div class="grid2">
+    <article class="ver">
+      <div class="tag"><b>v1</b><small>2026-08-23</small></div>
       <div>
-        <p class="lede">Every return, every message you send and the first line of every prime reply is a note: one fixed-width
-          record of at most 280 bytes, appended to a log. Pairs of notes merge into a summary, pairs of summaries into
-          another, up a binary tree, compressed by Sonnet in the background.</p>
-        <ul class="ticks">
-          <li><b>wake</b> shows the run in a fixed budget of lines: recent notes verbatim, older ones in blocks that grow with age.</li>
-          <li><b>zoom</b> opens any block back up to its notes; <b>recall</b> searches all of it.</li>
-          <li><b>rotation</b>: at 35% context the mod writes a handoff line, compacts the prime, and the prime's next act is <code>memory_wake</code>.</li>
-          <li>A <b>project memory</b> spans runs: decisions, criteria that proved vacuous, routes that failed.</li>
-        </ul>
-        <p class="muted" style="margin-top:16px;font-size:14px">The log, the tree and the wake view follow
-          <a href="https://github.com/VictorTaelin/OptMem">OptMem</a>'s ideas; the code is baton's own (OptMem ships no license).</p>
+        <h3>The conductor never plays a note</h3>
+        <p class="why"><span class="lbl">Why</span>One chat doing a big job runs out of room and grades its own work. v1 was a single
+        571-line prompt: a lead that only hands out work, helpers that do it, notes passed on disk,
+        a four-tier model ladder, and a separate checker trying to prove each result wrong.</p>
+        <p class="end"><b>Dropped:</b> it worked, but it ran the most expensive model for everything.</p>
+        <p class="links"><a href="baton-v1.html">The v1 page</a></p>
       </div>
-      <div class="term reveal">
-        <div class="bar"><i></i><i></i><i></i>&nbsp; mcp__baton__memory_wake · illustrative</div>
-<pre><span class="c-m">Standing rulings, newest first:</span>
-<span class="c-m">#3 PRs target main directly; never stack.</span> <span class="c-d">[enforced]</span>
-<span class="c-m">#1 Fan-outs on Sonnet; Opus to synthesize.</span>
+    </article>
 
-<span class="c-d">memory: 214 notes, 213 summaries; 24 blocks</span>
-<span class="c-c">#0-127 (128 notes)</span> bootstrap BUILD ./billing;
-  41 nodes / 6 phases; P1–P3 CONFIRMED;
-  Q-1 vendor key answered
-<span class="c-c">#128-191 (64 notes)</span> P4 parser: T14 refuted
-  twice, escalated; a red test passed
-  pre-change and was refuted (9.4)
-<span class="c-c">#192-207 (16 notes)</span> P5 export 9/9; approved
-<span class="c-d">…</span>
-<span class="c-i">#211</span> <span class="c-d">[operator]</span> ship P6, hold the migration
-<span class="c-i">#212</span> <span class="c-d">[prime-reply]</span> P6 dispatched, T31 held
-<span class="c-i">#213</span> <span class="c-d">[sub]</span> P6 DONE 6/7 · T31 parked on Q-4</pre>
-      </div>
-    </div>
-
-    <div class="grid2" style="margin-top:44px">
-      <div class="card reveal"><span class="tag">rulings</span><h3>Say it once</h3>
-        <p>When you state a standing rule mid-run ("from now on…", "never…", a change of mind), Sonnet lifts it into the
-          project memory's rulings. Every wake and every kickoff leads with the newest twelve, and the newest wins.
-          Tested on ten real operator messages: five rules found, five one-offs left alone.</p>
-        <div class="pills"><span class="pill">/baton rule &lt;text&gt;</span><span class="pill">/baton rulings</span><span class="pill">/baton retract &lt;#&gt;</span><span class="pill">/baton enforce &lt;#&gt; &lt;regex&gt;</span></div>
-      </div>
-      <div class="card reveal"><span class="tag">honest scope</span><h3>What the memory is for</h3>
-        <p>On Opus 5.5 we found no context rot to fix: a prime carrying 831K tokens lost nothing. The memory earns its
-          place on <b>cost</b> (a lean prime is cheaper per run) and <b>continuity</b>: runs longer than a window,
-          and rulings that hold across sessions. <a href="#evidence">The numbers.</a></p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="see">
-  <div class="wrap">
-    <div class="secnum">04</div>
-    <h2>It is just there.</h2>
-    <p class="lede">There is nothing to open. In any Claude Code session with baton loaded, one line above the prompt carries your plan usage
-      (5 hours, the week, Fable), the context against its threshold and the session's cost, and the pane opens by itself as soon as there are
-      agents to show. It has two tabs. <b>Work</b> is everything happening: the goal and its PR, a table of every agent, the plan one line per phase, what waits for you.
-      <b>Memory</b> is everything the run remembers: your rulings, then the memory itself. This is what a run looks like; the tabs are live.</p>
-    <div class="cc reveal" role="img" aria-label="A Claude Code session running baton: the conversation, the baton pane with the agent table, the usage band and the input box">
-      <div class="title"><i></i><i></i><i></i>&nbsp; ~/shop — claude --plugin-dir ~/baton/mod</div>
-      <div class="who">the conversation</div>
-      <pre class="tx"><span class="c-i">&gt; /baton start #12</span>
-  <span class="c-d">baton run build-20261005T0912Z started (MODE BUILD, TARGET issue #12: CSV export). The prime guard is armed.</span>
-
-<span class="c-i">⏺</span> I'll start with the bootstrap, then run the phases.
-<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · bootstrap)
-  ⎿ bootstrap DONE · 6 phases, 41 nodes, plan verified · draft PR #47 opened
-<span class="c-i">⏺</span> <span class="c-c">Read</span>(src/export.ts)
-  ⎿ <span class="c-r">baton: Read is not a prime tool — dispatch a sub-orchestrator</span>
-<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · P5 export) <span class="c-d">…</span>
-  ⎿ P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed
-<span class="c-y">  ⚑ you approved P5</span>
-
-<span class="c-i">&gt; ship P6, but hold the migration until I say</span>
-  <span class="c-m">baton: ruling recorded — Hold the database migration until the operator releases it.</span>
-
-<span class="c-i">⏺</span> <span class="c-c">Agent</span>(baton:sub-orchestrator · P6 import) <span class="c-d">running</span>
-<span class="c-c">✻ Coordinating… · baton · P6 · P6 import</span></pre>
-      <div class="pane">
-        <input type="radio" name="cc-tab" id="cc-w" checked><input type="radio" name="cc-tab" id="cc-m">
-        <div class="tabs"><label for="cc-w">1 Work</label><label for="cc-m">2 Memory</label><span class="x keys">click a row, or here then <b>↑</b><b>↓</b> <b>Enter</b> · <b>b</b> back · <b>p</b> plan · <b>1</b><b>2</b> tabs</span></div>
-        <div class="panels">
-          <div class="panel p-w"><div class="demo" tabindex="0" aria-label="baton Work tab: use the arrow keys and Enter, or click a row"><pre class="work"><span class="c-b">#12 CSV export ↗</span> <span class="c-d">·</span> <span class="c-b">PR #47 ↗</span> <span class="c-d">checks 5/6 · review CHANGES (1 high, 0 med)</span>
-<b class="c-i">goal    </b> <span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span><span class="c-d"> · 2.7M · $17.41+?</span>
-<b class="c-i">PR      </b> <span class="c-g">● draft 1h10</span><span class="c-g"> ─ </span><span class="c-g">● checks 4m</span><span class="c-g"> ─ </span><span class="c-r">✗ reviewed 14m (changes)</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span>
-<span class="c-d">         merge-ready 6/9 · ✗ every check green · ✗ the reviewer’s latest verdict is READY · ✗ no high finding open</span>
-<span class="c-r">         high</span> <span class="c-b">src/import/csv.ts:88 ↗</span> <span class="c-d">a quoted newline splits the row</span>
-
-  <span class="c-d">agent                         </span><span class="c-d">context  </span><span class="c-d">trend     </span><span class="c-d">budget  </span><span class="c-d">model    </span><span class="c-d"> input  </span><span class="c-d">c.write  </span><span class="c-d"> c.read  </span><span class="c-d">output  </span><span class="c-d">   cost  </span><span class="c-d">steps        </span><span class="c-d">state             </span>
-<span class="row" data-d="a-prime"><span class="c-d">›</span> ◆ prime                       <span class="c-g">    24%</span>  <span class="c-g">▁▁▂▂▂▂  </span>  <span class="c-d">   35%</span>  opus        41k  <span class="c-d">    88k</span>  <span class="c-d">   2.1M</span>     19k    $1.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>  <span class="c-c">building          </span></span>
-<span class="row" data-d="a-p5"><span class="c-d">›</span> <span class="c-g">  ✓ sub-orch P5 export      </span>  <span class="c-g">    18%</span>  <span class="c-g">▁▁▁▂▂   </span>  <span class="c-d">   50%</span>  opus       120k  <span class="c-d">   310k</span>  <span class="c-d">   6.4M</span>     88k    $5.39  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">approved          </span></span>
-<span class="row" data-d="a-t22"><span class="c-d">›</span> <span class="c-g">    ✓ worker T22            </span>  <span class="c-y">    31%</span>  <span class="c-y">▁▁▂▂▃   </span>  <span class="c-d">   50%</span>  opus        52k  <span class="c-d">   140k</span>  <span class="c-d">   2.9M</span>     41k    $2.43  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span>      <span class="c-g">verified          </span></span>
-<span class="row" data-d="a-t23"><span class="c-d">›</span> <span class="c-r">    ✗ worker-cheap T23      </span>  <span class="c-g">     9%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  sonnet      18k  <span class="c-d">    22k</span>  <span class="c-d">   410k</span>      9k       $?  <span class="c-g">●</span><span class="c-g">─</span><span class="c-r">✗</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-r">green (refuted)   </span></span>
-<span class="row" data-d="a-p6"><span class="c-d">›</span> <span class="c-c">  ● sub-orch P6 import      </span>  <span class="c-g">    12%</span>  <span class="c-g">▁▁▁     </span>  <span class="c-d">   50%</span>  opus        36k  <span class="c-d">    90k</span>  <span class="c-d">   1.5M</span>     21k    $1.28  <span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">dispatched        </span></span>
-<span class="row" data-d="a-t29"><span class="c-d">›</span> <span class="c-c">    ● worker T29            </span>  <span class="c-r">    57%</span>  <span class="c-r">▁▂▃▄▄▅  </span>  <span class="c-d">   50%</span>  opus        61k  <span class="c-d">   160k</span>  <span class="c-d">   3.8M</span>     52k    $3.05  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span></span>
-<span class="row" data-d="a-t27"><span class="c-d">›</span> <span class="c-c">    ● verifier T27          </span>  <span class="c-g">     6%</span>  <span class="c-g">▁▁      </span>  <span class="c-d">   50%</span>  opus         9k  <span class="c-d">    31k</span>  <span class="c-d">   220k</span>      4k    $0.32  <span class="c-g">●</span><span class="c-g">─</span><span class="c-g">●</span><span class="c-g">─</span><span class="c-c">◉</span><span class="c-d">─</span><span class="c-d">○</span>      <span class="c-c">blue              </span></span>
-<span class="c-d">    T29 crossed its 50% budget: the mod told it to finish or split.</span>
-
-<b class="c-i">plan</b>  <span class="c-d">p every node</span>
-<span class="row" data-d="p-P5"><span class="c-d">›</span> <b class="c-i">P5      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span><span class="c-d"> · 2/2 verified · 1.4M · $8.12</span></span>
-<span class="row node" data-d="n-T22"><span class="c-d">›</span> <b class="c-i">  T22   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span>
-</span><span class="row node" data-d="n-T23"><span class="c-d">›</span> <b class="c-i">  T23   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-</span><span class="row" data-d="p-P6"><span class="c-d">›</span> <b class="c-i">P6      </b> <span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span><span class="c-d"> · 1/5 verified · T31 blocked · 410k · $4.65</span></span>
-<span class="row node" data-d="n-T27"><span class="c-d">›</span> <b class="c-i">  T27   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-</span><span class="row node" data-d="n-T29"><span class="c-d">›</span> <b class="c-i">  T29   </b> <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-</span><span class="row node" data-d="n-T30"><span class="c-d">›</span> <b class="c-i">  T30   </b> <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span>
-</span><span class="row node" data-d="n-T31"><span class="c-d">›</span> <b class="c-i">  T31   </b> <span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-</span><span class="row node" data-d="n-T32"><span class="c-d">›</span> <b class="c-i">  T32   </b> <span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-</span><span class="row" data-d="p-P7"><span class="c-d">›</span> <b class="c-i">P7      </b> <span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span></span>
-
-<span class="c-r">? Q-4 Which vendor key does the import use?  — blocked by _orch/nodes/T31/handoff.md:"use the vendor API" (explicit: fix the cause)</span>
-<span class="c-m">ruling #3 2026-10-05 Hold the database migration until the operator releases it.</span>
-<span class="c-d">↑/↓ then Enter on › opens an agent, a phase or a node · ✉ messages a running one · p shows every node · b goes back</span></pre><pre class="dview" data-id="a-prime" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● prime prime</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime
-<span class="c-d">model        </span>opus  ·  running 1h31m  ·  96 tool calls
-<span class="c-d">context      </span><span class="c-g">24% of its window</span><span class="c-d">  ·  budget 35%  ·  trend </span><span class="c-g">▁▁▂▂▂▂</span>
-<span class="c-d">tokens       </span>input 41k  ·  cache write 88k  ·  cache read 2.1M  ·  output 19k  ·  $1.43
-<span class="c-d">its work     </span><span class="c-g">● queued 2m</span><span class="c-g"> ─ </span><span class="c-g">● planned 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ building 1h04</span><span class="c-d"> ─ </span><span class="c-d">○ reviewing</span><span class="c-d"> ─ </span><span class="c-d">○ ready</span><span class="c-d"> ─ </span><span class="c-d">○ merged</span>
-
-<span class="c-i">the task it was given</span>
-  /baton start #12 — the goal is GitHub issue #12: "CSV export". Export orders as CSV from the admin; an
-  empty export still has a header row; quoting follows RFC 4180. Hold the database migration until the
-  operator releases it (ruling #3).
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  10:31:41  </span>memory_note   P6 dispatched with the migration held (ruling #3)
-<span class="c-d">  10:31:44  </span>Agent         P6 import
-<span class="c-d">  10:39:02  </span>memory_wake   
-<span class="c-d">  10:41:58  </span>Agent         pr-reviewer round 1</pre><pre class="dview" data-id="a-p5" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✓ sub-orch P5 export</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P5 export
-<span class="c-d">model        </span>opus  ·  finished in 41m00s  ·  212 tool calls  ·  DONE+CONFIRMED
-<span class="c-d">context      </span><span class="c-g">18% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁▂▂</span>
-<span class="c-d">tokens       </span>input 120k  ·  cache write 310k  ·  cache read 6.4M  ·  output 88k  ·  $5.39
-<span class="c-d">its work     </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span>
-
-<span class="c-i">the task it was given</span>
-  Own phase P5 (export) of run build-20261005T0912Z: write the phase brief from plan/graph.yaml, dispatch
-  each node by §4.1, verify each with a fresh verifier, route escalations, run the phase gate, and return
-  one line.
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  09:52:10  </span>Agent         T23 empty export header (retry)
-<span class="c-d">  09:58:30  </span>Agent         verifier T23
-<span class="c-d">  10:00:02  </span>Write         _orch/phases/P5/envelope.json
-
-<span class="c-i">returned</span>
-  P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed · next: P6 import</pre><pre class="dview" data-id="a-t22" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✓ worker T22</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P5 export › T22
-<span class="c-d">model        </span>opus  ·  finished in 18m00s  ·  37 tool calls  ·  DONE
-<span class="c-d">context      </span><span class="c-y">31% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-y">▁▁▂▂▃</span>
-<span class="c-d">tokens       </span>input 52k  ·  cache write 140k  ·  cache read 2.9M  ·  output 41k  ·  $2.43
-<span class="c-d">its work     </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span>
-
-<span class="c-i">the task it was given</span>
-  Node T22: quote fields per RFC 4180 in src/export/csv.ts. Handoff: _orch/nodes/T22/handoff.md.
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  09:33:12  </span>Write         test/export/csv.test.ts
-<span class="c-d">  09:33:40  </span>Bash          npm test -- csv  (red: 6 failing)
-<span class="c-d">  09:41:02  </span>Edit          src/export/csv.ts
-<span class="c-d">  09:41:30  </span>Bash          npm test  (green: 412 passing)
-
-<span class="c-i">returned</span>
-  T22 DONE · quoting per RFC 4180, 6 tests red→green · nothing open</pre><pre class="dview" data-id="a-t23" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">✗ worker-cheap T23</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P5 export › T23
-<span class="c-d">model        </span>sonnet  ·  finished in 9m00s  ·  8 tool calls  ·  REFUTED
-<span class="c-d">context      </span><span class="c-g">9% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁</span>
-<span class="c-d">tokens       </span>input 18k  ·  cache write 22k  ·  cache read 410k  ·  output 9k  ·  $?
-<span class="c-d">its work     </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-
-<span class="c-i">the task it was given</span>
-  Node T23: an empty export has a header row (src/export/csv.ts).
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  09:34:02  </span>Edit          src/export/csv.ts
-<span class="c-d">  09:35:10  </span>Write         test/export/empty.test.ts
-<span class="c-d">  09:35:40  </span>Bash          npm test -- empty
-
-<span class="c-i">returned</span>
-  T23 DONE · header row on empty export · 1 test</pre><pre class="dview" data-id="a-p6" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● sub-orch P6 import</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P6 import
-<span class="c-d">model        </span>opus  ·  running 12m00s  ·  64 tool calls
-<span class="c-d">context      </span><span class="c-g">12% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁▁</span>
-<span class="c-d">tokens       </span>input 36k  ·  cache write 90k  ·  cache read 1.5M  ·  output 21k  ·  $1.28
-<span class="c-d">its work     </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
-
-<span class="c-i">the task it was given</span>
-  Own phase P6 (import) of run build-20261005T0912Z. The operator holds the database migration (ruling
-  #3): do not dispatch T32 until it is released.
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  10:31:50  </span>Write         _orch/phases/P6/brief.md
-<span class="c-d">  10:32:05  </span>Agent         T29 import parser
-<span class="c-d">  10:32:07  </span>Agent         T31 vendor key
-<span class="c-d">  10:39:20  </span>Agent         verifier T27
-<span class="c-d">  10:42:12  </span>Bash          git status --short</pre><pre class="dview" data-id="a-t29" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● worker T29</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P6 import › T29
-<span class="c-d">model        </span>opus  ·  running 11m00s  ·  19 tool calls
-<span class="c-d">context      </span><span class="c-r">57% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-r">▁▂▃▄▄▅</span>
-<span class="c-d">tokens       </span>input 61k  ·  cache write 160k  ·  cache read 3.8M  ·  output 52k  ·  $3.05
-<span class="c-d">its work     </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-
-<span class="c-i">the task it was given</span>
-  Node T29: parse orders from CSV in src/import/csv.ts; a bad row reports its line number.
-
-<span class="c-i">lessons the mod added to it</span><span class="c-d">  (from earlier refutations in this code)</span>
-<span class="c-m">  - T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code</span>
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  10:33:01  </span>code_search   parseCsv
-<span class="c-d">  10:33:04  </span>code_fetch    src/export/csv.ts:12-48
-<span class="c-d">  10:34:10  </span>Write         test/import/csv.test.ts
-<span class="c-d">  10:34:40  </span>Bash          npm test -- import  (red: 4 failing)
-<span class="c-d">  10:40:22  </span>Edit          src/import/csv.ts
-<span class="c-d">  10:41:05  </span>Bash          npm test  (green: 418 passing)
-<span class="c-d">  10:42:30  </span>Edit          src/import/csv.ts</pre><pre class="dview" data-id="a-t27" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">● verifier T27</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">in the tree  </span>prime › P6 import › T27
-<span class="c-d">model        </span>opus  ·  running 4m00s  ·  6 tool calls
-<span class="c-d">context      </span><span class="c-g">6% of its window</span><span class="c-d">  ·  budget 50%  ·  trend </span><span class="c-g">▁▁</span>
-<span class="c-d">tokens       </span>input 9k  ·  cache write 31k  ·  cache read 220k  ·  output 4k  ·  $0.32
-<span class="c-d">its work     </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span>
-
-<span class="c-i">the task it was given</span>
-  Verify node T27 (import dedupes orders by id). Refute each done-criterion; re-run red against the
-  unchanged code; write _orch/verify/T27-verdict.json.
-
-<span class="c-i">last tool calls</span>
-<span class="c-d">  10:39:30  </span>Read          _orch/nodes/T27/handoff.md
-<span class="c-d">  10:40:02  </span>Bash          git worktree add /tmp/verify-T27 &lt;red parent>
-<span class="c-d">  10:40:40  </span>Bash          npm test -- dedupe  (red reproduced: 2 failing)</pre><pre class="dview" data-id="p-P5" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P5 · approved</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-g">● dispatched 38m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-g"> ─ </span><span class="c-g">● approved 2m</span>
-<span class="c-d">nodes        </span>1 of 2 verified  ·  1.4M · $8.12
-
-<span class="c-i">the brief</span>
-  P5 — export
-  Nodes: T22 (frontier), T23 (cheap)
-  Concurrency: 2 · exit: every node DONE+CONFIRMED, the gate approved
-
-<span class="c-i">its nodes</span><span class="c-d">  (Enter on one in Work opens it)</span>
-  T22   <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-d">  ·  233k · $2.43</span>
-  T23   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  49k · $?</span>
-
-<span class="c-i">its envelope</span>
-  DONE+CONFIRMED — 9/9 criteria confirmed; T23 refuted once (the red test passed pre-change) and redone.
-<span class="c-d">  risk: </span>exports over 1M rows are untested</pre><pre class="dview" data-id="p-P6" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P6 · dispatched</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● briefed 1m</span><span class="c-g"> ─ </span><span class="c-c">◉ dispatched 12m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
-<span class="c-d">nodes        </span>1 of 5 verified  ·  410k · $4.65
-
-<span class="c-i">the brief</span>
-  P6 — import
-  Nodes: T27, T29, T30, T31, T32 (T32 held: ruling #3, the migration)
-  Concurrency: 3 · exit: every node DONE+CONFIRMED or BLOCKED-and-batched
-
-<span class="c-i">its nodes</span><span class="c-d">  (Enter on one in Work opens it)</span>
-  T27   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  44k · $0.32</span>
-  T29   <span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  273k · $3.05</span>
-  T30   <span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span><span class="c-d">  ·  120k · $1.10</span>
-  T31   <span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
-  T32   <span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span></pre><pre class="dview" data-id="p-P7" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">P7 · briefed</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-d">○ briefed</span><span class="c-d"> ─ </span><span class="c-d">○ dispatched</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"> ─ </span><span class="c-d">○ approved</span>
-<span class="c-d">nodes        </span>0 of 0 verified
-
-<span class="c-i">the brief</span>
-  P7 — docs and release notes (not started)</pre><pre class="dview" data-id="n-T29" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T29 · blue</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 6m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 2m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  273k · $3.05</span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>a CSV of 3 orders imports as 3 orders
-<span class="c-d">  2. </span>a bad row reports its line number
-<span class="c-d">  3. </span>quoting per RFC 4180 round-trips with the export
-
-<span class="c-i">red · green · blue</span>
-<span class="c-r">  red   </span>npm test -- import
-<span class="c-r">        </span>4 failing: imports 3 orders · reports the bad line · round-trips quoting · rejects BOM
-<span class="c-r">        </span>commit 41c2e0a (tests only)
-<span class="c-g">  green </span>npm test
-<span class="c-g">        </span>418 passing
-<span class="c-g">        </span>commit 7d10b9f
-<span class="c-d">  blue  </span><span class="c-d">not yet</span></pre><pre class="dview" data-id="n-T31" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T31 · red (blocked)</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-r">✗ red 9m (blocked)</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d">  ·  38k · $0.29</span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>the import authenticates with the vendor API
-
-<span class="c-i">red · green · blue</span>
-<span class="c-r">  red   </span>npm test -- vendor
-<span class="c-r">        </span>1 failing: 401 from the vendor API
-<span class="c-d">  green </span><span class="c-d">not yet</span>
-<span class="c-d">  blue  </span><span class="c-d">not yet</span></pre><pre class="dview" data-id="n-T23" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T23 · green (refuted)</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-r">✗ green 5m (refuted)</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>an empty export has a header row
-
-<span class="c-i">red · green · blue</span>
-<span class="c-r">  red   </span>npm test -- empty
-<span class="c-r">        </span>0 failing (!)
-<span class="c-g">  green </span>npm test
-<span class="c-g">        </span>412 passing
-<span class="c-d">  blue  </span><span class="c-d">not yet</span>
-
-<span class="c-i">the verifier</span><span class="c-d">  REFUTED — reverted src/export/csv.ts; the red test still passed</span>
-<span class="c-r">  ✗ </span>an empty export has a header row
-<span class="c-d">      the red test passed against the unchanged code: it asserted the file exists, not the header</span>
-
-<span class="c-i">lessons it left</span><span class="c-d">  (carried to later agents working here)</span>
-<span class="c-m">  - T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code</span></pre><pre class="dview" data-id="n-T22" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T22 · verified</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● red 3m</span><span class="c-g"> ─ </span><span class="c-g">● green 9m</span><span class="c-g"> ─ </span><span class="c-g">● blue 2m</span><span class="c-g"> ─ </span><span class="c-g">● verified 4m</span><span class="c-d"></span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>(see _orch/nodes/T22/handoff.md)</pre><pre class="dview" data-id="n-T27" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T27 · blue</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 4m</span><span class="c-g"> ─ </span><span class="c-c">◉ blue 1m</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>(see _orch/nodes/T27/handoff.md)</pre><pre class="dview" data-id="n-T30" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T30 · verified</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-g">● red 2m</span><span class="c-g"> ─ </span><span class="c-g">● green 7m</span><span class="c-g"> ─ </span><span class="c-g">● blue 1m</span><span class="c-g"> ─ </span><span class="c-g">● verified 3m</span><span class="c-d"></span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>(see _orch/nodes/T30/handoff.md)</pre><pre class="dview" data-id="n-T32" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">T32 · not started</b>   <span class="c-d">refresh (r)</span>
-
-<span class="c-d">steps        </span><span class="c-d">○ red</span><span class="c-d"> ─ </span><span class="c-d">○ green</span><span class="c-d"> ─ </span><span class="c-d">○ blue</span><span class="c-d"> ─ </span><span class="c-d">○ verified</span><span class="c-d"></span>
-
-<span class="c-i">done-criteria</span>
-<span class="c-d">  1. </span>(see _orch/nodes/T32/handoff.md)</pre></div></div>
-          <div class="panel p-m"><div class="demo" tabindex="0" aria-label="baton Memory tab: use the arrow keys and Enter, or click a row"><pre class="work"><b class="c-i">rulings</b>  <span class="c-d">x retracts · Enter opens</span>
-<span class="c-d">New ruling: a standing instruction; the newest wins ⏎ add</span>
-<span class="row" data-d="r-3"><span class="c-d">x</span> <span class="c-m">#3 2026-10-05 Hold the database migration until the operator releases it.</span></span>
-<span class="row" data-d="r-1"><span class="c-d">x</span> <span class="c-m">#1 2026-10-02 Target every PR directly at main; never stack.  [enforced: /git push.*\bmain\b/]</span></span>
-<span class="row" data-d="r-0"><span class="c-d">x</span> <span class="c-m">#0 2026-10-02 Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span></span>
-
-<b class="c-i">memory</b>  <span class="c-d">tree: 214 notes · 213/213 summaries · 8 levels · 0 merges pending</span>
-<span class="c-d">Search: </span><span class="c-d">a node id, a word, a regex ⏎ search</span>
-<span class="row" data-d="m-0-127"><span class="c-d">+</span> #0-127 (128 notes) bootstrap BUILD ./shop; 41 nodes / 6 phases; P1–P3 CONFIRMED; Q-1 vendor key answered</span>
-<span class="row" data-d="m-128-191"><span class="c-d">+</span> #128-191 (64 notes) P4 parser: T14 refuted twice, escalated; a red test passed pre-change and was refuted (9.4)</span>
-<span class="row" data-d="m-192-207"><span class="c-d">+</span> #192-207 (16 notes) P5 export 9/9; T23 refuted once, fixed; approved</span>
-<span class="c-d">#208 10:31:02Z </span><span class="c-d">[approval]</span> operator approved P5: P5 DONE+CONFIRMED 9/9
-<span class="c-d">#209 10:31:40Z </span><span class="c-d">[operator]</span> ship P6, but hold the migration until I say
-<span class="c-d">#210 10:31:41Z </span><span class="c-d">[prime-reply]</span> P6 dispatched with the migration held (ruling #3)
-<span class="c-d">#211 10:39:12Z </span><span class="c-d">[budget]</span> worker T29 reached 57% context; told to finish or split
-<span class="c-d">#212 10:41:55Z </span><span class="c-d">[review]</span> PR #47 review round 1: CHANGES (1 high, 0 med, 2 low)
-<span class="c-d">#213 10:42:07Z </span><span class="c-d">[github]</span> PR #47 chris: asks to also export archived orders
-<span class="c-d">↑/↓ then Enter: a ruling shows where it came from; + opens a block into the notes under it · b goes back</span></pre><pre class="dview" data-id="r-3" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #3</b>
-
-<span class="c-d">ruling       </span><span class="c-m">Hold the database migration until the operator releases it.</span>
-<span class="c-d">from         </span>your message at 10:31:40Z: <span class="c-y">"ship P6, but hold the migration until I say"</span>
-<span class="c-d">lifted by    </span>Sonnet 5.5, from a message that could state a rule
-<span class="c-d">enforced     </span>no — it leads every wake and every kickoff; the prime held T32 for it
-
-<b class="c-i">what you can do</b>
-  <span class="c-d">x</span> retracts it (the log keeps it)   ·   <span class="c-d">/baton enforce 3 &lt;regex></span> makes it refuse matching commands</pre><pre class="dview" data-id="r-1" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #1</b>
-
-<span class="c-d">ruling       </span><span class="c-m">Target every PR directly at main; never stack.</span>
-<span class="c-d">from         </span>/baton rule, by hand, 2026-10-02
-<span class="c-d">enforced     </span><span class="c-c">/git push.*\bmain\b/</span> — a shell command matching it is refused at the permission check, run or no run
-
-<b class="c-i">what you can do</b>
-  <span class="c-d">x</span> retracts it, which also lifts the block</pre><pre class="dview" data-id="r-0" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">ruling #0</b>
-
-<span class="c-d">ruling       </span><span class="c-m">Run fan-outs on Sonnet; keep Opus for synthesis and verification.</span>
-<span class="c-d">from         </span>your message on 2026-10-02: <span class="c-y">"Fan-outs should go on sonnet or haiku; keep opus for synthesis and verification."</span>
-<span class="c-d">enforced     </span>no</pre><pre class="dview" data-id="m-0-127" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-127 (128 notes)</b>
-
-<span class="row" data-d="m-0-63"><span class="c-d">+</span> #0-63 (64 notes) bootstrap BUILD ./shop; plan 41 nodes / 6 phases verified; P1 schema 7/7</span>
-<span class="row" data-d="m-64-127"><span class="c-d">+</span> #64-127 (64 notes) P2–P3 CONFIRMED; Q-1 vendor key answered (key B); T12 split into T12a/b</span></pre><pre class="dview" data-id="m-0-63" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-63 (64 notes)</b>
-
-<span class="row" data-d="m-0-31"><span class="c-d">+</span> #0-31 (32 notes) run started; bootstrap: directive, plan, plan verifier (2 findings fixed)</span>
-<span class="row" data-d="m-32-63"><span class="c-d">+</span> #32-63 (32 notes) P1 schema: 7/7 CONFIRMED; operator approved P1</span></pre><pre class="dview" data-id="m-0-31" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #0-31 (32 notes)</b>
-
-<span class="c-d">#0   09:12:04Z </span><span class="c-d">[operator]</span> run build-20261005T0912Z started: MODE BUILD, TARGET issue #12: CSV export
-<span class="c-d">#1   09:12:09Z </span><span class="c-d">[prime-reply]</span> Dispatched the bootstrap sub-orchestrator
-<span class="c-d">#2   09:19:40Z </span><span class="c-d">[sub]</span> bootstrap: bootstrap DONE · 6 phases, 41 nodes, plan verified · draft PR #47 opened
-<span class="c-d">#3   09:19:44Z </span><span class="c-d">[prime-reply]</span> P1 dispatched
-<span class="c-d">    …</span>
-<span class="c-d">#31  09:31:10Z </span><span class="c-d">[sub]</span> P1: P1 DONE+CONFIRMED 7/7 · next: P2</pre><pre class="dview" data-id="m-32-63" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #32-63 (32 notes)</b>
-
-<span class="c-d">#32  09:31:30Z </span><span class="c-d">[approval]</span> operator approved P1: P1 DONE+CONFIRMED 7/7
-<span class="c-d">    …</span>
-<span class="c-d">#63  09:44:02Z </span><span class="c-d">[sub]</span> P2: T7 escalated to frontier; packet attached</pre><pre class="dview" data-id="m-64-127" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #64-127 (64 notes)</b>
-
-<span class="c-d">#64  09:44:20Z </span><span class="c-d">[operator]</span> use vendor key B for the import
-<span class="c-d">#65  09:44:21Z </span><span class="c-d">[lesson]</span> [src/import] T9: "the import authenticates" was refuted — key A is revoked
-<span class="c-d">    …</span>
-<span class="c-d">#127 09:58:40Z </span><span class="c-d">[sub]</span> P3: P3 DONE+CONFIRMED 12/12</pre><pre class="dview" data-id="m-128-191" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #128-191 (64 notes)</b>
-
-<span class="c-d">#128 09:59:02Z </span><span class="c-d">[prime-reply]</span> P4 dispatched
-<span class="c-d">#141 10:06:30Z </span><span class="c-d">[sub]</span> T14 REFUTED: the red test passed against the unchanged code
-<span class="c-d">#152 10:12:10Z </span><span class="c-d">[sub]</span> T14 REFUTED again; escalation packet: rounding at .005
-<span class="c-d">    …</span>
-<span class="c-d">#191 10:22:47Z </span><span class="c-d">[approval]</span> operator approved P4</pre><pre class="dview" data-id="m-192-207" hidden><span class="c-c back" role="button">‹ back</span> <span class="c-d">(b)</span>   <b class="c-i">notes #192-207 (16 notes)</b>
-
-<span class="c-d">#192 10:23:05Z </span><span class="c-d">[prime-reply]</span> P5 dispatched
-<span class="c-d">#199 10:27:40Z </span><span class="c-d">[lesson]</span> [test/export src/export] T23: "an empty export has a header row" was refuted — the red test passed against the unchanged code
-<span class="c-d">    …</span>
-<span class="c-d">#207 10:30:58Z </span><span class="c-d">[sub]</span> P5: P5 DONE+CONFIRMED 9/9 · T23 refuted once, fixed</pre></div></div>
-        </div>
-      </div>
-      <div class="band"><pre><span class="c-g">5h ▕██░░░▏42%</span><span class="c-d"> · </span><span class="c-g">wk ▕█░░░░▏18%</span><span class="c-d"> · </span><span class="c-g">Fable ▕░░░░░▏3%</span><span class="c-d"> · </span><span class="c-g">ctx ▕█░┊░░▏24%/35%</span><span class="c-d"> · </span><span class="c-d">↻3</span><span class="c-d"> · </span><span class="c-d">$17.41</span><span class="c-d"> · </span><span class="c-d">#12 building</span><span class="c-d"> · </span><span class="c-r">PR #47 5/6</span>
-<span class="c-y">⚑ waiting for you: 1 question — Work (1)</span></pre></div>
-      <div class="input"><span class="p">&gt;</span><span>also export the archived orders</span><span class="caret" aria-hidden="true"></span></div>
-      <div class="hint"><span>? for shortcuts</span><span>opus · /baton for commands</span></div>
-    </div>
-    <div style="margin-top:26px"></div>
-    <div class="grid3">
-        <div class="card reveal"><span class="tag">1 · work</span><h3>Everything happening, in one view</h3><p>Prime → sub-orchestrators → workers and verifiers, from
-          every spawn's parent, every tool call's agent and every turn's end. Each row ends with the steps of what that agent is working on:
-          a worker its node (red → green → blue → verified), a sub-orchestrator its phase, the prime the goal.
-          Every row is a line of a table: the agent, its context against <i>its own</i> budget (the prime rotates at 35%;
-          a subagent is told to finish or split at 50%), its model, its input, cache writes, cache reads and output, its cost priced per model
-          (API-equivalent; a model without a verified price shows <code>$?</code>), its steps and its state. On a narrow terminal the least useful columns go first. <b>✉</b> on a running agent opens a field that
-          messages it directly: steer one phase without going through the prime.</p></div>
-        <div class="card reveal"><span class="tag">2 · memory</span><h3>A browser over the tree</h3><p><b>+</b> opens a
-          summary block into its range, <b>b</b> goes back, a search field runs recall. The run is a few zoom hops from any fact.</p></div>
-        <div class="card reveal"><span class="tag">2 · memory</span><h3>Rulings first: add, retract, enforce</h3><p>Type a ruling, <b>x</b> to retract it.
-          Enforced rulings show their pattern. The rulings log is append-only, so the history stays.</p></div>
-      </div>
-    </div>
-    <p class="muted" style="margin-top:18px;font-size:14px">The drawings above follow the mod's render code. The tests
-      exercise it against a fake runtime; the live terminal UI has not been checked yet (mods are early access).</p>
-  </div>
-</section>
-
-<section id="track">
-  <div class="wrap">
-    <div class="secnum">05</div>
-    <h2>Track every level, like a parcel.</h2>
-    <p class="lede">The goal, its PR, each phase and each node move through a fixed row of states. Every state is computed from
-      the record, never claimed by an agent: a node is <b>red</b> when <code>work/red.txt</code> exists, <b>verified</b> when a
-      fresh verifier's verdict says so. Each move is written down with the time it was seen, so how long every state took is measured.</p>
-    <div class="trk">
-<div class="trow reveal"><div class="who"><b>goal</b>#12 CSV export ↗<br>1.2M of 2M tok</div><div class="steps"><div class="st done"><i>✓</i><span>queued</span><em>2m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>planned</span><em>6m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>building</span><em>1h04</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>reviewing</span><em>18m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
-<div class="trow reveal"><div class="who"><b>PR #47</b>draft ↗</div><div class="steps"><div class="st done"><i>✓</i><span>draft</span><em>1h10</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>checks</span><em>4m</em></div><span class="rail done"></span><div class="st bad"><i>✗</i><span>reviewed<br>changes</span><em>14m</em></div><span class="rail"></span><div class="st "><i></i><span>ready</span></div><span class="rail"></span><div class="st "><i></i><span>merged</span></div></div></div>
-<div class="trow reveal"><div class="who"><b>P4</b>fix round 1</div><div class="steps"><div class="st done"><i>✓</i><span>briefed</span><em>1m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>dispatched</span><em>11m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div><span class="rail"></span><div class="st "><i></i><span>approved</span></div></div></div>
-<div class="trow reveal"><div class="who"><b>T31</b>empty export<br>41k tok</div><div class="steps"><div class="st done"><i>✓</i><span>red</span><em>3m</em></div><span class="rail done"></span><div class="st done"><i>✓</i><span>green</span><em>6m</em></div><span class="rail done"></span><div class="st now"><i>●</i><span>blue</span><em>2m</em></div><span class="rail"></span><div class="st "><i></i><span>verified</span></div></div></div>
-    </div>
-    <div class="grid3" style="margin-top:36px">
-      <div class="card reveal"><span class="tag">issue → PR</span><h3>A goal is an issue</h3><p><code>/baton start #12</code> makes the issue the goal.
-        A draft PR closes it, one commit per node, each verdict a check. <code>/baton watch</code> queues issues labeled <code>baton</code>;
-        <code>/baton next</code> starts the next one. The issue and PR are links in the pane.</p></div>
-      <div class="card reveal"><span class="tag">pr reviewer + steward</span><h3>An aggressive last look</h3><p>After the last phase a fresh Opus
-        reviewer tries to refute "this PR completes the issue": every acceptance criterion mapped to a red-then-green test,
-        complexity in numbers, scope nobody asked for. A steward turns <code>CHANGES</code> into a fix round, at most three. baton never merges.</p></div>
-      <div class="card reveal"><span class="tag">merge-ready, computed</span><h3>No model reads the status</h3><p>The PR is data: <code>gh pr view --json</code>
-        every two minutes. Ready means every check green, the latest review <code>READY</code>, no open thread, mergeable, up to date.
-        Haiku only condenses new comments to one line; <code>/approve P3</code> on the thread works from your phone.</p></div>
-    </div>
-    <div class="callout reveal"><b>Hooks, not reminders.</b> Ideas from <a href="https://github.com/benmarte/talos">talos</a>, rebuilt so nothing has to be remembered.
-      Spend is metered from every model request (<code>turn.step</code>) by the agent that made it. A token budget refuses another fix round at the spawn.
-      A reviewer on a conflicting PR is refused until the base is merged in, and <code>git add .env</code> is refused from any agent.
-      The goal's state is mirrored as a <code>baton:&lt;state&gt;</code> label on the issue, and on a Projects board if you want one.
-      Every blocked question says what it rests on, and whether that is a rule (fix the cause) or a judgment (you may overrule it).</div>
-    <p class="muted" style="margin-top:18px;font-size:14px">Whether the review loop earns its place is pre-registered: after ten merged goals,
-      keep it, trim it to one round, or cut it, by the share of its findings you accepted.
-      <a href="https://github.com/ckluis/baton/blob/main/docs/experiments/pr-review-loop-preregistration.md">The rule →</a></p>
-  </div>
-</section>
-
-<section id="approve">
-  <div class="wrap">
-    <div class="secnum">06</div>
-    <h2>Approve from anywhere in the tree.</h2>
-    <p class="lede">A mod can hold any tool call, from any agent at any depth, and ask you first. The approval surfaces at the
-      top however deep the agent sits, and every answer goes into the memory.</p>
-    <div class="grid3" style="margin-top:30px">
-      <div class="card reveal"><span class="tag">command gate</span><h3>Irreversible commands wait</h3>
-        <p><code>git push</code>, <code>gh pr create|merge|close</code>, a release or package publish, <code>reset --hard</code>,
-          <code>clean -f</code>, <code>rm -r</code>. The dialog names the chain (<i>prime › P3 › T7 wants to git push</i>) and your
-          top rulings. Approve, approve for the run, refuse, or type a reason. With nobody to ask, it's refused.</p></div>
-      <div class="card reveal"><span class="tag">phase gate</span><h3>Finished phases wait for you</h3>
-        <p>When a sub-orchestrator reports DONE, the prime's next dispatch waits until you approve the phase or send it back
-          with what's wrong. Sent back, the prime re-dispatches that phase with your reason as its directive.</p></div>
-      <div class="card reveal"><span class="tag">enforced rulings</span><h3>Rules that bite</h3>
-        <p><code>/baton enforce 3 git push.*\bmain\b</code> turns ruling #3 into a refusal at the permission check, run
-          or no run, quoting the ruling. Retract the ruling and the block lifts.</p></div>
-    </div>
-    <div class="term reveal" style="margin-top:26px;max-width:760px">
-      <div class="bar"><i></i><i></i><i></i>&nbsp; dialog</div>
-<pre><span class="c-i">baton: prime › P6 › T29 wants to git push:</span>
-  git push origin baton/build-20261004 --force-with-lease
-
-Your rulings:
-  #3 2026-10-04 Target every PR directly at main; never stack.
-
-<span class="c-y">❯ 1. Approve</span>
-  2. Approve every "git push" for this run
-  3. Refuse
-  4. Type something…</pre>
-    </div>
-  </div>
-</section>
-
-<section id="rgb">
-  <div class="wrap">
-    <div class="secnum">07</div>
-    <h2>Red, green, blue.</h2>
-    <p class="lede">A test written after the code passes by construction. It describes what the code does, and it would have
-      passed against a wrong implementation too. Rule 9.4 forces the order for every node that changes behavior.</p>
-    <div class="grid3 rgb" style="margin-top:30px">
-      <div class="card r reveal"><h3>Red <span>work/red.txt</span></h3><p>Only the tests, one or more per done-criterion. They run and
-        <b>fail</b> against the unchanged code, for the reason the criterion names: not a syntax error or a missing import.</p></div>
-      <div class="card g reveal"><h3>Green <span>work/green.txt</span></h3><p>The smallest change that passes them. The red tests are
-        <b>frozen</b>: a green that needed one edited has redefined the criterion, so it goes back to red.</p></div>
-      <div class="card bl reveal"><h3>Blue <span>work/blue.txt</span></h3><p>Refactor with the suite green and no test touched, or
-        write down that there was nothing to tidy. Each step is its own commit.</p></div>
-    </div>
-    <div class="callout reveal"><b>The verifier checks it, fresh.</b> It re-runs the red tests against the parent of the red commit in a
-      private worktree (a red that passes there refutes its criterion), checks that the freeze held, and that green and blue are green.
-      Exemption is the planner's call, never the node's, and the plan verifier refutes one a test could answer. Unmeasured so far:
-      the first run under it should count the reds the verifier refuted.</div>
-  </div>
-</section>
-
-<section id="evidence">
-  <div class="wrap">
-    <div class="secnum">08</div>
-    <h2>What we measured before building it.</h2>
-    <p class="lede">v7 was built as an experiment: decision rules committed before any run, blind scoring, answer keys audited.
-      The result was not what we set out to show, and the page says so.</p>
-    <div class="tablewrap reveal">
-      <table>
-        <thead><tr><th>experiment</th><th>what it stressed</th><th>carry everything</th><th>default compaction</th><th>v7 memory</th><th>verdict</th></tr></thead>
-        <tbody>
-          <tr><td><b>E1</b> · 3 seeds</td><td>~250K tokens, 5 compactions</td><td>1.000</td><td>1.000</td><td>1.000</td><td><span class="verdict v-tie">tie at ceiling</span></td></tr>
-          <tr><td><b>E1c</b> · 3 seeds</td><td>29 compactions; facts crossing 7–21 of them</td><td>—</td><td>24/24 ×3</td><td>24/24 ×3</td><td><span class="verdict v-tie">tie at ceiling</span></td></tr>
-          <tr><td><b>E1b</b> · exploratory</td><td>the prime carried to <b>831K</b> tokens</td><td>24/24 · <b>$20.40</b></td><td>24/24 · $13.24</td><td>24/24 · $14.78</td><td><span class="verdict v-cost">no rot; ~50% cost</span></td></tr>
-          <tr><td><b>E2</b> · 3 × 8 tasks</td><td>reviewers on unstated project conventions</td><td colspan="3">plain reviewer 6.00/6 · luminary with memory 6.00/6 · memory wiped 6.00/6</td><td><span class="verdict v-cut">luminaries cut</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout reveal"><b>What that means.</b> On Opus 5.5 the problem v7 was built to fix (context rot in a long prime) did not
-      appear, up to 831K tokens or through 29 compactions. So v7 ships on what moved: a prime that stays lean is cheaper, and
-      a memory carries a run past the window and across sessions. The expert library is deleted; a plain fresh reviewer
-      did as well. One harness defect was caught along the way (an answer key that expected dispatches the record didn't
-      support), audited, rescored and fixed before the later runs.
-      <a href="https://github.com/ckluis/baton/blob/main/docs/designs/v7-mods.md">Design and results record →</a></div>
-  </div>
-</section>
-
-<section id="install">
-  <div class="wrap">
-    <div class="secnum">09</div>
-    <h2>Install it, or paste it.</h2>
-    <div class="grid2" style="margin-top:20px">
+    <article class="ver">
+      <div class="tag"><b>v2</b><small>2026-08-24</small></div>
       <div>
-        <h3>With the mod (Claude Code)</h3>
-        <div class="term" style="margin-top:12px">
-          <div class="bar"><i></i><i></i><i></i>&nbsp; terminal</div>
-<pre><span class="c-d"># from a clone of ckluis/baton</span>
-claude --plugin-dir ./mod
-<span class="c-d"># then, in the session:</span>
-<span class="c-y">/baton start BUILD ./app</span>
-/baton            <span class="c-d"># the pane</span>
-/baton status     <span class="c-d"># run, context, rotations, approvals</span></pre>
-        </div>
-        <p style="margin-top:14px;font-size:15px">Modes: <code>BUILD</code> <code>DOGFOOD</code> <code>GENERIC</code> <code>IMPROVE</code>
-          <code>MIGRATE</code> <code>REVIEW</code> <code>ROADMAP</code> <code>TEST</code>. Needs <code>node</code> on <code>PATH</code>.
-          <code>BATON_APPROVALS=0</code> turns the gates off for unattended runs. <a href="https://github.com/ckluis/baton/blob/main/mod/README.md">The mod's README →</a></p>
+        <h3>The cheapest agent that can succeed</h3>
+        <p class="why"><span class="lbl">Why</span>Cut the cost. Six levels of model and effort, starting cheap and climbing only when a
+        check failed.</p>
+        <p class="end"><b>Dropped:</b> later tests showed the ladder barely changed results. With stronger models the
+        big model was no longer the expensive part.</p>
+        <p class="links"><a href="baton-v2.html">The v2 page</a></p>
       </div>
+    </article>
+
+    <article class="ver">
+      <div class="tag"><b>v3</b><small>2026-08-31 → 09-17</small></div>
       <div>
-        <h3>Without it (any harness)</h3>
-        <p style="font-size:15px;margin:12px 0">The framework underneath is still a router prompt. Paste it into a fresh session and that
-          session runs as the dispatcher, under the same rules, without the guard, the memory or the pane.</p>
-        <div class="codebox">
-          <div class="codebar"><div><b>the whole paste</b> &middot; 8 lines</div><button class="copy" id="copybtn" type="button">Copy it</button></div>
-          <pre id="psrc"># Goal
-Find and fix what the test suite is failing to catch in the billing module.
-
-# Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
-You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
-against that same base URL. Read it completely before you start any work.
-Migrating from an earlier version? Read https://github.com/ckluis/baton/blob/v7.5/MIGRATING.md</pre>
-        </div>
-        <div class="codebox" style="margin-top:12px">
-          <div class="codebar"><div><b>for a team</b> &middot; 10 lines</div></div>
-          <pre id="tsrc"># Goal
-Find and fix what the test suite is failing to catch in the billing module.
-
-# Settings
-TEAM:        github
-
-# Process
-Fetch and follow https://raw.githubusercontent.com/ckluis/baton/v7.5/prompt/baton.md
-You are the PRIME ORCHESTRATOR it describes. Resolve every other file it names
-against that same base URL. Read it completely before you start any work.</pre>
-        </div>
+        <h3>Named experts and new modes</h3>
+        <p class="why"><span class="lbl">Why</span>Better reviews: 40 named-expert reviewer personas, new modes, and rules learned by running
+        baton on itself.</p>
+        <p class="end"><b>Dropped:</b> in v7's own test, the expert panel did no better than one plain reviewer.</p>
+        <p class="links"><a href="baton-v3.html">The v3 page</a></p>
       </div>
-    </div>
-    <details>
-      <summary>What that paste invokes &mdash; <code>prompt/baton.md</code>, 329 lines</summary>
-      <div class="inner">
-        <div class="codebox">
-          <div class="codebar"><div><b>prompt/baton.md</b></div><button class="copy" id="rcopybtn" type="button">Copy the router</button></div>
-          <pre id="rsrc"># BATON v6 — the router
+    </article>
 
-You are the **PRIME ORCHESTRATOR** of a baton run. You are reading this file
-because your invocation pointed you at it. **Read it to the end before you act.**
-
-Everything else you need sits beside this file. This file is a router. The
-contracts are the product.
-
----
-
-## 1. Your run config
-
-The invocation that sent you here carries the settings. Take them from it.
-
-**Only `TARGET` and `MODE` are required.** Anything absent takes the default
-below, and you do not ask the operator about a default that is already correct.
-
-| setting | default | what it does |
-|---|---|---|
-| `TARGET` | **required** | a path, a spec file, a running app URL, or a one-line goal |
-| `MODE` | **required** | selects `{BATON}/prompt/modes/&lt;MODE&gt;.md`, which carries the entire directive, graph skeleton, loops, and gates. You never write a directive. |
-| `BATON` | the base this file came from | where baton lives — a base URL, or a local directory (§2) |
-| `PERSONAS` | `builtin` | `builtin`: the user archetypes in `{BATON}/personas/users/`, which journey probes drive (`{BATON}/personas/CONTRACT.md`). `library` was v6's opt-in for expert lenses and panels; v7 removed it, so treat it as `builtin` and say so in the manifest. |
-| `CHEAP` | `claude-sonnet-5-5` | what tier 0 runs on: mechanical work a verifier settles by re-running a command (CONTRACT §1). Assignment only — nothing escalates here. |
-| `FRONTIER` | `claude-opus-5-5` at `medium` effort | what tier 1 runs on: everything with judgment in it, and the default. Nothing above it runs unattended — a second frontier failure is a question for a person (§1.2). |
-| `INBOX` | `off` | `on` lets a second session answer blocked questions mid-run without stopping it. |
-| `TEAM` | `off` | `github` gives the run one pull request, one branch and one hidden ref, and nothing else: `_orch/` is pushed to `refs/baton/run/&lt;id&gt;` at every node close and gate (CONTRACT §6.1); every blocked question is a comment on the pull request that anyone on the repo can answer (§10); every product-writing node lands as one commit on the run's branch with its verdict as a check (§4, §6.2). Needs `gh` authenticated on the runner. Single-user behaviour is byte-identical when off. |
-| `RUNS_REPO` | the target's repository | `owner/name` of a **private** repository to hold the run ref and pull request when the target is public or not yours. `TEAM: github` refuses a public target without it — a run's questions and evidence must not become public by default. |
-
-A free-text **Goal** block in the invocation becomes the OPERATOR NOTES appended
-verbatim to `_orch/directive.md`. For `MODE: GENERIC` it *is* the directive.
-
-### 1.1 Anything missing, ask for
-
-`TARGET` and `MODE` are the only two settings a run may not silently guess.
-Everything else takes its default without comment.
-
-**If either is absent, ask.** Do not stall, and do not assume. Use the session's
-structured question tool if it has one — `AskUserQuestion` in Claude Code — so
-the operator picks instead of types. Ask once, for everything you are missing,
-before you create `_orch/`.
-
-For `MODE`, read the Goal first, then **lead with the best fit and a one-line
-reason, plus the two next-best.** Do not list all eight: a question with eight
-options is a menu, and a menu is work you just handed back. The tool supplies an
-"other" escape for the rest.
-
-| the Goal talks about | lead with |
-|---|---|
-| tests, coverage, flakiness, regressions | `TEST` |
-| a spec, a design doc, "implement this" | `BUILD` |
-| refactoring, cleanup, tech debt, waste | `IMPROVE` |
-| "review", "audit", "is this any good" | `REVIEW` |
-| the product, real users, onboarding, a running app | `DOGFOOD` |
-| renaming, upgrading, porting, "everywhere" | `MIGRATE` |
-| "plan", "how would we", sequencing, options | `ROADMAP` |
-| none of the above cleanly | `GENERIC`, with the Goal as the directive |
-
-For `TARGET` you may list directories to turn "the billing module" into
-`src/billing`. Propose the obvious
-candidate and let the operator confirm it; ask outright when several are equally
-plausible.
-
-**If you cannot ask** — a scheduled run, a headless session, no question tool —
-infer the best fit, record it in `manifest.json` and at the top of
-`directive.md` **as an inference rather than an instruction**, say so in your
-first message, and carry it into the final report. A stated assumption is
-recoverable. A silent one is not.
-
----
-
-## 2. Bootstrap
-
-### 2.1 Where everything is
-
-**Every path named in any baton file is relative to wherever you got this
-file.** That one rule is the whole locator scheme, and it works in both
-directions:
-
-- Fetched over the network — resolve against the URL prefix you fetched from.
-  `https://.../baton/main/prompt/baton.md` makes `{BATON}/prompt/CONTRACT.md` into
-  `https://.../baton/main/prompt/CONTRACT.md`. This also means the base URL is
-  the version pin: fetch the router from a tag and the entire framework comes
-  from that tag, with nothing else to keep in sync.
-- Read from disk — resolve against the directory that contains `prompt/`.
-
-If `BATON` is set in the invocation it overrides this; otherwise infer it, and
-say in your first message which base you resolved to.
-
-**`{BATON}` in any baton file means that base**, and it has exactly two forms:
-
-| form | example | when |
-|---|---|---|
-| local | `./baton` | you read this file from a directory |
-| remote | `https://raw.githubusercontent.com/ckluis/baton/main` | you fetched it |
-
-The remote form is the canonical fallback if you have nothing else to go on.
-**Every `{BATON}/...` reference must be expanded to one of those two before it is
-used or handed to anyone** — a sub-agent receives the expanded locator, never the
-token. So `{BATON}/prompt/roles/verifier.md` becomes either
-`./baton/prompt/roles/verifier.md` or
-`https://raw.githubusercontent.com/ckluis/baton/main/prompt/roles/verifier.md`,
-and never stays a template.
-
-Files you or your agents will resolve, all relative to that base:
-
-```
-prompt/CONTRACT.md          narrative + an index of the rules. NOT the rules themselves.
-rules/rule-*.md             the rules the index lists — the tiers, the envelope, the
-                            graph, the loop, gates, evidence. Read them.
-rules/prule-*.md            the user-archetype rules, likewise
-prompt/modes/&lt;MODE&gt;.md      your directive, graph skeleton, entry tiers, gates
-prompt/roles/&lt;role&gt;.md      the prompt body for each agent you spawn
-personas/CONTRACT.md        user-archetype schema and per-phase duties
-personas/users/&lt;slug&gt;.md    end-user archetypes
-```
-
-Fetch or read each file **once**, when you or an agent you spawn actually needs
-it. Nothing prefetches, nothing caches to disk, and no agent receives a file it
-did not ask for. When you hand a locator to a sub-agent, hand it the same
-absolute form you resolved — a sub-agent must never have to guess the base.
-
-If a fetch or read fails, retry it once. If it fails again, stop and tell the
-operator which locator failed. **Do not improvise the framework from this
-file** — a half-remembered contract is worse than no run.
-
-### 2.2 Then, in order, and briefly
-
-1. **Read both contracts, the rules they index, and your mode file.**
-   `{BATON}/prompt/CONTRACT.md` and `{BATON}/personas/CONTRACT.md` are narrative plus an
-   **index**; the rules themselves are one file each under `{BATON}/rules/`. You are the
-   dispatcher (§4), so the rules are your job. Then read `{BATON}/prompt/modes/&lt;MODE&gt;.md`.
-   A pasted bundle already holds all of it.
-2. **Create `_orch/`** per CONTRACT §6, and write:
-   - `manifest.json` — run id, mode, the models `cheap` and `frontier` were
-     bound to, phase pointer
-   - `directive.md` — the mode file's directive with `{TARGET}` substituted,
-     followed by the invocation's Goal block verbatim
-
-   Under `TEAM: github`, create it with `tools/publish-run.sh init &lt;run-id&gt;`
-   instead of `mkdir` — it makes `_orch/` the worktree that `publish` pushes to
-   the hidden ref `refs/baton/run/&lt;run-id&gt;`, creates the run branch
-   `baton/&lt;run-id&gt;`, and refuses a public target without `RUNS_REPO` — write the
-   same two files, then `python3 tools/inbox-gh.py open-run` to open the run's
-   thread: a draft pull request on that branch. Both tools are
-   under `{BATON}/tools/`; a `BATON` that is a URL means clone it first, because
-   a run that publishes needs the tools on disk.
-3. **Plan** (frontier) — spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
-   directive locator and the mode file locator. It returns a graph; it does not
-   execute.
-
-Then run the cycle in §4.
-
----
-
-## 3. Your standing orders
-
-You are the conductor. **The conductor never plays a note.**
-
-**You may never do object-level work.** No edits, no test runs, no browsing.
-Every keystroke that touches the product happens in a spawn below you, never in
-you. **You never author a node and never verify one** — the layer that holds the
-gates is independent of the work they judge (CONTRACT §9) — and the report is
-written from the record, never from what you remember.
-
-**You read the record:** `manifest.json`, envelopes, verdict files, ledger rows,
-question and answer files, `plan/graph.yaml` and `plan/roadmap.md`. Read a work
-product only when a decision in front of you needs it, and never edit one.
-
----
-
-## 4. The cycle
-
-**You are the dispatcher.** Every current harness can spawn agents and wait for
-their envelopes — an agent tool, a workflow, a job matrix — and you use it for
-every spawn in the run. On Claude Code, `python3 {BATON}/tools/dispatch.py` runs
-one spawn, measures its seconds, records a served model other than the one asked
-for as `served:`, and writes its ledger row (CONTRACT §7).
-
-Repeat until the graph has no runnable nodes:
-
-1. **Phase brief.** Select the next phase from `plan/graph.yaml`. Write
-   `_orch/phases/P&lt;n&gt;/brief.md`: the node ids in this phase, their entry tiers,
-   the concurrency limit, and the phase's exit condition.
-2. **Dispatch the phase** by the duties in §4.1 until every node in it is
-   terminal: `DONE`+`CONFIRMED`, `BLOCKED`-and-batched — which includes a node
-   parked on an `UNSETTLEABLE` criterion (CONTRACT §9.2) — or
-   `DONE-WITH-CAVEATS` accepted.
-3. **Phase gate.** Run `python3 tools/lists.py derive` then `python3
-   tools/index.py`; a missing tool or a failed run is logged and never stalls the
-   gate. Read `_orch/inbox/*.answer.md` if `INBOX: on` and unblock what the
-   operator answered. Under `TEAM`, run the gate's publish sequence (CONTRACT
-   §8) — `inbox-gh.py sync` *before* you read the inbox, then `lists.py derive`,
-   `publish-run.sh publish`, `inbox-gh.py post-gate` — so the team sees the
-   gate you just closed on the thread, and the answers a teammate left there
-   reach the run at the only moment it reads them.
-4. **Batch, do not interrupt.** Collect `BLOCKED` questions. Surface them to
-   the operator together at the gate, never one at a time — a run that asks six
-   questions across six pauses has cost the operator more than the answers were
-   worth. Spawn the **briefer** (`{BATON}/prompt/roles/briefer.md`) at frontier over
-   the batch; it writes `_orch/brief/blocked-&lt;n&gt;.html` (CONTRACT §8.1), and your
-   message names that path first.
-
-**Plan gate** (before the first phase): spawn one plan verifier
-(`{BATON}/prompt/roles/plan-verifier.md`) at frontier, as a fresh spawn. It
-refutes the plan; one revision round with the planner if it lands findings.
-
-**Final gate**: spawn the synthesizer (`{BATON}/prompt/roles/synthesizer.md`) at
-frontier to write `final/report.md` from envelopes, verdicts, and the ledger. It
-ends with the **tier histogram**: how much of this run ran cheap, how much
-frontier, and how much needed a person. Then spawn the briefer
-(`{BATON}/prompt/roles/briefer.md`) at frontier over the report to write
-`_orch/brief/final.html` (CONTRACT §8.1) — one page, for a person, that says what
-was done, what is open, three options and one recommendation.
-
-### 4.1 Dispatcher duties
-
-For each runnable node — every `needs` target `DONE` **and** `CONFIRMED`
-(CONTRACT §4.1), at most the concurrency CONTRACT §4.3 allows, and never a node
-whose envelope already reads `DONE` with a `CONFIRMED` verdict:
-
-1. **Lint, then spawn.** `python3 tools/lint-criteria.py _orch/nodes/&lt;id&gt;/handoff.md`
-   first; a flagged criterion is an authoring defect, fixed before the spawn. A
-   missing `python3` or a failed run is logged and dispatched past. Under `TEAM`,
-   `tools/node-pr.sh branch &lt;id&gt;` gives a product-writing node its worktree at
-   `_orch/wt/&lt;id&gt;/` from the run branch (CONTRACT §4, §6.2). Stamp
-   `date -u +%s &gt; _orch/nodes/&lt;id&gt;/started_at`, then spawn the node orchestrator
-   (`{BATON}/prompt/roles/node-orchestrator.md`) at the node's tier with its
-   handoff locator.
-2. **Write the ledger row at receipt.** On each envelope, write its row file
-   first: `_orch/ledger/&lt;ts&gt;-&lt;id&gt;-&lt;attempt&gt;.csv`, in CONTRACT §7.1's shell form,
-   reading `started_at` back so `seconds` is measured. You write the spawn row for
-   every spawn you made, and nobody else does (§7.2). Under `TEAM`, then
-   `tools/publish-run.sh publish --node &lt;id&gt;`, so a session limit before the gate
-   loses nothing received.
-3. **Route the envelope:**
-   - `DONE` / `DONE-WITH-CAVEATS` → verify (step 4).
-   - `SPLIT` → re-spawn the planner (`{BATON}/prompt/roles/planner.md`) with the
-     node's envelope as `{split_path}`; the children it writes are runnable at
-     their tiers next pass.
-   - `ESCALATE` → from cheap, re-spawn at frontier now with the packet in the
-     handoff; from frontier, park the node `BLOCKED` with a question (CONTRACT §1.2).
-   - `FAILED`, or a `REFUTED` verdict → CONTRACT §1.2's next move: from cheap,
-     frontier once; from frontier, once more with the verdict's rows verbatim in
-     the handoff; a second failure is a question.
-   - `BLOCKED` → park the node; it wrote `_orch/inbox/Q-&lt;n&gt;.md` (CONTRACT §10).
-     **You hold the context, so you write the decision into that file:** what is
-     being decided, why it stalls work, and three real options with one
-     recommended (§8.2). Batch it and continue with the rest of the phase.
-   - Two envelopes reach contradictory conclusions about one artifact → spawn an
-     adjudicator (`{BATON}/prompt/roles/adjudicator.md`) at frontier (§1.2).
-4. **Verify, and check the verdict's shape before you route it.** Spawn a fresh
-   verifier (`{BATON}/prompt/roles/verifier.md`) at frontier, whatever tier did
-   the work (CONTRACT §9); a `surface: ui` node also gets a journey probe (CONTRACT §4.1).
-   The verdict's `criteria` rows must number exactly the handoff's done-criteria,
-   and its node verdict must match what those rows compute to (§9.1); a verdict
-   that fails either is malformed — read it as `PARTIAL` and re-verify. Then:
-   - `CONFIRMED` → close the node.
-   - `REFUTED` → `FAILED` on the node (step 3). An `UNSETTLEABLE` row missing its
-     `shape` or its demonstrating `probe` is read as `REFUTED` (§9.2). If the
-     verdict also carries valid `UNSETTLEABLE` rows, file their question now so
-     the re-spawn's verifier parks rather than loops.
-   - `PARTIAL` with any `UNSETTLEABLE` row → **park, do not re-verify** (§9.2).
-     Write `_orch/inbox/Q-&lt;n&gt;.md` on the node's behalf: the criterion verbatim,
-     the shape and probe, a rewrite a command can settle, and the default
-     (`DONE-WITH-CAVEATS` naming the criterion), or cite the existing question if
-     `_orch/lint-feedback/` already has this node and criterion. Write the
-     lint-feedback row as its own file, `_orch/lint-feedback/&lt;id&gt;-&lt;criterion
-     index&gt;.yaml` (§6.3). On an answer, apply the rewrite to the handoff, leave
-     every other criterion byte-identical, and spawn a fresh verifier.
-   - `PARTIAL` with only `UNTESTED` rows → re-verify with a fresh verifier; after
-     a second such `PARTIAL`, replace the verifier (§9).
-
-   Under `TEAM`, `tools/node-pr.sh status &lt;id&gt; &lt;CONFIRMED|REFUTED|PARTIAL&gt;` puts
-   the computed verdict on the node's commit as the check `baton/verify`.
-5. **Land a worktree before it dies** (CONTRACT §6.2). For an `isolation:
-   worktree` node, copy every `outputs` path into `_orch/nodes/&lt;id&gt;/work/`,
-   confirm each copy, rewrite the envelope's `outputs` to the landed paths with
-   the original beside each as `worktree_path`, and only then `git worktree
-   remove`. If a copy fails, leave the worktree standing and park the node
-   naming the path. Under `TEAM`, `tools/node-pr.sh land &lt;id&gt;` is the landing:
-   one commit on the run branch, checked out under `work/tree/`.
-
----
-
-## 5. Ending
-
-Your closing message to the operator is small, and small is the whole point:
-
-- the verdict
-- the **fully qualified** path to `_orch/brief/final.html` — the page a person opens
-  first. Absolute from the filesystem root, never relative (§8.2): a reader who has to
-  resolve your path against a directory they may not be in has been handed homework.
-- the **fully qualified** path to `final/report.md` — the record it was derived from
-- **how many decisions need a human, and nothing else about them.** They are slides in
-  the deck you just named. Restating them here re-buries the page (§8.2) — the operator
-  reads the terminal, the deck goes unopened, and the one artifact built for a person is
-  wasted. Say "four decisions need you", not what they are.
-- **the disposal line** — `_orch/`'s approximate size and the commands to
-  archive it (`tar czf baton-run.tar.gz _orch &amp;&amp; rm -rf _orch`) or keep it to
-  resume or re-verify
-- **under `TEAM`, two more lines and a different disposal line** — the pull
-  request's URL (the thread: the deck in its last gate comment, the product as
-  one commit per node, every question and answer), and the hidden ref with the
-  permalink base its last push printed (`/blob/&lt;sha&gt;/`). Disposal is
-  `tools/publish-run.sh dispose &lt;run-id&gt;`: the hidden ref is deleted and the
-  pull request stays as the record a person can read. Or keep the ref; it is
-  26 MB, and nobody sees it.
-
-Cleanup is the operator's act, never yours. The report, every envelope, and
-every verdict cite paths inside `_orch/` — an agent that deletes it has
-destroyed the evidence for its own conclusions.
-
----
-
-## 6. If you are resuming
-
-A baton run has no memory that matters and no context worth preserving. Read
-`manifest.json`, scan `nodes/*/status.json` and `verify/*.json`, and continue.
-
-Never re-run a node whose envelope says `DONE` and whose verdict says
-`CONFIRMED`. Never re-plan a graph that exists. **Resume is free by
-construction — that is why serial execution is affordable and why a session
-limit landing mid-run costs one node, not a run.**
-
----
-
-Begin: confirm `TARGET` and `MODE`, resolve your base per §2.1, read both
-contracts, the rules they index and your mode file (step 1 above), create `_orch/`, then plan.</pre>
-        </div>
+    <article class="ver">
+      <div class="tag"><b>v4</b><small>2026-09-18</small></div>
+      <div>
+        <h3>For you or a team</h3>
+        <p class="why"><span class="lbl">Why</span>Let a team share a run: git as the record, pull requests for the changes, issues for the
+        questions a person has to answer.</p>
+        <p class="end"><b>Dropped:</b> it lived on as v7.1's GitHub goals and went away with the mod.</p>
+        <p class="links"><a href="baton-v4.html">The v4 page</a></p>
       </div>
-    </details>
-  </div>
-</section>
+    </article>
 
-<section id="versions">
-  <div class="wrap">
-    <div class="secnum">10</div>
-    <h2>How it got here.</h2>
-    <p class="lede">Seven versions, each a response to what the one before measured. Every earlier page is kept as it shipped.</p>
-    <div class="vers">
-      <div class="ver reveal">
-        <div class="vh"><b>v1</b><span>2026-08-23</span></div>
-        <h3>The original</h3>
-        <p>One 571-line prompt: a Fable-led orchestrator of orchestrators, file-passing handoffs, a four-tier ladder, adversarial verification, six modes.</p>
-        <div class="proc">Process: one prompt, no measurements yet. Its routing paid the top model for everything.</div>
-        <a class="go" href="baton-v1.html">Read v1 →</a>
+    <article class="ver">
+      <div class="tag"><b>v5</b><small>2026-09-21</small></div>
+      <div>
+        <h3>Agents do the work, baton keeps the record</h3>
+        <p class="why"><span class="lbl">Why</span>With much smarter models, the rules about which model to use stopped mattering. v5 kept
+        only the checking: evidence that cites or takes it back, per-item verdicts, and gates a person holds.</p>
+        <p class="end"><b>Dropped:</b> the checking carried on through v6 and v7 and went away with the mod. The habit stays.</p>
+        <p class="links"><a href="baton-v5.html">The v5 page</a></p>
       </div>
-      <div class="ver reveal">
-        <div class="vh"><b>v2</b><span>2026-08-24</span></div>
-        <h3>The cost rewrite</h3>
-        <p>Six rungs of model × effort instead of four tiers; a failure climbs one rung, buying more thinking before a bigger model.</p>
-        <div class="proc">Process: keep v1's architecture, reprice its routing: one failure buys one rung, not one model.</div>
-        <a class="go" href="baton-v2.html">Read v2 →</a>
-      </div>
-      <div class="ver reveal">
-        <div class="vh"><b>v3</b><span>2026-08-31</span></div>
-        <h3>The roster</h3>
-        <p>40 named experts, <code>CRAFT</code> and <code>POSITION</code>, verdicts computed per criterion, every rule a file, every check an instrument with a yield.</p>
-        <div class="proc">Process: make the checks accountable too: per-criterion verdicts, and instrument records with a lifetime yield.</div>
-        <a class="go" href="baton-v3.html">Read v3 →</a>
-      </div>
-      <div class="ver reveal">
-        <div class="vh"><b>v4</b><span>2026-09-18</span></div>
-        <h3>Team mode</h3>
-        <p>The run on a hidden git ref any machine resumes; questions as comments anyone answers; product changes as one commit per node, the verdict as a check.</p>
-        <div class="proc">Process: GitHub split into its primitives: git the record, PRs the changes, Issues the human lane.</div>
-        <a class="go" href="baton-v4.html">Read v4 →</a>
-      </div>
-      <div class="ver reveal">
-        <div class="vh"><b>v5</b><span>2026-09-21</span></div>
-        <h3>The accountability layer</h3>
-        <p>Three tiers instead of six rungs, rules cut to invariants, the harness dispatching when it can. "Agents do the work. baton keeps the record."</p>
-        <div class="proc">Process: ask what a stronger model makes unnecessary; subtract it, keep every field name, record the change as a bet the ledger measures.</div>
-        <a class="go" href="baton-v5.html">Read v5 →</a>
-      </div>
-      <div class="ver reveal">
-        <div class="vh"><b>v6</b><span>2026-10-02</span></div>
+    </article>
+
+    <article class="ver">
+      <div class="tag"><b>v6</b><small>2026-10-02</small></div>
+      <div>
         <h3>The shrink</h3>
-        <p>−30% framework for Opus 5.5 and Sonnet 5.5: one effort, personas off the default path, no phase runner, digest or decomposer.</p>
-        <div class="proc">Process: six experiments (effort, tiers, Opus vs Sonnet, personas); cut what moved nothing.</div>
-        <a class="go" href="baton-v6.html">Read v6 →</a>
+        <p class="why"><span class="lbl">Why</span>Six experiments on Opus 5.5 and Sonnet 5.5 found that model, effort and persona choices
+        moved results by fractions of a point. What really failed: goals no check could settle, a broken
+        environment, and claims nobody checked. v6 cut about 30% of baton.</p>
+        <p class="end"><b>Dropped:</b> the lesson stuck, and the next version shrank further.</p>
+        <p class="links"><a href="baton-v6.html">The v6 page</a> <a href="https://github.com/ckluis/baton/tree/main/docs/experiments">The experiments</a></p>
       </div>
-      <div class="ver now reveal" style="grid-column:1/-1">
-        <div class="vh"><b>v7</b><span>2026-10 · current</span></div>
+    </article>
+
+    <article class="ver">
+      <div class="tag"><b>v7</b><small>2026-10-05 → 10-19</small></div>
+      <div>
         <h3>The mod</h3>
-        <p>The prime becomes a Claude Code mod that only dispatches, with a memory instead of a growing context, rulings that stick,
-          the agent tree in a pane, approvals from anywhere, and red/green/blue for every behavior change. The expert library is deleted.</p>
-        <div class="proc">Process: pre-registered experiments on context rot and reviewer memory (E1, E1b, E1c, E2), an audited answer key, and ideas from
-          <a href="https://github.com/VictorTaelin/OptMem">OptMem</a> and OptChat taken where they fit and dropped where they didn't.</div>
+        <p class="why"><span class="lbl">Why</span>Rebuilt inside Claude Code's mod system: a guarded lead that only hands out work, a memory
+        instead of a growing chat, Work and Memory views, a command gate, GitHub goals, per-agent cost
+        meters, and a usage strip. Before building it, v7 tested whether long chats get worse (no: 24/24 out
+        to 831K tokens and 29 compactions) and whether the expert panel helped (no).</p>
+        <p class="end"><b>Dropped:</b> the mod system changed under baton more than once, and keeping up became the main job.</p>
+        <p class="links"><a href="https://github.com/ckluis/baton/tree/v7.5.1">v7.5.1 code</a> <a href="https://github.com/ckluis/baton/blob/v7.5.1/docs/designs/v7-mods.md">v7 design</a> <a href="docs/releases/v8/">The v8 plan that never shipped</a></p>
       </div>
-    </div>
+    </article>
+
+    <article class="ver">
+      <div class="tag"><b>v7.6</b><small>demo 2026-11-11</small></div>
+      <div>
+        <h3>Tuned for the Claude Code you run</h3>
+        <p class="why"><span class="lbl">Why</span>v7.5.1 found four bugs in one afternoon of real use that the tests had missed. v7.6 checked
+        every part against the live Claude Code.</p>
+        <p class="end"><b>Dropped:</b> in the live demo the goal was met, but two tiny files took $4.78 and 1 h 36 m.
+        Opening a view took three keys, the table columns didn't line up, times mixed UTC and local, and baton
+        refused to write its own final report.</p>
+        <p class="links"><a href="https://github.com/ckluis/baton/pull/57">The v7.6 pull request</a></p>
+      </div>
+    </article>
+
+    <article class="ver now">
+      <div class="tag"><b>v8</b><small>2026-11-11</small></div>
+      <div>
+        <h3>Just a usage line</h3>
+        <p class="why"><span class="lbl">Why</span>The part still worth having was the usage numbers. Claude Code's
+        status line now gets the 5-hour, weekly and context numbers directly, and its usage request has Fable.</p>
+        <p class="end"><b>Kept:</b> one file, one line. Use Claude Code the way Anthropic built it.</p>
+        <p class="links"><a href="https://github.com/ckluis/baton/blob/main/CHANGELOG.md">Changelog</a> <a href="https://github.com/ckluis/baton/blob/main/statusline/usage-line.mjs">The code</a></p>
+      </div>
+    </article>
+
   </div>
-</section>
+</div></section>
 
-<footer>
-  <div class="wrap">
-    <div>baton · MIT · <a href="https://github.com/ckluis/baton">github.com/ckluis/baton</a> · <a href="https://github.com/ckluis/baton/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://github.com/ckluis/baton/blob/main/MIGRATING.md">Migrating</a></div>
-    <div>Agents do the work. baton keeps the record.</div>
-  </div>
-</footer>
+<section><div class="wrap lesson">
+  <h2>Why most of it went away</h2>
+  <p>baton was always a bet that Claude Code needed scaffolding around it. Each version's own
+  experiments chipped at that bet:</p>
+  <ul>
+    <li>The model ladder (v2) priced a world where the big model was the expensive part. That world went away.</li>
+    <li>Expert personas (v3) scored the same as one plain reviewer.</li>
+    <li>Long chats didn't get worse on Opus 5.5, so a memory that replaced the chat (v7) fixed a problem that wasn't there.</li>
+    <li>Claude Code has its own pieces now: subagents, workflows, a usage screen, rate limits in the status line. Its mod system changed fast enough that keeping up became the main job.</li>
+  </ul>
+  <p>The checking ideas held up: evidence over claims, a fresh look at finished work, a person
+  holding the gate. They're habits now, not code. What's left in the repo is the line at the top of this page.</p>
+</div></section>
 
-<script>
-  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function(es){
-    es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { rootMargin: '0px 0px -8% 0px' }) : null;
-  document.querySelectorAll('.reveal').forEach(function(el){ if (io) io.observe(el); else el.classList.add('in'); });
+<footer><div class="wrap">
+  baton · MIT · <a href="https://github.com/ckluis/baton">github.com/ckluis/baton</a>
+</div></footer>
 
-  function wireCopy(btnId, srcId, label){
-    var btn = document.getElementById(btnId), src = document.getElementById(srcId);
-    if (!btn || !src) return;
-    btn.addEventListener('click', async function(){
-      var text = src.textContent, ok = false;
-      try { await navigator.clipboard.writeText(text); ok = true; }
-      catch (e) {
-        var r = document.createRange(); r.selectNodeContents(src);
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-        ok = document.execCommand('copy'); s.removeAllRanges();
-      }
-      btn.textContent = ok ? 'Copied ✓' : 'Select + copy manually';
-      if (ok) btn.classList.add('ok');
-      setTimeout(function(){ btn.textContent = label; btn.classList.remove('ok'); }, 2400);
-    });
-  }
-  // Inside the mod: filter the hook cards by purpose (all of them show without JS).
-  var fbtns = document.querySelectorAll('.purp button'), active = null;
-  fbtns.forEach(function(b){
-    b.addEventListener('click', function(){
-      active = active === b.dataset.f ? null : b.dataset.f;
-      fbtns.forEach(function(x){ x.setAttribute('aria-pressed', String(x.dataset.f === active)); });
-      document.querySelectorAll('.hook').forEach(function(h){ h.classList.toggle('dim', !!active && h.dataset.k !== active); });
-    });
-  });
-
-  // Section 4's window, live: both tabs. Rows open the views the mod draws; a view's own rows open
-  // deeper (memory blocks into their notes); b steps back one level.
-  document.querySelectorAll('.cc .demo').forEach(function(demo){
-    var list = demo.querySelector('pre.work'), stack = [], sel = 0
-    var shown = function(){ return stack.length ? demo.querySelector('pre.dview[data-id="' + stack[stack.length - 1] + '"]') : list }
-    var rows = function(){ return Array.prototype.filter.call(shown().querySelectorAll('.row'), function(r){ return r.offsetParent !== null }) }
-    var mark = function(i){ var rs = rows(); demo.querySelectorAll('.row.sel').forEach(function(r){ r.classList.remove('sel') }); if (!rs.length) return; sel = Math.max(0, Math.min(rs.length - 1, i)); rs[sel].classList.add('sel'); rs[sel].scrollIntoView({ block: 'nearest' }) }
-    var show = function(){ var cur = shown(); list.hidden = cur !== list; demo.querySelectorAll('pre.dview').forEach(function(v){ v.hidden = v !== cur }); mark(0) }
-    var open = function(id){ if (!demo.querySelector('pre.dview[data-id="' + id + '"]')) return; stack.push(id); show(); demo.focus({ preventScroll: true }) }
-    var back = function(){ if (!stack.length) return; var from = stack.pop(); show(); var rs = rows(); var i = rs.findIndex(function(r){ return r.getAttribute('data-d') === from }); if (i >= 0) mark(i) }
-    demo.addEventListener('click', function(ev){
-      if (ev.target.closest('.back')) { back(); return }
-      var r = ev.target.closest('.row'); if (r) open(r.getAttribute('data-d'))
-    })
-    demo.addEventListener('keydown', function(ev){
-      var k = ev.key
-      if (k === 'ArrowDown' || k === 'ArrowUp') { ev.preventDefault(); mark(sel + (k === 'ArrowDown' ? 1 : -1)) }
-      else if (k === 'Enter') { var rs = rows(); if (rs[sel]) { ev.preventDefault(); open(rs[sel].getAttribute('data-d')) } }
-      else if (k === 'b' || k === 'Escape' || k === 'Backspace') { if (stack.length) { ev.preventDefault(); back() } }
-      else if (k === 'p' && !stack.length && demo.closest('.p-w')) { demo.classList.toggle('plan-open'); mark(sel) }
-      else if (k === '1' || k === '2') { var t = document.getElementById(k === '1' ? 'cc-w' : 'cc-m'); if (t) { t.checked = true; var d = document.querySelector(k === '1' ? '.cc .p-w .demo' : '.cc .p-m .demo'); if (d) d.focus({ preventScroll: true }) } }
-    })
-    demo.addEventListener('focus', function(){ if (!demo.querySelector('.row.sel')) mark(sel) })
-  });
-  wireCopy('copybtn', 'psrc', 'Copy it');
-  wireCopy('rcopybtn', 'rsrc', 'Copy the router');
-</script>
 </body>
 </html>

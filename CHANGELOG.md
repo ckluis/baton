@@ -1,5 +1,46 @@
 # Changelog
 
+## v8.0.0 — 2026-11-11
+
+baton is now only a usage monitor: one status line above the prompt.
+
+```
+5h ▕░░░░░▏ 7% resets 14:30 EST · fable ▕██░░░▏ 31% · wk ▕███░░▏ 52% resets Mon 07:00 EST · ctx ▕░░░░░▏ 5%
+```
+
+**Why.** The live demo of v7.6 on 2026-11-11 finished its goal, but two tiny files cost $4.78 and
+1 h 36 m. Opening a view took three keys, the Work table's columns did not line up, times mixed UTC
+and local, and baton refused its own final report. Claude Code's mod system had changed under
+baton more than once, and most of what baton added is now built into Claude Code. The part worth
+keeping was the usage numbers.
+
+**Breaking: removed.** The whole plugin (`mod/`): the prime skill and its guard; the agent types
+(sub-orchestrator, worker, worker-cheap, verifier, pr-reviewer); the run and project memory and
+their MCP tools; the code tools; the Work and Memory views and the run pane; `/baton start` and
+every other run command; the command gate; the forbidden-file check; and their tests. Also
+`prompt/`, `rules/`, `personas/`, `tools/`, `migrations/`, `previews/`, `bundle.sh`,
+`MIGRATING.md` and the plugin marketplace file. The old version pages (`baton-v1.html` to
+`baton-v6.html`) and `docs/` stay as the record.
+
+**Added.**
+- `statusline/usage-line.mjs`: one Node file, no packages. 5h, wk and ctx come from the JSON
+  Claude Code sends every status line. Fable is not in that JSON (checked on 2.1.322). The line
+  gets it from Claude Code's experimental SDK usage request, in the background at most every 5
+  minutes, with no model call.
+- Times in the system's own time zone with its short name (`EST`, `CET`), read at every draw; no
+  more UTC `Z` times.
+- `n/a (reason)` for any number not known; never a made-up number.
+- Fits 40 to 200 columns: drops bars, then reset times, then Fable, then weekly, then the `n/a`
+  reasons; 5h and ctx always stay.
+- `ctx` is one percent. The old `/35%` was the memory hand-off point and went with the memory.
+- 28 tests (`npm test`).
+
+**Looked into, left out.** "Resets available", the number of unused 5-hour limit resets on an
+account, reaches neither a status line nor a mod. Claude Code reads it from a private usage
+address with the user's login, so v8 does not show it.
+
+**Upgrade.** `claude plugin uninstall baton@baton`, then add the `statusLine` lines in the README.
+
 ## v7.5.1 — 2026-10-19
 
 - **Current Claude Code:** the prime guard accepts Claude Code 2.1.287 or later instead of exactly

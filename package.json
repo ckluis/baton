@@ -1,0 +1,13 @@
+{
+  "name": "baton",
+  "version": "8.0.0",
+  "description": "A usage line for Claude Code's status line: 5-hour, Fable, weekly and context",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://ckluis.github.io/baton/",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test statusline/usage-line.test.mjs"
+  }
+}
